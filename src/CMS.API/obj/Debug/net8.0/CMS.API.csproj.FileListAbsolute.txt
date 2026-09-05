@@ -156,3 +156,4 @@ C:\Users\ASUS\source\repos\CMS\src\CMS.API\obj\Debug\net8.0\CMS.API.pdb
 C:\Users\ASUS\source\repos\CMS\src\CMS.API\obj\Debug\net8.0\CMS.API.genruntimeconfig.cache
 C:\Users\ASUS\source\repos\CMS\src\CMS.API\obj\Debug\net8.0\ref\CMS.API.dll
 C:\Users\ASUS\source\repos\CMS\src\CMS.API\bin\Debug\net8.0\web.config
+C:\Users\ASUS\source\repos\CMS\src\CMS.API\obj\Debug\net8.0\CMS.API.sourcelink.json

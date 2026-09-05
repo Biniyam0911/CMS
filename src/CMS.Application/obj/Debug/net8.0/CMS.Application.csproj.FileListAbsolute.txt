@@ -34,3 +34,4 @@ C:\Users\ASUS\source\repos\CMS\src\CMS.Application\bin\Debug\net8.0\LatoFont\Lat
 C:\Users\ASUS\source\repos\CMS\src\CMS.Application\bin\Debug\net8.0\LatoFont\Lato-Thin.ttf
 C:\Users\ASUS\source\repos\CMS\src\CMS.Application\bin\Debug\net8.0\LatoFont\Lato-ThinItalic.ttf
 C:\Users\ASUS\source\repos\CMS\src\CMS.Application\bin\Debug\net8.0\LatoFont\OFL.txt
+C:\Users\ASUS\source\repos\CMS\src\CMS.Application\obj\Debug\net8.0\CMS.Application.sourcelink.json

@@ -1354,7 +1354,8 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                       onChange={e => !isEditingClosed && setPlan(e.target.value)}
                       readOnly={isEditingClosed}
                       placeholder="Enter clinical treatment instructions, ordered investigations, patient education, follow-up date..."
-                      style={isEasingClosed ? readOnlyStyle : {}}
+                      style={isEditingClosed ? readOnlyStyle : {}}
+
                     />
                   </div>
                 </>
@@ -1821,6 +1822,91 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Status: {inv.statusName || inv.status || 'Issued'} • Paid: Br {(inv.paidAmount || inv.paid || 0).toFixed(2)}</div>
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+      )}
+
+
+      {/* ========================================================================= */}
+      {/* 4. RESULTS TAB (Lab Results, chronological)                               */}
+      {/* ========================================================================= */}
+      {activeSubTab === 'results' && (
+        <div className="glass-panel" style={{ padding: '18px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>
+            <div>
+              <h3 style={{ fontSize: '1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <FlaskConical size={16} color="#0284c7" /> Lab &amp; Procedure Results
+              </h3>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                Patient: {activePatient?.name} — {activePatient?.mrn} | Chronological (newest first)
+              </span>
+            </div>
+            <button onClick={loadPatientResults} className="btn-secondary" style={{ padding: '5px 10px', fontSize: '0.75rem' }}>
+              <FlaskConical size={13} /> Refresh Results
+            </button>
+          </div>
+
+          {loadingResults ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+              <Loader2 size={24} className="animate-spin" style={{ margin: '0 auto 8px' }} />
+              Loading results...
+            </div>
+          ) : patientLabResults.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+              <FlaskConical size={36} style={{ margin: '0 auto 10px', opacity: 0.3 }} />
+              <div style={{ fontWeight: 600 }}>No laboratory results found for {activePatient?.name}</div>
+              <div style={{ fontSize: '0.78rem', marginTop: '4px' }}>Results will appear here once lab tests are completed and verified.</div>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {patientLabResults.map((r, idx) => {
+                const flagColor = r.flag === 'H' || r.flag === 'HH' ? '#dc2626' :
+                                  r.flag === 'L' || r.flag === 'LL' ? '#2563eb' : '#059669';
+                const entryDate = r.enteredAt ? new Date(r.enteredAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+                const entryTime = r.enteredAt ? new Date(r.enteredAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
+                return (
+                  <div
+                    key={idx}
+                    style={{
+                      padding: '12px 14px',
+                      borderRadius: '8px',
+                      background: r.isCritical ? '#fef2f2' : '#fdfcf9',
+                      border: `1px solid ${r.isCritical ? '#fca5a5' : 'var(--border-color)'}`,
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      gap: '12px'
+                    }}
+                  >
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
+                        <span style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--text-main)' }}>{r.testName}</span>
+                        {r.isCritical && <span className="badge badge-critical" style={{ fontSize: '0.62rem' }}>⚠ CRITICAL</span>}
+                        {r.isVerified && <span className="badge badge-normal" style={{ fontSize: '0.62rem' }}>✓ Verified</span>}
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                        {r.orderNumber} • {entryDate} {entryTime}
+                      </div>
+                      {r.referenceRange && (
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                          Ref: {r.referenceRange}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ textAlign: 'right', minWidth: '80px' }}>
+                      <div style={{ fontSize: '1.1rem', fontWeight: 800, color: r.flag ? flagColor : 'var(--text-main)' }}>
+                        {r.numericValue} {r.unit}
+                      </div>
+                      {r.flag && (
+                        <div style={{ fontSize: '0.72rem', fontWeight: 700, color: flagColor }}>
+                          {r.flag === 'H' ? '↑ HIGH' : r.flag === 'HH' ? '↑↑ CRITICAL HIGH' : r.flag === 'L' ? '↓ LOW' : r.flag === 'LL' ? '↓↓ CRITICAL LOW' : r.flag}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
