@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("CMS.ServiceManager")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6be7045b5c9be085b05703095c9c8c3ae8843beb")]
 [assembly: System.Reflection.AssemblyProductAttribute("CMS.ServiceManager")]
 [assembly: System.Reflection.AssemblyTitleAttribute("CMS.ServiceManager")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
