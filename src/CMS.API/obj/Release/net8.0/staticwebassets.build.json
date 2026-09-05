@@ -1,0 +1,12 @@
+{
+  "Version": 1,
+  "Hash": "KertwGYpu3gCvLhFrh99T9qg2lcfScbL2lJVTUd7zQs=",
+  "Source": "CMS.API",
+  "BasePath": "_content/CMS.API",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": [],
+  "Endpoints": []
+}

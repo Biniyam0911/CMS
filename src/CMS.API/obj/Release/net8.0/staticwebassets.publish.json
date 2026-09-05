@@ -1,0 +1,12 @@
+{
+  "Version": 1,
+  "Hash": "hkEX+cZXrnl+uet48edxUm72WOGf7ypAhMFWA1QYUQg=",
+  "Source": "CMS.API",
+  "BasePath": "_content/CMS.API",
+  "Mode": "Default",
+  "ManifestType": "Publish",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": [],
+  "Endpoints": []
+}

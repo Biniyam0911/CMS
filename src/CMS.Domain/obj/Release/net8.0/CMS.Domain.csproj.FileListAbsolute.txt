@@ -1,0 +1,11 @@
+C:\Users\ASUS\source\repos\CMS\src\CMS.Domain\bin\Release\net8.0\CMS.Domain.deps.json
+C:\Users\ASUS\source\repos\CMS\src\CMS.Domain\bin\Release\net8.0\CMS.Domain.dll
+C:\Users\ASUS\source\repos\CMS\src\CMS.Domain\bin\Release\net8.0\CMS.Domain.pdb
+C:\Users\ASUS\source\repos\CMS\src\CMS.Domain\obj\Release\net8.0\CMS.Domain.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\ASUS\source\repos\CMS\src\CMS.Domain\obj\Release\net8.0\CMS.Domain.AssemblyInfoInputs.cache
+C:\Users\ASUS\source\repos\CMS\src\CMS.Domain\obj\Release\net8.0\CMS.Domain.AssemblyInfo.cs
+C:\Users\ASUS\source\repos\CMS\src\CMS.Domain\obj\Release\net8.0\CMS.Domain.csproj.CoreCompileInputs.cache
+C:\Users\ASUS\source\repos\CMS\src\CMS.Domain\obj\Release\net8.0\CMS.Domain.dll
+C:\Users\ASUS\source\repos\CMS\src\CMS.Domain\obj\Release\net8.0\refint\CMS.Domain.dll
+C:\Users\ASUS\source\repos\CMS\src\CMS.Domain\obj\Release\net8.0\CMS.Domain.pdb
+C:\Users\ASUS\source\repos\CMS\src\CMS.Domain\obj\Release\net8.0\ref\CMS.Domain.dll
