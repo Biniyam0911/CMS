@@ -1931,9 +1931,9 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
               <button onClick={() => setShowOrderModal(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={20} /></button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', flex: 1, overflow: 'hidden' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', flex: 1, overflow: 'hidden', minHeight: 0 }}>
               {/* Tree */}
-              <div style={{ borderRight: '1px solid var(--border-color)', padding: '14px', overflowY: 'auto', maxHeight: '55vh', display: 'flex', flexDirection: 'column', gap: '8px', background: '#fbf9f4' }}>
+              <div style={{ borderRight: '1px solid var(--border-color)', padding: '14px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', background: '#fbf9f4' }}>
                 
                 {/* Lab Node */}
                 <div style={{ borderRadius: '8px', background: '#ffffff', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
@@ -2136,7 +2136,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
               </div>
 
               {/* Parameter Editor */}
-              <div style={{ padding: '18px 20px', overflowY: 'auto', maxHeight: '55vh', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: '#ffffff' }}>
+              <div style={{ padding: '18px 20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: '#ffffff' }}>
                 {selectedOrderItem ? (
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', marginBottom: '14px' }}>

@@ -284,7 +284,6 @@ public class LaboratoryController : ControllerBase
                       WHERE inv.PatientId = o.PatientId 
                         AND ii.ItemType = 2 
                         AND inv.StatusId = 4
-                        AND CAST(inv.IssueDate AS DATE) = CAST(o.OrderedAt AS DATE)
                   )
               )
             ORDER BY o.Priority ASC, o.OrderedAt DESC";

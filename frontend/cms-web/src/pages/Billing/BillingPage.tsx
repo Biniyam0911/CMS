@@ -470,6 +470,7 @@ export default function BillingPage() {
                         <option value="1">Cash (Counter)</option>
                         <option value="2">Telebirr / CBE Mobile</option>
                         <option value="3">Insurance Claim / POS</option>
+                        <option value="4">Waived / Free Service</option>
                       </select>
                     </div>
                     <div>
@@ -489,6 +490,23 @@ export default function BillingPage() {
                     <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Transaction Reference / Slip No</label>
                     <input type="text" placeholder="e.g. TX-98421 or Cash" value={payReference} onChange={e => setPayReference(e.target.value)} />
                   </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const remaining = selectedInvoice.total - selectedInvoice.paid;
+                      setPayAmount(String(remaining.toFixed(2)));
+                      setPayMethod('4');
+                      setPayReference('Waived / Free Service');
+                    }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center',
+                      padding: '7px 14px', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 700,
+                      background: '#fffbeb', border: '1px solid #f59e0b', color: '#92400e', cursor: 'pointer', width: '100%'
+                    }}
+                  >
+                    ☑ Waive / Mark as Free Service
+                  </button>
 
                   <button type="submit" className="btn-primary" style={{ justifyContent: 'center', marginTop: '4px' }}>
                     <DollarSign size={14} /> Accept Payment

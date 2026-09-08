@@ -6,20 +6,33 @@ import {
 } from 'lucide-react';
 import { api } from '../../api/apiClient';
 
-interface OrderItem {
-  id: number;
-  orderNo: string;
-  patientName: string;
+interface OrderTestItem {
+  itemId: number;
   testCode: string;
   testName: string;
   sampleType: string;
   barcode: string;
+  status: string;
+  results: Record<string, string>;
+}
+
+interface OrderItem {
+  id: number;         // OrderId
+  orderNo: string;
+  patientName: string;
+  /** @deprecated use tests[0] for display; kept for legacy print compat */
+  testCode: string;
+  /** @deprecated use tests[0] for display */
+  testName: string;
+  sampleType: string;
+  barcode: string;    // order-level barcode (BC-<orderId>)
   status: string;
   custodyStep: string;
   priority?: string | number;
   orderedAt?: string;
   prevValue?: string;
   results: Record<string, string>;
+  tests: OrderTestItem[];
 }
 
 export interface LabMachine {
@@ -326,20 +339,47 @@ export default function LaboratoryPage() {
       }
 
       if (worklistData && worklistData.length > 0) {
-        const mappedOrders = worklistData.map((w: any) => ({
-          id: w.orderId || w.OrderId || w.id,
-          orderNo: w.orderNumber || w.OrderNumber || `LAB-${w.orderId || w.id}`,
-          patientName: w.patientName || w.PatientName || 'Patient',
-          testCode: w.testCode || w.TestCode || 'CBC',
-          testName: w.testName || w.TestName || 'Complete Blood Count',
-          sampleType: w.sampleType || w.SampleType || 'Blood',
-          barcode: w.barcode || w.Barcode || `BC-${Math.floor(100000 + Math.random() * 900000)}`,
-          status: w.itemStatus === 4 ? 'Resulted' : 'Processing',
-          custodyStep: w.custodyStep || (w.itemStatus === 4 ? 'Verified' : 'AnalyzerRun'),
-          orderedAt: w.orderedAt || w.OrderedAt || new Date().toISOString(),
-          prevValue: undefined,
-          results: w.results || {}
-        }));
+        const grouped = new Map<number, OrderItem>();
+        for (const w of worklistData) {
+          const ordId: number = w.orderId || w.OrderId || w.id;
+          const itemId: number = w.itemId || w.ItemId || 0;
+          const testCode: string = w.testCode || w.TestCode || 'TST';
+          const testName: string = w.testName || w.TestName || 'Test';
+          const sampleType: string = w.sampleType || w.SampleType || 'Blood';
+          const itemBarcode: string = w.barcode || w.Barcode || `BC-${ordId}-${itemId}`;
+          const itemStatus: string = (w.itemStatus === 4 || w.ItemStatus === 4) ? 'Resulted' : 'Processing';
+
+          if (!grouped.has(ordId)) {
+            const orderBarcode = `BC-${ordId}`;
+            grouped.set(ordId, {
+              id: ordId,
+              orderNo: w.orderNumber || w.OrderNumber || `LAB-${ordId}`,
+              patientName: w.patientName || w.PatientName || 'Patient',
+              testCode: testCode,
+              testName: testName,
+              sampleType: sampleType,
+              barcode: orderBarcode,
+              status: 'Processing',
+              custodyStep: 'AnalyzerRun',
+              priority: w.priority || w.Priority,
+              orderedAt: w.orderedAt || w.OrderedAt || new Date().toISOString(),
+              prevValue: undefined,
+              results: {},
+              tests: []
+            });
+          }
+
+          const grp = grouped.get(ordId)!;
+          grp.tests.push({ itemId, testCode, testName, sampleType, barcode: itemBarcode, status: itemStatus, results: {} });
+
+          // Bubble up Resulted status only when ALL tests are resulted
+          if (grp.tests.every(t => t.status === 'Resulted')) {
+            grp.status = 'Resulted';
+            grp.custodyStep = 'Verified';
+          }
+        }
+
+        const mappedOrders = Array.from(grouped.values());
         setOrders(mappedOrders);
         if (mappedOrders.length > 0) setExpandedOrderId(mappedOrders[0].id);
       } else {
@@ -808,7 +848,6 @@ export default function LaboratoryPage() {
               </div>
             ) : (
               orders.map(o => {
-                const testItem = catalog.find(c => c.code === o.testCode) || catalog[0] || { parameters: [] };
                 const isExpanded = expandedOrderId === o.id;
                 const isStat = o.priority === 1 || o.priority === 'STAT';
 
@@ -854,9 +893,9 @@ export default function LaboratoryPage() {
                             )}
                           </div>
                           <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                            <span><strong>Test:</strong> {o.testName}</span>
+                            <span><strong>Tests ({o.tests.length}):</strong> {o.tests.map(t => t.testCode).join(', ')}</span>
                             <span>•</span>
-                            <span><strong>Barcode:</strong> <code style={{ background: '#f1f5f9', padding: '1px 5px', borderRadius: '3px', color: '#334155' }}>{o.barcode}</code></span>
+                            <span><strong>Order Barcode:</strong> <code style={{ background: '#f1f5f9', padding: '1px 5px', borderRadius: '3px', color: '#334155' }}>{o.barcode}</code></span>
                             {o.orderedAt && (
                               <>
                                 <span>•</span>
@@ -899,65 +938,81 @@ export default function LaboratoryPage() {
                     {isExpanded && (
                       <div style={{ padding: '18px 20px', borderTop: '1px solid #e2e8f0', background: '#f8fafc' }}>
                         <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0284c7', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <Layers size={15} /> Diagnostic Profile Parameters, Ranges & Delta Checking
+                          <Layers size={15} /> Tests in this Order ({o.tests.length})
                         </div>
 
-                        <div style={{ background: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-                          <table className="cms-table" style={{ background: '#ffffff', margin: 0 }}>
-                            <thead style={{ background: '#f1f5f9' }}>
-                              <tr>
-                                <th>Parameter</th>
-                                <th>Code</th>
-                                <th>Reference Range</th>
-                                <th>Measured Result</th>
-                                <th>Delta Check</th>
-                                <th>Flag</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {(testItem.parameters || []).map((p: any) => {
-                                const currentVal = o.results[p.code] || '';
-                                const flag = calculateParamFlag(currentVal, p.min, p.max);
-                                const delta = calculateDeltaShift(currentVal, o.prevValue);
-                                return (
-                                  <tr key={p.code}>
-                                    <td style={{ fontWeight: 600, color: 'var(--text-main)' }}>{p.name}</td>
-                                    <td style={{ fontFamily: 'monospace', color: '#0284c7', fontWeight: 600 }}>{p.code}</td>
-                                    <td style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{p.min} – {p.max} {p.unit}</td>
-                                    <td>
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        <input
-                                          type="text"
-                                          value={currentVal}
-                                          onChange={e => handleResultParamChange(o.id, p.code, e.target.value)}
-                                          placeholder="Enter val..."
-                                          style={{ width: '120px', padding: '5px 8px', fontWeight: 700, borderRadius: '5px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#1e293b' }}
-                                        />
-                                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{p.unit}</span>
-                                      </div>
-                                    </td>
-                                    <td>
-                                      {delta ? (
-                                        <span className={delta.isLarge ? 'badge badge-critical' : 'badge badge-info'} style={{ fontSize: '0.72rem' }}>
-                                          {parseFloat(delta.shiftPercent) > 0 ? `+${delta.shiftPercent}%` : `${delta.shiftPercent}%`} Shift
-                                        </span>
-                                      ) : (
-                                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>First Result</span>
-                                      )}
-                                    </td>
-                                    <td>
-                                      <span className={flag === 'HH' || flag === 'LL' ? 'badge badge-critical' : (flag === 'H' || flag === 'L' ? 'badge badge-warning' : 'badge badge-normal')}>
-                                        {flag}
-                                      </span>
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
+                        {o.tests.map((test, tIdx) => {
+                          const testCatalogItem = catalog.find(c => c.code === test.testCode) || { parameters: [{ code: test.testCode, name: test.testName, unit: '', min: undefined, max: undefined }] };
+                          return (
+                            <div key={test.itemId || tIdx} style={{ marginBottom: tIdx < o.tests.length - 1 ? '18px' : 0 }}>
+                              {/* Per-test header */}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px', padding: '6px 10px', background: '#e0f2fe', borderRadius: '6px' }}>
+                                <FlaskConical size={14} color="#0284c7" />
+                                <span style={{ fontWeight: 700, fontSize: '0.82rem', color: '#0369a1' }}>{test.testName}</span>
+                                <code style={{ fontSize: '0.72rem', color: '#334155', background: '#f1f5f9', padding: '1px 6px', borderRadius: '3px' }}>{test.barcode}</code>
+                                <span className={test.status === 'Resulted' ? 'badge badge-normal' : 'badge badge-warning'} style={{ fontSize: '0.68rem', marginLeft: 'auto' }}>{test.status}</span>
+                              </div>
+                              <div style={{ background: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+                                <table className="cms-table" style={{ background: '#ffffff', margin: 0 }}>
+                                  <thead style={{ background: '#f1f5f9' }}>
+                                    <tr>
+                                      <th>Parameter</th>
+                                      <th>Code</th>
+                                      <th>Reference Range</th>
+                                      <th>Measured Result</th>
+                                      <th>Delta Check</th>
+                                      <th>Flag</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {(testCatalogItem.parameters || []).map((p: any) => {
+                                      const resultKey = `${test.itemId}:${p.code}`;
+                                      const currentVal = o.results[resultKey] || '';
+                                      const flag = calculateParamFlag(currentVal, p.min, p.max);
+                                      const delta = calculateDeltaShift(currentVal, o.prevValue);
+                                      return (
+                                        <tr key={p.code}>
+                                          <td style={{ fontWeight: 600, color: 'var(--text-main)' }}>{p.name}</td>
+                                          <td style={{ fontFamily: 'monospace', color: '#0284c7', fontWeight: 600 }}>{p.code}</td>
+                                          <td style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{p.min} – {p.max} {p.unit}</td>
+                                          <td>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                              <input
+                                                type="text"
+                                                value={currentVal}
+                                                onChange={e => handleResultParamChange(o.id, resultKey, e.target.value)}
+                                                placeholder="Enter val..."
+                                                style={{ width: '120px', padding: '5px 8px', fontWeight: 700, borderRadius: '5px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#1e293b' }}
+                                              />
+                                              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{p.unit}</span>
+                                            </div>
+                                          </td>
+                                          <td>
+                                            {delta ? (
+                                              <span className={delta.isLarge ? 'badge badge-critical' : 'badge badge-info'} style={{ fontSize: '0.72rem' }}>
+                                                {parseFloat(delta.shiftPercent) > 0 ? `+${delta.shiftPercent}%` : `${delta.shiftPercent}%`} Shift
+                                              </span>
+                                            ) : (
+                                              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>First Result</span>
+                                            )}
+                                          </td>
+                                          <td>
+                                            <span className={flag === 'HH' || flag === 'LL' ? 'badge badge-critical' : (flag === 'H' || flag === 'L' ? 'badge badge-warning' : 'badge badge-normal')}>
+                                              {flag}
+                                            </span>
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
+
                   </div>
                 );
               })
@@ -1764,66 +1819,58 @@ export default function LaboratoryPage() {
               </div>
             </div>
 
-            {/* Test Profile Header */}
-            <div>
-              <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>
-                Profile: {printModalOrder.testName} ({printModalOrder.testCode})
-              </div>
-            </div>
-
-            {/* Results Table */}
-            <table className="cms-table" style={{ background: '#ffffff', margin: 0 }}>
-              <thead style={{ background: '#f1f5f9' }}>
-                <tr>
-                  <th style={{ textAlign: 'left' }}>Analyte / Test Parameter</th>
-                  <th style={{ textAlign: 'left' }}>Code</th>
-                  <th style={{ textAlign: 'center' }}>Observed Result</th>
-                  <th style={{ textAlign: 'center' }}>Unit</th>
-                  <th style={{ textAlign: 'center' }}>Reference Interval</th>
-                  <th style={{ textAlign: 'center' }}>Interpretation</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(() => {
-                  const testItem = catalog.find(c => c.code === printModalOrder.testCode) || catalog[0] || { parameters: [] };
-                  const params = testItem.parameters || [
-                    { code: printModalOrder.testCode, name: printModalOrder.testName, unit: 'U/L', min: 0, max: 100 }
-                  ];
-
-                  return params.map((p: any) => {
-                    const val = printModalOrder.results[p.code] || '---';
-                    const flag = calculateParamFlag(val, p.min, p.max);
-                    const isAbnormal = flag !== 'Normal' && val !== '---';
-
-                    return (
-                      <tr key={p.code}>
-                        <td style={{ fontWeight: 700, color: 'var(--text-main)' }}>{p.name}</td>
-                        <td style={{ fontFamily: 'monospace', color: '#0284c7' }}>{p.code}</td>
-                        <td style={{ textAlign: 'center', fontWeight: 800, fontSize: '0.95rem', color: isAbnormal ? '#dc2626' : '#0f172a' }}>
-                          {val}
-                        </td>
-                        <td style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)' }}>{p.unit}</td>
-                        <td style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                          {p.min !== undefined && p.max !== undefined ? `${p.min} – ${p.max}` : 'Normative'}
-                        </td>
-                        <td style={{ textAlign: 'center' }}>
-                          <span style={{
-                            padding: '2px 8px',
-                            borderRadius: '4px',
-                            fontSize: '0.72rem',
-                            fontWeight: 700,
-                            background: isAbnormal ? '#fee2e2' : '#dcfce7',
-                            color: isAbnormal ? '#b91c1c' : '#15803d'
-                          }}>
-                            {val === '---' ? 'Pending' : flag}
-                          </span>
-                        </td>
+            {/* Test Profile Results - one section per test */}
+            {(printModalOrder.tests && printModalOrder.tests.length > 0
+              ? printModalOrder.tests
+              : [{ itemId: 0, testCode: printModalOrder.testCode, testName: printModalOrder.testName, barcode: printModalOrder.barcode, sampleType: printModalOrder.sampleType, status: printModalOrder.status, results: {} }]
+            ).map((test: OrderTestItem, tIdx: number) => {
+              const testCatalogItem = catalog.find(c => c.code === test.testCode) || { parameters: [{ code: test.testCode, name: test.testName, unit: 'U/L', min: 0, max: 100 }] };
+              const params = testCatalogItem.parameters || [];
+              return (
+                <div key={test.itemId || tIdx} style={{ marginBottom: tIdx < (printModalOrder.tests?.length ?? 1) - 1 ? '24px' : 0 }}>
+                  <div style={{ fontSize: '1.0rem', fontWeight: 800, color: 'var(--text-main)', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px', marginBottom: '10px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <span>Test: {test.testName} ({test.testCode})</span>
+                    <code style={{ fontSize: '0.72rem', color: '#334155', background: '#f1f5f9', padding: '1px 6px', borderRadius: '3px' }}>{test.barcode}</code>
+                  </div>
+                  <table className="cms-table" style={{ background: '#ffffff', margin: 0 }}>
+                    <thead style={{ background: '#f1f5f9' }}>
+                      <tr>
+                        <th style={{ textAlign: 'left' }}>Analyte / Test Parameter</th>
+                        <th style={{ textAlign: 'left' }}>Code</th>
+                        <th style={{ textAlign: 'center' }}>Observed Result</th>
+                        <th style={{ textAlign: 'center' }}>Unit</th>
+                        <th style={{ textAlign: 'center' }}>Reference Interval</th>
+                        <th style={{ textAlign: 'center' }}>Interpretation</th>
                       </tr>
-                    );
-                  });
-                })()}
-              </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                      {params.map((p: any) => {
+                        const resultKey = `${test.itemId}:${p.code}`;
+                        const val = printModalOrder.results[resultKey] || printModalOrder.results[p.code] || '---';
+                        const flag = calculateParamFlag(val, p.min, p.max);
+                        const isAbnormal = flag !== 'Normal' && val !== '---';
+                        return (
+                          <tr key={p.code}>
+                            <td style={{ fontWeight: 700, color: 'var(--text-main)' }}>{p.name}</td>
+                            <td style={{ fontFamily: 'monospace', color: '#0284c7' }}>{p.code}</td>
+                            <td style={{ textAlign: 'center', fontWeight: 800, fontSize: '0.95rem', color: isAbnormal ? '#dc2626' : '#0f172a' }}>{val}</td>
+                            <td style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)' }}>{p.unit}</td>
+                            <td style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                              {p.min !== undefined && p.max !== undefined ? `${p.min} – ${p.max}` : 'Normative'}
+                            </td>
+                            <td style={{ textAlign: 'center' }}>
+                              <span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 700, background: isAbnormal ? '#fee2e2' : '#dcfce7', color: isAbnormal ? '#b91c1c' : '#15803d' }}>
+                                {val === '---' ? 'Pending' : flag}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })}
 
             {/* Pathologist / Laboratory Director Signatures */}
             <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px dashed #cbd5e1', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', fontSize: '0.78rem' }}>

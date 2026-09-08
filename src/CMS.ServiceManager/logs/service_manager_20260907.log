@@ -1,0 +1,6 @@
+2026-09-07 16:59:50.562 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-07T16:59:50.5171170+03:00"
+2026-09-07 16:59:50.655 +03:00 [INF] Starting LabInstrumentListenerWorker TCP listener on Port 2575 (HL7)...
+2026-09-07 16:59:50.667 +03:00 [INF] Application started. Press Ctrl+C to shut down.
+2026-09-07 16:59:50.670 +03:00 [INF] Hosting environment: Development
+2026-09-07 16:59:50.672 +03:00 [INF] Content root path: C:\Users\ASUS\source\repos\CMS\src\CMS.ServiceManager
+2026-09-07 17:00:50.654 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-07T17:00:50.6539284+03:00"
