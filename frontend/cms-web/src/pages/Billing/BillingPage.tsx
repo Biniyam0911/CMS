@@ -45,26 +45,30 @@ export default function BillingPage() {
       ]);
 
       if (invData && Array.isArray(invData)) {
-        const mapped = invData.map((inv: any) => ({
-          id: inv.id || inv.Id,
-          invoiceNo: inv.invoiceNo || inv.InvoiceNo || `INV-1-${inv.id}`,
-          patientId: inv.patientId || inv.PatientId,
-          patientName: inv.patientName || inv.PatientName || `Patient #${inv.patientId}`,
-          issueDate: inv.issueDate ? String(inv.issueDate).split('T')[0] : new Date().toISOString().split('T')[0],
-          subtotal: inv.subTotal || inv.SubTotal || 0,
-          vat: inv.taxAmount || inv.TaxAmount || 0,
-          total: inv.totalAmount || inv.TotalAmount || 0,
-          paid: inv.paidAmount || inv.PaidAmount || 0,
-          status: inv.statusName || (inv.statusId === 4 ? 'Paid' : (inv.statusId === 3 ? 'PartiallyPaid' : 'Issued')),
-          items: (inv.items || []).map((it: any) => ({
-            id: it.id || it.Id,
-            description: it.description || it.Description,
-            itemType: it.itemType || it.ItemType || 'General',
-            quantity: it.quantity || it.Quantity || 1,
-            unitPrice: it.unitPrice || it.UnitPrice || 0,
-            totalPrice: it.totalPrice || it.TotalPrice || ((it.quantity || 1) * (it.unitPrice || 0))
-          }))
-        }));
+        const mapped = invData.map((inv: any) => {
+          const isWaived = inv.isWaived || inv.IsWaived || inv.totalAmount === 0 || inv.TotalAmount === 0;
+          return {
+            id: inv.id || inv.Id,
+            invoiceNo: inv.invoiceNo || inv.InvoiceNo || `INV-1-${inv.id}`,
+            patientId: inv.patientId || inv.PatientId,
+            patientName: inv.patientName || inv.PatientName || `Patient #${inv.patientId}`,
+            issueDate: inv.issueDate ? String(inv.issueDate).split('T')[0] : new Date().toISOString().split('T')[0],
+            subtotal: inv.subTotal || inv.SubTotal || 0,
+            vat: inv.taxAmount || inv.TaxAmount || 0,
+            total: inv.totalAmount || inv.TotalAmount || 0,
+            paid: inv.paidAmount || inv.PaidAmount || 0,
+            isWaived: isWaived,
+            status: isWaived ? 'Waived' : (inv.statusName || (inv.statusId === 4 ? 'Paid' : (inv.statusId === 3 ? 'PartiallyPaid' : 'Issued'))),
+            items: (inv.items || []).map((it: any) => ({
+              id: it.id || it.Id,
+              description: it.description || it.Description,
+              itemType: it.itemType || it.ItemType || 'General',
+              quantity: it.quantity || it.Quantity || 1,
+              unitPrice: it.unitPrice || it.UnitPrice || 0,
+              totalPrice: it.totalPrice || it.TotalPrice || ((it.quantity || 1) * (it.unitPrice || 0))
+            }))
+          };
+        });
         setInvoices(mapped);
         if (mapped.length > 0) {
           setSelectedInvoice((prev: any) => {
@@ -201,6 +205,8 @@ export default function BillingPage() {
 
   const getStatusBadge = (st: string) => {
     switch (st) {
+      case 'Waived':
+        return <span className="badge" style={{ background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', fontSize: '0.68rem', display: 'flex', alignItems: 'center', gap: '3px' }}>☑ Waived (Free)</span>;
       case 'Paid':
         return <span className="badge badge-normal" style={{ fontSize: '0.68rem', display: 'flex', alignItems: 'center', gap: '3px' }}><CheckCircle2 size={11} /> Paid</span>;
       case 'PartiallyPaid':
@@ -211,6 +217,13 @@ export default function BillingPage() {
         return <span className="badge" style={{ background: '#f1eee6', color: 'var(--text-muted)', fontSize: '0.68rem' }}>{st}</span>;
     }
   };
+
+  // Exclude waived/free invoices from sales revenue figures
+  const nonWaivedInvoices = invoices.filter(i => !i.isWaived && i.status !== 'Waived');
+  const paidRevenue = nonWaivedInvoices.reduce((sum, i) => sum + (i.paid || 0), 0);
+  const pendingReceivables = Math.max(0, nonWaivedInvoices.reduce((sum, i) => sum + ((i.total || 0) - (i.paid || 0)), 0));
+  const paidCount = nonWaivedInvoices.filter(i => i.status === 'Paid').length;
+  const collectionRate = nonWaivedInvoices.length > 0 ? Math.round((paidCount / nonWaivedInvoices.length) * 100) : 100;
 
   return (
     <div>
@@ -242,28 +255,30 @@ export default function BillingPage() {
         </div>
       </div>
 
-      {/* Financial Metrics Bar */}
+      {/* Financial Metrics Bar (Excluding Free / Waived Services) */}
       <div className="grid-4" style={{ marginBottom: '18px' }}>
         <div className="glass-panel" style={{ padding: '12px 14px' }}>
-          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700 }}>TOTAL INVOICES</div>
-          <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-main)', marginTop: '2px' }}>{invoices.length}</div>
+          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700 }}>BILLABLE INVOICES</div>
+          <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-main)', marginTop: '2px' }}>
+            {nonWaivedInvoices.length} <span style={{ fontSize: '0.72rem', fontWeight: 500, color: 'var(--text-muted)' }}>({invoices.filter(i => i.isWaived || i.status === 'Waived').length} waived)</span>
+          </div>
         </div>
         <div className="glass-panel" style={{ padding: '12px 14px', borderLeft: '3px solid #059669' }}>
-          <div style={{ fontSize: '0.7rem', color: '#059669', fontWeight: 700 }}>PAID REVENUE</div>
+          <div style={{ fontSize: '0.7rem', color: '#059669', fontWeight: 700 }}>PAID SALES REVENUE</div>
           <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#059669', marginTop: '2px' }}>
-            Br {invoices.reduce((sum, i) => sum + (i.paid || 0), 0).toFixed(2)}
+            Br {paidRevenue.toFixed(2)}
           </div>
         </div>
         <div className="glass-panel" style={{ padding: '12px 14px', borderLeft: '3px solid #d97706' }}>
           <div style={{ fontSize: '0.7rem', color: '#d97706', fontWeight: 700 }}>PENDING RECEIVABLES</div>
           <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#d97706', marginTop: '2px' }}>
-            Br {Math.max(0, invoices.reduce((sum, i) => sum + ((i.total || 0) - (i.paid || 0)), 0)).toFixed(2)}
+            Br {pendingReceivables.toFixed(2)}
           </div>
         </div>
         <div className="glass-panel" style={{ padding: '12px 14px', borderLeft: '3px solid #0284c7' }}>
           <div style={{ fontSize: '0.7rem', color: '#0369a1', fontWeight: 700 }}>COLLECTION RATE</div>
           <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0284c7', marginTop: '2px' }}>
-            {invoices.length > 0 ? `${Math.round((invoices.filter(i => i.status === 'Paid').length / invoices.length) * 100)}%` : '100%'}
+            {collectionRate}%
           </div>
         </div>
       </div>
@@ -325,7 +340,7 @@ export default function BillingPage() {
               </div>
 
               <div style={{ display: 'flex', gap: '4px' }}>
-                {['ALL', 'Issued', 'PartiallyPaid', 'Paid'].map(st => (
+                {['ALL', 'Issued', 'PartiallyPaid', 'Paid', 'Waived'].map(st => (
                   <button
                     key={st}
                     onClick={() => setStatusFilter(st)}

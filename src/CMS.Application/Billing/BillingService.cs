@@ -147,7 +147,16 @@ public class BillingService
                        WHEN 3 THEN 'PartiallyPaid'
                        WHEN 4 THEN 'Paid'
                        WHEN 5 THEN 'Void'
-                       ELSE 'Issued' END AS StatusName
+                       ELSE 'Issued' END AS StatusName,
+                   CASE 
+                       WHEN i.TotalAmount = 0 THEN CAST(1 AS BIT)
+                       WHEN EXISTS (
+                           SELECT 1 FROM Payments pm 
+                           WHERE pm.InvoiceId = i.Id 
+                             AND (pm.PaymentMethod = 4 OR pm.Reference LIKE '%Waiv%' OR pm.Reference LIKE '%Free%')
+                       ) THEN CAST(1 AS BIT)
+                       ELSE CAST(0 AS BIT)
+                   END AS IsWaived
             FROM Invoices i
             JOIN Patients p ON p.Id = i.PatientId
             WHERE i.TenantId = @TenantId

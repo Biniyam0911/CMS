@@ -99,6 +99,7 @@ public class InvoiceDto
     public decimal PaidAmount { get; set; }
     public byte StatusId { get; set; }
     public string StatusName { get; set; } = "Issued";
+    public bool IsWaived { get; set; } = false;
     public List<InvoiceItemDto> Items { get; set; } = new();
 
     public InvoiceDto() { }
@@ -107,7 +108,7 @@ public class InvoiceDto
         int id, byte tenantId, string invoiceNo, int patientId, string patientName,
         int? encounterId, DateTime issueDate, DateTime? dueDate, decimal subTotal,
         decimal taxAmount, decimal discountAmount, decimal totalAmount, decimal paidAmount,
-        byte statusId, string statusName, List<InvoiceItemDto> items)
+        byte statusId, string statusName, List<InvoiceItemDto> items, bool isWaived = false)
     {
         Id = id;
         TenantId = tenantId;
@@ -125,6 +126,7 @@ public class InvoiceDto
         StatusId = statusId;
         StatusName = statusName;
         Items = items ?? new List<InvoiceItemDto>();
+        IsWaived = isWaived;
     }
 }
 
