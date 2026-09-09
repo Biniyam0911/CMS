@@ -341,28 +341,31 @@ export default function LaboratoryPage() {
       if (worklistData && worklistData.length > 0) {
         const grouped = new Map<number, OrderItem>();
         for (const w of worklistData) {
-          const ordId: number = w.orderId || w.OrderId || w.id;
-          const itemId: number = w.itemId || w.ItemId || 0;
-          const testCode: string = w.testCode || w.TestCode || 'TST';
-          const testName: string = w.testName || w.TestName || 'Test';
-          const sampleType: string = w.sampleType || w.SampleType || 'Blood';
-          const itemBarcode: string = w.barcode || w.Barcode || `BC-${ordId}-${itemId}`;
-          const itemStatus: string = (w.itemStatus === 4 || w.ItemStatus === 4) ? 'Resulted' : 'Processing';
+          // Dapper can return column names in exact AS-alias case (OrderId) or camelCase via some serializers
+          const ordId: number = Number(w.OrderId ?? w.orderId ?? w.orderid ?? w.order_id ?? w.id ?? 0);
+          const itemId: number = Number(w.ItemId ?? w.itemId ?? w.itemid ?? w.item_id ?? 0);
+          if (!ordId) continue; // skip rows without a valid order id
+
+          const testCode: string = String(w.TestCode ?? w.testCode ?? w.testcode ?? 'TST');
+          const testName: string = String(w.TestName ?? w.testName ?? w.testname ?? 'Test');
+          const sampleType: string = String(w.SampleType ?? w.sampleType ?? w.sampletype ?? 'Blood');
+          const itemBarcode: string = String(w.Barcode ?? w.barcode ?? `BC-${ordId}-${itemId}`);
+          const rawItemStatus = w.ItemStatus ?? w.itemStatus ?? w.itemstatus ?? 0;
+          const itemStatus: string = (Number(rawItemStatus) === 4) ? 'Resulted' : 'Processing';
 
           if (!grouped.has(ordId)) {
-            const orderBarcode = `BC-${ordId}`;
             grouped.set(ordId, {
               id: ordId,
-              orderNo: w.orderNumber || w.OrderNumber || `LAB-${ordId}`,
-              patientName: w.patientName || w.PatientName || 'Patient',
+              orderNo: String(w.OrderNumber ?? w.orderNumber ?? w.ordernumber ?? `LAB-${ordId}`),
+              patientName: String(w.PatientName ?? w.patientName ?? w.patientname ?? 'Patient'),
               testCode: testCode,
               testName: testName,
               sampleType: sampleType,
-              barcode: orderBarcode,
+              barcode: `BC-${ordId}`,
               status: 'Processing',
               custodyStep: 'AnalyzerRun',
-              priority: w.priority || w.Priority,
-              orderedAt: w.orderedAt || w.OrderedAt || new Date().toISOString(),
+              priority: w.Priority ?? w.priority,
+              orderedAt: String(w.OrderedAt ?? w.orderedAt ?? w.orderedat ?? new Date().toISOString()),
               prevValue: undefined,
               results: {},
               tests: []
@@ -373,7 +376,7 @@ export default function LaboratoryPage() {
           grp.tests.push({ itemId, testCode, testName, sampleType, barcode: itemBarcode, status: itemStatus, results: {} });
 
           // Bubble up Resulted status only when ALL tests are resulted
-          if (grp.tests.every(t => t.status === 'Resulted')) {
+          if (grp.tests.length > 0 && grp.tests.every(t => t.status === 'Resulted')) {
             grp.status = 'Resulted';
             grp.custodyStep = 'Verified';
           }

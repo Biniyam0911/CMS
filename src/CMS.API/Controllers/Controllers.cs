@@ -272,19 +272,10 @@ public class LaboratoryController : ControllerBase
             WHERE o.TenantId = @TenantId
               AND (@StatusId IS NULL OR o.StatusId = @StatusId)
               AND (@Date IS NULL OR CAST(o.OrderedAt AS DATE) = CAST(@Date AS DATE))
-              AND (
-                  EXISTS (
-                      SELECT 1 FROM InvoiceItems ii 
-                      JOIN Invoices inv ON inv.Id = ii.InvoiceId 
-                      WHERE ii.RefId = o.Id AND inv.StatusId = 4
-                  )
-                  OR EXISTS (
-                      SELECT 1 FROM InvoiceItems ii 
-                      JOIN Invoices inv ON inv.Id = ii.InvoiceId 
-                      WHERE inv.PatientId = o.PatientId 
-                        AND ii.ItemType = 2 
-                        AND inv.StatusId = 4
-                  )
+              AND EXISTS (
+                  SELECT 1 FROM InvoiceItems ii 
+                  JOIN Invoices inv ON inv.Id = ii.InvoiceId 
+                  WHERE ii.RefId = o.Id AND inv.StatusId = 4
               )
             ORDER BY o.Priority ASC, o.OrderedAt DESC";
 

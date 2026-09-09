@@ -135,15 +135,21 @@ export default function BillingPage() {
 
   const handleProcessPayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedInvoice || !payAmount) return;
+    if (!selectedInvoice) return;
 
-    const paidNum = parseFloat(payAmount);
+    const isWaived = payMethod === '4';
+    const remaining = selectedInvoice.total - selectedInvoice.paid;
+    // For waived invoices: send the full remaining balance so backend sets StatusId=4 (Paid)
+    const apiAmount = isWaived ? remaining : parseFloat(payAmount);
+    if (!isWaived && !payAmount) return;
+
+    const paidNum = isWaived ? remaining : parseFloat(payAmount);
     const targetInvoiceId = selectedInvoice.id;
 
     // Immediately update local state so invoice row and details reflect Paid right away
     setInvoices(prev => prev.map(inv => {
       if (inv.id === targetInvoiceId) {
-        const newPaid = (inv.paid || 0) + paidNum;
+        const newPaid = isWaived ? inv.total : (inv.paid || 0) + paidNum;
         const newStatus = newPaid >= inv.total ? 'Paid' : 'PartiallyPaid';
         return { ...inv, paid: newPaid, status: newStatus };
       }
@@ -152,7 +158,7 @@ export default function BillingPage() {
 
     setSelectedInvoice((prev: any) => {
       if (!prev || prev.id !== targetInvoiceId) return prev;
-      const newPaid = (prev.paid || 0) + paidNum;
+      const newPaid = isWaived ? prev.total : (prev.paid || 0) + paidNum;
       const newStatus = newPaid >= prev.total ? 'Paid' : 'PartiallyPaid';
       return { ...prev, paid: newPaid, status: newStatus };
     });
@@ -162,20 +168,24 @@ export default function BillingPage() {
         tenantId: 1,
         invoiceId: targetInvoiceId,
         patientId: selectedInvoice.patientId,
-        amount: paidNum,
+        amount: apiAmount,
         paymentMethod: payMethod,
         receivedBy: 1,
-        reference: payReference || 'Cash Payment at Counter'
+        reference: payReference || (isWaived ? 'Waived / Free Service' : 'Cash Payment at Counter')
       });
 
-      setPaySuccessMsg(`Successfully processed Br ${paidNum.toFixed(2)} payment! Status updated to Paid.`);
+      setPaySuccessMsg(isWaived
+        ? `Invoice waived and marked as Paid (Free Service).`
+        : `Successfully processed Br ${paidNum.toFixed(2)} payment! Status updated to Paid.`
+      );
       setTimeout(() => setPaySuccessMsg(null), 4000);
       setPayAmount('');
       setPayReference('');
+      setPayMethod('1');
       await fetchInvoicesAndPatients();
     } catch (err) {
       console.error('Process payment error:', err);
-      setPaySuccessMsg(`Payment logged for Br ${paidNum.toFixed(2)}!`);
+      setPaySuccessMsg(isWaived ? 'Invoice marked as waived!' : `Payment logged for Br ${paidNum.toFixed(2)}!`);
       setTimeout(() => setPaySuccessMsg(null), 4000);
     }
   };
@@ -463,10 +473,17 @@ export default function BillingPage() {
                   <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
                     Process Cashier Payment
                   </div>
+
+                  {payMethod === '4' && (
+                    <div style={{ padding: '8px 12px', background: '#fffbeb', border: '1px solid #f59e0b', borderRadius: '6px', fontSize: '0.75rem', color: '#78350f', fontWeight: 600 }}>
+                      ☑ Waived — this invoice will be marked as <strong>Paid (Free / Waived Service)</strong>. No money collected.
+                    </div>
+                  )}
+
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                     <div>
                       <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Payment Method</label>
-                      <select value={payMethod} onChange={e => setPayMethod(e.target.value)}>
+                      <select value={payMethod} onChange={e => { setPayMethod(e.target.value); if (e.target.value === '4') { setPayAmount('0'); setPayReference('Waived / Free Service'); } }}>
                         <option value="1">Cash (Counter)</option>
                         <option value="2">Telebirr / CBE Mobile</option>
                         <option value="3">Insurance Claim / POS</option>
@@ -481,7 +498,9 @@ export default function BillingPage() {
                         placeholder={String(selectedInvoice.total - selectedInvoice.paid)}
                         value={payAmount}
                         onChange={e => setPayAmount(e.target.value)}
-                        required
+                        required={payMethod !== '4'}
+                        disabled={payMethod === '4'}
+                        style={{ opacity: payMethod === '4' ? 0.5 : 1 }}
                       />
                     </div>
                   </div>
@@ -494,22 +513,24 @@ export default function BillingPage() {
                   <button
                     type="button"
                     onClick={() => {
-                      const remaining = selectedInvoice.total - selectedInvoice.paid;
-                      setPayAmount(String(remaining.toFixed(2)));
+                      setPayAmount('0');
                       setPayMethod('4');
                       setPayReference('Waived / Free Service');
                     }}
                     style={{
                       display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center',
                       padding: '7px 14px', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 700,
-                      background: '#fffbeb', border: '1px solid #f59e0b', color: '#92400e', cursor: 'pointer', width: '100%'
+                      background: payMethod === '4' ? '#f59e0b' : '#fffbeb',
+                      border: '1px solid #f59e0b',
+                      color: payMethod === '4' ? '#ffffff' : '#92400e',
+                      cursor: 'pointer', width: '100%'
                     }}
                   >
                     ☑ Waive / Mark as Free Service
                   </button>
 
                   <button type="submit" className="btn-primary" style={{ justifyContent: 'center', marginTop: '4px' }}>
-                    <DollarSign size={14} /> Accept Payment
+                    <DollarSign size={14} /> {payMethod === '4' ? 'Confirm Waiver' : 'Accept Payment'}
                   </button>
                 </form>
               ) : (

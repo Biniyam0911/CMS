@@ -1917,7 +1917,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
       {/* ========================================================================= */}
       {showOrderModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(28,25,23,0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}>
-          <div className="glass-panel" style={{ width: '1000px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', background: '#ffffff', border: '1px solid var(--border-color)', borderRadius: '12px', overflow: 'hidden' }}>
+          <div className="glass-panel" style={{ width: '1100px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', background: '#ffffff', border: '1px solid var(--border-color)', borderRadius: '12px', overflow: 'hidden' }}>
             <div style={{ padding: '14px 20px', background: '#f6f2e9', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <div style={{ width: '32px', height: '32px', borderRadius: '7px', background: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
@@ -1931,7 +1931,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
               <button onClick={() => setShowOrderModal(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={20} /></button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', flex: 1, overflow: 'hidden', minHeight: 0 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '400px 1fr', flex: 1, overflow: 'hidden', minHeight: 0 }}>
               {/* Tree */}
               <div style={{ borderRight: '1px solid var(--border-color)', padding: '14px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', background: '#fbf9f4' }}>
                 
@@ -1967,7 +1967,8 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                               display: 'flex',
                               alignItems: 'center',
                               gap: '8px',
-                              fontSize: '0.75rem'
+                              fontSize: '0.75rem',
+                              minWidth: 0
                             }}
                           >
                             <input
@@ -1977,10 +1978,10 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                                 e.stopPropagation();
                                 toggleCheckItem('LAB', test);
                               }}
-                              style={{ cursor: 'pointer' }}
+                              style={{ cursor: 'pointer', flexShrink: 0 }}
                             />
-                            <div style={{ flex: 1 }}>
-                              <div style={{ fontWeight: 600 }}>{test.name}</div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{test.name}</div>
                               <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{test.specimen} • Br {test.price.toFixed(2)}</div>
                             </div>
                           </div>
@@ -2022,7 +2023,8 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                               display: 'flex',
                               alignItems: 'center',
                               gap: '8px',
-                              fontSize: '0.75rem'
+                              fontSize: '0.75rem',
+                              minWidth: 0
                             }}
                           >
                             <input
@@ -2032,10 +2034,10 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                                 e.stopPropagation();
                                 toggleCheckItem('PROCEDURE', proc);
                               }}
-                              style={{ cursor: 'pointer' }}
+                              style={{ cursor: 'pointer', flexShrink: 0 }}
                             />
-                            <div style={{ flex: 1 }}>
-                              <div style={{ fontWeight: 600 }}>{proc.name}</div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{proc.name}</div>
                               <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{proc.category} • Br {proc.price.toFixed(2)}</div>
                             </div>
                           </div>
@@ -2077,7 +2079,8 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                               display: 'flex',
                               alignItems: 'center',
                               gap: '8px',
-                              fontSize: '0.75rem'
+                              fontSize: '0.75rem',
+                              minWidth: 0
                             }}
                           >
                             <input
@@ -2087,10 +2090,10 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                                 e.stopPropagation();
                                 toggleCheckItem('RX', med);
                               }}
-                              style={{ cursor: 'pointer' }}
+                              style={{ cursor: 'pointer', flexShrink: 0 }}
                             />
-                            <div style={{ flex: 1 }}>
-                              <div style={{ fontWeight: 600 }}>{med.name}</div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{med.name}</div>
                               <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{med.class} • Br {med.unitPrice.toFixed(2)}</div>
                             </div>
                           </div>
