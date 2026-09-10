@@ -10,3 +10,4 @@ C:\Users\ASUS\source\repos\CMS\src\CMS.Shared\obj\Release\net8.0\CMS.Shared.dll
 C:\Users\ASUS\source\repos\CMS\src\CMS.Shared\obj\Release\net8.0\refint\CMS.Shared.dll
 C:\Users\ASUS\source\repos\CMS\src\CMS.Shared\obj\Release\net8.0\CMS.Shared.pdb
 C:\Users\ASUS\source\repos\CMS\src\CMS.Shared\obj\Release\net8.0\ref\CMS.Shared.dll
+C:\Users\ASUS\source\repos\CMS\src\CMS.Shared\obj\Release\net8.0\CMS.Shared.sourcelink.json

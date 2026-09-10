@@ -33,6 +33,24 @@ class ApiClient {
     return headers;
   }
 
+  private async handleResponse(res: Response, endpoint: string, method: string): Promise<any> {
+    // On 401 Unauthorized, the token is invalid/expired — clear it and force login
+    if (res.status === 401) {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('current_user');
+      window.location.reload();
+      throw new Error('Session expired. Please log in again.');
+    }
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`API ${method} ${endpoint} failed (${res.status}): ${errorText}`);
+    }
+
+    const json = await res.json();
+    return unwrapResponse<any>(json);
+  }
+
   async get<T>(endpoint: string, params?: Record<string, string | number | boolean | undefined>): Promise<T> {
     let url = `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
     if (params) {
@@ -53,13 +71,7 @@ class ApiClient {
       headers: this.getHeaders()
     });
 
-    if (!res.ok) {
-      const errorText = await res.text();
-      throw new Error(`API GET ${endpoint} failed (${res.status}): ${errorText}`);
-    }
-
-    const json = await res.json();
-    return unwrapResponse<T>(json);
+    return this.handleResponse(res, endpoint, 'GET');
   }
 
   async post<T>(endpoint: string, body?: any): Promise<T> {
@@ -70,13 +82,7 @@ class ApiClient {
       body: body ? JSON.stringify(body) : undefined
     });
 
-    if (!res.ok) {
-      const errorText = await res.text();
-      throw new Error(`API POST ${endpoint} failed (${res.status}): ${errorText}`);
-    }
-
-    const json = await res.json();
-    return unwrapResponse<T>(json);
+    return this.handleResponse(res, endpoint, 'POST');
   }
 
   async put<T>(endpoint: string, body?: any): Promise<T> {
@@ -87,13 +93,7 @@ class ApiClient {
       body: body ? JSON.stringify(body) : undefined
     });
 
-    if (!res.ok) {
-      const errorText = await res.text();
-      throw new Error(`API PUT ${endpoint} failed (${res.status}): ${errorText}`);
-    }
-
-    const json = await res.json();
-    return unwrapResponse<T>(json);
+    return this.handleResponse(res, endpoint, 'PUT');
   }
 
   async delete<T>(endpoint: string): Promise<T> {
@@ -103,13 +103,7 @@ class ApiClient {
       headers: this.getHeaders()
     });
 
-    if (!res.ok) {
-      const errorText = await res.text();
-      throw new Error(`API DELETE ${endpoint} failed (${res.status}): ${errorText}`);
-    }
-
-    const json = await res.json();
-    return unwrapResponse<T>(json);
+    return this.handleResponse(res, endpoint, 'DELETE');
   }
 }
 

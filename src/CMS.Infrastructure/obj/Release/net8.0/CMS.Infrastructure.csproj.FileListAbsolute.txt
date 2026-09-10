@@ -38,3 +38,4 @@ C:\Users\ASUS\source\repos\CMS\src\CMS.Infrastructure\obj\Release\net8.0\refint\
 C:\Users\ASUS\source\repos\CMS\src\CMS.Infrastructure\obj\Release\net8.0\CMS.Infrastructure.pdb
 C:\Users\ASUS\source\repos\CMS\src\CMS.Infrastructure\obj\Release\net8.0\CMS.Infrastructure.genruntimeconfig.cache
 C:\Users\ASUS\source\repos\CMS\src\CMS.Infrastructure\obj\Release\net8.0\ref\CMS.Infrastructure.dll
+C:\Users\ASUS\source\repos\CMS\src\CMS.Infrastructure\obj\Release\net8.0\CMS.Infrastructure.sourcelink.json

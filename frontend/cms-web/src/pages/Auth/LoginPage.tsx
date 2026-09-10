@@ -6,8 +6,8 @@ interface LoginPageProps {
 }
 
 export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
-  const [username, setUsername] = useState('superadmin');
-  const [password, setPassword] = useState('say@123');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [mfaCode, setMfaCode] = useState('');
   const [showMfa, setShowMfa] = useState(false);
   const [loading, setLoading] = useState(false);

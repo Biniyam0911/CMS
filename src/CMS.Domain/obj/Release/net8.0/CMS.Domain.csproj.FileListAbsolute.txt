@@ -9,3 +9,4 @@ C:\Users\ASUS\source\repos\CMS\src\CMS.Domain\obj\Release\net8.0\CMS.Domain.dll
 C:\Users\ASUS\source\repos\CMS\src\CMS.Domain\obj\Release\net8.0\refint\CMS.Domain.dll
 C:\Users\ASUS\source\repos\CMS\src\CMS.Domain\obj\Release\net8.0\CMS.Domain.pdb
 C:\Users\ASUS\source\repos\CMS\src\CMS.Domain\obj\Release\net8.0\ref\CMS.Domain.dll
+C:\Users\ASUS\source\repos\CMS\src\CMS.Domain\obj\Release\net8.0\CMS.Domain.sourcelink.json

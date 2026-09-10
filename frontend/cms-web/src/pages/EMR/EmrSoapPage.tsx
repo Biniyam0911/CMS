@@ -267,11 +267,12 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
     setConsultDate(current.toISOString().split('T')[0]);
   };
 
-  // Load assigned patients for logged-in doctor on consultDate
+  // Load patients assigned to the logged-in doctor on the selected date (defaults to today)
   useEffect(() => {
     const loadEmrPatients = async () => {
       try {
         setLoading(true);
+        // Fetch assignments for this doctor on the selected date + all invoices for payment badge
         const [assigned, allInvoices] = await Promise.all([
           api.get<any[]>(`/triage/doctor/${selectedDoctorId}`, { date: consultDate }).catch(() => []),
           api.get<any[]>('/billing/invoices').catch(() => [])
@@ -291,12 +292,13 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
           const target = mapped.find((p: any) => p.id === selectedPatientId) || mapped[0];
           setActivePatient(target);
 
-          // Build payment map: patientId -> true if has paid invoice on consultDate
+          // Build payment map: patientId -> true if the patient has a PAID invoice on consultDate
+          // Color reflects the consultation payment for that specific date
           const payMap: Record<number, boolean> = {};
           if (allInvoices && Array.isArray(allInvoices)) {
             allInvoices.forEach((inv: any) => {
               const pid = Number(inv.patientId || inv.PatientId);
-              const invDate = (inv.issueDate || inv.IssueDate || '').split('T')[0];
+              const invDate = (inv.issueDate || inv.IssueDate || inv.createdAt || inv.CreatedAt || '').split('T')[0];
               const isPaid = (inv.statusId || inv.StatusId) === 4 || (inv.statusName || inv.StatusName) === 'Paid';
               if (isPaid && invDate === consultDate) {
                 payMap[pid] = true;
@@ -319,6 +321,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
     };
     loadEmrPatients();
   }, [consultDate, selectedPatientId, selectedDoctorId]);
+
 
   // Load patient clinical data when activePatient changes (starts blank for clean new consult)
   useEffect(() => {
@@ -429,6 +432,22 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
 
       setHistoryPrescriptions((rxs || []).filter((r: any) => (r.patientId || r.PatientId) === patId));
       setHistoryInvoices((invs || []).filter((i: any) => (i.patientId || i.PatientId) === patId));
+
+      // Also load results so the history tab can show results table per order
+      const results = await api.get<any[]>(`/laboratory/patient/${patId}/results`).catch(() => []);
+      const mappedResults = (results || []).map((r: any) => ({
+        id: r.id || r.Id,
+        testName: r.testName || r.TestName || r.clinicalInfo || 'Lab Test',
+        orderNumber: r.orderNumber || r.OrderNumber || `LAB-${r.orderId}`,
+        enteredAt: r.enteredAt || r.EnteredAt || r.orderedAt || new Date().toISOString(),
+        numericValue: r.numericValue || r.NumericValue || r.textValue || r.TextValue || '—',
+        unit: r.unit || r.Unit || '',
+        flag: r.flag || r.Flag || '',
+        referenceRange: r.referenceRange || r.ReferenceRange || '',
+        isVerified: r.isVerified || r.IsVerified || false,
+        isCritical: r.isCritical || r.IsCritical || false
+      }));
+      setPatientLabResults(mappedResults);
     } catch (err) {
       console.error('Failed to fetch patient history records:', err);
     } finally {
@@ -1148,7 +1167,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
               </div>
             </div>
 
-            {/* Single Date Selector */}
+            {/* Consultation Date Selector (for note entry, not for patient filter) */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '10px', background: '#fdfcf9', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>Consultation Date:</span>
@@ -1773,17 +1792,88 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                 </div>
               ))}
 
-              {/* Lab Orders */}
-              {(historyFilter === 'ALL' || historyFilter === 'LABS') && historyLabOrders.map((lab, idx) => (
-                <div key={`lab-${idx}`} style={{ padding: '14px', borderRadius: '8px', background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                    <span className="badge badge-normal" style={{ fontSize: '0.68rem' }}>Laboratory Order #{lab.orderNumber || lab.id}</span>
-                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{lab.orderDate ? String(lab.orderDate).split('T')[0] : 'Ordered'}</span>
+              {/* Lab Orders with Results Table */}
+              {(historyFilter === 'ALL' || historyFilter === 'LABS') && historyLabOrders.map((lab, idx) => {
+                // Match results from patientLabResults that belong to this order
+                const orderResults = patientLabResults.filter(r =>
+                  r.orderNumber === lab.orderNumber ||
+                  String(r.orderNumber) === String(lab.orderNumber)
+                );
+                return (
+                  <div key={`lab-${idx}`} style={{ borderRadius: '8px', background: '#f0fdf4', border: '1px solid #bbf7d0', overflow: 'hidden' }}>
+                    {/* Order Header */}
+                    <div style={{ padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #bbf7d0' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span className="badge badge-normal" style={{ fontSize: '0.68rem' }}>Laboratory Order #{lab.orderNumber || lab.id}</span>
+                        <span style={{ fontWeight: 700, fontSize: '0.82rem' }}>{lab.clinicalInfo || 'Diagnostic Lab Order'}</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ fontSize: '0.72rem', padding: '2px 8px', borderRadius: '4px',
+                          background: lab.statusName === 'Completed' || lab.statusName === 'Verified' ? '#dcfce7' : '#fef3c7',
+                          color: lab.statusName === 'Completed' || lab.statusName === 'Verified' ? '#166534' : '#92400e',
+                          fontWeight: 700 }}>
+                          {lab.statusName || 'Processing'}
+                        </span>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                          {lab.orderDate ? String(lab.orderDate).split('T')[0] : 'Ordered'}
+                        </span>
+                      </div>
+                    </div>
+                    {/* Results Table */}
+                    {orderResults.length > 0 ? (
+                      <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
+                          <thead>
+                            <tr style={{ background: '#dcfce7' }}>
+                              <th style={{ padding: '6px 12px', textAlign: 'left', fontWeight: 700, color: '#166534', borderBottom: '1px solid #bbf7d0' }}>Test Name</th>
+                              <th style={{ padding: '6px 12px', textAlign: 'center', fontWeight: 700, color: '#166534', borderBottom: '1px solid #bbf7d0' }}>Result</th>
+                              <th style={{ padding: '6px 12px', textAlign: 'center', fontWeight: 700, color: '#166534', borderBottom: '1px solid #bbf7d0' }}>Unit</th>
+                              <th style={{ padding: '6px 12px', textAlign: 'center', fontWeight: 700, color: '#166534', borderBottom: '1px solid #bbf7d0' }}>Reference Range</th>
+                              <th style={{ padding: '6px 12px', textAlign: 'center', fontWeight: 700, color: '#166534', borderBottom: '1px solid #bbf7d0' }}>Flag</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {orderResults.map((r, ri) => {
+                              const flagColor = r.flag === 'H' || r.flag === 'HH' ? '#dc2626' :
+                                               r.flag === 'L' || r.flag === 'LL' ? '#2563eb' : '#059669';
+                              const rowBg = r.isCritical ? '#fef2f2' : (ri % 2 === 0 ? '#f0fdf4' : '#ffffff');
+                              return (
+                                <tr key={ri} style={{ background: rowBg }}>
+                                  <td style={{ padding: '6px 12px', fontWeight: 600, borderBottom: '1px solid #e2f5e8' }}>
+                                    {r.testName}
+                                    {r.isCritical && <span style={{ marginLeft: '6px', fontSize: '0.65rem', padding: '1px 4px', background: '#fee2e2', color: '#991b1b', borderRadius: '3px', fontWeight: 700 }}>CRITICAL</span>}
+                                    {r.isVerified && <span style={{ marginLeft: '4px', fontSize: '0.65rem', color: '#059669' }}>✓</span>}
+                                  </td>
+                                  <td style={{ padding: '6px 12px', textAlign: 'center', fontWeight: 700, color: r.flag ? flagColor : 'var(--text-main)', borderBottom: '1px solid #e2f5e8' }}>
+                                    {r.numericValue || '—'}
+                                  </td>
+                                  <td style={{ padding: '6px 12px', textAlign: 'center', color: 'var(--text-muted)', borderBottom: '1px solid #e2f5e8' }}>
+                                    {r.unit || '—'}
+                                  </td>
+                                  <td style={{ padding: '6px 12px', textAlign: 'center', color: 'var(--text-muted)', borderBottom: '1px solid #e2f5e8' }}>
+                                    {r.referenceRange || '—'}
+                                  </td>
+                                  <td style={{ padding: '6px 12px', textAlign: 'center', borderBottom: '1px solid #e2f5e8' }}>
+                                    {r.flag ? (
+                                      <span style={{ padding: '2px 7px', borderRadius: '4px', background: r.flag === 'H' || r.flag === 'HH' ? '#fee2e2' : r.flag === 'L' || r.flag === 'LL' ? '#dbeafe' : '#dcfce7', color: flagColor, fontWeight: 700, fontSize: '0.72rem' }}>
+                                        {r.flag}
+                                      </span>
+                                    ) : <span style={{ color: '#059669', fontSize: '0.72rem' }}>Normal</span>}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div style={{ padding: '10px 14px', fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                        No results entered yet for this order.
+                      </div>
+                    )}
                   </div>
-                  <div style={{ fontWeight: 700, fontSize: '0.85rem' }}>{lab.clinicalInfo || 'Diagnostic Lab Order'}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Status: {lab.statusName || 'Completed / Verified'}</div>
-                </div>
-              ))}
+                );
+              })}
 
               {/* Prescriptions */}
               {(historyFilter === 'ALL' || historyFilter === 'RX') && historyPrescriptions.map((rx, idx) => (

@@ -28,16 +28,11 @@ export default function App() {
       const saved = localStorage.getItem('current_user');
       if (saved) return JSON.parse(saved);
     } catch {}
-    return {
-      id: 1,
-      username: 'admin',
-      roles: ['SuperAdmin'],
-      tenantId: 1
-    };
+    return null;
   });
-  const [token, setToken] = useState(localStorage.getItem('auth_token') || 'dev_session');
+  const [token, setToken] = useState<string | null>(localStorage.getItem('auth_token'));
   const [activeModule, setActiveModule] = useState<ModuleKey>('DASHBOARD');
-  const [selectedEmrPatientId, setSelectedEmrPatientId] = useState<number | null>(1);
+  const [selectedEmrPatientId, setSelectedEmrPatientId] = useState<number | null>(null);
 
   // Sync role permissions from backend on startup
   useEffect(() => {

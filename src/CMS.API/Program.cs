@@ -47,9 +47,23 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddSingleton<IDbConnectionFactory, DbConnectionFactory>();
 
+// Redis is optional — if not available the API falls back to a no-op in-memory cache
 var redisConnStr = builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379";
-builder.Services.AddSingleton<IConnectionMultiplexer>(sp => ConnectionMultiplexer.Connect(redisConnStr));
-builder.Services.AddSingleton<ICacheService, RedisCacheService>();
+try
+{
+    var redisOptions = ConfigurationOptions.Parse(redisConnStr);
+    redisOptions.AbortOnConnectFail = false;
+    redisOptions.ConnectTimeout = 2000;
+    redisOptions.SyncTimeout = 2000;
+    var mux = ConnectionMultiplexer.Connect(redisOptions);
+    builder.Services.AddSingleton<IConnectionMultiplexer>(mux);
+    builder.Services.AddSingleton<ICacheService, RedisCacheService>();
+}
+catch
+{
+    // Redis unavailable — use no-op cache so the API still starts
+    builder.Services.AddSingleton<ICacheService, NoOpCacheService>();
+}
 
 // Domain & Application services across all 16 modules
 builder.Services.AddTransient<INotificationProvider, SmtpEmailProvider>();

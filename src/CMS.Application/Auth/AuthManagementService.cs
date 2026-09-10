@@ -46,7 +46,7 @@ public class AuthManagementService
         string expectedHash = (string)user.PasswordHash;
         string computedHash = HashPassword(request.Password, salt);
 
-        if (computedHash != expectedHash && expectedHash != "say@123") // allow dev seed
+        if (computedHash != expectedHash)
             return null;
 
         var roles = ((string)(user.Roles ?? "Staff")).Split(',');

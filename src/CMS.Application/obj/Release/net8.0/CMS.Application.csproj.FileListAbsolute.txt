@@ -34,3 +34,4 @@ C:\Users\ASUS\source\repos\CMS\src\CMS.Application\obj\Release\net8.0\CMS.Applic
 C:\Users\ASUS\source\repos\CMS\src\CMS.Application\obj\Release\net8.0\refint\CMS.Application.dll
 C:\Users\ASUS\source\repos\CMS\src\CMS.Application\obj\Release\net8.0\CMS.Application.pdb
 C:\Users\ASUS\source\repos\CMS\src\CMS.Application\obj\Release\net8.0\ref\CMS.Application.dll
+C:\Users\ASUS\source\repos\CMS\src\CMS.Application\obj\Release\net8.0\CMS.Application.sourcelink.json

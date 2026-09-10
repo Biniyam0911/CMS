@@ -92,10 +92,9 @@ public class TriageController : ControllerBase
             WHERE t.TenantId = @TenantId
               AND (t.AssignedDoctorId = @DoctorId OR @DoctorId = 0)
               AND (
-                  @Date IS NULL 
-                  OR CAST(t.TriagedAt AS DATE) = CAST(@Date AS DATE) 
+                  @Date IS NULL
+                  OR CAST(t.TriagedAt AS DATE) = CAST(@Date AS DATE)
                   OR CAST(t.UpdatedAt AS DATE) = CAST(@Date AS DATE)
-                  OR t.Status = 'AssignedToDoctor'
               )
             ORDER BY t.PriorityLevel ASC, t.UpdatedAt DESC, t.TriagedAt DESC";
 

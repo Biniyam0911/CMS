@@ -156,3 +156,4 @@ C:\Users\ASUS\source\repos\CMS\src\CMS.API\obj\Release\net8.0\refint\CMS.API.dll
 C:\Users\ASUS\source\repos\CMS\src\CMS.API\obj\Release\net8.0\CMS.API.pdb
 C:\Users\ASUS\source\repos\CMS\src\CMS.API\obj\Release\net8.0\CMS.API.genruntimeconfig.cache
 C:\Users\ASUS\source\repos\CMS\src\CMS.API\obj\Release\net8.0\ref\CMS.API.dll
+C:\Users\ASUS\source\repos\CMS\src\CMS.API\obj\Release\net8.0\CMS.API.sourcelink.json
