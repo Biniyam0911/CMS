@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import {
   FlaskConical, ShieldAlert, Cpu, CheckCircle, Barcode, Check, Plus, X, Search,
   ChevronDown, ChevronRight, Layers, GitCommit, TrendingUp, Loader2, Calendar,
-  Wifi, WifiOff, Activity, RefreshCw, Trash2, Edit3, Server, Network, Sliders, AlertTriangle, Printer
+  Wifi, WifiOff, Activity, RefreshCw, Trash2, Edit3, Server, Network, Sliders, AlertTriangle, Printer,
+  Save, Zap
 } from 'lucide-react';
 import { api } from '../../api/apiClient';
 
@@ -399,6 +400,13 @@ export default function LaboratoryPage() {
     loadLabData(selectedDate, showAllDates);
   }, [selectedDate, showAllDates]);
 
+  const [toastMsg, setToastMsg] = useState<{ text: string; type: 'success' | 'info' | 'error' } | null>(null);
+
+  const showToast = (text: string, type: 'success' | 'info' | 'error' = 'success') => {
+    setToastMsg({ text, type });
+    setTimeout(() => setToastMsg(null), 4500);
+  };
+
   const handleResultParamChange = (orderId: number, paramCode: string, val: string) => {
     setOrders(orders.map(o => {
       if (o.id === orderId) {
@@ -408,24 +416,151 @@ export default function LaboratoryPage() {
     }));
   };
 
-  const handleVerifyOrder = async (orderId: number) => {
+  const handleSaveOrderResults = async (orderId: number, isVerified: boolean) => {
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return;
+
     try {
-      const order = orders.find(o => o.id === orderId);
-      if (order) {
-        const firstVal = Object.values(order.results)[0];
-        const numVal = parseFloat(firstVal);
-        await api.post('/laboratory/results', {
-          orderItemId: orderId,
-          numericValue: isNaN(numVal) ? null : numVal,
-          textValue: isNaN(numVal) ? firstVal : null,
-          enteredBy: 1,
-          sourceType: 1
+      // Build results payload for all tests in this order
+      const resultItems: any[] = [];
+
+      for (const test of order.tests) {
+        const testCatalogItem = catalog.find(c => c.code === test.testCode) || {
+          parameters: [{ code: test.testCode, name: test.testName, unit: '', min: undefined, max: undefined }]
+        };
+        const params = testCatalogItem.parameters || [];
+
+        // Collect sub-parameter values
+        const paramSummaries: string[] = [];
+        let primaryNum: number | null = null;
+        let primaryFlag = 'Normal';
+        let primaryUnit = '';
+        let primaryRef = '';
+
+        for (const p of params) {
+          const resultKey = `${test.itemId}:${p.code}`;
+          const val = order.results[resultKey] || order.results[p.code] || '';
+          if (val) {
+            const flag = calculateParamFlag(val, p.min, p.max);
+            paramSummaries.push(`${p.name || p.code}: ${val} ${p.unit || ''} [${flag}]`.trim());
+            const num = parseFloat(val);
+            if (!isNaN(num) && primaryNum === null) {
+              primaryNum = num;
+              primaryFlag = flag;
+              primaryUnit = p.unit || '';
+              if (p.min !== undefined && p.max !== undefined) {
+                primaryRef = `${p.min} - ${p.max} ${p.unit || ''}`.trim();
+              }
+            }
+          }
+        }
+
+        const summaryText = paramSummaries.join(' | ') || (primaryNum !== null ? `${primaryNum} ${primaryUnit}` : 'Results recorded');
+
+        resultItems.push({
+          orderItemId: test.itemId,
+          testCode: test.testCode,
+          testName: test.testName,
+          numericValue: primaryNum,
+          textValue: summaryText,
+          unit: primaryUnit,
+          flag: primaryFlag,
+          referenceRange: primaryRef,
+          isCritical: primaryFlag === 'HH' || primaryFlag === 'LL',
+          isVerified
         });
       }
+
+      await api.post('/laboratory/results/save', {
+        orderId,
+        isVerified,
+        results: resultItems
+      });
+
+      // Update local state
+      setOrders(orders.map(o => {
+        if (o.id === orderId) {
+          return {
+            ...o,
+            status: isVerified ? 'Verified' : 'Resulted',
+            custodyStep: isVerified ? 'Verified' : 'ResultsSaved',
+            tests: o.tests.map(t => ({
+              ...t,
+              status: isVerified ? 'Verified' : 'Resulted'
+            }))
+          };
+        }
+        return o;
+      }));
+
+      showToast(
+        isVerified
+          ? `✓ Order #${order.orderNo} results verified & approved. Results are now live in Doctor EMR Patient History!`
+          : `✓ Order #${order.orderNo} results saved successfully.`,
+        'success'
+      );
     } catch (err) {
-      console.error('Verify order API error:', err);
+      console.error('Save/Verify lab results error:', err);
+      showToast(`Failed to save results for Order #${order.orderNo}. Please try again.`, 'error');
     }
-    setOrders(orders.map(o => o.id === orderId ? { ...o, status: 'Resulted', custodyStep: 'Verified' } : o));
+  };
+
+  const handleVerifyOrder = async (orderId: number) => {
+    await handleSaveOrderResults(orderId, true);
+  };
+
+  const handleReceiveFromMachine = async (orderId: number, testCode?: string, testItemId?: number) => {
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return;
+
+    // Pick connected machine (or first available machine)
+    const connectedMachine = machines.find(m => m.status === 'CONNECTED') || machines[0];
+
+    try {
+      const targetTestCode = testCode || order.testCode || (order.tests[0]?.testCode) || 'CBC';
+      const res = await api.post<any>('/laboratory/machine/receive', {
+        orderId,
+        orderItemId: testItemId,
+        testCode: targetTestCode,
+        machineId: connectedMachine?.id || 'MCH-01',
+        machineName: connectedMachine?.name || 'Automated Laboratory Analyzer'
+      });
+
+      if (res && res.parameters) {
+        const receivedParams = res.parameters as Record<string, string>;
+
+        // Update local order results
+        setOrders(orders.map(o => {
+          if (o.id === orderId) {
+            const updatedResults = { ...o.results };
+            for (const t of o.tests) {
+              if (!testItemId || t.itemId === testItemId || t.testCode === targetTestCode) {
+                for (const [pCode, pVal] of Object.entries(receivedParams)) {
+                  updatedResults[`${t.itemId}:${pCode}`] = pVal;
+                  updatedResults[pCode] = pVal;
+                }
+              }
+            }
+            return {
+              ...o,
+              results: updatedResults,
+              status: 'Resulted',
+              custodyStep: 'ResultsSaved',
+              tests: o.tests.map(t => (!testItemId || t.itemId === testItemId ? { ...t, status: 'Resulted' } : t))
+            };
+          }
+          return o;
+        }));
+
+        showToast(
+          `⚡ Live results received directly from ${connectedMachine?.name || 'Analyzer'} for ${targetTestCode}! Encoded into worklist.`,
+          'success'
+        );
+      }
+    } catch (err) {
+      console.error('Receive from machine error:', err);
+      showToast(`Machine communication error: Could not fetch results from analyzer.`, 'error');
+    }
   };
 
   const handleAdvanceCustody = (orderId: number, nextStep: string) => {
@@ -681,6 +816,29 @@ export default function LaboratoryPage() {
 
   return (
     <div>
+      {/* Toast Alert */}
+      {toastMsg && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          right: '20px',
+          zIndex: 9999,
+          padding: '12px 18px',
+          borderRadius: '8px',
+          background: toastMsg.type === 'error' ? '#dc2626' : toastMsg.type === 'info' ? '#0284c7' : '#059669',
+          color: '#ffffff',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          fontWeight: 600,
+          fontSize: '0.85rem'
+        }}>
+          {toastMsg.type === 'error' ? <AlertTriangle size={18} /> : <CheckCircle size={18} />}
+          {toastMsg.text}
+        </div>
+      )}
+
       {/* 1. TOP CLINICAL KPI STATS BAR */}
       <div className="grid-4" style={{ marginBottom: '20px' }}>
         <div className="glass-panel" style={{ padding: '14px 18px', background: '#ffffff', borderRadius: '10px', border: '1px solid var(--border-color)', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
@@ -923,16 +1081,27 @@ export default function LaboratoryPage() {
                           type="button"
                           onClick={(e) => { e.stopPropagation(); setPrintModalOrder(o); }}
                           className="btn-secondary"
-                          style={{ padding: '5px 10px', fontSize: '0.74rem', background: '#ffffff', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}
+                          style={{ padding: '5px 9px', fontSize: '0.73rem', background: '#ffffff', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}
                         >
-                          <Printer size={13} color="#0284c7" /> Print Result
+                          <Printer size={13} color="#0284c7" /> Print
                         </button>
                         <button
-                          onClick={(e) => { e.stopPropagation(); handleVerifyOrder(o.id); }}
-                          className="btn-primary"
-                          style={{ padding: '6px 12px', fontSize: '0.75rem', background: '#0284c7', fontWeight: 600 }}
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); handleSaveOrderResults(o.id, false); }}
+                          className="btn-secondary"
+                          style={{ padding: '5px 10px', fontSize: '0.73rem', background: '#f8fafc', borderColor: '#94a3b8', color: '#1e293b', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                          title="Save encoded / received results to database"
                         >
-                          Verify Results
+                          <Save size={13} color="#475569" /> Save Results
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); handleSaveOrderResults(o.id, true); }}
+                          className="btn-primary"
+                          style={{ padding: '5px 11px', fontSize: '0.73rem', background: '#059669', borderColor: '#059669', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                          title="Verify and approve results — makes them visible to Doctor in EMR"
+                        >
+                          <Check size={13} /> Verify &amp; Approve
                         </button>
                       </div>
                     </div>
@@ -940,8 +1109,21 @@ export default function LaboratoryPage() {
                     {/* Sub-Tests Result Table with Delta Checking */}
                     {isExpanded && (
                       <div style={{ padding: '18px 20px', borderTop: '1px solid #e2e8f0', background: '#f8fafc' }}>
-                        <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0284c7', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <Layers size={15} /> Tests in this Order ({o.tests.length})
+                        <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0284c7', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <Layers size={15} /> Tests in this Order ({o.tests.length})
+                          </div>
+                          {machines.some(m => m.status === 'CONNECTED') && (
+                            <button
+                              type="button"
+                              onClick={() => handleReceiveFromMachine(o.id)}
+                              className="btn-secondary"
+                              style={{ padding: '3px 9px', fontSize: '0.72rem', background: '#ecfdf5', borderColor: '#6ee7b7', color: '#047857', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}
+                              title="Receive results directly from connected analyzer machine"
+                            >
+                              <Zap size={12} color="#059669" /> Receive from Analyzer
+                            </button>
+                          )}
                         </div>
 
                         {o.tests.map((test, tIdx) => {
@@ -953,7 +1135,16 @@ export default function LaboratoryPage() {
                                 <FlaskConical size={14} color="#0284c7" />
                                 <span style={{ fontWeight: 700, fontSize: '0.82rem', color: '#0369a1' }}>{test.testName}</span>
                                 <code style={{ fontSize: '0.72rem', color: '#334155', background: '#f1f5f9', padding: '1px 6px', borderRadius: '3px' }}>{test.barcode}</code>
-                                <span className={test.status === 'Resulted' ? 'badge badge-normal' : 'badge badge-warning'} style={{ fontSize: '0.68rem', marginLeft: 'auto' }}>{test.status}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleReceiveFromMachine(o.id, test.testCode, test.itemId)}
+                                  className="btn-secondary"
+                                  style={{ padding: '2px 8px', fontSize: '0.68rem', fontWeight: 700, background: '#ffffff', color: '#0284c7', borderColor: '#93c5fd', display: 'inline-flex', alignItems: 'center', gap: '4px', marginLeft: '6px' }}
+                                  title={`Pull live analyzer reading for ${test.testCode}`}
+                                >
+                                  <Zap size={11} color="#0284c7" /> Get Machine Result
+                                </button>
+                                <span className={test.status === 'Resulted' || test.status === 'Verified' ? 'badge badge-normal' : 'badge badge-warning'} style={{ fontSize: '0.68rem', marginLeft: 'auto' }}>{test.status}</span>
                               </div>
                               <div style={{ background: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
                                 <table className="cms-table" style={{ background: '#ffffff', margin: 0 }}>
@@ -1070,7 +1261,7 @@ export default function LaboratoryPage() {
                 </div>
 
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                  {['Collected', 'ReceivedInLab', 'Aliquoted', 'AnalyzerRun', 'Verified', 'Archived'].map(step => (
+                  {['Collected', 'ReceivedInLab', 'Aliquoted', 'ResultsSaved', 'Verified', 'Archived'].map(step => (
                     <button
                       key={step}
                       onClick={() => handleAdvanceCustody(o.id, step)}

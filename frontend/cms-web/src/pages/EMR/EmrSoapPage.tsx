@@ -1630,21 +1630,23 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                               fontFamily: "'Plus Jakarta Sans', Arial, sans-serif"
                             }}
                           >
-                            {/* Logo & Bilingual Header */}
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
-                              <div style={{ width: '180px' }}>
+                            {/* Logo & Bilingual Header (Centered) */}
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '20px', borderBottom: '1.5px solid #f0eae1', paddingBottom: '16px' }}>
+                              <div style={{ width: '160px', marginBottom: '8px' }}>
                                 <img src="/huderma_logo.png" alt="Huderma" style={{ width: '100%', maxHeight: '60px', objectFit: 'contain' }} />
                                 <div style={{ fontSize: '0.6rem', color: '#c89345', fontWeight: 700, letterSpacing: '0.15em', marginTop: '2px', textAlign: 'center' }}>
                                   LOVE YOUR SKIN
                                 </div>
                               </div>
 
-                              <div style={{ textAlign: 'right', fontSize: '0.72rem', lineHeight: 1.35 }}>
-                                <div style={{ fontSize: '0.98rem', fontWeight: 800, color: '#c89345' }}>Huderma Dermatology Specialty Clinic</div>
-                                <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#c89345', marginBottom: '4px' }}>ሁደርማ የቆዳ ልዩ ክሊኒክ</div>
-                                <div style={{ fontSize: '0.68rem', color: '#44403c' }}>
-                                  Kirkos Sub City, Woreda 01, H. No. 062 | Tel: +251 949 74 44 44
-                                </div>
+                              <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#c89345' }}>Huderma Dermatology Specialty Clinic</div>
+                              <div style={{ fontSize: '0.96rem', fontWeight: 800, color: '#c89345', marginBottom: '4px' }}>ሁደርማ የቆዳ ልዩ ክሊኒክ</div>
+                              <div style={{ fontSize: '0.72rem', color: '#44403c', display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                                <span>Kirkos Sub City, Woreda 01, H. No. 062</span>
+                                <span>•</span>
+                                <span>Tel: +251 949 74 44 44 / +251 949 54 44 44</span>
+                                <span>•</span>
+                                <span>hudermacare@gmail.com</span>
                               </div>
                             </div>
 
@@ -2367,18 +2369,19 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
             </div>
 
             <div id="huderma-printable-certificate" style={{ background: '#ffffff', border: '1px solid #d6cec2', padding: '40px 48px', color: '#1c1917', fontFamily: "'Plus Jakarta Sans', Arial, sans-serif" }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '28px' }}>
-                <div style={{ width: '220px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '28px', borderBottom: '2px solid #e5dfd5', paddingBottom: '20px' }}>
+                <div style={{ width: '200px', marginBottom: '10px' }}>
                   <img src="/huderma_logo.png" alt="Huderma" style={{ width: '100%', maxHeight: '76px', objectFit: 'contain' }} />
                   <div style={{ fontSize: '0.68rem', color: '#c89345', fontWeight: 700, letterSpacing: '0.15em', marginTop: '2px', textAlign: 'center' }}>LOVE YOUR SKIN</div>
                 </div>
-                <div style={{ textAlign: 'right', fontSize: '0.78rem', lineHeight: 1.35 }}>
-                  <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#c89345' }}>Huderma Dermatology Specialty Clinic</div>
-                  <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#c89345', marginBottom: '4px' }}>ሁደርማ የቆዳ ልዩ ክሊኒክ</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '8px', textAlign: 'left', fontSize: '0.75rem', color: '#292524' }}>
-                    <div><div>Kirkos Sub City, Woreda 01, H. No. 062</div><div>ቂርቆስ ክፍለ ከተማ/ ወረዳ 01 ቤ.ቁ 062</div></div>
-                    <div style={{ textAlign: 'right' }}><div>hudermacare@gmail.com</div><div>www.huderma.com</div><div>+251 949 74 44 44</div><div>+251 949 54 44 44</div></div>
-                  </div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#c89345' }}>Huderma Dermatology Specialty Clinic</div>
+                <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#c89345', marginBottom: '6px' }}>ሁደርማ የቆዳ ልዩ ክሊኒክ</div>
+                <div style={{ fontSize: '0.8rem', color: '#292524', display: 'flex', gap: '14px', flexWrap: 'wrap', justifyContent: 'center', marginTop: '4px' }}>
+                  <div>Kirkos Sub City, Woreda 01, H. No. 062 (ቂርቆስ ክ/ከተማ ወረዳ 01)</div>
+                  <div>•</div>
+                  <div>Tel: +251 949 74 44 44 / +251 949 54 44 44</div>
+                  <div>•</div>
+                  <div>hudermacare@gmail.com | www.huderma.com</div>
                 </div>
               </div>
 

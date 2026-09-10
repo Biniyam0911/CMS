@@ -16,19 +16,22 @@ public class DashboardService
     public async Task<DashboardMetricsDto> GetMetricsAsync(byte tenantId)
     {
         using var conn = _dbFactory.CreateConnection();
-        var sqlPatients = "SELECT COUNT(1) FROM Patients WHERE TenantId = @TenantId AND IsActive = 1";
-        var sqlAppts = "SELECT COUNT(1) FROM Appointments WHERE TenantId = @TenantId AND CAST(SlotDateTime AS DATE) = CAST(GETDATE() AS DATE)";
-        var sqlLab = "SELECT COUNT(1) FROM LabOrders WHERE TenantId = @TenantId AND StatusId < 4";
-        var sqlQueue = "SELECT COUNT(1) FROM PatientQueues WHERE TenantId = @TenantId AND StatusId = 1";
-        var sqlRevenue = "SELECT ISNULL(SUM(PaidAmount), 0) FROM Invoices WHERE TenantId = @TenantId AND CAST(IssueDate AS DATE) = CAST(GETDATE() AS DATE)";
-        var sqlDoctors = "SELECT COUNT(1) FROM Doctors d JOIN Staff s ON s.Id = d.StaffId WHERE s.TenantId = @TenantId AND d.IsAvailable = 1";
+        var sqlCounts = @"
+            SELECT 
+                (SELECT COUNT(1) FROM Patients WHERE TenantId = @TenantId AND IsActive = 1) AS PatientCount,
+                (SELECT COUNT(1) FROM Appointments WHERE TenantId = @TenantId AND CAST(SlotDateTime AS DATE) = CAST(GETDATE() AS DATE)) AS ApptCount,
+                (SELECT COUNT(1) FROM LabOrders WHERE TenantId = @TenantId AND StatusId < 4) AS LabCount,
+                (SELECT COUNT(1) FROM PatientQueues WHERE TenantId = @TenantId AND StatusId = 1) AS QueueCount,
+                (SELECT ISNULL(SUM(PaidAmount), 0) FROM Invoices WHERE TenantId = @TenantId AND CAST(IssueDate AS DATE) = CAST(GETDATE() AS DATE)) AS Revenue,
+                (SELECT COUNT(1) FROM Doctors d JOIN Staff s ON s.Id = d.StaffId WHERE s.TenantId = @TenantId AND d.IsAvailable = 1) AS DocCount";
 
-        int patientCount = await conn.ExecuteScalarAsync<int>(sqlPatients, new { TenantId = tenantId });
-        int apptCount = await conn.ExecuteScalarAsync<int>(sqlAppts, new { TenantId = tenantId });
-        int labCount = await conn.ExecuteScalarAsync<int>(sqlLab, new { TenantId = tenantId });
-        int queueCount = await conn.ExecuteScalarAsync<int>(sqlQueue, new { TenantId = tenantId });
-        decimal revenue = await conn.ExecuteScalarAsync<decimal>(sqlRevenue, new { TenantId = tenantId });
-        int docCount = await conn.ExecuteScalarAsync<int>(sqlDoctors, new { TenantId = tenantId });
+        var counts = await conn.QueryFirstOrDefaultAsync<dynamic>(sqlCounts, new { TenantId = tenantId });
+        int patientCount = (int)(counts?.PatientCount ?? 0);
+        int apptCount = (int)(counts?.ApptCount ?? 0);
+        int labCount = (int)(counts?.LabCount ?? 0);
+        int queueCount = (int)(counts?.QueueCount ?? 0);
+        decimal revenue = (decimal)(counts?.Revenue ?? 0m);
+        int docCount = (int)(counts?.DocCount ?? 0);
 
         var sqlCriticals = @"
             SELECT TOP 5 ca.Id, p.FirstName + ' ' + p.LastName AS PatientName, t.TestName,

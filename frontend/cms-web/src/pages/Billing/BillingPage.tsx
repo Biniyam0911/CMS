@@ -12,7 +12,7 @@ export default function BillingPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
-  const [filterDate, setFilterDate] = useState<string>('');
+  const [filterDate, setFilterDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
 
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
