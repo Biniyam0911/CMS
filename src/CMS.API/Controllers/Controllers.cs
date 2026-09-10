@@ -446,7 +446,7 @@ public class LaboratoryController : ControllerBase
                 int testId = res.TestId ?? (int)matchedItem.TestId;
                 string unit = res.Unit ?? (string)matchedItem.Unit ?? "";
                 string refRange = res.ReferenceRange ?? $"{matchedItem.NormalRangeLow} - {matchedItem.NormalRangeHigh} {unit}".Trim();
-                string flag = res.Flag ?? "Normal";
+                string flag = res.Flag != null ? (res.Flag.Length > 5 ? res.Flag[..5] : res.Flag) : "OK";
                 bool isCritical = res.IsCritical ?? (flag == "HH" || flag == "LL");
 
                 // Check if result already exists for this order item
@@ -589,7 +589,7 @@ public class LaboratoryController : ControllerBase
         string primaryText = "";
         string unit = (string)targetItem.Unit ?? "";
         string refRange = $"{targetItem.NormalRangeLow} - {targetItem.NormalRangeHigh} {unit}".Trim();
-        string flag = "Normal";
+        string flag = "OK";
 
         if (testCode.Contains("CBC"))
         {
