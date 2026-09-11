@@ -36,6 +36,11 @@ export default function BillingPage() {
   // Free / Waived Invoice State
   const [isFreeInvoice, setIsFreeInvoice] = useState(false);
   const [vatPercent, setVatPercent] = useState<number>(15.0);
+  const [clinicProfile, setClinicProfile] = useState<{ name: string; address: string; phone: string }>({
+    name: 'Specialty Clinic',
+    address: 'Addis Ababa, Ethiopia',
+    phone: '+251 911 00 00 00'
+  });
 
   const fetchInvoicesAndPatients = async () => {
     try {
@@ -47,14 +52,21 @@ export default function BillingPage() {
       ]);
 
       if (settingsData && Array.isArray(settingsData)) {
-        const vatSetting = settingsData.find((s: any) => 
-          (s.settingKey || s.SettingKey) === 'TaxRate' || 
-          (s.settingKey || s.SettingKey) === 'Tax.DefaultVatPercent'
-        );
-        if (vatSetting) {
-          const parsed = parseFloat(vatSetting.settingValue || vatSetting.SettingValue);
-          if (!isNaN(parsed) && parsed >= 0) setVatPercent(parsed);
-        }
+        let cName = 'Specialty Clinic';
+        let cAddr = 'Addis Ababa, Ethiopia';
+        let cPhone = '+251 911 00 00 00';
+        settingsData.forEach((s: any) => {
+          const k = s.settingKey || s.SettingKey;
+          const v = s.settingValue || s.SettingValue;
+          if (k === 'ClinicName' && v) cName = v;
+          if (k === 'ClinicAddress' && v) cAddr = v;
+          if (k === 'ClinicPhone' && v) cPhone = v;
+          if (k === 'TaxRate' || k === 'Tax.DefaultVatPercent') {
+            const parsed = parseFloat(v);
+            if (!isNaN(parsed) && parsed >= 0) setVatPercent(parsed);
+          }
+        });
+        setClinicProfile({ name: cName, address: cAddr, phone: cPhone });
       }
 
       if (invData && Array.isArray(invData)) {
@@ -478,7 +490,9 @@ export default function BillingPage() {
                   <span>Br {selectedInvoice.subtotal.toFixed(2)}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>VAT ({vatPercent}%):</span>
+                  <span style={{ color: 'var(--text-muted)' }}>
+                    VAT ({selectedInvoice.subtotal > 0 ? Math.round((selectedInvoice.vat / selectedInvoice.subtotal) * 100) : (selectedInvoice.vat > 0 ? vatPercent : 0)}%):
+                  </span>
                   <span>Br {selectedInvoice.vat.toFixed(2)}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-color)', paddingTop: '4px', fontWeight: 800, fontSize: '0.9rem' }}>
@@ -711,8 +725,8 @@ export default function BillingPage() {
 
             <div style={{ padding: '24px', border: '1px solid #e5dfd5', borderRadius: '8px', background: '#fff', color: '#1c1917' }}>
               <div style={{ textAlign: 'center', marginBottom: '18px' }}>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#c89345' }}>Huderma Dermatology Specialty Clinic</h3>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Kirkos Sub City, Woreda 01, H. No. 062 | Tel: +251 949 74 44 44</div>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#c89345' }}>{clinicProfile.name}</h3>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{clinicProfile.address} | Tel: {clinicProfile.phone}</div>
                 <div style={{ fontSize: '0.85rem', fontWeight: 700, marginTop: '8px', textDecoration: 'underline' }}>PAYMENT RECEIPT & TAX INVOICE</div>
               </div>
 
@@ -752,14 +766,16 @@ export default function BillingPage() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-end', fontSize: '0.82rem' }}>
                 <div>Subtotal: <strong>Br {showReceiptModal.subtotal.toFixed(2)}</strong></div>
-                <div>VAT ({vatPercent}%): <strong>Br {showReceiptModal.vat.toFixed(2)}</strong></div>
+                <div>
+                  VAT ({showReceiptModal.subtotal > 0 ? Math.round((showReceiptModal.vat / showReceiptModal.subtotal) * 100) : (showReceiptModal.vat > 0 ? vatPercent : 0)}%): <strong>Br {showReceiptModal.vat.toFixed(2)}</strong>
+                </div>
                 <div style={{ fontSize: '1rem', fontWeight: 800, color: '#0369a1', borderTop: '1px solid #e5dfd5', paddingTop: '4px', marginTop: '4px' }}>
                   Total Paid: Br {showReceiptModal.paid.toFixed(2)}
                 </div>
               </div>
 
               <div style={{ marginTop: '24px', textAlign: 'center', fontSize: '0.72rem', color: 'var(--text-muted)', borderTop: '1px dashed #e5dfd5', paddingTop: '10px' }}>
-                Thank you for choosing Huderma Specialty Clinic.
+                Thank you for choosing {clinicProfile.name}.
               </div>
             </div>
           </div>

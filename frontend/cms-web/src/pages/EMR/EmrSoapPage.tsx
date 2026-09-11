@@ -980,6 +980,17 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
             console.warn('Procedure order error:', pErr);
           }
         }
+        setHistoryProcedures(prev => [
+          ...procItems.map((p, idx) => ({
+            id: Date.now() + idx,
+            procedureCode: p.code,
+            procedureName: p.title,
+            clinicalNotes: p.paramsSummary,
+            statusName: 'Ordered',
+            createdAt: new Date().toISOString()
+          })),
+          ...prev
+        ]);
       }
 
       // 4. Dispatch Medical Certificates
@@ -2148,11 +2159,11 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
             <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
 
               {/* LEFT: Catalog */}
-              <div style={{ width: '380px', flexShrink: 0, borderRight: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
+              <div style={{ width: '380px', flexShrink: 0, borderRight: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0, height: '100%' }}>
                 <div style={{ padding: '8px 14px', borderBottom: '1px solid #e2e8f0', background: '#f1f5f9', fontSize: '0.68rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   Service Catalog
                 </div>
-                <div style={{ flex: 1, overflowY: 'auto', padding: '8px', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                <div style={{ flex: '1 1 0%', overflowY: 'auto', padding: '8px', display: 'flex', flexDirection: 'column', gap: '6px', minHeight: 0 }}>
 
                   {/* Lab */}
                   <div style={{ borderRadius: '8px', background: '#fff', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
@@ -2169,8 +2180,8 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                       {expandedNodes.lab ? <ChevronDown size={13} color="#64748b" /> : <ChevronRight size={13} color="#64748b" />}
                     </button>
                     {expandedNodes.lab && (
-                      <div style={{ borderTop: '1px solid #e2e8f0' }}>
-                        <div style={{ padding: '3px 10px', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ borderTop: '1px solid #e2e8f0', maxHeight: '260px', overflowY: 'auto' }}>
+                        <div style={{ padding: '3px 10px', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 1 }}>
                           <span style={{ fontSize: '0.62rem', color: '#94a3b8' }}>✓ check to multi-select</span>
                           <button type="button" onClick={() => handleToggleSelectAll('LAB', labCatalogue)} style={{ background: 'none', border: 'none', color: '#0284c7', fontSize: '0.65rem', fontWeight: 700, cursor: 'pointer' }}>
                             {labCatalogue.every(t => !!checkedCatalogItems[`LAB:${t.id}`]) ? 'Deselect All' : 'Select All'}
@@ -2210,8 +2221,8 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                       {expandedNodes.proc ? <ChevronDown size={13} color="#64748b" /> : <ChevronRight size={13} color="#64748b" />}
                     </button>
                     {expandedNodes.proc && (
-                      <div style={{ borderTop: '1px solid #e2e8f0' }}>
-                        <div style={{ padding: '3px 10px', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ borderTop: '1px solid #e2e8f0', maxHeight: '260px', overflowY: 'auto' }}>
+                        <div style={{ padding: '3px 10px', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 1 }}>
                           <span style={{ fontSize: '0.62rem', color: '#94a3b8' }}>✓ check to multi-select</span>
                           <button type="button" onClick={() => handleToggleSelectAll('PROCEDURE', procedureCatalogue)} style={{ background: 'none', border: 'none', color: '#7c3aed', fontSize: '0.65rem', fontWeight: 700, cursor: 'pointer' }}>
                             {procedureCatalogue.every(p => !!checkedCatalogItems[`PROCEDURE:${p.id}`]) ? 'Deselect All' : 'Select All'}
@@ -2251,8 +2262,8 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                       {expandedNodes.rx ? <ChevronDown size={13} color="#64748b" /> : <ChevronRight size={13} color="#64748b" />}
                     </button>
                     {expandedNodes.rx && (
-                      <div style={{ borderTop: '1px solid #e2e8f0' }}>
-                        <div style={{ padding: '3px 10px', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ borderTop: '1px solid #e2e8f0', maxHeight: '260px', overflowY: 'auto' }}>
+                        <div style={{ padding: '3px 10px', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 1 }}>
                           <span style={{ fontSize: '0.62rem', color: '#94a3b8' }}>✓ check to multi-select</span>
                           <button type="button" onClick={() => handleToggleSelectAll('RX', medicationCatalogue)} style={{ background: 'none', border: 'none', color: '#059669', fontSize: '0.65rem', fontWeight: 700, cursor: 'pointer' }}>
                             {medicationCatalogue.every(m => !!checkedCatalogItems[`RX:${m.id}`]) ? 'Deselect All' : 'Select All'}

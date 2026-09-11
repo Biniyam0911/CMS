@@ -130,6 +130,12 @@ input, select, textarea {
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
+input[type="checkbox"], input[type="radio"] {
+  width: auto !important;
+  cursor: pointer;
+  accent-color: #0284c7;
+}
+
 input:focus, select:focus, textarea:focus {
   border-color: var(--border-focus);
   background: #ffffff;

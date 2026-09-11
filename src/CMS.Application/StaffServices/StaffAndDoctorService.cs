@@ -53,7 +53,7 @@ public class StaffAndDoctorService
     public async Task<List<SpecializationDto>> GetSpecializationsAsync()
     {
         using var conn = _dbFactory.CreateConnection();
-        var sql = "SELECT Id, Code AS SpecializationCode, Name AS SpecializationName, '' AS Description FROM Specializations ORDER BY Name";
+        var sql = "SELECT CAST(Id AS INT) AS Id, CAST(Code AS NVARCHAR(50)) AS SpecializationCode, CAST(Name AS NVARCHAR(150)) AS SpecializationName, CAST('' AS NVARCHAR(255)) AS Description FROM Specializations ORDER BY Name";
         var list = (await conn.QueryAsync<SpecializationDto>(sql)).ToList();
         return list;
     }

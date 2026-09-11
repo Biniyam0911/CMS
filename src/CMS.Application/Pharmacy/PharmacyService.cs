@@ -98,28 +98,29 @@ public class PharmacyService
         using var conn = _dbFactory.CreateConnection();
         var sql = @"
             SELECT pr.Id, pr.TenantId, pr.EncounterId, pr.PatientId,
-                   p.FirstName + ' ' + p.LastName AS PatientName,
+                   p.FirstName + ' ' + ISNULL(p.MiddleName + ' ', '') + p.LastName AS PatientName,
                    p.MRN,
-                   pr.DoctorId, u.FirstName + ' ' + u.LastName AS DoctorName,
-                   pr.PrescribedAt, pr.StatusId,
+                   pr.PrescribedBy AS DoctorId,
+                   ISNULL(s.FirstName + ' ' + s.LastName, ISNULL(u.FirstName + ' ' + u.LastName, 'Attending Doctor')) AS DoctorName,
+                   pr.PrescribedAt,
+                   CAST(CASE WHEN pr.IsDispensed = 1 THEN 4 ELSE 1 END AS TINYINT) AS StatusId,
                    CASE 
                        WHEN EXISTS (
                            SELECT 1 FROM InvoiceItems ii 
                            JOIN Invoices inv ON inv.Id = ii.InvoiceId 
-                           WHERE (ii.ReferenceId = pr.Id OR inv.EncounterId = pr.EncounterId)
-                             AND inv.PaidAmount >= inv.Total AND inv.Total > 0
+                           WHERE (ii.RefId = pr.Id OR inv.EncounterId = pr.EncounterId)
+                             AND inv.PaidAmount >= inv.TotalAmount AND inv.TotalAmount > 0
                        ) THEN 1 
                        WHEN EXISTS (
                            SELECT 1 FROM Invoices inv
-                           WHERE inv.PatientId = pr.PatientId AND (inv.EncounterId = pr.EncounterId OR CAST(inv.IssueDate AS DATE) = CAST(pr.PrescribedAt AS DATE)) AND inv.PaidAmount >= inv.Total AND inv.Total > 0
+                           WHERE inv.PatientId = pr.PatientId AND (inv.EncounterId = pr.EncounterId OR CAST(inv.IssueDate AS DATE) = CAST(pr.PrescribedAt AS DATE)) AND inv.PaidAmount >= inv.TotalAmount AND inv.TotalAmount > 0
                        ) THEN 1
                        ELSE 0 
                    END AS IsPaid
             FROM Prescriptions pr
             JOIN Patients p ON p.Id = pr.PatientId
-            LEFT JOIN Doctors d ON d.Id = pr.DoctorId
-            LEFT JOIN Staff s ON s.Id = d.StaffId
-            LEFT JOIN Users u ON u.Id = s.UserId
+            LEFT JOIN Users u ON u.Id = pr.PrescribedBy
+            LEFT JOIN Staff s ON s.UserId = u.Id
             WHERE pr.TenantId = @TenantId
             ORDER BY pr.PrescribedAt DESC";
 

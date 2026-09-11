@@ -1,6 +1,21 @@
 namespace CMS.Shared.DTOs;
 
-public record SpecializationDto(int Id, string SpecializationCode, string SpecializationName, string? Description);
+public class SpecializationDto
+{
+    public int Id { get; set; }
+    public string SpecializationCode { get; set; } = string.Empty;
+    public string SpecializationName { get; set; } = string.Empty;
+    public string? Description { get; set; }
+
+    public SpecializationDto() { }
+    public SpecializationDto(int id, string specializationCode, string specializationName, string? description = null)
+    {
+        Id = id;
+        SpecializationCode = specializationCode;
+        SpecializationName = specializationName;
+        Description = description;
+    }
+}
 
 public class DoctorDto
 {

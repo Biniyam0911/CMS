@@ -275,6 +275,7 @@ export default function ReportBuilderPage() {
                       <input
                         type="checkbox"
                         checked={selectedCols.includes(col)}
+                        style={{ width: '14px', height: '14px', flexShrink: 0, margin: 0, cursor: 'pointer' }}
                         onChange={e => {
                           if (e.target.checked) setSelectedCols([...selectedCols, col]);
                           else setSelectedCols(selectedCols.filter(c => c !== col));
@@ -320,6 +321,7 @@ export default function ReportBuilderPage() {
                       <input
                         type="checkbox"
                         checked={joinCols.includes(col)}
+                        style={{ width: '14px', height: '14px', flexShrink: 0, margin: 0, cursor: 'pointer' }}
                         onChange={e => {
                           if (e.target.checked) setJoinCols([...joinCols, col]);
                           else setJoinCols(joinCols.filter(c => c !== col));

@@ -114,6 +114,14 @@ public class EncounterService
     public async Task<int> CreateProcedureOrderAsync(byte tenantId, CreateProcedureOrderDto dto)
     {
         using var conn = _dbFactory.CreateConnection();
+        int? encId = dto.EncounterId;
+        if (!encId.HasValue || encId.Value <= 0)
+        {
+            encId = await conn.ExecuteScalarAsync<int?>(
+                "SELECT TOP 1 Id FROM Encounters WHERE TenantId = @TenantId AND PatientId = @PatientId ORDER BY Id DESC",
+                new { TenantId = tenantId, dto.PatientId });
+        }
+
         var sql = @"
             INSERT INTO ProcedureOrders (TenantId, EncounterId, PatientId, OrderedBy, ProcedureCode, ProcedureName, ClinicalNotes, StatusId, CreatedAt)
             OUTPUT INSERTED.Id
@@ -121,7 +129,7 @@ public class EncounterService
 
         int id = await conn.ExecuteScalarAsync<int>(sql, new {
             TenantId = tenantId,
-            dto.EncounterId,
+            EncounterId = encId,
             dto.PatientId,
             dto.OrderedBy,
             dto.ProcedureCode,

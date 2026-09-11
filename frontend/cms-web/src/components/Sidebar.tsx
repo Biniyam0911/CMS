@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   LayoutDashboard, Users, FileHeart, Calendar, ListOrdered, FlaskConical,
   Pill, CreditCard, BarChart3, FileSpreadsheet, Globe, ShieldCheck,
@@ -17,6 +17,8 @@ export type ModuleKey =
 interface SidebarProps {
   activeModule: ModuleKey;
   userRoles?: string[];
+  clinicName?: string;
+  appIconName?: string;
   onSelectModule: (key: ModuleKey) => void;
   onLogout: () => void;
 }
@@ -53,11 +55,23 @@ const ICON_MAP: Record<string, LucideIcon> = {
   FlaskConical,
 };
 
-export default function Sidebar({ activeModule, userRoles = ['SuperAdmin'], onSelectModule, onLogout }: SidebarProps) {
+export default function Sidebar({
+  activeModule,
+  userRoles = ['SuperAdmin'],
+  clinicName: propClinicName,
+  appIconName: propAppIconName,
+  onSelectModule,
+  onLogout
+}: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [, setVersion] = useState(0);
-  const [clinicName, setClinicName] = useState('AethelCMS');
-  const [appIconName, setAppIconName] = useState('FileHeart');
+  const [clinicName, setClinicName] = useState(propClinicName || 'AethelCMS');
+  const [appIconName, setAppIconName] = useState(propAppIconName || 'FileHeart');
+
+  useEffect(() => {
+    if (propClinicName) setClinicName(propClinicName);
+    if (propAppIconName) setAppIconName(propAppIconName);
+  }, [propClinicName, propAppIconName]);
 
   const loadClinicBranding = async () => {
     try {
@@ -69,7 +83,14 @@ export default function Sidebar({ activeModule, userRoles = ['SuperAdmin'], onSe
       });
       const data = await res.json();
       const payload = data?.Data || data?.data || data;
-      if (payload) {
+      if (Array.isArray(payload)) {
+        payload.forEach((s: any) => {
+          const k = s.settingKey || s.SettingKey;
+          const v = s.settingValue || s.SettingValue;
+          if (k === 'ClinicName' && v) setClinicName(v);
+          if (k === 'AppIcon' && v) setAppIconName(v);
+        });
+      } else if (payload && typeof payload === 'object') {
         const name = payload.ClinicName || payload.clinicName;
         const icon = payload.AppIcon || payload.appIcon;
         if (name) setClinicName(name);
@@ -94,7 +115,6 @@ export default function Sidebar({ activeModule, userRoles = ['SuperAdmin'], onSe
   const AppLogoIcon = ICON_MAP[appIconName] || FileHeart;
   const visibleItems = MODULE_ITEMS.filter(item => hasModuleAccess(userRoles, item.key));
   const categories = Array.from(new Set(visibleItems.map(i => i.category)));
-  const displayName = clinicName.length > 12 ? clinicName.split(' ')[0] : clinicName;
 
   return (
     <aside
@@ -136,9 +156,26 @@ export default function Sidebar({ activeModule, userRoles = ['SuperAdmin'], onSe
             <AppLogoIcon color="#fff" size={17} />
           </div>
           {!isCollapsed && (
-            <div style={{ whiteSpace: 'nowrap', overflow: 'hidden' }}>
-              <h2 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)', lineHeight: 1.1 }}>{displayName}</h2>
-              <span style={{ fontSize: '0.62rem', color: '#0369a1', fontWeight: 700, letterSpacing: '0.04em' }}>CLINICAL SUITE</span>
+            <div style={{ minWidth: 0, overflow: 'hidden' }}>
+              <h2
+                style={{
+                  fontSize: '0.88rem',
+                  fontWeight: 800,
+                  color: 'var(--text-main)',
+                  lineHeight: 1.2,
+                  whiteSpace: 'normal',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden'
+                }}
+                title={clinicName}
+              >
+                {clinicName}
+              </h2>
+              <span style={{ fontSize: '0.62rem', color: '#0369a1', fontWeight: 700, letterSpacing: '0.04em' }}>
+                CLINICAL SUITE
+              </span>
             </div>
           )}
         </div>

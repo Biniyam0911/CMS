@@ -5,9 +5,10 @@ interface HeaderProps {
   title: string;
   subtitle: string;
   user: { username: string; roles: string[]; tenantId: number } | null;
+  clinicName?: string;
 }
 
-export default function Header({ title, subtitle, user }: HeaderProps) {
+export default function Header({ title, subtitle, user, clinicName }: HeaderProps) {
   const [time, setTime] = useState(new Date().toLocaleTimeString());
 
   useEffect(() => {
@@ -18,8 +19,15 @@ export default function Header({ title, subtitle, user }: HeaderProps) {
   return (
     <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', paddingBottom: '12px', borderBottom: '1px solid var(--border-color)' }}>
       <div>
-        <h1 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main)' }}>{title}</h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '1px' }}>{subtitle}</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <h1 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main)' }}>{title}</h1>
+          {clinicName && (
+            <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: '12px', background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd' }}>
+              {clinicName}
+            </span>
+          )}
+        </div>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '2px' }}>{subtitle}</p>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>

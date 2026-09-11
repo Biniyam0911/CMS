@@ -224,36 +224,38 @@ export default function PharmacyPage() {
 
   const handleDirectOrderSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!doSelectedDrug || !doPatientId) return;
+    if (!doSelectedDrug) return;
     setDoSubmitting(true);
     const qty = parseInt(doQty) || 1;
-    const unitPrice = doSelectedDrug.sellingPrice || 0;
-    const vatPct = 15;
-    const subtotal = qty * unitPrice;
-    const vatAmt = subtotal * (vatPct / 100);
-    const total = subtotal + vatAmt;
+    const unitPrice = parseFloat(String(doSelectedDrug.sellingPrice)) || 0;
+    const patName = (doPatientName || '').trim() || 'Walk-in OTC Patient';
+    const patId = parseInt(doPatientId) || (patientsList.length > 0 ? (patientsList[0].id || patientsList[0].Id || 1) : 1);
+    const drugDesc = `${doSelectedDrug.brand || doSelectedDrug.generic} ${doSelectedDrug.strength || ''} (OTC: ${patName})`.trim();
+
     try {
       await api.post('/billing/invoices', {
-        patientId: parseInt(doPatientId),
-        issueDate: new Date().toISOString().split('T')[0],
+        tenantId: 1,
+        patientId: patId,
+        encounterId: null,
+        createdBy: 1,
         items: [{
-          itemType: 'Medication',
-          itemName: `${doSelectedDrug.generic} ${doSelectedDrug.strength || ''}`.trim(),
+          itemType: 'Pharmacy',
+          description: drugDesc,
           quantity: qty,
-          unitPrice,
+          unitPrice: unitPrice,
           discount: 0
-        }],
-        subtotal,
-        vatAmount: vatAmt,
-        totalAmount: total,
-        notes: `OTC Direct Order — ${doPatientName || 'Walk-in Patient'}`
+        }]
       });
-      alert(`Direct order invoiced: ${doSelectedDrug.generic} x${qty} = Br ${total.toFixed(2)} (incl. VAT)`);
+
+      // Optimistically decrement local stock
+      setDrugs(prev => prev.map(d => d.id === doSelectedDrug.id ? { ...d, stock: Math.max(0, d.stock - qty) } : d));
+
+      alert(`✓ Direct order invoiced successfully!\n\nMedication: ${doSelectedDrug.generic} x${qty}\nAmount: Br ${(qty * unitPrice).toFixed(2)}\nPatient: ${patName}`);
       setShowDirectOrderModal(false);
       setDoPatientId(''); setDoPatientName(''); setDoSelectedDrug(null); setDoQty('1');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Direct order failed:', err);
-      alert('Failed to create invoice. Please try again.');
+      alert('Failed to create invoice: ' + (err?.message || 'Please try again.'));
     } finally {
       setDoSubmitting(false);
     }
