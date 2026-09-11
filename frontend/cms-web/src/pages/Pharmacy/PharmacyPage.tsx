@@ -41,6 +41,9 @@ export default function PharmacyPage() {
   // Direct Order (OTC) Modal State
   const [showDirectOrderModal, setShowDirectOrderModal] = useState(false);
   const [patientsList, setPatientsList] = useState<any[]>([]);
+  const [vatPercent, setVatPercent] = useState<number>(15.0);
+  const [orderType, setOrderType] = useState<'registered' | 'walkin'>('registered');
+  const [walkinName, setWalkinName] = useState('');
   const [doPatientId, setDoPatientId] = useState('');
   const [doPatientName, setDoPatientName] = useState('');
   const [doSelectedDrug, setDoSelectedDrug] = useState<any>(null);
@@ -50,14 +53,35 @@ export default function PharmacyPage() {
   const loadPharmacyData = async () => {
     try {
       setLoading(true);
-      const [formularyData, prescriptionsData, allPatients] = await Promise.all([
+      const [formularyData, prescriptionsData, allPatients, settingsData] = await Promise.all([
         api.get<any[]>('/pharmacy/formulary').catch(() => []),
         api.get<any[]>('/pharmacy/prescriptions').catch(() => []),
-        api.get<any[]>('/patients').catch(() => [])
+        api.get<any[]>('/patients').catch(() => []),
+        api.get<any[]>('/settings').catch(() => [])
       ]);
 
+      if (settingsData && Array.isArray(settingsData)) {
+        settingsData.forEach((s: any) => {
+          const k = s.settingKey || s.SettingKey;
+          const v = s.settingValue || s.SettingValue;
+          if (k === 'TaxRate' || k === 'VAT' || k === 'Tax.DefaultVatPercent') {
+            const parsed = parseFloat(v);
+            if (!isNaN(parsed) && parsed >= 0) setVatPercent(parsed);
+          }
+        });
+      }
+
       if (allPatients && Array.isArray(allPatients)) {
-        setPatientsList(allPatients);
+        const mappedPatients = allPatients.map((p: any) => ({
+          id: p.id || p.Id,
+          name: `${p.firstName || p.FirstName || ''} ${p.lastName || p.LastName || ''}`.trim() || `Patient #${p.id || p.Id}`,
+          mrn: p.mrn || p.Mrn || `MRN-00${p.id || p.Id}`
+        }));
+        setPatientsList(mappedPatients);
+        if (mappedPatients.length > 0) {
+          setDoPatientId(String(mappedPatients[0].id));
+          setDoPatientName(mappedPatients[0].name);
+        }
       }
 
       if (formularyData && formularyData.length > 0) {
@@ -119,6 +143,9 @@ export default function PharmacyPage() {
 
   useEffect(() => {
     loadPharmacyData();
+    const handleSettingsChange = () => loadPharmacyData();
+    window.addEventListener('clinic_settings_changed', handleSettingsChange);
+    return () => window.removeEventListener('clinic_settings_changed', handleSettingsChange);
   }, []);
 
   const handleDispense = async (pItem: any) => {
@@ -228,9 +255,28 @@ export default function PharmacyPage() {
     setDoSubmitting(true);
     const qty = parseInt(doQty) || 1;
     const unitPrice = parseFloat(String(doSelectedDrug.sellingPrice)) || 0;
-    const patName = (doPatientName || '').trim() || 'Walk-in OTC Patient';
-    const patId = parseInt(doPatientId) || (patientsList.length > 0 ? (patientsList[0].id || patientsList[0].Id || 1) : 1);
-    const drugDesc = `${doSelectedDrug.brand || doSelectedDrug.generic} ${doSelectedDrug.strength || ''} (OTC: ${patName})`.trim();
+
+    let patId = 1;
+    let finalPatientName = '';
+
+    if (orderType === 'walkin') {
+      finalPatientName = (walkinName || '').trim() || 'Walk-in OTC Customer';
+      patId = patientsList.length > 0 ? (patientsList[0].id || 1) : 1;
+    } else {
+      const found = patientsList.find(p => String(p.id) === String(doPatientId));
+      if (found) {
+        patId = found.id;
+        finalPatientName = found.name;
+      } else if (patientsList.length > 0) {
+        patId = patientsList[0].id;
+        finalPatientName = patientsList[0].name;
+      } else {
+        patId = parseInt(doPatientId) || 1;
+        finalPatientName = doPatientName || 'Patient #1';
+      }
+    }
+
+    const drugDesc = `${doSelectedDrug.brand || doSelectedDrug.generic} ${doSelectedDrug.strength || ''} (OTC: ${finalPatientName})`.trim();
 
     try {
       await api.post('/billing/invoices', {
@@ -250,12 +296,35 @@ export default function PharmacyPage() {
       // Optimistically decrement local stock
       setDrugs(prev => prev.map(d => d.id === doSelectedDrug.id ? { ...d, stock: Math.max(0, d.stock - qty) } : d));
 
-      alert(`✓ Direct order invoiced successfully!\n\nMedication: ${doSelectedDrug.generic} x${qty}\nAmount: Br ${(qty * unitPrice).toFixed(2)}\nPatient: ${patName}`);
+      const subtotalAmt = qty * unitPrice;
+      const vatAmt = Math.round((subtotalAmt * (vatPercent / 100)) * 100) / 100;
+      const totalAmt = Math.round((subtotalAmt + vatAmt) * 100) / 100;
+
+      // Add to dispensary queue list
+      const newPrescription = {
+        id: Date.now(),
+        itemId: Date.now(),
+        patientName: finalPatientName,
+        mrn: orderType === 'registered' ? (patientsList.find(p => p.id === patId)?.mrn || `MRN-00${patId}`) : 'OTC-WALKIN',
+        doctorName: 'Direct Dispensary (OTC)',
+        date: new Date().toISOString().split('T')[0],
+        drug: `${doSelectedDrug.generic} ${doSelectedDrug.strength || ''}`.trim(),
+        qty: qty,
+        status: 'Dispensed',
+        isPaid: true,
+        isControlled: Boolean(doSelectedDrug.isControlled)
+      };
+      setPrescriptions(prev => [newPrescription, ...prev]);
+
+      alert(`✓ Direct order saved & billed successfully!\n\nPatient: ${finalPatientName}\nMedication: ${doSelectedDrug.generic} x${qty}\nSubtotal: Br ${subtotalAmt.toFixed(2)}\nVAT (${vatPercent}%): Br ${vatAmt.toFixed(2)}\nTotal Billed: Br ${totalAmt.toFixed(2)}`);
+
       setShowDirectOrderModal(false);
-      setDoPatientId(''); setDoPatientName(''); setDoSelectedDrug(null); setDoQty('1');
+      setWalkinName('');
+      setDoSelectedDrug(null);
+      setDoQty('1');
     } catch (err: any) {
       console.error('Direct order failed:', err);
-      alert('Failed to create invoice: ' + (err?.message || 'Please try again.'));
+      alert('Failed to save and bill order: ' + (err?.message || 'Please try again.'));
     } finally {
       setDoSubmitting(false);
     }
@@ -573,42 +642,100 @@ export default function PharmacyPage() {
 
       {/* Modal: Direct Order (OTC Medication Sale) */}
       {showDirectOrderModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div className="glass-panel" style={{ width: '520px', padding: '28px', background: '#ffffff', color: '#1c1917' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: '#0f172a' }}>
-                <Plus size={18} color="#059669" /> New Direct Dispensary Order (OTC)
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div className="glass-panel" style={{ width: '540px', padding: '28px', background: 'var(--bg-card)', color: 'var(--text-main)', borderRadius: '16px', boxShadow: '0 20px 40px rgba(0,0,0,0.15)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px' }}>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-main)' }}>
+                <Plus size={18} color="#0071e3" /> New Direct Dispensary Order (OTC)
               </h3>
-              <button onClick={() => setShowDirectOrderModal(false)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}><X size={18} /></button>
+              <button onClick={() => setShowDirectOrderModal(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={18} /></button>
             </div>
 
-            <form onSubmit={handleDirectOrderSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#334155' }}>Patient Name</label>
-                  <input
-                    type="text"
-                    value={doPatientName}
-                    onChange={e => setDoPatientName(e.target.value)}
-                    placeholder="e.g. Abebe Bekele"
-                    required
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#334155' }}>MRN / Patient ID (Optional)</label>
-                  <input
-                    type="text"
-                    value={doPatientId}
-                    onChange={e => setDoPatientId(e.target.value)}
-                    placeholder="e.g. MRN-00123 or leave blank"
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
-                  />
+            <form onSubmit={handleDirectOrderSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Order Mode: Registered Patient vs Walk-in OTC */}
+              <div>
+                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                  Patient / Customer Type
+                </label>
+                <div style={{ display: 'flex', background: 'var(--bg-dark)', padding: '3px', borderRadius: '10px', gap: '4px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setOrderType('registered')}
+                    style={{
+                      flex: 1,
+                      padding: '6px 12px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      background: orderType === 'registered' ? '#ffffff' : 'transparent',
+                      color: orderType === 'registered' ? '#0071e3' : 'var(--text-muted)',
+                      boxShadow: orderType === 'registered' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    Registered Patient
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOrderType('walkin')}
+                    style={{
+                      flex: 1,
+                      padding: '6px 12px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      background: orderType === 'walkin' ? '#ffffff' : 'transparent',
+                      color: orderType === 'walkin' ? '#0071e3' : 'var(--text-muted)',
+                      boxShadow: orderType === 'walkin' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    Walk-in OTC Customer
+                  </button>
                 </div>
               </div>
 
+              {orderType === 'registered' ? (
+                <div>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Select Patient</label>
+                  <select
+                    value={doPatientId}
+                    onChange={e => {
+                      setDoPatientId(e.target.value);
+                      const f = patientsList.find(p => String(p.id) === e.target.value);
+                      if (f) setDoPatientName(f.name);
+                    }}
+                    required
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '0.85rem' }}
+                  >
+                    {patientsList.length === 0 && <option value="">No registered patients found</option>}
+                    {patientsList.map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} ({p.mrn})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Walk-in Customer Name</label>
+                  <input
+                    type="text"
+                    value={walkinName}
+                    onChange={e => setWalkinName(e.target.value)}
+                    placeholder="e.g. Walk-in Customer"
+                    required
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                  />
+                </div>
+              )}
+
               <div>
-                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#334155' }}>Select Medication (from Formulary Inventory)</label>
+                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Select Medication (Formulary Inventory)</label>
                 <select
                   value={doSelectedDrug ? doSelectedDrug.id : ''}
                   onChange={e => {
@@ -616,7 +743,7 @@ export default function PharmacyPage() {
                     setDoSelectedDrug(d || null);
                   }}
                   required
-                  style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '0.85rem' }}
                 >
                   <option value="">-- Choose Drug --</option>
                   {drugs.map(d => (
@@ -629,7 +756,7 @@ export default function PharmacyPage() {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#334155' }}>Dispense Quantity</label>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Dispense Quantity</label>
                   <input
                     type="number"
                     min="1"
@@ -637,33 +764,33 @@ export default function PharmacyPage() {
                     value={doQty}
                     onChange={e => setDoQty(e.target.value)}
                     required
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '0.85rem' }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#334155' }}>Unit Selling Price</label>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Unit Selling Price</label>
                   <input
                     type="text"
                     readOnly
                     value={doSelectedDrug ? `Br ${doSelectedDrug.sellingPrice?.toFixed(2)}` : '—'}
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #e2e8f0', background: '#f8fafc', fontSize: '0.85rem', color: '#64748b' }}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-dark)', fontSize: '0.85rem', color: 'var(--text-muted)' }}
                   />
                 </div>
               </div>
 
               {doSelectedDrug && (
-                <div style={{ padding: '12px', background: '#f1f5f9', borderRadius: '8px', fontSize: '0.82rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <div style={{ padding: '14px', background: 'rgba(0, 113, 227, 0.04)', border: '1px solid rgba(0, 113, 227, 0.12)', borderRadius: '10px', fontSize: '0.82rem', display: 'flex', flexDirection: 'column', gap: '5px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Subtotal:</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>Subtotal:</span>
                     <strong>Br {((parseInt(doQty) || 1) * (doSelectedDrug.sellingPrice || 0)).toFixed(2)}</strong>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
-                    <span>Estimated VAT (15%):</span>
-                    <span>Br {(((parseInt(doQty) || 1) * (doSelectedDrug.sellingPrice || 0)) * 0.15).toFixed(2)}</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
+                    <span>Estimated VAT ({vatPercent}%):</span>
+                    <span>Br {(((parseInt(doQty) || 1) * (doSelectedDrug.sellingPrice || 0)) * (vatPercent / 100)).toFixed(2)}</span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #cbd5e1', paddingTop: '4px', color: '#0369a1', fontSize: '0.9rem' }}>
-                    <span>Total Invoiced:</span>
-                    <strong>Br {(((parseInt(doQty) || 1) * (doSelectedDrug.sellingPrice || 0)) * 1.15).toFixed(2)}</strong>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid rgba(0, 113, 227, 0.15)', paddingTop: '6px', color: '#0071e3', fontSize: '0.92rem' }}>
+                    <span>Total Invoiced & Billed:</span>
+                    <strong>Br {(((parseInt(doQty) || 1) * (doSelectedDrug.sellingPrice || 0)) * (1 + vatPercent / 100)).toFixed(2)}</strong>
                   </div>
                 </div>
               )}
@@ -674,11 +801,17 @@ export default function PharmacyPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={doSubmitting || !doSelectedDrug || !doPatientId}
+                  disabled={
+                    doSubmitting ||
+                    !doSelectedDrug ||
+                    (parseInt(doQty) || 0) <= 0 ||
+                    (orderType === 'walkin' && !walkinName.trim()) ||
+                    (orderType === 'registered' && !doPatientId && patientsList.length === 0)
+                  }
                   className="btn-primary"
-                  style={{ background: '#059669', borderColor: '#059669' }}
+                  style={{ background: '#34c759', borderColor: '#34c759' }}
                 >
-                  {doSubmitting ? 'Invoicing...' : 'Create Invoice & Bill'}
+                  {doSubmitting ? 'Invoicing & Billing...' : 'Save & Bill'}
                 </button>
               </div>
             </form>

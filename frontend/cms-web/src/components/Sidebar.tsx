@@ -147,9 +147,9 @@ export default function Sidebar({
             style={{
               width: '32px', height: '32px', minWidth: '32px',
               borderRadius: '8px',
-              background: 'linear-gradient(135deg, #0284c7, #0369a1)',
+              background: 'linear-gradient(135deg, #0071e3, #005bb5)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 2px 6px rgba(2,132,199,0.3)', cursor: 'pointer'
+              boxShadow: '0 2px 6px rgba(0,113,227,0.25)', cursor: 'pointer'
             }}
             title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
           >
@@ -160,7 +160,7 @@ export default function Sidebar({
               <h2
                 style={{
                   fontSize: '0.88rem',
-                  fontWeight: 800,
+                  fontWeight: 600,
                   color: 'var(--text-main)',
                   lineHeight: 1.2,
                   whiteSpace: 'normal',
@@ -173,7 +173,7 @@ export default function Sidebar({
               >
                 {clinicName}
               </h2>
-              <span style={{ fontSize: '0.62rem', color: '#0369a1', fontWeight: 700, letterSpacing: '0.04em' }}>
+              <span style={{ fontSize: '0.62rem', color: '#0071e3', fontWeight: 600, letterSpacing: '0.04em' }}>
                 CLINICAL SUITE
               </span>
             </div>
@@ -182,7 +182,7 @@ export default function Sidebar({
         {!isCollapsed && (
           <button
             onClick={() => setIsCollapsed(true)}
-            style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             title="Collapse Sidebar"
           >
             <ChevronLeft size={16} />
@@ -194,7 +194,7 @@ export default function Sidebar({
         {categories.map(cat => (
           <div key={cat}>
             {!isCollapsed ? (
-              <div style={{ padding: '0 8px 4px', fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              <div style={{ padding: '0 8px 4px', fontSize: '0.65rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                 {cat}
               </div>
             ) : (
@@ -213,16 +213,16 @@ export default function Sidebar({
                       display: 'flex', alignItems: 'center',
                       justifyContent: isCollapsed ? 'center' : 'flex-start',
                       gap: '9px', padding: isCollapsed ? '9px' : '7px 10px',
-                      borderRadius: '6px',
-                      background: isActive ? '#ffffff' : 'transparent',
-                      border: isActive ? '1px solid #d0c7b7' : '1px solid transparent',
-                      boxShadow: isActive ? '0 1px 3px rgba(0,0,0,0.04)' : 'none',
-                      color: isActive ? '#0369a1' : 'var(--text-secondary)',
-                      fontWeight: isActive ? 700 : 500, fontSize: '0.8rem',
+                      borderRadius: '8px',
+                      background: isActive ? 'rgba(0, 113, 227, 0.09)' : 'transparent',
+                      border: isActive ? '1px solid rgba(0, 113, 227, 0.18)' : '1px solid transparent',
+                      boxShadow: isActive ? '0 1px 2px rgba(0, 113, 227, 0.08)' : 'none',
+                      color: isActive ? '#0071e3' : 'var(--text-secondary)',
+                      fontWeight: isActive ? 600 : 500, fontSize: '0.8rem',
                       cursor: 'pointer', textAlign: 'left', transition: 'all 0.12s ease'
                     }}
                   >
-                    <Icon size={isCollapsed ? 18 : 15} color={isActive ? '#0284c7' : 'var(--text-muted)'} />
+                    <Icon size={isCollapsed ? 18 : 15} color={isActive ? '#0071e3' : 'var(--text-muted)'} />
                     {!isCollapsed && <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.label}</span>}
                   </button>
                 );
@@ -236,7 +236,7 @@ export default function Sidebar({
         <div style={{ padding: '6px', display: 'flex', justifyContent: 'center' }}>
           <button
             onClick={() => setIsCollapsed(false)}
-            style={{ background: '#ffffff', border: '1px solid var(--border-color)', color: '#0369a1', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '36px', height: '36px' }}
+            style={{ background: '#ffffff', border: '1px solid var(--border-color)', color: '#0071e3', cursor: 'pointer', padding: '6px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '36px', height: '36px' }}
             title="Expand Sidebar"
           >
             <ChevronRight size={16} />
@@ -248,9 +248,9 @@ export default function Sidebar({
         <button
           onClick={onLogout}
           title={isCollapsed ? 'Sign Out' : undefined}
-          style={{ display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'flex-start', gap: '8px', width: '100%', padding: isCollapsed ? '9px' : '7px 10px', borderRadius: '6px', background: 'transparent', border: '1px solid transparent', color: '#b91c1c', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer' }}
+          style={{ display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'flex-start', gap: '8px', width: '100%', padding: isCollapsed ? '9px' : '7px 10px', borderRadius: '8px', background: 'transparent', border: '1px solid transparent', color: '#ff3b30', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer' }}
         >
-          <LogOut size={isCollapsed ? 18 : 15} color="#b91c1c" />
+          <LogOut size={isCollapsed ? 18 : 15} color="#ff3b30" />
           {!isCollapsed && <span>Sign Out</span>}
         </button>
       </div>

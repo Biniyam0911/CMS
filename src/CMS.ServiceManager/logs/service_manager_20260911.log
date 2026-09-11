@@ -205,3 +205,20 @@ System.Threading.Tasks.TaskCanceledException: A task was canceled.
 2026-09-11 19:12:15.129 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-11T19:12:15.1290384+03:00"
 2026-09-11 19:14:27.081 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-11T19:14:27.0817404+03:00"
 2026-09-11 19:15:27.134 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-11T19:15:27.1346487+03:00"
+2026-09-11 19:16:27.138 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-11T19:16:27.1385476+03:00"
+2026-09-11 19:17:27.145 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-11T19:17:27.1457245+03:00"
+2026-09-11 19:18:27.159 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-11T19:18:27.1595105+03:00"
+2026-09-11 19:19:27.168 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-11T19:19:27.1684215+03:00"
+2026-09-11 19:20:27.186 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-11T19:20:27.1860612+03:00"
+2026-09-11 19:20:54.547 +03:00 [INF] Application is shutting down...
+2026-09-11 19:20:54.566 +03:00 [ERR] LabInstrumentListenerWorker error
+System.Threading.Tasks.TaskCanceledException: A task was canceled.
+   at CMS.ServiceManager.Workers.LabInstrumentListenerWorker.ExecuteAsync(CancellationToken stoppingToken) in C:\Users\ASUS\source\repos\CMS\src\CMS.ServiceManager\Workers\Workers.cs:line 81
+2026-09-11 19:26:05.920 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-11T19:26:05.8604705+03:00"
+2026-09-11 19:26:06.109 +03:00 [INF] Starting LabInstrumentListenerWorker TCP listener on Port 2575 (HL7)...
+2026-09-11 19:26:06.141 +03:00 [INF] Application started. Press Ctrl+C to shut down.
+2026-09-11 19:26:06.147 +03:00 [INF] Hosting environment: Development
+2026-09-11 19:26:06.151 +03:00 [INF] Content root path: C:\Users\ASUS\source\repos\CMS\src\CMS.ServiceManager
+2026-09-11 19:27:06.104 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-11T19:27:06.1040362+03:00"
+2026-09-11 19:28:06.118 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-11T19:28:06.1186841+03:00"
+2026-09-11 19:29:06.133 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-11T19:29:06.1330946+03:00"
