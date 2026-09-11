@@ -76,3 +76,44 @@ public class CreateEncounterDto
 public record DiagnosisDto(int Id, int EncounterId, string DiagnosisCode, string DiagnosisText, int DiagnosisType);
 
 public record CreateDiagnosisDto(int EncounterId, string DiagnosisCode, string DiagnosisText, int DiagnosisType = 1);
+
+public class StaffDetailDto
+{
+    public int Id { get; set; }
+    public byte TenantId { get; set; } = 1;
+    public int UserId { get; set; }
+    public string? StaffCode { get; set; }
+    public string? Title { get; set; }
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public string? Phone { get; set; }
+    public string? Email { get; set; }
+    public short PrimaryRoleId { get; set; }
+    public string? RoleName { get; set; }
+    public string? Department { get; set; }
+    public bool IsActive { get; set; }
+    public int? DoctorId { get; set; }
+    public string? LicenseNumber { get; set; }
+    public short? SpecializationId { get; set; }
+    public string? SpecializationName { get; set; }
+    public string? SubSpecialization { get; set; }
+    public decimal? ConsultationFee { get; set; }
+}
+
+public class UpdateStaffDto
+{
+    public int Id { get; set; }
+    public int? UserId { get; set; }
+    public string? Title { get; set; }
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public string? Phone { get; set; }
+    public string? Email { get; set; }
+    public short? PrimaryRoleId { get; set; }
+    public string? Department { get; set; }
+    public bool IsActive { get; set; } = true;
+    public string? LicenseNumber { get; set; }
+    public short? SpecializationId { get; set; }
+    public string? SubSpecialization { get; set; }
+    public decimal? ConsultationFee { get; set; }
+}

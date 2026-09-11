@@ -112,4 +112,5 @@ public record DashboardMetricsDto(
     int ActiveDoctorsCount,
     List<PatientQueueDto> LiveQueue,
     List<dynamic> CriticalAlerts,
-    List<dynamic> RecentActivities);
+    List<dynamic> RecentActivities,
+    List<dynamic>? RevenueTrend = null);

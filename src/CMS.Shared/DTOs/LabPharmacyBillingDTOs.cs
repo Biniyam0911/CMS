@@ -36,7 +36,9 @@ public record PrescriptionItemDto(
 public record PrescriptionDto(
     int Id, byte TenantId, int EncounterId, int PatientId, string PatientName,
     int DoctorId, string DoctorName, DateTime PrescribedAt, byte StatusId,
-    List<PrescriptionItemDto> Items);
+    List<PrescriptionItemDto> Items,
+    bool IsPaid = false,
+    string? Mrn = null);
 
 public record CreatePrescriptionItemDto(
     int DrugId, string Dosage, string Frequency, string Duration, int Quantity, string Instructions);

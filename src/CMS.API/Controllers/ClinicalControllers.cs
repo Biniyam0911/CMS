@@ -31,6 +31,30 @@ public class StaffController : ControllerBase
         var schedules = await _staffService.GetDoctorSchedulesAsync(doctorId);
         return Ok(ApiResponse<List<DoctorScheduleDto>>.Ok(schedules));
     }
+
+    [HttpGet("specializations")]
+    public async Task<IActionResult> GetSpecializations()
+    {
+        var list = await _staffService.GetSpecializationsAsync();
+        return Ok(ApiResponse<List<SpecializationDto>>.Ok(list));
+    }
+
+    [HttpGet("all")]
+    public async Task<IActionResult> GetAllStaff()
+    {
+        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+        var list = await _staffService.GetAllStaffAsync(tenantId);
+        return Ok(ApiResponse<List<StaffDetailDto>>.Ok(list));
+    }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateStaff(int id, [FromBody] UpdateStaffDto dto)
+    {
+        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+        dto.Id = id;
+        var success = await _staffService.UpdateStaffAsync(tenantId, dto);
+        return Ok(ApiResponse<object>.Ok(new { Success = success, StaffId = id }));
+    }
 }
 
 [ApiController]
@@ -96,5 +120,21 @@ public class EncountersController : ControllerBase
         byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
         var encounters = await _encounterService.GetPatientEncountersAsync(tenantId, patientId);
         return Ok(ApiResponse<List<EncounterDto>>.Ok(encounters));
+    }
+
+    [HttpGet("patient/{patientId}/procedures")]
+    public async Task<IActionResult> GetPatientProcedures(int patientId)
+    {
+        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+        var procedures = await _encounterService.GetPatientProceduresAsync(tenantId, patientId);
+        return Ok(ApiResponse<List<ProcedureOrderDto>>.Ok(procedures));
+    }
+
+    [HttpPost("procedures")]
+    public async Task<IActionResult> CreateProcedureOrder([FromBody] CreateProcedureOrderDto dto)
+    {
+        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+        int procId = await _encounterService.CreateProcedureOrderAsync(tenantId, dto);
+        return Ok(ApiResponse<object>.Ok(new { ProcedureOrderId = procId }));
     }
 }

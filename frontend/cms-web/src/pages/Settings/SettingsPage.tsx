@@ -1,6 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { Settings, Save, Building, Globe, DollarSign, CheckCircle2, Loader2 } from 'lucide-react';
+﻿import React, { useState, useEffect } from 'react';
+import { Settings, Save, Building, Globe, DollarSign, CheckCircle2, Loader2, HeartPulse, Stethoscope, FileHeart, Activity, ShieldCheck, Cross, FlaskConical } from 'lucide-react';
 import { api } from '../../api/apiClient';
+
+const APP_ICONS = [
+  { name: 'HeartPulse', label: 'Heart Pulse', Icon: HeartPulse },
+  { name: 'Stethoscope', label: 'Stethoscope', Icon: Stethoscope },
+  { name: 'FileHeart', label: 'File Heart', Icon: FileHeart },
+  { name: 'Activity', label: 'Activity', Icon: Activity },
+  { name: 'ShieldCheck', label: 'Shield Check', Icon: ShieldCheck },
+  { name: 'Building', label: 'Building', Icon: Building },
+  { name: 'Cross', label: 'Cross', Icon: Cross },
+  { name: 'FlaskConical', label: 'Flask', Icon: FlaskConical },
+];
 
 export default function SettingsPage() {
   const [clinicName, setClinicName] = useState('General Health Clinic');
@@ -8,6 +19,7 @@ export default function SettingsPage() {
   const [phone, setPhone] = useState('+251911000000');
   const [vat, setVat] = useState('15.0');
   const [currency, setCurrency] = useState('ETB');
+  const [appIcon, setAppIcon] = useState('FileHeart');
   const [savedAlert, setSavedAlert] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -25,6 +37,7 @@ export default function SettingsPage() {
             if (k === 'ClinicPhone') setPhone(v);
             if (k === 'Currency') setCurrency(v);
             if (k === 'TaxRate') setVat(v);
+            if (k === 'AppIcon') setAppIcon(v);
           });
         }
       } catch (err) {
@@ -44,11 +57,14 @@ export default function SettingsPage() {
         api.post('/settings', { settingKey: 'ClinicAddress', settingValue: address }),
         api.post('/settings', { settingKey: 'ClinicPhone', settingValue: phone }),
         api.post('/settings', { settingKey: 'Currency', settingValue: currency }),
-        api.post('/settings', { settingKey: 'TaxRate', settingValue: vat })
+        api.post('/settings', { settingKey: 'TaxRate', settingValue: vat }),
+        api.post('/settings', { settingKey: 'AppIcon', settingValue: appIcon }),
       ]);
     } catch (err) {
       console.error('Update settings API error:', err);
     }
+    // Fire event so Sidebar updates immediately
+    window.dispatchEvent(new Event('clinic_settings_changed'));
     setSavedAlert(true);
     setTimeout(() => setSavedAlert(false), 3000);
   };
@@ -90,6 +106,34 @@ export default function SettingsPage() {
         <div>
           <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Default Operating Currency</label>
           <input type="text" value={currency} onChange={e => setCurrency(e.target.value)} required />
+        </div>
+
+        {/* App Icon Picker */}
+        <div>
+          <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '8px' }}>
+            Sidebar App Icon
+          </label>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            {APP_ICONS.map(({ name, label, Icon }) => (
+              <button
+                key={name}
+                type="button"
+                onClick={() => setAppIcon(name)}
+                title={label}
+                style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
+                  padding: '10px 12px', borderRadius: '8px', cursor: 'pointer',
+                  border: appIcon === name ? '2px solid #0284c7' : '1px solid var(--border-color)',
+                  background: appIcon === name ? '#eff6ff' : '#fff',
+                  color: appIcon === name ? '#0284c7' : 'var(--text-muted)',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <Icon size={20} />
+                <span style={{ fontSize: '0.65rem', fontWeight: 600 }}>{label}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         <button type="submit" className="btn-primary" style={{ marginTop: '12px', alignSelf: 'flex-start' }}>

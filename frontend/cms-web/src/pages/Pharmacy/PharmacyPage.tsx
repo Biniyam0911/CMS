@@ -38,6 +38,14 @@ export default function PharmacyPage() {
   const [restockBatch, setRestockBatch] = useState('BATCH-2026-RESTOCK');
   const [restockExpiry, setRestockExpiry] = useState('2028-12-31');
 
+  // Direct Order (OTC) Modal State
+  const [showDirectOrderModal, setShowDirectOrderModal] = useState(false);
+  const [doPatientId, setDoPatientId] = useState('');
+  const [doPatientName, setDoPatientName] = useState('');
+  const [doSelectedDrug, setDoSelectedDrug] = useState<any>(null);
+  const [doQty, setDoQty] = useState('1');
+  const [doSubmitting, setDoSubmitting] = useState(false);
+
   const loadPharmacyData = async () => {
     try {
       setLoading(true);
@@ -78,12 +86,13 @@ export default function PharmacyPage() {
             id: p.id || p.Id,
             itemId: firstItem.id || p.id,
             patientName: p.patientName || p.PatientName || `Patient #${p.patientId}`,
-            mrn: `MRN-000${p.patientId || 101}`,
+            mrn: p.mrn || p.Mrn || `MRN-000${p.patientId || 101}`,
             doctorName: p.doctorName || p.DoctorName || 'Dr. Attending',
             date: p.prescribedAt ? String(p.prescribedAt).split('T')[0] : '2026-08-31',
             drug: `${firstItem.drugName || 'Medication'} ${firstItem.dosage || ''}`.trim(),
             qty: firstItem.quantity || 10,
             status: p.statusId === 2 ? 'Dispensed' : 'Pending',
+            isPaid: p.isPaid || p.IsPaid || false,
             isControlled: (firstItem.drugName || '').toLowerCase().includes('morphine') || (firstItem.drugName || '').toLowerCase().includes('tramadol')
           };
         });
@@ -207,29 +216,75 @@ export default function PharmacyPage() {
 
   const lowStockCount = drugs.filter(d => d.stock <= d.minStock).length;
 
+  const handleDirectOrderSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!doSelectedDrug || !doPatientId) return;
+    setDoSubmitting(true);
+    const qty = parseInt(doQty) || 1;
+    const unitPrice = doSelectedDrug.sellingPrice || 0;
+    const vatPct = 15;
+    const subtotal = qty * unitPrice;
+    const vatAmt = subtotal * (vatPct / 100);
+    const total = subtotal + vatAmt;
+    try {
+      await api.post('/billing/invoices', {
+        patientId: parseInt(doPatientId),
+        issueDate: new Date().toISOString().split('T')[0],
+        items: [{
+          itemType: 'Medication',
+          itemName: `${doSelectedDrug.generic} ${doSelectedDrug.strength || ''}`.trim(),
+          quantity: qty,
+          unitPrice,
+          discount: 0
+        }],
+        subtotal,
+        vatAmount: vatAmt,
+        totalAmount: total,
+        notes: `OTC Direct Order — ${doPatientName || 'Walk-in Patient'}`
+      });
+      alert(`Direct order invoiced: ${doSelectedDrug.generic} x${qty} = Br ${total.toFixed(2)} (incl. VAT)`);
+      setShowDirectOrderModal(false);
+      setDoPatientId(''); setDoPatientName(''); setDoSelectedDrug(null); setDoQty('1');
+    } catch (err) {
+      console.error('Direct order failed:', err);
+      alert('Failed to create invoice. Please try again.');
+    } finally {
+      setDoSubmitting(false);
+    }
+  };
+
+
   return (
     <div>
       {/* Top Banner & Sub Tabs */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div style={{ display: 'flex', gap: '12px' }}>
           <button onClick={() => setActiveSubTab('prescriptions')} className={activeSubTab === 'prescriptions' ? 'btn-primary' : 'btn-secondary'}>
-            <Pill size={16} /> FEFO Prescriptions Queue ({prescriptions.filter(p => p.status === 'Pending').length})
+            <Pill size={16} /> Dispensary Queue ({prescriptions.filter(p => p.status === 'Pending').length})
           </button>
           <button onClick={() => setActiveSubTab('inventory')} className={activeSubTab === 'inventory' ? 'btn-primary' : 'btn-secondary'}>
             <Package size={16} /> Inventory & FEFO Expiry ({drugs.length})
             {lowStockCount > 0 && <span className="badge badge-critical" style={{ marginLeft: '6px' }}>{lowStockCount} Low</span>}
           </button>
           <button onClick={() => setActiveSubTab('narcotics')} className={activeSubTab === 'narcotics' ? 'btn-primary' : 'btn-secondary'}>
-            <ShieldAlert size={16} /> Narcotics Audit Logbook ({narcoticLogs.length})
+            <ShieldAlert size={16} /> Narcotics Logbook ({narcoticLogs.length})
           </button>
         </div>
 
-        {activeSubTab === 'inventory' && (
-          <button onClick={() => setShowAddModal(true)} className="btn-primary">
-            <Plus size={16} /> Add New Drug Item
-          </button>
-        )}
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {activeSubTab === 'inventory' && (
+            <button onClick={() => setShowAddModal(true)} className="btn-primary">
+              <Plus size={16} /> Add New Drug Item
+            </button>
+          )}
+          {activeSubTab === 'prescriptions' && (
+            <button onClick={() => setShowDirectOrderModal(true)} className="btn-primary" style={{ background: '#059669', borderColor: '#059669' }}>
+              <Plus size={16} /> New Direct Order (OTC)
+            </button>
+          )}
+        </div>
       </div>
+
 
       {/* SUB TAB 1: FEFO Prescriptions Queue */}
       {activeSubTab === 'prescriptions' && (
@@ -248,6 +303,7 @@ export default function PharmacyPage() {
                 <th>Prescribing Doctor</th>
                 <th>Medication</th>
                 <th>Quantity</th>
+                <th>Payment</th>
                 <th>Substance Class</th>
                 <th>Status</th>
                 <th>Action</th>
@@ -262,6 +318,13 @@ export default function PharmacyPage() {
                   <td>{p.drug}</td>
                   <td style={{ fontWeight: 700 }}>{p.qty}</td>
                   <td>
+                    {p.isPaid ? (
+                      <span style={{ padding: '3px 8px', borderRadius: '4px', background: '#d1fae5', color: '#065f46', fontSize: '0.72rem', fontWeight: 700 }}>✓ Paid — Ready</span>
+                    ) : (
+                      <span style={{ padding: '3px 8px', borderRadius: '4px', background: '#fef9c3', color: '#92400e', fontSize: '0.72rem', fontWeight: 700 }}>⏳ Awaiting Payment</span>
+                    )}
+                  </td>
+                  <td>
                     {p.isControlled ? (
                       <span className="badge badge-critical">Controlled (Rx Only)</span>
                     ) : (
@@ -275,9 +338,13 @@ export default function PharmacyPage() {
                   </td>
                   <td>
                     {p.status === 'Pending' ? (
-                      <button onClick={() => handleDispense(p)} className="btn-primary" style={{ padding: '4px 10px', fontSize: '0.75rem' }}>
-                        Dispense Drug
-                      </button>
+                      p.isPaid ? (
+                        <button onClick={() => handleDispense(p)} className="btn-primary" style={{ padding: '4px 10px', fontSize: '0.75rem' }}>
+                          Dispense Drug
+                        </button>
+                      ) : (
+                        <span style={{ fontSize: '0.72rem', color: '#92400e', fontStyle: 'italic' }}>Awaiting payment at cashier</span>
+                      )
                     ) : (
                       <span style={{ fontSize: '0.75rem', color: '#34d399' }}><CheckCircle size={14} /> Completed</span>
                     )}

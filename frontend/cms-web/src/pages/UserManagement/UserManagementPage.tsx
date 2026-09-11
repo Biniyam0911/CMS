@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
   ShieldCheck, UserPlus, Key, Lock, Check, X, Shield, RefreshCw,
-  Loader2, Users, CheckCircle2, RotateCcw, Save, Eye, Layers, Settings
+  Loader2, Users, CheckCircle2, RotateCcw, Save, Eye, Layers, Settings,
+  Edit3, Stethoscope, Briefcase
 } from 'lucide-react';
 import { api } from '../../api/apiClient';
 import { MODULE_ITEMS, ModuleKey } from '../../components/Sidebar';
@@ -16,15 +17,18 @@ import {
 export default function UserManagementPage() {
   const [activeTab, setActiveTab] = useState<'users' | 'permissions'>('users');
 
-  // Users State
+  // Users & Staff State
   const [users, setUsers] = useState<any[]>([]);
   const [roles, setRoles] = useState<any[]>([]);
+  const [staffList, setStaffList] = useState<any[]>([]);
+  const [specializations, setSpecializations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Modal States
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [showRoleModal, setShowRoleModal] = useState<any>(null);
   const [showResetPasswordModal, setShowResetPasswordModal] = useState<any>(null);
+  const [showEditStaffModal, setShowEditStaffModal] = useState<any>(null);
 
   // Reset Password State
   const [newPassword, setNewPassword] = useState('');
@@ -58,10 +62,24 @@ export default function UserManagementPage() {
   const fetchUsersAndRoles = async () => {
     try {
       setLoading(true);
-      const [usersData, rolesData] = await Promise.all([
+      const [usersData, rolesData, staffData, specData] = await Promise.all([
         api.get<any[]>('/users').catch(() => []),
-        api.get<any[]>('/users/roles').catch(() => [])
+        api.get<any[]>('/users/roles').catch(() => []),
+        api.get<any[]>('/staff/all').catch(() => []),
+        api.get<any[]>('/staff/specializations').catch(() => [])
       ]);
+
+      if (specData && Array.isArray(specData)) {
+        setSpecializations(specData.map((s: any) => ({
+          id: s.id || s.Id,
+          code: s.specializationCode || s.code || s.Code,
+          name: s.specializationName || s.name || s.Name
+        })));
+      }
+
+      if (staffData && Array.isArray(staffData)) {
+        setStaffList(staffData);
+      }
 
       if (rolesData && rolesData.length > 0) {
         setRoles(rolesData.map((r: any) => ({
@@ -82,29 +100,90 @@ export default function UserManagementPage() {
       }
 
       if (usersData && usersData.length > 0) {
-        const mapped = usersData.map((u: any) => ({
-          id: u.id || u.Id,
-          username: u.username || u.Username,
-          name: `${u.firstName || u.FirstName || ''} ${u.lastName || u.LastName || ''}`.trim() || u.username,
-          email: u.email || u.Email,
-          roles: Array.isArray(u.roles) ? u.roles : (u.roles ? [u.roles] : ['Staff']),
-          mfaEnabled: Boolean(u.mfaEnabled || u.MfaEnabled),
-          status: u.isActive !== false ? 'Active' : 'Inactive'
-        }));
+        const mapped = usersData.map((u: any) => {
+          const matchedStaff = (staffData || []).find((s: any) => s.userId === (u.id || u.Id) || s.UserId === (u.id || u.Id));
+          return {
+            id: u.id || u.Id,
+            username: u.username || u.Username,
+            firstName: u.firstName || u.FirstName || '',
+            lastName: u.lastName || u.LastName || '',
+            name: `${u.firstName || u.FirstName || ''} ${u.lastName || u.LastName || ''}`.trim() || u.username,
+            email: u.email || u.Email,
+            phone: u.phone || u.Phone || (matchedStaff ? matchedStaff.phone : ''),
+            roles: Array.isArray(u.roles) ? u.roles : (u.roles ? [u.roles] : ['Staff']),
+            mfaEnabled: Boolean(u.mfaEnabled || u.MfaEnabled),
+            status: u.isActive !== false ? 'Active' : 'Inactive',
+            staff: matchedStaff || null
+          };
+        });
         setUsers(mapped);
       } else {
         setUsers([
-          { id: 1, username: 'admin', name: 'System Admin', email: 'admin@clinic.com', roles: ['SuperAdmin', 'Admin'], mfaEnabled: false, status: 'Active' },
-          { id: 2, username: 'dr.abebe', name: 'Dr. Abebe Bekele', email: 'dr.abebe@clinic.com', roles: ['Doctor'], mfaEnabled: false, status: 'Active' },
-          { id: 3, username: 'dr.tigist', name: 'Dr. Tigist Haile', email: 'dr.tigist@clinic.com', roles: ['Doctor'], mfaEnabled: false, status: 'Active' },
-          { id: 4, username: 'nurse.hana', name: 'Hana Girma', email: 'hana@clinic.com', roles: ['Nurse'], mfaEnabled: false, status: 'Active' },
-          { id: 5, username: 'labtech.daniel', name: 'Daniel Tadesse', email: 'daniel@clinic.com', roles: ['LabTechnician'], mfaEnabled: false, status: 'Active' }
+          { id: 1, username: 'admin', firstName: 'System', lastName: 'Admin', name: 'System Admin', email: 'admin@clinic.com', roles: ['SuperAdmin', 'Admin'], mfaEnabled: false, status: 'Active' },
+          { id: 2, username: 'dr.abebe', firstName: 'Abebe', lastName: 'Bekele', name: 'Dr. Abebe Bekele', email: 'dr.abebe@clinic.com', roles: ['Doctor'], mfaEnabled: false, status: 'Active' },
+          { id: 3, username: 'dr.tigist', firstName: 'Tigist', lastName: 'Haile', name: 'Dr. Tigist Haile', email: 'dr.tigist@clinic.com', roles: ['Doctor'], mfaEnabled: false, status: 'Active' },
+          { id: 4, username: 'nurse.hana', firstName: 'Hana', lastName: 'Girma', name: 'Hana Girma', email: 'hana@clinic.com', roles: ['Nurse'], mfaEnabled: false, status: 'Active' },
+          { id: 5, username: 'labtech.daniel', firstName: 'Daniel', lastName: 'Tadesse', name: 'Daniel Tadesse', email: 'daniel@clinic.com', roles: ['LabTechnician'], mfaEnabled: false, status: 'Active' }
         ]);
       }
     } catch (err) {
-      console.error('Failed to load users:', err);
+      console.error('Failed to load users & staff:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleOpenEditStaffModal = (user: any) => {
+    const s = user.staff;
+    const isDoc = (user.roles || []).includes('Doctor') || (s && s.doctorId);
+    setShowEditStaffModal({
+      userId: user.id,
+      staffId: s ? (s.id || s.Id) : user.id,
+      title: s?.title || (isDoc ? 'Dr.' : 'Mr.'),
+      firstName: user.firstName || (user.name ? user.name.split(' ')[0] : ''),
+      lastName: user.lastName || (user.name ? user.name.split(' ').slice(1).join(' ') : ''),
+      email: user.email || '',
+      phone: user.phone || s?.phone || '',
+      department: s?.department || (isDoc ? 'Clinical Consultation' : 'Administration'),
+      primaryRoleId: s?.primaryRoleId || 3,
+      isActive: user.status === 'Active',
+      licenseNumber: s?.licenseNumber || (isDoc ? `LIC-${user.id}` : ''),
+      specializationId: s?.specializationId ? Number(s.specializationId) : 1,
+      subSpecialization: s?.subSpecialization || '',
+      consultationFee: s?.consultationFee || 400.0,
+      isDoctor: isDoc
+    });
+  };
+
+  const handleUpdateStaffSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!showEditStaffModal) return;
+    try {
+      const payload = {
+        id: showEditStaffModal.staffId,
+        userId: showEditStaffModal.userId,
+        title: showEditStaffModal.title,
+        firstName: showEditStaffModal.firstName,
+        lastName: showEditStaffModal.lastName,
+        email: showEditStaffModal.email,
+        phone: showEditStaffModal.phone,
+        primaryRoleId: Number(showEditStaffModal.primaryRoleId) || 3,
+        department: showEditStaffModal.department,
+        isActive: Boolean(showEditStaffModal.isActive),
+        licenseNumber: showEditStaffModal.licenseNumber,
+        specializationId: showEditStaffModal.isDoctor ? Number(showEditStaffModal.specializationId) : null,
+        subSpecialization: showEditStaffModal.subSpecialization,
+        consultationFee: parseFloat(showEditStaffModal.consultationFee) || null
+      };
+
+      await api.put(`/staff/${showEditStaffModal.staffId}`, payload);
+      setSaveSuccessToast(`✓ Staff profile for ${showEditStaffModal.firstName} ${showEditStaffModal.lastName} updated successfully!`);
+      setShowEditStaffModal(null);
+      await fetchUsersAndRoles();
+      setTimeout(() => setSaveSuccessToast(null), 4000);
+    } catch (err) {
+      console.error('Failed to update staff:', err);
+      alert('Failed to update staff profile.');
     }
   };
 
@@ -294,12 +373,15 @@ export default function UserManagementPage() {
                   </td>
                   <td><span className="badge badge-normal">{u.status}</span></td>
                   <td>
-                    <div style={{ display: 'flex', gap: '6px' }}>
-                      <button onClick={() => setShowRoleModal(u)} className="btn-secondary" style={{ padding: '4px 10px', fontSize: '0.75rem' }}>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      <button onClick={() => handleOpenEditStaffModal(u)} className="btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem', color: '#0284c7', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Edit3 size={12} /> Edit Staff
+                      </button>
+                      <button onClick={() => setShowRoleModal(u)} className="btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }}>
                         Edit Roles
                       </button>
-                      <button onClick={() => setShowResetPasswordModal(u)} className="btn-secondary" style={{ padding: '4px 10px', fontSize: '0.75rem', color: '#c2410c' }}>
-                        <Lock size={12} /> Reset Password
+                      <button onClick={() => setShowResetPasswordModal(u)} className="btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem', color: '#c2410c' }}>
+                        <Lock size={12} /> Reset
                       </button>
                     </div>
                   </td>
@@ -584,6 +666,145 @@ export default function UserManagementPage() {
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
               <button onClick={() => setShowRoleModal(null)} className="btn-primary">Done</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Edit Staff Profile & Specialization */}
+      {showEditStaffModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 110, overflowY: 'auto', padding: '20px' }}>
+          <div className="glass-panel" style={{ width: '560px', maxHeight: '90vh', overflowY: 'auto', padding: '26px', background: '#fff', borderRadius: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px' }}>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: '#0369a1' }}>
+                <Edit3 size={18} /> Edit Staff Profile & Specialization
+              </h3>
+              <button onClick={() => setShowEditStaffModal(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={18} /></button>
+            </div>
+
+            <form onSubmit={handleUpdateStaffSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Title</label>
+                  <select value={showEditStaffModal.title} onChange={e => setShowEditStaffModal({ ...showEditStaffModal, title: e.target.value })}>
+                    <option value="Dr.">Dr.</option>
+                    <option value="Prof.">Prof.</option>
+                    <option value="Mr.">Mr.</option>
+                    <option value="Mrs.">Mrs.</option>
+                    <option value="Ms.">Ms.</option>
+                    <option value="Nurse">Nurse</option>
+                    <option value="Pharm.">Pharm.</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>First Name</label>
+                  <input type="text" value={showEditStaffModal.firstName} onChange={e => setShowEditStaffModal({ ...showEditStaffModal, firstName: e.target.value })} required />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Last Name</label>
+                  <input type="text" value={showEditStaffModal.lastName} onChange={e => setShowEditStaffModal({ ...showEditStaffModal, lastName: e.target.value })} required />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Email Address</label>
+                  <input type="email" value={showEditStaffModal.email} onChange={e => setShowEditStaffModal({ ...showEditStaffModal, email: e.target.value })} required />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Phone Number</label>
+                  <input type="text" value={showEditStaffModal.phone} onChange={e => setShowEditStaffModal({ ...showEditStaffModal, phone: e.target.value })} />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Department</label>
+                  <input type="text" value={showEditStaffModal.department} onChange={e => setShowEditStaffModal({ ...showEditStaffModal, department: e.target.value })} placeholder="e.g. Dermatology, Pediatrics" />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Primary Role</label>
+                  <select value={showEditStaffModal.primaryRoleId} onChange={e => {
+                    const rId = Number(e.target.value);
+                    const isDocRole = rId === 3 || roles.find(r => r.id === rId)?.name === 'Doctor';
+                    setShowEditStaffModal({ ...showEditStaffModal, primaryRoleId: rId, isDoctor: isDocRole || showEditStaffModal.isDoctor });
+                  }}>
+                    {roles.map(r => (
+                      <option key={r.id} value={r.id}>{r.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Specialization Section */}
+              <div style={{ border: '1px solid #e0f2fe', background: '#f0f9ff', padding: '14px', borderRadius: '8px', marginTop: '4px' }}>
+                <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0369a1', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Stethoscope size={16} /> Clinical Specialization & Credentials
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.75rem', color: '#0369a1', fontWeight: 600 }}>Medical Specialization (Catalog)</label>
+                    <select
+                      value={showEditStaffModal.specializationId || 1}
+                      onChange={e => setShowEditStaffModal({ ...showEditStaffModal, specializationId: Number(e.target.value) })}
+                      style={{ background: '#fff' }}
+                    >
+                      {specializations.map(s => (
+                        <option key={s.id} value={s.id}>{s.name} ({s.code})</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.75rem', color: '#0369a1', fontWeight: 600 }}>Medical License Number</label>
+                    <input
+                      type="text"
+                      value={showEditStaffModal.licenseNumber}
+                      onChange={e => setShowEditStaffModal({ ...showEditStaffModal, licenseNumber: e.target.value })}
+                      placeholder="e.g. LIC-ET-4892"
+                      style={{ background: '#fff' }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '8px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.75rem', color: '#0369a1', fontWeight: 600 }}>Sub-Specialization (Optional)</label>
+                    <input
+                      type="text"
+                      value={showEditStaffModal.subSpecialization}
+                      onChange={e => setShowEditStaffModal({ ...showEditStaffModal, subSpecialization: e.target.value })}
+                      placeholder="e.g. Pediatric Dermatology"
+                      style={{ background: '#fff' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.75rem', color: '#0369a1', fontWeight: 600 }}>Consultation Fee (ETB)</label>
+                    <input
+                      type="number"
+                      value={showEditStaffModal.consultationFee}
+                      onChange={e => setShowEditStaffModal({ ...showEditStaffModal, consultationFee: e.target.value })}
+                      style={{ background: '#fff' }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Status toggle */}
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={showEditStaffModal.isActive}
+                  onChange={e => setShowEditStaffModal({ ...showEditStaffModal, isActive: e.target.checked })}
+                />
+                Account Active & Available for Clinical Assignment
+              </label>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '12px', borderTop: '1px solid var(--border-color)', paddingTop: '14px' }}>
+                <button type="button" onClick={() => setShowEditStaffModal(null)} className="btn-secondary">Cancel</button>
+                <button type="submit" className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Save size={15} /> Save Changes
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

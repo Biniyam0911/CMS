@@ -68,7 +68,7 @@ public class PharmacyService
         using var conn = _dbFactory.CreateConnection();
         var sqlUpdate = @"
             UPDATE DrugFormulary
-            SET CurrentStock = CurrentStock + @QuantityAdded,
+            SET StockQuantity = StockQuantity + @QuantityAdded,
                 CostPrice = @UnitCostPrice,
                 SellingPrice = @UnitSellingPrice,
                 BatchNumber = @BatchNumber,
@@ -99,13 +99,27 @@ public class PharmacyService
         var sql = @"
             SELECT pr.Id, pr.TenantId, pr.EncounterId, pr.PatientId,
                    p.FirstName + ' ' + p.LastName AS PatientName,
+                   p.MRN,
                    pr.DoctorId, u.FirstName + ' ' + u.LastName AS DoctorName,
-                   pr.PrescribedAt, pr.StatusId
+                   pr.PrescribedAt, pr.StatusId,
+                   CASE 
+                       WHEN EXISTS (
+                           SELECT 1 FROM InvoiceItems ii 
+                           JOIN Invoices inv ON inv.Id = ii.InvoiceId 
+                           WHERE (ii.ReferenceId = pr.Id OR inv.EncounterId = pr.EncounterId)
+                             AND inv.PaidAmount >= inv.Total AND inv.Total > 0
+                       ) THEN 1 
+                       WHEN EXISTS (
+                           SELECT 1 FROM Invoices inv
+                           WHERE inv.PatientId = pr.PatientId AND (inv.EncounterId = pr.EncounterId OR CAST(inv.IssueDate AS DATE) = CAST(pr.PrescribedAt AS DATE)) AND inv.PaidAmount >= inv.Total AND inv.Total > 0
+                       ) THEN 1
+                       ELSE 0 
+                   END AS IsPaid
             FROM Prescriptions pr
             JOIN Patients p ON p.Id = pr.PatientId
-            JOIN Doctors d ON d.Id = pr.DoctorId
-            JOIN Staff s ON s.Id = d.StaffId
-            JOIN Users u ON u.Id = s.UserId
+            LEFT JOIN Doctors d ON d.Id = pr.DoctorId
+            LEFT JOIN Staff s ON s.Id = d.StaffId
+            LEFT JOIN Users u ON u.Id = s.UserId
             WHERE pr.TenantId = @TenantId
             ORDER BY pr.PrescribedAt DESC";
 
@@ -125,8 +139,9 @@ public class PharmacyService
 
             result.Add(new PrescriptionDto(
                 (int)p.Id, (byte)p.TenantId, (int)p.EncounterId, (int)p.PatientId,
-                (string)p.PatientName, (int)p.DoctorId, (string)p.DoctorName,
-                (DateTime)p.PrescribedAt, (byte)p.StatusId, items
+                (string)p.PatientName, (int)(p.DoctorId ?? 1), (string)(p.DoctorName ?? "Attending Doctor"),
+                (DateTime)p.PrescribedAt, (byte)p.StatusId, items,
+                (int)p.IsPaid == 1, (string?)p.MRN
             ));
         }
 

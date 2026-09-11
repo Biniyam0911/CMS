@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   LayoutDashboard, Users, FileHeart, Calendar, ListOrdered, FlaskConical,
   Pill, CreditCard, BarChart3, FileSpreadsheet, Globe, ShieldCheck,
   Boxes, Key, Settings, Plug, LogOut, LucideIcon, HeartPulse, Layers,
-  ChevronLeft, ChevronRight, Menu, PanelLeftClose, PanelLeftOpen
+  ChevronLeft, ChevronRight, Stethoscope, Activity, Cross, Building
 } from 'lucide-react';
 
 import { hasModuleAccess } from '../utils/permissions';
 
-export type ModuleKey = 
+export type ModuleKey =
   | 'DASHBOARD' | 'PATIENTS' | 'TRIAGE' | 'EMR' | 'APPOINTMENTS' | 'QUEUE'
   | 'LAB' | 'PHARMACY' | 'BILLING' | 'REPORTS' | 'REPORT_BUILDER'
   | 'PATIENT_PORTAL' | 'USER_MGMT' | 'SERVICE_MGMT' | 'MODULE_MGMT' | 'API_MGMT'
@@ -29,7 +29,7 @@ export const MODULE_ITEMS: { key: ModuleKey; label: string; category: string; ic
   { key: 'APPOINTMENTS', label: 'Appointments', category: 'Clinical', icon: Calendar },
   { key: 'QUEUE', label: 'Queue Board', category: 'Clinical', icon: ListOrdered },
   { key: 'LAB', label: 'Laboratory (LIS)', category: 'Clinical', icon: FlaskConical },
-  { key: 'PHARMACY', label: 'Pharmacy', category: 'Clinical', icon: Pill },
+  { key: 'PHARMACY', label: 'Dispensary', category: 'Clinical', icon: Pill },
   { key: 'BILLING', label: 'Billing & Invoices', category: 'Financial', icon: CreditCard },
   { key: 'REPORTS', label: 'Standard Reports', category: 'Analytics', icon: BarChart3 },
   { key: 'REPORT_BUILDER', label: 'Report Builder', category: 'Analytics', icon: FileSpreadsheet },
@@ -42,9 +42,41 @@ export const MODULE_ITEMS: { key: ModuleKey; label: string; category: string; ic
   { key: 'INTEGRATIONS', label: 'Integrations', category: 'Admin', icon: Plug },
 ];
 
+const ICON_MAP: Record<string, LucideIcon> = {
+  HeartPulse,
+  Stethoscope,
+  FileHeart,
+  Activity,
+  ShieldCheck,
+  Building,
+  Cross,
+  FlaskConical,
+};
+
 export default function Sidebar({ activeModule, userRoles = ['SuperAdmin'], onSelectModule, onLogout }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [version, setVersion] = useState(0);
+  const [, setVersion] = useState(0);
+  const [clinicName, setClinicName] = useState('AethelCMS');
+  const [appIconName, setAppIconName] = useState('FileHeart');
+
+  const loadClinicBranding = async () => {
+    try {
+      const res = await fetch('/api/v1/settings', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`,
+          'x-tenant-id': '1'
+        }
+      });
+      const data = await res.json();
+      const payload = data?.Data || data?.data || data;
+      if (payload) {
+        const name = payload.ClinicName || payload.clinicName;
+        const icon = payload.AppIcon || payload.appIcon;
+        if (name) setClinicName(name);
+        if (icon) setAppIconName(icon);
+      }
+    } catch { /* keep defaults */ }
+  };
 
   useEffect(() => {
     const handlePermChange = () => setVersion(v => v + 1);
@@ -52,8 +84,17 @@ export default function Sidebar({ activeModule, userRoles = ['SuperAdmin'], onSe
     return () => window.removeEventListener('role_permissions_changed', handlePermChange);
   }, []);
 
+  useEffect(() => {
+    loadClinicBranding();
+    const handleBrandingChange = () => loadClinicBranding();
+    window.addEventListener('clinic_settings_changed', handleBrandingChange);
+    return () => window.removeEventListener('clinic_settings_changed', handleBrandingChange);
+  }, []);
+
+  const AppLogoIcon = ICON_MAP[appIconName] || FileHeart;
   const visibleItems = MODULE_ITEMS.filter(item => hasModuleAccess(userRoles, item.key));
   const categories = Array.from(new Set(visibleItems.map(i => i.category)));
+  const displayName = clinicName.length > 12 ? clinicName.split(' ')[0] : clinicName;
 
   return (
     <aside
@@ -70,7 +111,6 @@ export default function Sidebar({ activeModule, userRoles = ['SuperAdmin'], onSe
         transition: 'width 0.2s ease, min-width 0.2s ease'
       }}
     >
-      {/* Brand Header with Collapse Toggle */}
       <div
         style={{
           padding: isCollapsed ? '14px 10px' : '14px 12px',
@@ -85,45 +125,27 @@ export default function Sidebar({ activeModule, userRoles = ['SuperAdmin'], onSe
           <div
             onClick={() => setIsCollapsed(!isCollapsed)}
             style={{
-              width: '32px',
-              height: '32px',
-              minWidth: '32px',
+              width: '32px', height: '32px', minWidth: '32px',
               borderRadius: '8px',
               background: 'linear-gradient(135deg, #0284c7, #0369a1)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 2px 6px rgba(2,132,199,0.3)',
-              cursor: 'pointer'
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 2px 6px rgba(2,132,199,0.3)', cursor: 'pointer'
             }}
             title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
           >
-            <FileHeart color="#fff" size={17} />
+            <AppLogoIcon color="#fff" size={17} />
           </div>
-
           {!isCollapsed && (
             <div style={{ whiteSpace: 'nowrap', overflow: 'hidden' }}>
-              <h2 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)', lineHeight: 1.1 }}>AethelCMS</h2>
+              <h2 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)', lineHeight: 1.1 }}>{displayName}</h2>
               <span style={{ fontSize: '0.62rem', color: '#0369a1', fontWeight: 700, letterSpacing: '0.04em' }}>CLINICAL SUITE</span>
             </div>
           )}
         </div>
-
-        {/* Collapse Button */}
         {!isCollapsed && (
           <button
             onClick={() => setIsCollapsed(true)}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--text-muted)',
-              cursor: 'pointer',
-              padding: '4px',
-              borderRadius: '4px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
+            style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             title="Collapse Sidebar"
           >
             <ChevronLeft size={16} />
@@ -131,7 +153,6 @@ export default function Sidebar({ activeModule, userRoles = ['SuperAdmin'], onSe
         )}
       </div>
 
-      {/* Nav menu grouped by category */}
       <div style={{ flex: 1, padding: isCollapsed ? '10px 6px' : '12px 8px', display: 'flex', flexDirection: 'column', gap: isCollapsed ? '8px' : '14px' }}>
         {categories.map(cat => (
           <div key={cat}>
@@ -142,7 +163,6 @@ export default function Sidebar({ activeModule, userRoles = ['SuperAdmin'], onSe
             ) : (
               <div style={{ height: '1px', background: 'var(--border-color)', margin: '4px 6px 6px' }} />
             )}
-
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
               {visibleItems.filter(i => i.category === cat).map(item => {
                 const Icon = item.icon;
@@ -153,21 +173,16 @@ export default function Sidebar({ activeModule, userRoles = ['SuperAdmin'], onSe
                     onClick={() => onSelectModule(item.key)}
                     title={isCollapsed ? item.label : undefined}
                     style={{
-                      display: 'flex',
-                      alignItems: 'center',
+                      display: 'flex', alignItems: 'center',
                       justifyContent: isCollapsed ? 'center' : 'flex-start',
-                      gap: '9px',
-                      padding: isCollapsed ? '9px' : '7px 10px',
+                      gap: '9px', padding: isCollapsed ? '9px' : '7px 10px',
                       borderRadius: '6px',
                       background: isActive ? '#ffffff' : 'transparent',
                       border: isActive ? '1px solid #d0c7b7' : '1px solid transparent',
                       boxShadow: isActive ? '0 1px 3px rgba(0,0,0,0.04)' : 'none',
                       color: isActive ? '#0369a1' : 'var(--text-secondary)',
-                      fontWeight: isActive ? 700 : 500,
-                      fontSize: '0.8rem',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      transition: 'all 0.12s ease'
+                      fontWeight: isActive ? 700 : 500, fontSize: '0.8rem',
+                      cursor: 'pointer', textAlign: 'left', transition: 'all 0.12s ease'
                     }}
                   >
                     <Icon size={isCollapsed ? 18 : 15} color={isActive ? '#0284c7' : 'var(--text-muted)'} />
@@ -180,24 +195,11 @@ export default function Sidebar({ activeModule, userRoles = ['SuperAdmin'], onSe
         ))}
       </div>
 
-      {/* Expand Button when collapsed */}
       {isCollapsed && (
         <div style={{ padding: '6px', display: 'flex', justifyContent: 'center' }}>
           <button
             onClick={() => setIsCollapsed(false)}
-            style={{
-              background: '#ffffff',
-              border: '1px solid var(--border-color)',
-              color: '#0369a1',
-              cursor: 'pointer',
-              padding: '6px',
-              borderRadius: '6px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '36px',
-              height: '36px'
-            }}
+            style={{ background: '#ffffff', border: '1px solid var(--border-color)', color: '#0369a1', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '36px', height: '36px' }}
             title="Expand Sidebar"
           >
             <ChevronRight size={16} />
@@ -205,26 +207,11 @@ export default function Sidebar({ activeModule, userRoles = ['SuperAdmin'], onSe
         </div>
       )}
 
-      {/* Logout footer */}
       <div style={{ padding: isCollapsed ? '10px 6px' : '12px', borderTop: '1px solid var(--border-color)' }}>
         <button
           onClick={onLogout}
           title={isCollapsed ? 'Sign Out' : undefined}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: isCollapsed ? 'center' : 'flex-start',
-            gap: '8px',
-            width: '100%',
-            padding: isCollapsed ? '9px' : '7px 10px',
-            borderRadius: '6px',
-            background: 'transparent',
-            border: '1px solid transparent',
-            color: '#b91c1c',
-            fontWeight: 600,
-            fontSize: '0.78rem',
-            cursor: 'pointer'
-          }}
+          style={{ display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'flex-start', gap: '8px', width: '100%', padding: isCollapsed ? '9px' : '7px 10px', borderRadius: '6px', background: 'transparent', border: '1px solid transparent', color: '#b91c1c', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer' }}
         >
           <LogOut size={isCollapsed ? 18 : 15} color="#b91c1c" />
           {!isCollapsed && <span>Sign Out</span>}

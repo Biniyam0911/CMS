@@ -35,14 +35,27 @@ export default function BillingPage() {
 
   // Free / Waived Invoice State
   const [isFreeInvoice, setIsFreeInvoice] = useState(false);
+  const [vatPercent, setVatPercent] = useState<number>(15.0);
 
   const fetchInvoicesAndPatients = async () => {
     try {
       setLoading(true);
-      const [invData, patData] = await Promise.all([
+      const [invData, patData, settingsData] = await Promise.all([
         api.get<any[]>('/billing/invoices').catch(() => []),
-        api.get<any[]>('/patients/search').catch(() => [])
+        api.get<any[]>('/patients/search').catch(() => []),
+        api.get<any[]>('/settings').catch(() => [])
       ]);
+
+      if (settingsData && Array.isArray(settingsData)) {
+        const vatSetting = settingsData.find((s: any) => 
+          (s.settingKey || s.SettingKey) === 'TaxRate' || 
+          (s.settingKey || s.SettingKey) === 'Tax.DefaultVatPercent'
+        );
+        if (vatSetting) {
+          const parsed = parseFloat(vatSetting.settingValue || vatSetting.SettingValue);
+          if (!isNaN(parsed) && parsed >= 0) setVatPercent(parsed);
+        }
+      }
 
       if (invData && Array.isArray(invData)) {
         const mapped = invData.map((inv: any) => {
@@ -99,7 +112,7 @@ export default function BillingPage() {
   }, []);
 
   const calculateSubtotal = () => items.reduce((acc, i) => acc + (i.qty * i.unitPrice), 0);
-  const calculateVat = () => Math.round(calculateSubtotal() * 0.15 * 100) / 100;
+  const calculateVat = () => Math.round(calculateSubtotal() * (vatPercent / 100) * 100) / 100;
   const calculateTotal = () => calculateSubtotal() + calculateVat();
 
   const handleAddItem = () => {
@@ -465,7 +478,7 @@ export default function BillingPage() {
                   <span>Br {selectedInvoice.subtotal.toFixed(2)}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>VAT (15%):</span>
+                  <span style={{ color: 'var(--text-muted)' }}>VAT ({vatPercent}%):</span>
                   <span>Br {selectedInvoice.vat.toFixed(2)}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-color)', paddingTop: '4px', fontWeight: 800, fontSize: '0.9rem' }}>
@@ -653,7 +666,7 @@ export default function BillingPage() {
               </div>
 
               <div style={{ padding: '8px 12px', background: isFreeInvoice ? '#d1fae5' : '#f5f2eb', borderRadius: '6px', display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: '0.85rem', border: isFreeInvoice ? '1px solid #6ee7b7' : 'none' }}>
-                <span>Total Payable (Inc. 15% VAT):</span>
+                <span>Total Payable (Inc. {vatPercent}% VAT):</span>
                 <span style={{ color: isFreeInvoice ? '#059669' : '#0369a1' }}>
                   {isFreeInvoice ? 'Br 0.00 (Free / Waived)' : `Br ${calculateTotal().toFixed(2)}`}
                 </span>
@@ -739,7 +752,7 @@ export default function BillingPage() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-end', fontSize: '0.82rem' }}>
                 <div>Subtotal: <strong>Br {showReceiptModal.subtotal.toFixed(2)}</strong></div>
-                <div>VAT (15%): <strong>Br {showReceiptModal.vat.toFixed(2)}</strong></div>
+                <div>VAT ({vatPercent}%): <strong>Br {showReceiptModal.vat.toFixed(2)}</strong></div>
                 <div style={{ fontSize: '1rem', fontWeight: 800, color: '#0369a1', borderTop: '1px solid #e5dfd5', paddingTop: '4px', marginTop: '4px' }}>
                   Total Paid: Br {showReceiptModal.paid.toFixed(2)}
                 </div>

@@ -189,8 +189,9 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
   const [historyEncounters, setHistoryEncounters] = useState<any[]>([]);
   const [historyLabOrders, setHistoryLabOrders] = useState<any[]>([]);
   const [historyPrescriptions, setHistoryPrescriptions] = useState<any[]>([]);
+  const [historyProcedures, setHistoryProcedures] = useState<any[]>([]);
   const [historyInvoices, setHistoryInvoices] = useState<any[]>([]);
-  const [historyFilter, setHistoryFilter] = useState<'ALL' | 'NOTES' | 'LABS' | 'RX' | 'CERTS' | 'BILLING'>('ALL');
+  const [historyFilter, setHistoryFilter] = useState<'ALL' | 'NOTES' | 'LABS' | 'RX' | 'PROCEDURES' | 'CERTS' | 'BILLING'>('ALL');
   const [loadingHistory, setLoadingHistory] = useState(false);
 
   // ==========================================
@@ -252,14 +253,54 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
     { id: 'ID', code: 'CPT-10060', name: 'Abscess Incision & Drainage (I&D)', category: 'Minor Surgery', duration: '25 Mins', anesthesia: 'Local Anesthesia (Lidocaine 2%)', defaultSite: 'Abscess Site', price: 450.0 }
   ];
 
-  const medicationCatalogue: MedicationItem[] = [
+  const [medicationCatalogue, setMedicationCatalogue] = useState<MedicationItem[]>([
     { id: 'HYDRO', name: 'Hydrocortisone 1% Cream (15g Tube)', class: 'Topical Corticosteroid', defaultDosage: 'Apply thin layer', defaultRoute: 'Topical', defaultFreq: 'Twice Daily (BID)', defaultDuration: '7 Days', defaultDurationDays: 7, defaultQty: 1, unitPrice: 85.0, instructions: 'Apply to affected skin. Avoid eye area.' },
     { id: 'CLOTR', name: 'Clotrimazole 1% Topical Cream (20g)', class: 'Antifungal', defaultDosage: 'Apply thin layer', defaultRoute: 'Topical', defaultFreq: 'Twice Daily (BID)', defaultDuration: '14 Days', defaultDurationDays: 14, defaultQty: 1, unitPrice: 95.0, instructions: 'Continue 1 week after resolution of rash' },
     { id: 'CETIR', name: 'Cetirizine 10mg Tablet', class: 'Antihistamine', defaultDosage: '1 Tablet (10mg)', defaultRoute: 'Oral', defaultFreq: 'Once Daily at Bedtime (OD)', defaultDuration: '10 Days', defaultDurationDays: 10, defaultQty: 10, unitPrice: 6.0, instructions: 'Take at night with water' },
     { id: 'DOXY', name: 'Doxycycline 100mg Capsule', class: 'Tetracycline Antibiotic', defaultDosage: '1 Capsule (100mg)', defaultRoute: 'Oral', defaultFreq: 'Twice Daily (BID)', defaultDuration: '14 Days', defaultDurationDays: 14, defaultQty: 28, unitPrice: 12.0, instructions: 'Take with full glass of water. Avoid sun.' },
     { id: 'AMOX', name: 'Amoxicillin 500mg Capsule', class: 'Penicillin Antibiotic', defaultDosage: '1 Capsule (500mg)', defaultRoute: 'Oral', defaultFreq: 'Three Times Daily (TID)', defaultDuration: '7 Days', defaultDurationDays: 7, defaultQty: 21, unitPrice: 12.0, instructions: 'Complete full 7-day course. Take after meals.' },
     { id: 'PARA', name: 'Paracetamol 500mg Tablet', class: 'Analgesic / Antipyretic', defaultDosage: '1-2 Tablets (500-1000mg)', defaultRoute: 'Oral', defaultFreq: 'Three Times Daily (TID) PRN', defaultDuration: '5 Days', defaultDurationDays: 5, defaultQty: 20, unitPrice: 4.0, instructions: 'Take as needed for pain or fever. Max 4g daily.' }
-  ];
+  ]);
+
+  // Load Real Pharmacy Formulary Drugs from Database
+  useEffect(() => {
+    const fetchFormulary = async () => {
+      try {
+        const drugs = await api.get<any[]>('/pharmacy/formulary');
+        if (drugs && Array.isArray(drugs) && drugs.length > 0) {
+          const mapped: MedicationItem[] = drugs.map((d: any) => {
+            const formName = d.form || d.dosageForm || d.Form || 'Tablet';
+            const strengthVal = d.strength || d.Strength || '';
+            const drugName = d.brandName || d.genericName || d.BrandName || d.GenericName || 'Medication';
+            const isTopical = formName.toLowerCase().includes('cream') || formName.toLowerCase().includes('ointment') || formName.toLowerCase().includes('gel');
+            const isInjectable = formName.toLowerCase().includes('inj') || formName.toLowerCase().includes('amp');
+            const isSuspension = formName.toLowerCase().includes('susp') || formName.toLowerCase().includes('syrup');
+            const route = isTopical ? 'Topical' : isInjectable ? 'IV/IM' : 'Oral';
+            const price = parseFloat(d.sellingPrice || d.SellingPrice || d.unitPrice || d.UnitPrice) || 15.0;
+            const stock = d.stockQuantity ?? d.currentStock ?? d.StockQuantity ?? 0;
+
+            return {
+              id: String(d.id || d.Id),
+              name: `${drugName} ${strengthVal} (${formName})`.trim(),
+              class: d.drugClass || d.DrugClass || (d.isControlled ? 'Controlled Drug' : 'General Prescription'),
+              defaultDosage: isTopical ? 'Apply thin layer' : isSuspension ? '5ml' : `1 ${formName} (${strengthVal})`.trim(),
+              defaultRoute: route,
+              defaultFreq: isTopical ? 'Twice Daily (BID)' : 'Three Times Daily (TID)',
+              defaultDuration: '7 Days',
+              defaultDurationDays: 7,
+              defaultQty: isTopical ? 1 : 10,
+              unitPrice: price,
+              instructions: `In Stock: ${stock} units · Batch: ${d.batchNumber || 'Standard'}`
+            };
+          });
+          setMedicationCatalogue(mapped);
+        }
+      } catch (err) {
+        console.warn('Using default formulary catalog:', err);
+      }
+    };
+    fetchFormulary();
+  }, []);
 
   const changeDateByDays = (days: number) => {
     const current = new Date(consultDate);
@@ -399,7 +440,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
     setLoadingHistory(true);
     const patId = Number(activePatient.id || activePatient.Id);
     try {
-      const [encs, labRes, rxs, invs, certs] = await Promise.all([
+      const [encs, labRes, rxs, invs, certs, procs] = await Promise.all([
         api.get<any[]>(`/encounters/patient/${patId}`).catch(() => []),
         api.get<any[]>(`/laboratory/patient/${patId}`).catch(() => 
           api.get<any[]>(`/laboratory/orders?patientId=${patId}`).catch(() =>
@@ -408,10 +449,12 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
         ),
         api.get<any[]>('/pharmacy/prescriptions').catch(() => []),
         api.get<any[]>('/billing/invoices').catch(() => []),
-        api.get<any[]>(`/medicalcertificates/patient/${patId}`).catch(() => [])
+        api.get<any[]>(`/medicalcertificates/patient/${patId}`).catch(() => []),
+        api.get<any[]>(`/encounters/patient/${patId}/procedures`).catch(() => [])
       ]);
 
       setHistoryEncounters(encs || []);
+      setHistoryProcedures(procs || []);
 
       let rawLabs = Array.isArray(labRes) ? labRes : [];
       if (rawLabs.length === 0) {
@@ -1630,23 +1673,27 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                               fontFamily: "'Plus Jakarta Sans', Arial, sans-serif"
                             }}
                           >
-                            {/* Logo & Bilingual Header (Centered) */}
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '20px', borderBottom: '1.5px solid #f0eae1', paddingBottom: '16px' }}>
-                              <div style={{ width: '160px', marginBottom: '8px' }}>
+                            {/* Logo left + Bilingual Header centered */}
+                            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', marginBottom: '20px', borderBottom: '1.5px solid #f0eae1', paddingBottom: '16px', gap: '16px' }}>
+                              {/* Left: Logo */}
+                              <div style={{ width: '130px', flexShrink: 0 }}>
                                 <img src="/huderma_logo.png" alt="Huderma" style={{ width: '100%', maxHeight: '60px', objectFit: 'contain' }} />
                                 <div style={{ fontSize: '0.6rem', color: '#c89345', fontWeight: 700, letterSpacing: '0.15em', marginTop: '2px', textAlign: 'center' }}>
                                   LOVE YOUR SKIN
                                 </div>
                               </div>
 
-                              <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#c89345' }}>Huderma Dermatology Specialty Clinic</div>
-                              <div style={{ fontSize: '0.96rem', fontWeight: 800, color: '#c89345', marginBottom: '4px' }}>ሁደርማ የቆዳ ልዩ ክሊኒክ</div>
-                              <div style={{ fontSize: '0.72rem', color: '#44403c', display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
-                                <span>Kirkos Sub City, Woreda 01, H. No. 062</span>
-                                <span>•</span>
-                                <span>Tel: +251 949 74 44 44 / +251 949 54 44 44</span>
-                                <span>•</span>
-                                <span>hudermacare@gmail.com</span>
+                              {/* Center: Clinic Details */}
+                              <div style={{ flex: 1, textAlign: 'center', paddingRight: '130px' }}>
+                                <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#c89345' }}>Huderma Dermatology Specialty Clinic</div>
+                                <div style={{ fontSize: '0.96rem', fontWeight: 800, color: '#c89345', marginBottom: '4px' }}>ሁደርማ የቆዳ ልዩ ክሊኒክ</div>
+                                <div style={{ fontSize: '0.72rem', color: '#44403c', display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                                  <span>Kirkos Sub City, Woreda 01, H. No. 062</span>
+                                  <span>•</span>
+                                  <span>Tel: +251 949 74 44 44 / +251 949 54 44 44</span>
+                                  <span>•</span>
+                                  <span>hudermacare@gmail.com</span>
+                                </div>
                               </div>
                             </div>
 
@@ -1746,6 +1793,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                 { key: 'ALL', label: 'All Records' },
                 { key: 'NOTES', label: `Consultations (${historyEncounters.length})` },
                 { key: 'LABS', label: `Lab Orders (${historyLabOrders.length})` },
+                { key: 'PROCEDURES', label: `Procedures (${historyProcedures.length})` },
                 { key: 'RX', label: `Prescriptions (${historyPrescriptions.length})` },
                 { key: 'CERTS', label: `Certificates (${issuedCerts.length})` },
                 { key: 'BILLING', label: `Invoices (${historyInvoices.length})` }
@@ -1891,6 +1939,40 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                   </div>
                 </div>
               ))}
+
+              {/* Procedures */}
+              {(historyFilter === 'ALL' || historyFilter === 'PROCEDURES') && historyProcedures.map((proc: any, idx: number) => {
+                const procDate = proc.createdAt ? new Date(proc.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+                const statusColor = proc.statusName === 'Completed' ? '#059669' : proc.statusName === 'Cancelled' ? '#dc2626' : '#0284c7';
+                return (
+                  <div key={`proc-${idx}`} style={{ padding: '14px', borderRadius: '8px', background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                      <span className="badge" style={{ fontSize: '0.68rem', background: '#6d28d9', color: '#fff', padding: '2px 8px', borderRadius: '4px' }}>
+                        Procedure • {proc.procedureCode || proc.ProcedureCode || ''}
+                      </span>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{procDate}</span>
+                    </div>
+                    <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-main)', marginBottom: '2px' }}>
+                      {proc.procedureName || proc.ProcedureName || 'Clinical Procedure'}
+                    </div>
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginTop: '4px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 700, color: statusColor }}>
+                        ● {proc.statusName || proc.StatusName || 'Ordered'}
+                      </span>
+                      {(proc.clinicalNotes || proc.ClinicalNotes) && (
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                          Note: {proc.clinicalNotes || proc.ClinicalNotes}
+                        </span>
+                      )}
+                      {(proc.procedureResult || proc.ProcedureResult) && (
+                        <span style={{ fontSize: '0.72rem', color: '#0369a1' }}>
+                          Result: {proc.procedureResult || proc.ProcedureResult}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
 
               {/* Certificates */}
               {(historyFilter === 'ALL' || historyFilter === 'CERTS') && issuedCerts.map((cert, idx) => (
@@ -2369,18 +2451,22 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
             </div>
 
             <div id="huderma-printable-certificate" style={{ background: '#ffffff', border: '1px solid #d6cec2', padding: '40px 48px', color: '#1c1917', fontFamily: "'Plus Jakarta Sans', Arial, sans-serif" }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '28px', borderBottom: '2px solid #e5dfd5', paddingBottom: '20px' }}>
-                <div style={{ width: '200px', marginBottom: '10px' }}>
+              {/* Logo left + Bilingual Header centered */}
+              <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', marginBottom: '28px', borderBottom: '2px solid #e5dfd5', paddingBottom: '20px', gap: '20px' }}>
+                {/* Left: Logo */}
+                <div style={{ width: '160px', flexShrink: 0 }}>
                   <img src="/huderma_logo.png" alt="Huderma" style={{ width: '100%', maxHeight: '76px', objectFit: 'contain' }} />
                   <div style={{ fontSize: '0.68rem', color: '#c89345', fontWeight: 700, letterSpacing: '0.15em', marginTop: '2px', textAlign: 'center' }}>LOVE YOUR SKIN</div>
                 </div>
-                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#c89345' }}>Huderma Dermatology Specialty Clinic</div>
-                <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#c89345', marginBottom: '6px' }}>ሁደርማ የቆዳ ልዩ ክሊኒክ</div>
-                <div style={{ fontSize: '0.8rem', color: '#292524', display: 'flex', gap: '14px', flexWrap: 'wrap', justifyContent: 'center', marginTop: '4px' }}>
-                  <div>Kirkos Sub City, Woreda 01, H. No. 062 (ቂርቆስ ክ/ከተማ ወረዳ 01)</div>
-                  <div>•</div>
-                  <div>Tel: +251 949 74 44 44 / +251 949 54 44 44</div>
-                  <div>•</div>
+                {/* Center: Clinic Details */}
+                <div style={{ flex: 1, textAlign: 'center', paddingRight: '160px' }}>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#c89345' }}>Huderma Dermatology Specialty Clinic</div>
+                  <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#c89345', marginBottom: '6px' }}>ሁደርማ የቆዳ ልዩ ክሊኒክ</div>
+                  <div style={{ fontSize: '0.8rem', color: '#292524', display: 'flex', gap: '14px', flexWrap: 'wrap', justifyContent: 'center', marginTop: '4px' }}>
+                    <div>Kirkos Sub City, Woreda 01, H. No. 062 (ቂርቆስ ክ/ከተማ ወረዳ 01)</div>
+                    <div>•</div>
+                    <div>Tel: +251 949 74 44 44 / +251 949 54 44 44</div>
+                    <div>•</div>
                   <div>hudermacare@gmail.com | www.huderma.com</div>
                 </div>
               </div>

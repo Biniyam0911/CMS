@@ -78,4 +78,56 @@ public class EncounterService
         var encounters = (await conn.QueryAsync<EncounterDto>(sql, new { TenantId = tenantId, PatientId = patientId })).ToList();
         return encounters;
     }
+
+    public async Task<List<ProcedureOrderDto>> GetPatientProceduresAsync(byte tenantId, int patientId)
+    {
+        using var conn = _dbFactory.CreateConnection();
+        var sql = @"
+            SELECT po.Id, po.EncounterId, po.PatientId,
+                   p.FirstName + ' ' + ISNULL(p.MiddleName + ' ', '') + p.LastName AS PatientName,
+                   po.OrderedBy,
+                   ISNULL(s.Title + ' ' + s.FirstName + ' ' + s.LastName, 'Attending Physician') AS DoctorName,
+                   po.ProcedureCode, po.ProcedureName, po.ClinicalNotes,
+                   po.StatusId,
+                   CASE po.StatusId
+                       WHEN 1 THEN 'Ordered'
+                       WHEN 2 THEN 'Scheduled'
+                       WHEN 3 THEN 'InProgress'
+                       WHEN 4 THEN 'Completed'
+                       WHEN 5 THEN 'Cancelled'
+                       ELSE 'Ordered'
+                   END AS StatusName,
+                   po.CreatedAt, po.PerformedAt, po.ProcedureResult
+            FROM ProcedureOrders po
+            JOIN Patients p ON p.Id = po.PatientId
+            LEFT JOIN Users u ON u.Id = po.OrderedBy
+            LEFT JOIN Staff s ON s.UserId = u.Id
+            LEFT JOIN Users pu ON pu.Id = po.PerformedBy
+            LEFT JOIN Staff ps ON ps.UserId = pu.Id
+            WHERE po.TenantId = @TenantId AND po.PatientId = @PatientId
+            ORDER BY po.CreatedAt DESC";
+
+        var procs = (await conn.QueryAsync<ProcedureOrderDto>(sql, new { TenantId = tenantId, PatientId = patientId })).ToList();
+        return procs;
+    }
+
+    public async Task<int> CreateProcedureOrderAsync(byte tenantId, CreateProcedureOrderDto dto)
+    {
+        using var conn = _dbFactory.CreateConnection();
+        var sql = @"
+            INSERT INTO ProcedureOrders (TenantId, EncounterId, PatientId, OrderedBy, ProcedureCode, ProcedureName, ClinicalNotes, StatusId, CreatedAt)
+            OUTPUT INSERTED.Id
+            VALUES (@TenantId, @EncounterId, @PatientId, @OrderedBy, @ProcedureCode, @ProcedureName, @ClinicalNotes, 1, GETDATE());";
+
+        int id = await conn.ExecuteScalarAsync<int>(sql, new {
+            TenantId = tenantId,
+            dto.EncounterId,
+            dto.PatientId,
+            dto.OrderedBy,
+            dto.ProcedureCode,
+            dto.ProcedureName,
+            dto.ClinicalNotes
+        });
+        return id;
+    }
 }

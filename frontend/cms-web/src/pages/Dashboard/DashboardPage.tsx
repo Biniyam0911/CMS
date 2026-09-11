@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
-  Users, Calendar, FlaskConical, ListOrdered, DollarSign, Activity,
-  ShieldAlert, Clock, RefreshCw, CheckCircle2, UserPlus, FilePlus, X
+  Users, Calendar, FlaskConical, ListOrdered, DollarSign,
+  Clock, RefreshCw, CheckCircle2, TrendingUp
 } from 'lucide-react';
 
 interface DashboardPageProps {
@@ -19,7 +19,7 @@ export default function DashboardPage({ token, onNavigateModule }: DashboardPage
     cacheHitRatio: 100,
     activeDoctorsCount: 0,
     liveQueue: [],
-    criticalAlerts: []
+    revenueTrend: []
   });
 
   const [loading, setLoading] = useState(false);
@@ -49,12 +49,12 @@ export default function DashboardPage({ token, onNavigateModule }: DashboardPage
     fetchMetrics();
   }, []);
 
-  const handleAckAlert = (alertId: number) => {
-    setMetrics({
-      ...metrics,
-      criticalAlerts: metrics.criticalAlerts.filter((ca: any) => ca.id !== alertId)
-    });
-  };
+  // Revenue Graph helpers
+  const revenueTrend: { date: string; revenue: number }[] = metrics.revenueTrend || [];
+  const maxRevenue = Math.max(...revenueTrend.map((r: any) => r.revenue || 0), 1);
+  const graphHeight = 120;
+  const graphWidth = 400;
+  const barWidth = revenueTrend.length > 0 ? (graphWidth / revenueTrend.length) - 4 : 20;
 
   return (
     <div>
@@ -100,11 +100,11 @@ export default function DashboardPage({ token, onNavigateModule }: DashboardPage
             <DollarSign color="#10b981" size={20} />
           </div>
           <div style={{ fontSize: '1.8rem', fontWeight: 700, margin: '8px 0 4px' }}>Br {metrics.todayRevenue.toLocaleString()}</div>
-          <span style={{ fontSize: '0.75rem', color: '#34d399', fontWeight: 600 }}>15% VAT Compliant</span>
+          <span style={{ fontSize: '0.75rem', color: '#34d399', fontWeight: 600 }}>VAT Compliant</span>
         </div>
       </div>
 
-      {/* Main Grid: Queue & Critical Alerts */}
+      {/* Main Grid: Queue & Revenue Graph */}
       <div className="grid-2">
         {/* Live Queue Panel */}
         <div className="glass-panel" style={{ padding: '24px' }}>
@@ -115,65 +115,106 @@ export default function DashboardPage({ token, onNavigateModule }: DashboardPage
             <span className="badge badge-info">{metrics.waitingQueueCount} Waiting</span>
           </div>
 
-          <table className="cms-table">
-            <thead>
-              <tr>
-                <th>Token</th>
-                <th>Patient</th>
-                <th>Service</th>
-                <th>Priority</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {metrics.liveQueue.map((q: any) => (
-                <tr key={q.id}>
-                  <td style={{ fontWeight: 700, color: '#06b6d4', fontFamily: 'monospace' }}>{q.tokenNumber}</td>
-                  <td style={{ fontWeight: 600 }}>{q.patientName}</td>
-                  <td>{q.serviceType}</td>
-                  <td>
-                    <span className={q.priorityName === 'Emergency' ? 'badge badge-critical' : 'badge badge-normal'}>
-                      {q.priorityName}
-                    </span>
-                  </td>
-                  <td><span className="badge badge-warning">{q.statusName}</span></td>
+          {metrics.liveQueue.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
+              <Clock size={28} style={{ margin: '0 auto 8px', opacity: 0.4 }} />
+              <div style={{ fontSize: '0.85rem' }}>No patients in triage queue right now.</div>
+            </div>
+          ) : (
+            <table className="cms-table">
+              <thead>
+                <tr>
+                  <th>Token</th>
+                  <th>Patient</th>
+                  <th>Service</th>
+                  <th>Priority</th>
+                  <th>Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {metrics.liveQueue.map((q: any) => (
+                  <tr key={q.id}>
+                    <td style={{ fontWeight: 700, color: '#06b6d4', fontFamily: 'monospace' }}>{q.tokenNumber}</td>
+                    <td style={{ fontWeight: 600 }}>{q.patientName}</td>
+                    <td>{q.serviceType}</td>
+                    <td>
+                      <span className={q.priorityName === 'Emergency' ? 'badge badge-critical' : 'badge badge-normal'}>
+                        {q.priorityName}
+                      </span>
+                    </td>
+                    <td><span className="badge badge-warning">{q.statusName}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
 
-        {/* Critical Alerts & System Status */}
+        {/* Right Column: Revenue Graph + Infrastructure */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {/* 14-Day Revenue Graph */}
           <div className="glass-panel" style={{ padding: '24px' }}>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#f43f5e', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <ShieldAlert size={18} /> Unacknowledged Critical Lab Alerts
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <TrendingUp color="#10b981" size={18} /> 14-Day Revenue Trend
             </h3>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '16px' }}>Daily revenue (Br) — last 14 days</div>
 
-            {metrics.criticalAlerts.length === 0 ? (
-              <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+            {revenueTrend.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                 <CheckCircle2 color="#10b981" size={24} style={{ margin: '0 auto 8px' }} />
-                No unacknowledged critical lab alerts.
+                No revenue data yet.
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {metrics.criticalAlerts.map((ca: any) => (
-                  <div key={ca.id} style={{ padding: '14px', borderRadius: '10px', background: 'rgba(244,63,94,0.1)', border: '1px solid rgba(244,63,94,0.25)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <div style={{ fontWeight: 700, color: '#fff', fontSize: '0.9rem' }}>{ca.patientName}</div>
-                      <div style={{ fontSize: '0.8rem', color: '#f87171', marginTop: '2px' }}>
-                        {ca.testName}: <strong>{ca.alertValue}</strong> ({ca.alertFlag})
-                      </div>
-                    </div>
-                    <button onClick={() => handleAckAlert(ca.id)} className="btn-primary" style={{ padding: '6px 12px', fontSize: '0.75rem' }}>
-                      Acknowledge
-                    </button>
-                  </div>
-                ))}
+              <div style={{ overflowX: 'auto' }}>
+                <svg width="100%" viewBox={`0 0 ${graphWidth} ${graphHeight + 30}`} style={{ minWidth: '260px' }}>
+                  {/* Grid lines */}
+                  {[0, 0.25, 0.5, 0.75, 1].map((pct, i) => (
+                    <line
+                      key={i}
+                      x1={0} y1={graphHeight - pct * graphHeight}
+                      x2={graphWidth} y2={graphHeight - pct * graphHeight}
+                      stroke="var(--border-color)" strokeWidth={0.5} strokeDasharray="3,3"
+                    />
+                  ))}
+                  {/* Bars */}
+                  {revenueTrend.map((d: any, i: number) => {
+                    const barH = Math.max(4, (d.revenue / maxRevenue) * graphHeight);
+                    const x = i * (graphWidth / revenueTrend.length) + 2;
+                    const y = graphHeight - barH;
+                    const shortDate = d.date ? d.date.slice(5) : `D${i + 1}`;
+                    return (
+                      <g key={i}>
+                        <rect
+                          x={x} y={y} width={barWidth} height={barH}
+                          rx={2}
+                          fill={d.revenue > 0 ? '#10b981' : '#e2e8f0'}
+                          opacity={0.85}
+                        >
+                          <title>{shortDate}: Br {(d.revenue || 0).toLocaleString()}</title>
+                        </rect>
+                        <text
+                          x={x + barWidth / 2} y={graphHeight + 14}
+                          textAnchor="middle" fontSize="8" fill="var(--text-muted)"
+                        >
+                          {shortDate}
+                        </text>
+                        {d.revenue > 0 && (
+                          <text
+                            x={x + barWidth / 2} y={y - 3}
+                            textAnchor="middle" fontSize="7" fill="#059669" fontWeight="700"
+                          >
+                            {d.revenue >= 1000 ? `${(d.revenue / 1000).toFixed(1)}k` : d.revenue}
+                          </text>
+                        )}
+                      </g>
+                    );
+                  })}
+                </svg>
               </div>
             )}
           </div>
 
+          {/* Infrastructure Diagnostics */}
           <div className="glass-panel" style={{ padding: '24px' }}>
             <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '16px' }}>Infrastructure Diagnostics</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.85rem' }}>
