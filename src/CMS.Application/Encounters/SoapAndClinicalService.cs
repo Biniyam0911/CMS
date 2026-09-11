@@ -86,4 +86,22 @@ public class SoapAndClinicalService
 
         return (await conn.QueryAsync<ProcedureOrderDto>(sql, new { PatientId = patientId })).ToList();
     }
+
+    public async Task<List<ProcedureOrderDto>> GetProcedureQueueAsync(byte tenantId)
+    {
+        using var conn = _dbFactory.CreateConnection();
+        var sql = @"
+            SELECT po.Id, po.EncounterId, po.PatientId, p.FirstName + ' ' + p.LastName AS PatientName,
+                   po.OrderedBy, ISNULL(s.FirstName + ' ' + s.LastName, 'Attending Physician') AS DoctorName,
+                   po.ProcedureCode, po.ProcedureName, po.ClinicalNotes, po.StatusId,
+                   CASE po.StatusId WHEN 1 THEN 'Ordered' WHEN 2 THEN 'Scheduled' WHEN 3 THEN 'InProgress' WHEN 4 THEN 'Completed' ELSE 'Cancelled' END AS StatusName,
+                   po.CreatedAt, po.PerformedAt, po.ProcedureResult
+            FROM ProcedureOrders po
+            JOIN Patients p ON p.Id = po.PatientId
+            LEFT JOIN Staff s ON s.UserId = po.OrderedBy
+            WHERE po.TenantId = @TenantId AND po.StatusId IN (1, 2, 3)
+            ORDER BY po.CreatedAt ASC";
+
+        return (await conn.QueryAsync<ProcedureOrderDto>(sql, new { TenantId = tenantId })).ToList();
+    }
 }

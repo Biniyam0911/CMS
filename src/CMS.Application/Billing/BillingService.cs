@@ -17,8 +17,9 @@ public class BillingService
     {
         using var conn = _dbFactory.CreateConnection();
         var invoiceNumber = $"INV-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..4].ToUpper()}";
-        bool isFree = dto.IsFree == true || dto.StatusId == 4;
-        byte initialStatus = isFree ? (byte)4 : (byte)2; // 4 = Paid, 2 = Issued
+        bool isFree = dto.IsFree == true;
+        bool isPaid = dto.StatusId == 4;
+        byte initialStatus = (isFree || isPaid) ? (byte)4 : (dto.StatusId ?? (byte)2); // 4 = Paid, 2 = Issued
         decimal subTotal = isFree ? 0 : dto.Items.Sum(i => (i.Quantity * i.UnitPrice) - i.Discount);
         // Dynamic VAT rate from ClinicSettings (TaxRate key, stored as percent e.g. "15" = 15%)
         decimal vatRate = 0.15m;
@@ -35,7 +36,7 @@ public class BillingService
         catch { /* keep default */ }
         decimal tax = isFree ? 0 : Math.Round(subTotal * vatRate, 2);
         decimal total = isFree ? 0 : subTotal + tax;
-        decimal paid = isFree ? 0 : 0;
+        decimal paid = isFree ? 0 : (isPaid ? total : 0);
 
         // Verify if EncounterId exists in Encounters table to satisfy FK_Invoices_Encounters
         int? validEncounterId = null;

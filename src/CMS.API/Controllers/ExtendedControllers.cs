@@ -176,6 +176,14 @@ public class ProceduresController : ControllerBase
         var procs = await _clinicalService.GetPatientProceduresAsync(patientId);
         return Ok(ApiResponse<List<ProcedureOrderDto>>.Ok(procs));
     }
+
+    [HttpGet("queue")]
+    public async Task<IActionResult> GetProcedureQueue()
+    {
+        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+        var procs = await _clinicalService.GetProcedureQueueAsync(tenantId);
+        return Ok(ApiResponse<List<ProcedureOrderDto>>.Ok(procs));
+    }
 }
 
 [ApiController]

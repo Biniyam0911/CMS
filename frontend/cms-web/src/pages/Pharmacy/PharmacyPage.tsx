@@ -3,8 +3,9 @@ import { Pill, CheckCircle, Package, AlertTriangle, Plus, RefreshCw, X, Search, 
 import { api } from '../../api/apiClient';
 
 export default function PharmacyPage() {
-  const [activeSubTab, setActiveSubTab] = useState<'prescriptions' | 'inventory' | 'narcotics' | 'restock'>('prescriptions');
+  const [activeSubTab, setActiveSubTab] = useState<'prescriptions' | 'sold' | 'inventory' | 'narcotics' | 'restock'>('prescriptions');
   const [loading, setLoading] = useState(true);
+  const [selectedSoldReceipt, setSelectedSoldReceipt] = useState<any | null>(null);
 
   // Formulary Inventory State with FEFO Expiry & Controlled Status
   const [drugs, setDrugs] = useState<any[]>([]);
@@ -56,7 +57,7 @@ export default function PharmacyPage() {
       const [formularyData, prescriptionsData, allPatients, settingsData] = await Promise.all([
         api.get<any[]>('/pharmacy/formulary').catch(() => []),
         api.get<any[]>('/pharmacy/prescriptions').catch(() => []),
-        api.get<any[]>('/patients').catch(() => []),
+        api.get<any>('/patients/search').catch(() => api.get<any>('/patients').catch(() => [])),
         api.get<any[]>('/settings').catch(() => [])
       ]);
 
@@ -71,17 +72,24 @@ export default function PharmacyPage() {
         });
       }
 
-      if (allPatients && Array.isArray(allPatients)) {
-        const mappedPatients = allPatients.map((p: any) => ({
+      let patientArr: any[] = [];
+      if (Array.isArray(allPatients)) {
+        patientArr = allPatients;
+      } else if (allPatients && Array.isArray(allPatients.data)) {
+        patientArr = allPatients.data;
+      } else if (allPatients && Array.isArray(allPatients.Data)) {
+        patientArr = allPatients.Data;
+      }
+
+      if (patientArr.length > 0) {
+        const mappedPatients = patientArr.map((p: any) => ({
           id: p.id || p.Id,
           name: `${p.firstName || p.FirstName || ''} ${p.lastName || p.LastName || ''}`.trim() || `Patient #${p.id || p.Id}`,
-          mrn: p.mrn || p.Mrn || `MRN-00${p.id || p.Id}`
+          mrn: p.mrn || p.Mrn || `HD-${String(p.id || p.Id).padStart(4, '0')}`
         }));
         setPatientsList(mappedPatients);
-        if (mappedPatients.length > 0) {
-          setDoPatientId(String(mappedPatients[0].id));
-          setDoPatientName(mappedPatients[0].name);
-        }
+        setDoPatientId(prev => prev || String(mappedPatients[0].id));
+        setDoPatientName(prev => prev || mappedPatients[0].name);
       }
 
       if (formularyData && formularyData.length > 0) {
@@ -284,6 +292,7 @@ export default function PharmacyPage() {
         patientId: patId,
         encounterId: null,
         createdBy: 1,
+        statusId: 4, // Automatically marked as Paid upon billing!
         items: [{
           itemType: 'Pharmacy',
           description: drugDesc,
@@ -305,23 +314,29 @@ export default function PharmacyPage() {
         id: Date.now(),
         itemId: Date.now(),
         patientName: finalPatientName,
-        mrn: orderType === 'registered' ? (patientsList.find(p => p.id === patId)?.mrn || `MRN-00${patId}`) : 'OTC-WALKIN',
+        mrn: orderType === 'registered' ? (patientsList.find(p => p.id === patId)?.mrn || `HD-00${patId}`) : 'OTC-WALKIN',
         doctorName: 'Direct Dispensary (OTC)',
         date: new Date().toISOString().split('T')[0],
         drug: `${doSelectedDrug.generic} ${doSelectedDrug.strength || ''}`.trim(),
         qty: qty,
+        unitPrice: unitPrice,
+        subtotal: subtotalAmt,
+        vat: vatAmt,
+        total: totalAmt,
         status: 'Dispensed',
         isPaid: true,
         isControlled: Boolean(doSelectedDrug.isControlled)
       };
       setPrescriptions(prev => [newPrescription, ...prev]);
 
-      alert(`✓ Direct order saved & billed successfully!\n\nPatient: ${finalPatientName}\nMedication: ${doSelectedDrug.generic} x${qty}\nSubtotal: Br ${subtotalAmt.toFixed(2)}\nVAT (${vatPercent}%): Br ${vatAmt.toFixed(2)}\nTotal Billed: Br ${totalAmt.toFixed(2)}`);
+      alert(`✓ Direct order saved & billed successfully as PAID!\n\nPatient: ${finalPatientName}\nMedication: ${doSelectedDrug.generic} x${qty}\nSubtotal: Br ${subtotalAmt.toFixed(2)}\nVAT (${vatPercent}%): Br ${vatAmt.toFixed(2)}\nTotal Paid & Billed: Br ${totalAmt.toFixed(2)}`);
 
       setShowDirectOrderModal(false);
       setWalkinName('');
       setDoSelectedDrug(null);
       setDoQty('1');
+      // Automatically navigate to Sold Prescriptions tab so the newly billed record is visible
+      setActiveSubTab('sold');
     } catch (err: any) {
       console.error('Direct order failed:', err);
       alert('Failed to save and bill order: ' + (err?.message || 'Please try again.'));
@@ -335,9 +350,12 @@ export default function PharmacyPage() {
     <div>
       {/* Top Banner & Sub Tabs */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <div style={{ display: 'flex', gap: '12px' }}>
+        <div style={{ display: 'flex', gap: '10px' }}>
           <button onClick={() => setActiveSubTab('prescriptions')} className={activeSubTab === 'prescriptions' ? 'btn-primary' : 'btn-secondary'}>
             <Pill size={16} /> Dispensary Queue ({prescriptions.filter(p => p.status === 'Pending').length})
+          </button>
+          <button onClick={() => setActiveSubTab('sold')} className={activeSubTab === 'sold' ? 'btn-primary' : 'btn-secondary'}>
+            <CheckCircle size={16} /> Sold Prescriptions ({prescriptions.filter(p => p.status === 'Dispensed' || p.isPaid).length})
           </button>
           <button onClick={() => setActiveSubTab('inventory')} className={activeSubTab === 'inventory' ? 'btn-primary' : 'btn-secondary'}>
             <Package size={16} /> Inventory & FEFO Expiry ({drugs.length})
@@ -354,8 +372,8 @@ export default function PharmacyPage() {
               <Plus size={16} /> Add New Drug Item
             </button>
           )}
-          {activeSubTab === 'prescriptions' && (
-            <button onClick={() => setShowDirectOrderModal(true)} className="btn-primary" style={{ background: '#059669', borderColor: '#059669' }}>
+          {(activeSubTab === 'prescriptions' || activeSubTab === 'sold') && (
+            <button onClick={() => setShowDirectOrderModal(true)} className="btn-primary" style={{ background: '#34c759', borderColor: '#34c759' }}>
               <Plus size={16} /> New Direct Order (OTC)
             </button>
           )}
@@ -430,6 +448,160 @@ export default function PharmacyPage() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* SUB TAB: Sold / Dispensed Prescriptions */}
+      {activeSubTab === 'sold' && (
+        <div className="glass-panel" style={{ padding: '24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <div>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <CheckCircle color="#34c759" size={18} /> Sold & Dispensed Prescriptions ({prescriptions.filter(p => p.status === 'Dispensed' || p.isPaid).length})
+              </h3>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: '2px' }}>
+                Historical log of completed sales, over-the-counter orders, and billed medication records.
+              </p>
+            </div>
+            {loading && <Loader2 size={16} className="animate-spin" color="#0071e3" />}
+          </div>
+
+          <table className="cms-table">
+            <thead>
+              <tr>
+                <th>Receipt / RX #</th>
+                <th>Patient Details</th>
+                <th>Prescribed Medication</th>
+                <th>Quantity</th>
+                <th>Doctor / Channel</th>
+                <th>Dispensed Date</th>
+                <th>Payment Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {prescriptions.filter(p => p.status === 'Dispensed' || p.isPaid).length === 0 ? (
+                <tr>
+                  <td colSpan={8} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
+                    No sold prescriptions found. Complete an order to view sold receipts here.
+                  </td>
+                </tr>
+              ) : (
+                prescriptions.filter(p => p.status === 'Dispensed' || p.isPaid).map(p => (
+                  <tr key={p.id}>
+                    <td style={{ fontFamily: 'monospace', fontWeight: 600, color: '#0071e3' }}>
+                      RX-{p.id}
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 600 }}>{p.patientName}</div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{p.mrn}</div>
+                    </td>
+                    <td>
+                      <strong style={{ color: 'var(--text-main)' }}>{p.drug}</strong>
+                      {p.isControlled && <span className="badge badge-critical" style={{ marginLeft: '6px' }}>Controlled</span>}
+                    </td>
+                    <td><strong>{p.qty}</strong> units</td>
+                    <td>{p.doctorName || 'Attending Physician'}</td>
+                    <td>{p.date}</td>
+                    <td>
+                      <span className="badge badge-normal">
+                        <CheckCircle size={11} /> Paid & Dispensed
+                      </span>
+                    </td>
+                    <td>
+                      <button
+                        onClick={() => setSelectedSoldReceipt(p)}
+                        className="btn-secondary"
+                        style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                      >
+                        <FileText size={13} /> View Receipt
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Modal: Sold Prescription Receipt */}
+      {selectedSoldReceipt && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div className="glass-panel" style={{ width: '480px', padding: '28px', background: 'var(--bg-card)', borderRadius: '16px', boxShadow: '0 20px 40px rgba(0,0,0,0.15)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', marginBottom: '16px' }}>
+              <div>
+                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#0071e3', letterSpacing: '0.05em' }}>OFFICIAL DISPENSARY RECEIPT</span>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-main)' }}>RX-{selectedSoldReceipt.id}</h3>
+              </div>
+              <button onClick={() => setSelectedSoldReceipt(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '0.84rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', background: 'var(--bg-dark)', padding: '12px', borderRadius: '10px' }}>
+                <div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>PATIENT NAME</div>
+                  <div style={{ fontWeight: 600 }}>{selectedSoldReceipt.patientName}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>MRN / IDENTIFIER</div>
+                  <div style={{ fontWeight: 600, fontFamily: 'monospace' }}>{selectedSoldReceipt.mrn}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>DISPENSED DATE</div>
+                  <div>{selectedSoldReceipt.date}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>CHANNEL / PRESCRIBER</div>
+                  <div>{selectedSoldReceipt.doctorName || 'General Practice'}</div>
+                </div>
+              </div>
+
+              <div style={{ border: '1px solid var(--border-color)', borderRadius: '10px', overflow: 'hidden' }}>
+                <table className="cms-table" style={{ margin: 0 }}>
+                  <thead>
+                    <tr>
+                      <th>Medication Item</th>
+                      <th style={{ textAlign: 'right' }}>Qty</th>
+                      <th style={{ textAlign: 'right' }}>Est. Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <strong>{selectedSoldReceipt.drug}</strong>
+                        {selectedSoldReceipt.isControlled && <span className="badge badge-critical" style={{ marginLeft: '6px' }}>Controlled</span>}
+                      </td>
+                      <td style={{ textAlign: 'right' }}>{selectedSoldReceipt.qty}</td>
+                      <td style={{ textAlign: 'right', fontWeight: 600 }}>
+                        {selectedSoldReceipt.total ? `Br ${Number(selectedSoldReceipt.total).toFixed(2)}` : 'Billed'}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', borderRadius: '10px', background: 'rgba(52, 199, 89, 0.08)', border: '1px solid rgba(52, 199, 89, 0.2)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#248a3d', fontWeight: 600, fontSize: '0.85rem' }}>
+                  <CheckCircle size={16} /> Bill Status: Paid in Full
+                </div>
+                <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#248a3d' }}>
+                  {selectedSoldReceipt.total ? `Br ${Number(selectedSoldReceipt.total).toFixed(2)}` : 'Settled'}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '6px' }}>
+                <button onClick={() => window.print()} className="btn-secondary">
+                  Print Receipt
+                </button>
+                <button onClick={() => setSelectedSoldReceipt(null)} className="btn-primary">
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

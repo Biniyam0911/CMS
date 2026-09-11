@@ -88,6 +88,7 @@ public class PatientsController : ControllerBase
         return Ok(ApiResponse<object>.Ok(new { NextMRN = nextMrn, NextId = nextId }));
     }
 
+    [HttpGet]
     [HttpGet("search")]
     public async Task<IActionResult> Search([FromQuery] string? q = "", [FromQuery] int page = 1)
     {
