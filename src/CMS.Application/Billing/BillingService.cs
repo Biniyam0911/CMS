@@ -20,7 +20,20 @@ public class BillingService
         bool isFree = dto.IsFree == true || dto.StatusId == 4;
         byte initialStatus = isFree ? (byte)4 : (byte)2; // 4 = Paid, 2 = Issued
         decimal subTotal = isFree ? 0 : dto.Items.Sum(i => (i.Quantity * i.UnitPrice) - i.Discount);
-        decimal tax = isFree ? 0 : Math.Round(subTotal * 0.15m, 2); // 15% VAT
+        // Dynamic VAT rate from ClinicSettings (TaxRate key, stored as percent e.g. "15" = 15%)
+        decimal vatRate = 0.15m;
+        try
+        {
+            var vatStr = await conn.ExecuteScalarAsync<string?>(
+                @"SELECT TOP 1 SettingValue FROM ClinicSettings 
+                  WHERE TenantId = @TenantId AND SettingKey IN ('TaxRate', 'Tax.DefaultVatPercent')
+                  ORDER BY CASE WHEN SettingKey = 'TaxRate' THEN 0 ELSE 1 END",
+                new { dto.TenantId });
+            if (!string.IsNullOrWhiteSpace(vatStr) && decimal.TryParse(vatStr, out var parsed))
+                vatRate = parsed / 100m;
+        }
+        catch { /* keep default */ }
+        decimal tax = isFree ? 0 : Math.Round(subTotal * vatRate, 2);
         decimal total = isFree ? 0 : subTotal + tax;
         decimal paid = isFree ? 0 : 0;
 

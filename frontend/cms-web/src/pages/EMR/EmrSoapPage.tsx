@@ -244,14 +244,42 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
     { id: 'CRP', code: 'CRP-01', name: 'C-Reactive Protein (CRP Quantitative)', category: 'Immunology', specimen: 'Serum', fasting: false, tat: '1 Hour', price: 240.0, subParams: ['CRP Level'] }
   ];
 
-  const procedureCatalogue: ProcedureItem[] = [
-    { id: 'BIOPSY', code: 'CPT-11100', name: 'Skin Punch / Shave Biopsy (3-4mm)', category: 'Minor Surgery', duration: '20 Mins', anesthesia: 'Local Anesthesia (Lidocaine 2%)', defaultSite: 'Lesion Site', price: 750.0 },
-    { id: 'CRYO', code: 'CPT-17000', name: 'Liquid Nitrogen Cryotherapy (1-3 Lesions)', category: 'Aesthetics / Surgery', duration: '15 Mins', anesthesia: 'None Required', defaultSite: 'Target Lesions', price: 450.0 },
-    { id: 'PEEL', code: 'CPT-15788', name: 'Chemical Peel Rejuvenation (Salicylic/Glycolic)', category: 'Dermatology Aesthetics', duration: '30 Mins', anesthesia: 'None Required', defaultSite: 'Facial', price: 1200.0 },
-    { id: 'LASER', code: 'CPT-17106', name: 'Laser Hair & Pigment Therapy (Per Session)', category: 'Laser Center', duration: '40 Mins', anesthesia: 'Topical EMLA Cream', defaultSite: 'Treatment Area', price: 1800.0 },
-    { id: 'WOUND', code: 'CPT-12001', name: 'Minor Wound Debridement & Suturing', category: 'Minor Surgery', duration: '30 Mins', anesthesia: 'Local Anesthesia (Lidocaine 2%)', defaultSite: 'Affected Area', price: 500.0 },
-    { id: 'ID', code: 'CPT-10060', name: 'Abscess Incision & Drainage (I&D)', category: 'Minor Surgery', duration: '25 Mins', anesthesia: 'Local Anesthesia (Lidocaine 2%)', defaultSite: 'Abscess Site', price: 450.0 }
-  ];
+  const procedureCatalogue: ProcedureItem[] = React.useMemo(() => {
+    try {
+      const raw = localStorage.getItem('clinic_services');
+      if (raw) {
+        const svcList: any[] = JSON.parse(raw);
+        const procSvcs = svcList.filter((s: any) => {
+          const cat = (s.category || s.Category || '').toLowerCase();
+          const type = (s.type || s.serviceType || '').toLowerCase();
+          return cat.includes('procedure') || cat.includes('surgery') || cat.includes('minor') ||
+                 cat.includes('laser') || cat.includes('aesthetic') || cat.includes('dermato') ||
+                 type === 'procedure' || type === 'clinical';
+        });
+        if (procSvcs.length > 0) {
+          return procSvcs.map((s: any, i: number) => ({
+            id: String(s.id || s.code || `PROC-${i}`),
+            code: String(s.code || s.serviceCode || `CPT-${10000 + i}`),
+            name: s.name || s.serviceName || 'Clinical Procedure',
+            category: s.category || s.Category || 'Clinical Procedure',
+            duration: s.duration || '30 Mins',
+            anesthesia: s.anesthesia || 'As Required',
+            defaultSite: s.defaultSite || 'Treatment Area',
+            price: parseFloat(s.price || s.unitPrice || s.Price || 0)
+          }));
+        }
+      }
+    } catch { /* use defaults */ }
+    // Default fallback catalogue
+    return [
+      { id: 'BIOPSY', code: 'CPT-11100', name: 'Skin Punch / Shave Biopsy (3-4mm)', category: 'Minor Surgery', duration: '20 Mins', anesthesia: 'Local Anesthesia (Lidocaine 2%)', defaultSite: 'Lesion Site', price: 750.0 },
+      { id: 'CRYO', code: 'CPT-17000', name: 'Liquid Nitrogen Cryotherapy (1-3 Lesions)', category: 'Aesthetics / Surgery', duration: '15 Mins', anesthesia: 'None Required', defaultSite: 'Target Lesions', price: 450.0 },
+      { id: 'PEEL', code: 'CPT-15788', name: 'Chemical Peel Rejuvenation (Salicylic/Glycolic)', category: 'Dermatology Aesthetics', duration: '30 Mins', anesthesia: 'None Required', defaultSite: 'Facial', price: 1200.0 },
+      { id: 'LASER', code: 'CPT-17106', name: 'Laser Hair & Pigment Therapy (Per Session)', category: 'Laser Center', duration: '40 Mins', anesthesia: 'Topical EMLA Cream', defaultSite: 'Treatment Area', price: 1800.0 },
+      { id: 'WOUND', code: 'CPT-12001', name: 'Minor Wound Debridement & Suturing', category: 'Minor Surgery', duration: '30 Mins', anesthesia: 'Local Anesthesia (Lidocaine 2%)', defaultSite: 'Affected Area', price: 500.0 },
+      { id: 'ID', code: 'CPT-10060', name: 'Abscess Incision & Drainage (I&D)', category: 'Minor Surgery', duration: '25 Mins', anesthesia: 'Local Anesthesia (Lidocaine 2%)', defaultSite: 'Abscess Site', price: 450.0 }
+    ];
+  }, []);
 
   const [medicationCatalogue, setMedicationCatalogue] = useState<MedicationItem[]>([
     { id: 'HYDRO', name: 'Hydrocortisone 1% Cream (15g Tube)', class: 'Topical Corticosteroid', defaultDosage: 'Apply thin layer', defaultRoute: 'Topical', defaultFreq: 'Twice Daily (BID)', defaultDuration: '7 Days', defaultDurationDays: 7, defaultQty: 1, unitPrice: 85.0, instructions: 'Apply to affected skin. Avoid eye area.' },
@@ -939,14 +967,14 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
       if (procItems.length > 0) {
         for (const p of procItems) {
           try {
-            await api.post('/procedures', {
+            await api.post('/encounters/procedures', {
               tenantId: 1,
+              encounterId: null,
               patientId: patId,
-              doctorId: selectedDoctorId || 1,
+              orderedBy: selectedDoctorId || 1,
               procedureName: p.title,
               procedureCode: p.code,
-              notes: p.paramsSummary,
-              priority: 'Routine'
+              clinicalNotes: p.paramsSummary
             });
           } catch (pErr) {
             console.warn('Procedure order error:', pErr);
@@ -2117,10 +2145,10 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
             </div>
 
             {/* BODY */}
-            <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+            <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
 
               {/* LEFT: Catalog */}
-              <div style={{ width: '380px', flexShrink: 0, borderRight: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              <div style={{ width: '380px', flexShrink: 0, borderRight: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
                 <div style={{ padding: '8px 14px', borderBottom: '1px solid #e2e8f0', background: '#f1f5f9', fontSize: '0.68rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   Service Catalog
                 </div>
@@ -2467,7 +2495,8 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                     <div>•</div>
                     <div>Tel: +251 949 74 44 44 / +251 949 54 44 44</div>
                     <div>•</div>
-                  <div>hudermacare@gmail.com | www.huderma.com</div>
+                    <div>hudermacare@gmail.com | www.huderma.com</div>
+                  </div>
                 </div>
               </div>
 

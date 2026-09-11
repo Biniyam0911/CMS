@@ -97,3 +97,4 @@ C:\Users\ASUS\source\repos\CMS\tests\CMS.E2ETests\obj\Debug\net8.0\refint\CMS.E2
 C:\Users\ASUS\source\repos\CMS\tests\CMS.E2ETests\obj\Debug\net8.0\CMS.E2ETests.pdb
 C:\Users\ASUS\source\repos\CMS\tests\CMS.E2ETests\obj\Debug\net8.0\CMS.E2ETests.genruntimeconfig.cache
 C:\Users\ASUS\source\repos\CMS\tests\CMS.E2ETests\obj\Debug\net8.0\ref\CMS.E2ETests.dll
+C:\Users\ASUS\source\repos\CMS\tests\CMS.E2ETests\obj\Debug\net8.0\CMS.E2ETests.sourcelink.json

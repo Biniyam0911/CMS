@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Settings, Save, Building, Globe, DollarSign, CheckCircle2, Loader2, HeartPulse, Stethoscope, FileHeart, Activity, ShieldCheck, Cross, FlaskConical } from 'lucide-react';
 import { api } from '../../api/apiClient';
 
@@ -49,8 +49,11 @@ export default function SettingsPage() {
     loadSettings();
   }, []);
 
+  const [saveError, setSaveError] = useState<string | null>(null);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSaveError(null);
     try {
       await Promise.all([
         api.post('/settings', { settingKey: 'ClinicName', settingValue: clinicName }),
@@ -60,13 +63,14 @@ export default function SettingsPage() {
         api.post('/settings', { settingKey: 'TaxRate', settingValue: vat }),
         api.post('/settings', { settingKey: 'AppIcon', settingValue: appIcon }),
       ]);
-    } catch (err) {
+      // Fire event so Sidebar updates immediately
+      window.dispatchEvent(new Event('clinic_settings_changed'));
+      setSavedAlert(true);
+      setTimeout(() => setSavedAlert(false), 3000);
+    } catch (err: any) {
       console.error('Update settings API error:', err);
+      setSaveError(err?.message || 'Failed to save settings. Please try again.');
     }
-    // Fire event so Sidebar updates immediately
-    window.dispatchEvent(new Event('clinic_settings_changed'));
-    setSavedAlert(true);
-    setTimeout(() => setSavedAlert(false), 3000);
   };
 
   return (
@@ -78,6 +82,7 @@ export default function SettingsPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           {loading && <Loader2 size={16} className="animate-spin" color="#06b6d4" />}
           {savedAlert && <span className="badge badge-normal"><CheckCircle2 size={12} /> Settings Saved to Database</span>}
+          {saveError && <span style={{ fontSize: '0.78rem', color: '#ef4444', fontWeight: 600 }}>⚠ {saveError}</span>}
         </div>
       </div>
 

@@ -232,3 +232,4 @@ C:\Users\ASUS\source\repos\CMS\tests\CMS.IntegrationTests\obj\Debug\net8.0\CMS.I
 C:\Users\ASUS\source\repos\CMS\tests\CMS.IntegrationTests\obj\Debug\net8.0\CMS.IntegrationTests.genruntimeconfig.cache
 C:\Users\ASUS\source\repos\CMS\tests\CMS.IntegrationTests\obj\Debug\net8.0\ref\CMS.IntegrationTests.dll
 C:\Users\ASUS\source\repos\CMS\tests\CMS.IntegrationTests\bin\Debug\net8.0\web.config
+C:\Users\ASUS\source\repos\CMS\tests\CMS.IntegrationTests\obj\Debug\net8.0\CMS.IntegrationTests.sourcelink.json

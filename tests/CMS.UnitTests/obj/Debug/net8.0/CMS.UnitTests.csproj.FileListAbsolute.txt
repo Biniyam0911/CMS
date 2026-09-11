@@ -156,3 +156,4 @@ C:\Users\ASUS\source\repos\CMS\tests\CMS.UnitTests\bin\Debug\net8.0\Microsoft.Id
 C:\Users\ASUS\source\repos\CMS\tests\CMS.UnitTests\bin\Debug\net8.0\Microsoft.IdentityModel.Logging.dll
 C:\Users\ASUS\source\repos\CMS\tests\CMS.UnitTests\bin\Debug\net8.0\Microsoft.IdentityModel.Tokens.dll
 C:\Users\ASUS\source\repos\CMS\tests\CMS.UnitTests\bin\Debug\net8.0\System.IdentityModel.Tokens.Jwt.dll
+C:\Users\ASUS\source\repos\CMS\tests\CMS.UnitTests\obj\Debug\net8.0\CMS.UnitTests.sourcelink.json

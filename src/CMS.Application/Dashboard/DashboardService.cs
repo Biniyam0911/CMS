@@ -48,22 +48,23 @@ public class DashboardService
 
         var sqlQueueList = @"
             SELECT TOP 15 
-                t.Id, t.TenantId,
-                ISNULL(q.TokenNumber, 'TRG-' + CAST(t.Id AS VARCHAR)) AS TokenNumber,
-                t.PatientId,
-                p.FirstName + ' ' + ISNULL(p.MiddleName + ' ', '') + p.LastName AS PatientName,
-                ISNULL(t.TriageCategory, 'General Consultation') AS ServiceType,
-                t.PriorityLevel,
-                CASE t.PriorityLevel WHEN 1 THEN 'Emergency' WHEN 2 THEN 'Urgent' ELSE 'Normal' END AS PriorityName,
-                1 AS StatusId,
-                t.Status AS StatusName,
-                0 AS AssignedCounterId,
-                ISNULL(r.RoomName, 'Room 101') AS CounterName,
-                t.AssignedDoctorId,
-                ISNULL(s.FirstName + ' ' + s.LastName, 'Attending Doctor') AS DoctorName,
-                10 AS EstimatedWaitMin,
+                CAST(t.Id AS BIGINT) AS Id,
+                CAST(t.TenantId AS TINYINT) AS TenantId,
+                CAST(ISNULL(q.TokenNumber, 'TRG-' + CAST(t.Id AS VARCHAR)) AS NVARCHAR(50)) AS TokenNumber,
+                CAST(t.PatientId AS INT) AS PatientId,
+                CAST(p.FirstName + ' ' + ISNULL(p.MiddleName + ' ', '') + p.LastName AS NVARCHAR(150)) AS PatientName,
+                CAST(ISNULL(t.TriageCategory, 'General Consultation') AS NVARCHAR(100)) AS ServiceType,
+                CAST(ISNULL(t.PriorityLevel, 3) AS TINYINT) AS PriorityLevel,
+                CAST(CASE t.PriorityLevel WHEN 1 THEN 'Emergency' WHEN 2 THEN 'Urgent' ELSE 'Normal' END AS NVARCHAR(50)) AS PriorityName,
+                CAST(1 AS TINYINT) AS StatusId,
+                CAST(t.Status AS NVARCHAR(50)) AS StatusName,
+                CAST(0 AS INT) AS AssignedCounterId,
+                CAST(ISNULL(r.RoomName, 'Room 101') AS NVARCHAR(100)) AS CounterName,
+                CAST(t.AssignedDoctorId AS INT) AS AssignedDoctorId,
+                CAST(ISNULL(s.FirstName + ' ' + s.LastName, 'Attending Doctor') AS NVARCHAR(150)) AS DoctorName,
+                CAST(10 AS INT) AS EstimatedWaitMin,
                 t.TriagedAt AS CheckInTime,
-                t.UpdatedAt AS CallTime
+                CAST(t.UpdatedAt AS DATETIME) AS CallTime
             FROM PatientTriage t
             JOIN Patients p ON p.Id = t.PatientId
             LEFT JOIN PatientQueues q ON q.Id = t.QueueId
@@ -71,7 +72,8 @@ public class DashboardService
             LEFT JOIN Staff s ON s.Id = d.StaffId
             LEFT JOIN ConsultationRooms r ON r.Id = t.AssignedRoomId
             WHERE t.TenantId = @TenantId
-              AND (t.Status IN ('Waiting', 'Triaged', 'AssignedToDoctor') OR CAST(t.TriagedAt AS DATE) = CAST(GETDATE() AS DATE))
+              AND t.Status IN ('Waiting', 'Triaged', 'AssignedToDoctor')
+              AND CAST(t.TriagedAt AS DATE) = CAST(GETDATE() AS DATE)
             ORDER BY t.PriorityLevel ASC, t.TriagedAt DESC";
 
         var queueList = (await conn.QueryAsync<PatientQueueDto>(sqlQueueList, new { TenantId = tenantId })).ToList();

@@ -40,6 +40,7 @@ export default function PharmacyPage() {
 
   // Direct Order (OTC) Modal State
   const [showDirectOrderModal, setShowDirectOrderModal] = useState(false);
+  const [patientsList, setPatientsList] = useState<any[]>([]);
   const [doPatientId, setDoPatientId] = useState('');
   const [doPatientName, setDoPatientName] = useState('');
   const [doSelectedDrug, setDoSelectedDrug] = useState<any>(null);
@@ -49,10 +50,15 @@ export default function PharmacyPage() {
   const loadPharmacyData = async () => {
     try {
       setLoading(true);
-      const [formularyData, prescriptionsData] = await Promise.all([
+      const [formularyData, prescriptionsData, allPatients] = await Promise.all([
         api.get<any[]>('/pharmacy/formulary').catch(() => []),
-        api.get<any[]>('/pharmacy/prescriptions').catch(() => [])
+        api.get<any[]>('/pharmacy/prescriptions').catch(() => []),
+        api.get<any[]>('/patients').catch(() => [])
       ]);
+
+      if (allPatients && Array.isArray(allPatients)) {
+        setPatientsList(allPatients);
+      }
 
       if (formularyData && formularyData.length > 0) {
         const mappedDrugs = formularyData.map((d: any) => ({
@@ -557,6 +563,121 @@ export default function PharmacyPage() {
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '16px' }}>
                 <button type="button" onClick={() => setShowRestockModal(null)} className="btn-secondary">Cancel</button>
                 <button type="submit" className="btn-primary">Apply Restock & Batch</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Direct Order (OTC Medication Sale) */}
+      {showDirectOrderModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div className="glass-panel" style={{ width: '520px', padding: '28px', background: '#ffffff', color: '#1c1917' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: '#0f172a' }}>
+                <Plus size={18} color="#059669" /> New Direct Dispensary Order (OTC)
+              </h3>
+              <button onClick={() => setShowDirectOrderModal(false)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}><X size={18} /></button>
+            </div>
+
+            <form onSubmit={handleDirectOrderSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#334155' }}>Patient Name</label>
+                  <input
+                    type="text"
+                    value={doPatientName}
+                    onChange={e => setDoPatientName(e.target.value)}
+                    placeholder="e.g. Abebe Bekele"
+                    required
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#334155' }}>MRN / Patient ID (Optional)</label>
+                  <input
+                    type="text"
+                    value={doPatientId}
+                    onChange={e => setDoPatientId(e.target.value)}
+                    placeholder="e.g. MRN-00123 or leave blank"
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#334155' }}>Select Medication (from Formulary Inventory)</label>
+                <select
+                  value={doSelectedDrug ? doSelectedDrug.id : ''}
+                  onChange={e => {
+                    const d = drugs.find(dr => String(dr.id) === e.target.value);
+                    setDoSelectedDrug(d || null);
+                  }}
+                  required
+                  style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                >
+                  <option value="">-- Choose Drug --</option>
+                  {drugs.map(d => (
+                    <option key={d.id} value={d.id}>
+                      {d.generic} {d.strength} ({d.form}) — In Stock: {d.stock} — Br {d.sellingPrice?.toFixed(2)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#334155' }}>Dispense Quantity</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max={doSelectedDrug ? doSelectedDrug.stock : 999}
+                    value={doQty}
+                    onChange={e => setDoQty(e.target.value)}
+                    required
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#334155' }}>Unit Selling Price</label>
+                  <input
+                    type="text"
+                    readOnly
+                    value={doSelectedDrug ? `Br ${doSelectedDrug.sellingPrice?.toFixed(2)}` : '—'}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #e2e8f0', background: '#f8fafc', fontSize: '0.85rem', color: '#64748b' }}
+                  />
+                </div>
+              </div>
+
+              {doSelectedDrug && (
+                <div style={{ padding: '12px', background: '#f1f5f9', borderRadius: '8px', fontSize: '0.82rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Subtotal:</span>
+                    <strong>Br {((parseInt(doQty) || 1) * (doSelectedDrug.sellingPrice || 0)).toFixed(2)}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
+                    <span>Estimated VAT (15%):</span>
+                    <span>Br {(((parseInt(doQty) || 1) * (doSelectedDrug.sellingPrice || 0)) * 0.15).toFixed(2)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #cbd5e1', paddingTop: '4px', color: '#0369a1', fontSize: '0.9rem' }}>
+                    <span>Total Invoiced:</span>
+                    <strong>Br {(((parseInt(doQty) || 1) * (doSelectedDrug.sellingPrice || 0)) * 1.15).toFixed(2)}</strong>
+                  </div>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '14px' }}>
+                <button type="button" onClick={() => setShowDirectOrderModal(false)} className="btn-secondary">
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={doSubmitting || !doSelectedDrug || !doPatientId}
+                  className="btn-primary"
+                  style={{ background: '#059669', borderColor: '#059669' }}
+                >
+                  {doSubmitting ? 'Invoicing...' : 'Create Invoice & Bill'}
+                </button>
               </div>
             </form>
           </div>

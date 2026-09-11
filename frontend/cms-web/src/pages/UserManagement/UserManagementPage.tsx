@@ -148,9 +148,8 @@ export default function UserManagementPage() {
       primaryRoleId: s?.primaryRoleId || 3,
       isActive: user.status === 'Active',
       licenseNumber: s?.licenseNumber || (isDoc ? `LIC-${user.id}` : ''),
-      specializationId: s?.specializationId ? Number(s.specializationId) : 1,
-      subSpecialization: s?.subSpecialization || '',
-      consultationFee: s?.consultationFee || 400.0,
+      specializationId: s ? Number(s.specializationId || s.SpecializationId || 1) : 1,
+      subSpecialization: s?.subSpecialization || s?.SubSpecialization || '',
       isDoctor: isDoc
     });
   };
@@ -172,8 +171,7 @@ export default function UserManagementPage() {
         isActive: Boolean(showEditStaffModal.isActive),
         licenseNumber: showEditStaffModal.licenseNumber,
         specializationId: showEditStaffModal.isDoctor ? Number(showEditStaffModal.specializationId) : null,
-        subSpecialization: showEditStaffModal.subSpecialization,
-        consultationFee: parseFloat(showEditStaffModal.consultationFee) || null
+        subSpecialization: showEditStaffModal.subSpecialization
       };
 
       await api.put(`/staff/${showEditStaffModal.staffId}`, payload);
@@ -765,26 +763,15 @@ export default function UserManagementPage() {
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '8px' }}>
-                  <div>
-                    <label style={{ fontSize: '0.75rem', color: '#0369a1', fontWeight: 600 }}>Sub-Specialization (Optional)</label>
-                    <input
-                      type="text"
-                      value={showEditStaffModal.subSpecialization}
-                      onChange={e => setShowEditStaffModal({ ...showEditStaffModal, subSpecialization: e.target.value })}
-                      placeholder="e.g. Pediatric Dermatology"
-                      style={{ background: '#fff' }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '0.75rem', color: '#0369a1', fontWeight: 600 }}>Consultation Fee (ETB)</label>
-                    <input
-                      type="number"
-                      value={showEditStaffModal.consultationFee}
-                      onChange={e => setShowEditStaffModal({ ...showEditStaffModal, consultationFee: e.target.value })}
-                      style={{ background: '#fff' }}
-                    />
-                  </div>
+                <div style={{ marginTop: '8px' }}>
+                  <label style={{ fontSize: '0.75rem', color: '#0369a1', fontWeight: 600 }}>Sub-Specialization (Optional)</label>
+                  <input
+                    type="text"
+                    value={showEditStaffModal.subSpecialization}
+                    onChange={e => setShowEditStaffModal({ ...showEditStaffModal, subSpecialization: e.target.value })}
+                    placeholder="e.g. Pediatric Dermatology"
+                    style={{ background: '#fff' }}
+                  />
                 </div>
               </div>
 

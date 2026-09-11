@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Users, Calendar, FlaskConical, ListOrdered, DollarSign,
   Clock, RefreshCw, CheckCircle2, TrendingUp
@@ -50,7 +50,11 @@ export default function DashboardPage({ token, onNavigateModule }: DashboardPage
   }, []);
 
   // Revenue Graph helpers
-  const revenueTrend: { date: string; revenue: number }[] = metrics.revenueTrend || [];
+  const rawRevenueTrend = metrics.revenueTrend || metrics.RevenueTrend || [];
+  const revenueTrend: { date: string; revenue: number }[] = rawRevenueTrend.map((r: any) => ({
+    date: r.date || r.Date || '',
+    revenue: Number(r.revenue ?? r.Revenue ?? 0)
+  }));
   const maxRevenue = Math.max(...revenueTrend.map((r: any) => r.revenue || 0), 1);
   const graphHeight = 120;
   const graphWidth = 400;
