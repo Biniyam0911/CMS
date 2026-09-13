@@ -58,11 +58,45 @@ public record EnqueueNotificationDto(
     string Channel, string Subject, string Body, int Priority = 1,
     string? NotificationType = null, string? RefType = null, long? RefId = null);
 
-public record NotificationItemDto(
-    long Id, byte TenantId, int? RecipientUserId, string? Channel,
-    string Subject, string Body, int Priority, string NotificationType,
-    string? RefType, long? RefId, byte StatusId, DateTime CreatedAt,
-    string? TargetRole = null);
+public class NotificationItemDto
+{
+    public long Id { get; set; }
+    public byte TenantId { get; set; }
+    public int? RecipientUserId { get; set; }
+    public string? Channel { get; set; }
+    public string Subject { get; set; } = "";
+    public string Body { get; set; } = "";
+    public int Priority { get; set; }
+    public string NotificationType { get; set; } = "";
+    public string? RefType { get; set; }
+    public long? RefId { get; set; }
+    public byte StatusId { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public string? TargetRole { get; set; }
+
+    public NotificationItemDto() { }
+
+    public NotificationItemDto(
+        long id, byte tenantId, int? recipientUserId, string? channel,
+        string subject, string body, int priority, string notificationType,
+        string? refType, long? refId, byte statusId, DateTime createdAt,
+        string? targetRole = null)
+    {
+        Id = id;
+        TenantId = tenantId;
+        RecipientUserId = recipientUserId;
+        Channel = channel;
+        Subject = subject;
+        Body = body;
+        Priority = priority;
+        NotificationType = notificationType;
+        RefType = refType;
+        RefId = refId;
+        StatusId = statusId;
+        CreatedAt = createdAt;
+        TargetRole = targetRole;
+    }
+}
 
 public record BroadcastNotificationDto(
     string Subject, string Body, string NotificationType,

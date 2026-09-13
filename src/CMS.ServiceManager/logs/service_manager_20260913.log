@@ -296,3 +296,33 @@ System.Threading.Tasks.TaskCanceledException: A task was canceled.
 2026-09-13 21:37:05.396 +03:00 [ERR] LabInstrumentListenerWorker error
 System.Threading.Tasks.TaskCanceledException: A task was canceled.
    at CMS.ServiceManager.Workers.LabInstrumentListenerWorker.ExecuteAsync(CancellationToken stoppingToken) in C:\Users\ASUS\source\repos\CMS\src\CMS.ServiceManager\Workers\Workers.cs:line 81
+2026-09-13 22:36:09.893 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-13T22:36:09.8320743+03:00"
+2026-09-13 22:36:10.015 +03:00 [INF] Starting LabInstrumentListenerWorker TCP listener on Port 2575 (HL7)...
+2026-09-13 22:36:10.029 +03:00 [INF] Application started. Press Ctrl+C to shut down.
+2026-09-13 22:36:10.033 +03:00 [INF] Hosting environment: Development
+2026-09-13 22:36:10.037 +03:00 [INF] Content root path: C:\Users\ASUS\source\repos\CMS\src\CMS.ServiceManager
+2026-09-13 22:37:10.017 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-13T22:37:10.0171695+03:00"
+2026-09-13 22:38:10.046 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-13T22:38:10.0459456+03:00"
+2026-09-13 22:39:10.479 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-13T22:39:10.4787598+03:00"
+2026-09-13 22:40:10.502 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-13T22:40:10.5021058+03:00"
+2026-09-13 22:41:10.518 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-13T22:41:10.5176413+03:00"
+2026-09-13 22:42:10.546 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-13T22:42:10.5459134+03:00"
+2026-09-13 22:43:11.322 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-13T22:43:11.3219332+03:00"
+2026-09-13 22:44:01.502 +03:00 [INF] Application is shutting down...
+2026-09-13 22:44:01.518 +03:00 [ERR] LabInstrumentListenerWorker error
+System.Threading.Tasks.TaskCanceledException: A task was canceled.
+   at CMS.ServiceManager.Workers.LabInstrumentListenerWorker.ExecuteAsync(CancellationToken stoppingToken) in C:\Users\ASUS\source\repos\CMS\src\CMS.ServiceManager\Workers\Workers.cs:line 81
+2026-09-13 23:07:47.968 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-13T23:07:47.8961817+03:00"
+2026-09-13 23:07:48.103 +03:00 [INF] Starting LabInstrumentListenerWorker TCP listener on Port 2575 (HL7)...
+2026-09-13 23:07:48.120 +03:00 [INF] Application started. Press Ctrl+C to shut down.
+2026-09-13 23:07:48.123 +03:00 [INF] Hosting environment: Development
+2026-09-13 23:07:48.125 +03:00 [INF] Content root path: C:\Users\ASUS\source\repos\CMS\src\CMS.ServiceManager
+2026-09-13 23:08:48.214 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-13T23:08:48.2143089+03:00"
+2026-09-13 23:09:48.306 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-13T23:09:48.3061421+03:00"
+2026-09-13 23:10:48.455 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-13T23:10:48.4550063+03:00"
+2026-09-13 23:11:48.472 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-13T23:11:48.4717228+03:00"
+2026-09-13 23:12:48.485 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-13T23:12:48.4851232+03:00"
+2026-09-13 23:13:08.575 +03:00 [INF] Application is shutting down...
+2026-09-13 23:13:08.617 +03:00 [ERR] LabInstrumentListenerWorker error
+System.Threading.Tasks.TaskCanceledException: A task was canceled.
+   at CMS.ServiceManager.Workers.LabInstrumentListenerWorker.ExecuteAsync(CancellationToken stoppingToken) in C:\Users\ASUS\source\repos\CMS\src\CMS.ServiceManager\Workers\Workers.cs:line 81

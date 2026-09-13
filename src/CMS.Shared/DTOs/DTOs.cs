@@ -63,12 +63,45 @@ public record CreatePatientDto(
     DateTime DateOfBirth, int Gender, string PrimaryPhone, string? Email, string? Address,
     string? InsuranceProvider, decimal? InsuranceCopayPercent, string? Allergies, string? NationalId = null);
 
-public record AppointmentDto(
-    int Id, int PatientId, string PatientName, int DoctorId, string DoctorName,
-    DateTime SlotDateTime, byte DurationMinutes, int StatusId, string StatusName, string? ReasonForVisit);
+public class AppointmentDto
+{
+    public int Id { get; set; }
+    public int PatientId { get; set; }
+    public string PatientName { get; set; } = string.Empty;
+    public int DoctorId { get; set; }
+    public string DoctorName { get; set; } = string.Empty;
+    public DateTime SlotDateTime { get; set; }
+    public byte DurationMinutes { get; set; }
+    public int StatusId { get; set; }
+    public string StatusName { get; set; } = string.Empty;
+    public string? ReasonForVisit { get; set; }
+    public string? Notes { get; set; }
+
+    public AppointmentDto() { }
+
+    public AppointmentDto(
+        int id, int patientId, string patientName, int doctorId, string doctorName,
+        DateTime slotDateTime, byte durationMinutes, int statusId, string statusName, string? reasonForVisit, string? notes = null)
+    {
+        Id = id;
+        PatientId = patientId;
+        PatientName = patientName;
+        DoctorId = doctorId;
+        DoctorName = doctorName;
+        SlotDateTime = slotDateTime;
+        DurationMinutes = durationMinutes;
+        StatusId = statusId;
+        StatusName = statusName;
+        ReasonForVisit = reasonForVisit;
+        Notes = notes;
+    }
+}
 
 public record CreateAppointmentDto(
     byte TenantId, int PatientId, int DoctorId, DateTime SlotDateTime, byte DurationMinutes, string? ReasonForVisit);
+
+public record UpdateAppointmentStatusDto(int StatusId, string? CancelReason = null);
+public record RescheduleAppointmentDto(DateTime NewSlotDateTime, byte DurationMinutes = 30);
 
 public record LabTestCatalogDto(
     int Id, string TestCode, string TestName, string? Category, string? SampleType,

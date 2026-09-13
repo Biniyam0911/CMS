@@ -22,7 +22,13 @@ import {
 } from '../../utils/notificationRules';
 
 export default function UserManagementPage() {
-  const [activeTab, setActiveTab] = useState<'users' | 'permissions' | 'notifications'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'permissions' | 'notifications' | 'audit'>('users');
+
+  // HIPAA Compliance Audit State
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [loadingAudit, setLoadingAudit] = useState(false);
+  const [auditTableFilter, setAuditTableFilter] = useState('');
+  const [auditOpFilter, setAuditOpFilter] = useState('');
 
   // Users & Staff State
   const [users, setUsers] = useState<any[]>([]);
@@ -204,6 +210,22 @@ export default function UserManagementPage() {
       console.error('Failed to load users & staff:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadAuditLogs = async () => {
+    try {
+      setLoadingAudit(true);
+      const params: any = {};
+      if (auditTableFilter) params.tableName = auditTableFilter;
+      if (auditOpFilter) params.operation = auditOpFilter;
+      const res = await api.get<any[]>('/audit/logs', params);
+      setAuditLogs(res || []);
+    } catch (err) {
+      console.error('Failed to load audit logs:', err);
+      setAuditLogs([]);
+    } finally {
+      setLoadingAudit(false);
     }
   };
 
@@ -406,6 +428,16 @@ export default function UserManagementPage() {
           style={{ display: 'flex', alignItems: 'center', gap: '7px' }}
         >
           <Bell size={16} /> Notification Manager (Role Alerts)
+        </button>
+        <button
+          onClick={() => {
+            setActiveTab('audit');
+            loadAuditLogs();
+          }}
+          className={activeTab === 'audit' ? 'btn-primary' : 'btn-secondary'}
+          style={{ display: 'flex', alignItems: 'center', gap: '7px' }}
+        >
+          <Shield size={16} color="#0284c7" /> Compliance &amp; Access Audit Trail (HIPAA)
         </button>
       </div>
 
@@ -828,6 +860,126 @@ export default function UserManagementPage() {
                 Send Live Alert
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 4: COMPLIANCE & ACCESS AUDIT TRAIL (HIPAA IMMUTABLE LOGS)             */}
+      {/* ========================================================================= */}
+      {activeTab === 'audit' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Header & Filter Bar */}
+          <div className="glass-panel" style={{ padding: '18px 24px', background: '#ffffff', borderRadius: '12px', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Shield size={20} color="#0284c7" />
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                  HIPAA &amp; Privacy Immutable Access Audit Trail
+                </h3>
+              </div>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '4px 0 0' }}>
+                Chronological record of patient medical record access, clinical alterations, billing updates, and credential events.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <select
+                value={auditTableFilter}
+                onChange={e => setAuditTableFilter(e.target.value)}
+                style={{ padding: '6px 10px', fontSize: '0.78rem' }}
+              >
+                <option value="">All Entities / Tables</option>
+                <option value="Patients">Patients</option>
+                <option value="Encounters">Encounters / EMR Notes</option>
+                <option value="Prescriptions">Prescriptions</option>
+                <option value="LabOrders">Lab Orders</option>
+                <option value="Invoices">Invoices &amp; Payments</option>
+                <option value="Users">User Accounts</option>
+              </select>
+
+              <select
+                value={auditOpFilter}
+                onChange={e => setAuditOpFilter(e.target.value)}
+                style={{ padding: '6px 10px', fontSize: '0.78rem' }}
+              >
+                <option value="">All Operations</option>
+                <option value="I">Insert / Create (I)</option>
+                <option value="U">Update / Edit (U)</option>
+                <option value="D">Delete / Archive (D)</option>
+                <option value="V">View / Read Chart (V)</option>
+              </select>
+
+              <button
+                type="button"
+                onClick={loadAuditLogs}
+                className="btn-secondary"
+                style={{ padding: '6px 12px', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '5px' }}
+              >
+                <RefreshCw size={13} className={loadingAudit ? 'animate-spin' : ''} /> Refresh
+              </button>
+            </div>
+          </div>
+
+          {/* Audit Log Table */}
+          <div className="glass-panel" style={{ padding: '20px', background: '#ffffff', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+            {loadingAudit ? (
+              <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+                <Loader2 size={24} className="animate-spin" style={{ margin: '0 auto 8px' }} />
+                Loading cryptographic access audit logs...
+              </div>
+            ) : auditLogs.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                No audit log entries found matching criteria. Actions taken by practitioners across EMR, billing, and pharmacy will log here.
+              </div>
+            ) : (
+              <table className="cms-table" style={{ fontSize: '0.78rem' }}>
+                <thead>
+                  <tr>
+                    <th>Log ID</th>
+                    <th>Timestamp (UTC)</th>
+                    <th>User / Actor</th>
+                    <th>IP Address</th>
+                    <th>Target Entity</th>
+                    <th>Record ID</th>
+                    <th>Operation</th>
+                    <th>Changes / Payload</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {auditLogs.map(log => {
+                    const opBadge =
+                      log.operation === 'I' ? { text: 'INSERT', bg: '#dcfce7', col: '#15803d' } :
+                      log.operation === 'U' ? { text: 'UPDATE', bg: '#e0f2fe', col: '#0369a1' } :
+                      log.operation === 'D' ? { text: 'DELETE', bg: '#fee2e2', col: '#991b1b' } :
+                      { text: 'ACCESS', bg: '#fef3c7', col: '#92400e' };
+
+                    return (
+                      <tr key={log.id}>
+                        <td style={{ fontFamily: 'monospace', fontWeight: 700 }}>#{log.id}</td>
+                        <td style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                          {log.changedAt ? new Date(log.changedAt).toLocaleString() : 'Recent'}
+                        </td>
+                        <td style={{ fontWeight: 700, color: 'var(--text-main)' }}>
+                          {log.userName || `User #${log.changedBy || 1}`}
+                        </td>
+                        <td style={{ fontFamily: 'monospace', color: '#64748b' }}>{log.ipAddress || '127.0.0.1'}</td>
+                        <td style={{ fontWeight: 600 }}>{log.tableName}</td>
+                        <td style={{ fontFamily: 'monospace' }}>{log.recordId}</td>
+                        <td>
+                          <span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 800, background: opBadge.bg, color: opBadge.col }}>
+                            {opBadge.text}
+                          </span>
+                        </td>
+                        <td style={{ maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-muted)', fontSize: '0.72rem' }}>
+                          {log.newValues || log.oldValues || 'Action recorded successfully.'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       )}

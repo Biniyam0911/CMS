@@ -276,6 +276,21 @@ export default function LaboratoryPage() {
   const [editingMachineId, setEditingMachineId] = useState<string | null>(null);
   const [pingStatus, setPingStatus] = useState<Record<string, { testing: boolean; message: string; success: boolean }>>({});
 
+  // LIS Feed Simulator State
+  const [showFeedSimulatorModal, setShowFeedSimulatorModal] = useState(false);
+  const [simProtocol, setSimProtocol] = useState<'HL7' | 'ASTM'>('HL7');
+  const [simOrderId, setSimOrderId] = useState<string>('');
+  const [simMachineId, setSimMachineId] = useState('Sysmex-XN550-HEM');
+  const [simPayload, setSimPayload] = useState(
+    'MSH|^~\\&|ANALYZER|LAB|CMS|CLINIC|20260913210000||ORU^R01|MSG-94021|P|2.3\r' +
+    'PID|1||HD-0001||Tigist^Biniyam||19940512|F\r' +
+    'OBR|1|ORD-101|LAB-101|CBC^Complete Blood Count|||20260913210000\r' +
+    'OBX|1|NM|WBC^White Blood Cell||7.4|10^3/uL|4.0-11.0|N|||F\r' +
+    'OBX|2|NM|HGB^Hemoglobin||14.2|g/dL|12.0-16.0|N|||F'
+  );
+  const [feedIngestResult, setFeedIngestResult] = useState<any>(null);
+  const [isIngestingFeed, setIsIngestingFeed] = useState(false);
+
   // Form State for Machine Add / Edit Modal
   const [formDept, setFormDept] = useState<string>('Hematology');
   const [formModel, setFormModel] = useState<string>('Sysmex XN-550 (Automated 5-Part Diff Hematology Analyzer)');
@@ -1372,13 +1387,21 @@ export default function LaboratoryPage() {
               </p>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{ padding: '8px 16px', borderRadius: '8px', background: '#ecfdf5', border: '1px solid #a7f3d0', textAlign: 'center' }}>
                 <div style={{ fontSize: '0.7rem', color: '#059669', fontWeight: 700 }}>ONLINE ANALYZERS</div>
                 <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#059669' }}>
                   {machines.filter(m => m.status === 'CONNECTED').length} / {machines.length}
                 </div>
               </div>
+              <button
+                type="button"
+                onClick={() => setShowFeedSimulatorModal(true)}
+                className="btn-secondary"
+                style={{ padding: '9px 14px', fontWeight: 700, borderColor: '#0284c7', color: '#0284c7', display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                <Zap size={15} /> LIS Feed Simulator
+              </button>
               <button onClick={handleOpenAddMachine} className="btn-primary" style={{ padding: '9px 16px', fontWeight: 700 }}>
                 <Plus size={16} /> Add Lab Machine
               </button>
@@ -2082,6 +2105,162 @@ export default function LaboratoryPage() {
 
             <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textAlign: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '10px' }}>
               Notice: This electronic medical laboratory document was authenticated via HUDERMA Clinic Management LIS. Results relate only to the specimen tested.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: DIRECT ANALYZER MACHINE LIS / HL7 / ASTM FEED SIMULATOR            */}
+      {/* ========================================================================= */}
+      {showFeedSimulatorModal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '640px', maxHeight: '90vh', overflowY: 'auto', background: '#ffffff', borderRadius: '12px', border: '1px solid #cbd5e1', boxShadow: '0 20px 40px rgba(0,0,0,0.25)' }}>
+            <div style={{ padding: '16px 20px', background: 'linear-gradient(135deg, #0f172a, #1e293b)', color: '#ffffff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Zap size={18} color="#38bdf8" />
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0 }}>Direct Analyzer LIS Feed Injector</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowFeedSimulatorModal(false);
+                  setFeedIngestResult(null);
+                }}
+                style={{ background: 'none', border: 'none', color: '#ffffff', cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0 }}>
+                Directly inject raw ORU_R01 HL7 pipes or ASTM frames from connected hematology or biochemistry analyzers. The backend NHapi / ASTM parser extracts results and pairs them to the laboratory order.
+              </p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>Protocol Standard</label>
+                  <select
+                    value={simProtocol}
+                    onChange={e => {
+                      const proto = e.target.value as 'HL7' | 'ASTM';
+                      setSimProtocol(proto);
+                      if (proto === 'ASTM') {
+                        setSimMachineId('Roche-Cobas-c311-CHM');
+                        setSimPayload(
+                          'H|\\^&|||RocheCobasC311|||||||P|1394-97|20260913210000\r' +
+                          'P|1||HD-0001||Tigist^Biniyam||19940512|F\r' +
+                          'O|1|LAB-101||^^^ALT\\^^^AST|R|20260913210000|||||A\r' +
+                          'R|1|^^^ALT|24.5|U/L|7.0-56.0|N||F\r' +
+                          'R|2|^^^AST|21.0|U/L|10.0-40.0|N||F\r' +
+                          'L|1|N'
+                        );
+                      } else {
+                        setSimMachineId('Sysmex-XN550-HEM');
+                        setSimPayload(
+                          'MSH|^~\\&|ANALYZER|LAB|CMS|CLINIC|20260913210000||ORU^R01|MSG-94021|P|2.3\r' +
+                          'PID|1||HD-0001||Tigist^Biniyam||19940512|F\r' +
+                          'OBR|1|ORD-101|LAB-101|CBC^Complete Blood Count|||20260913210000\r' +
+                          'OBX|1|NM|WBC^White Blood Cell||7.4|10^3/uL|4.0-11.0|N|||F\r' +
+                          'OBX|2|NM|HGB^Hemoglobin||14.2|g/dL|12.0-16.0|N|||F'
+                        );
+                      }
+                    }}
+                    style={{ width: '100%', padding: '6px 10px', fontSize: '0.8rem' }}
+                  >
+                    <option value="HL7">HL7 v2.x (Pipe Delimited ORU_R01)</option>
+                    <option value="ASTM">ASTM 1394 / E1381 (Standard Clinical Chemistry)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>Target Order # (Optional)</label>
+                  <input
+                    type="number"
+                    value={simOrderId}
+                    onChange={e => setSimOrderId(e.target.value)}
+                    placeholder="Leave blank for latest active order"
+                    style={{ width: '100%', padding: '6px 10px', fontSize: '0.8rem' }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>Analyzer Source Identifier</label>
+                <input
+                  type="text"
+                  value={simMachineId}
+                  onChange={e => setSimMachineId(e.target.value)}
+                  style={{ width: '100%', padding: '6px 10px', fontSize: '0.8rem', fontFamily: 'monospace' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>Raw Instrument Frame Payload</label>
+                <textarea
+                  rows={5}
+                  value={simPayload}
+                  onChange={e => setSimPayload(e.target.value)}
+                  style={{ width: '100%', padding: '8px 10px', fontSize: '0.74rem', fontFamily: 'monospace', background: '#f8fafc' }}
+                />
+              </div>
+
+              {feedIngestResult && (
+                <div style={{ padding: '12px', borderRadius: '8px', background: feedIngestResult.success ? '#ecfdf5' : '#fef2f2', border: `1px solid ${feedIngestResult.success ? '#86efac' : '#fca5a5'}` }}>
+                  <div style={{ fontWeight: 700, fontSize: '0.82rem', color: feedIngestResult.success ? '#15803d' : '#991b1b', marginBottom: '4px' }}>
+                    {feedIngestResult.success ? '✓ Machine Result Ingestion Succeeded' : '✗ Ingestion Failed'}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#334155' }}>
+                    {feedIngestResult.message}
+                  </div>
+                  {feedIngestResult.numericValue != null && (
+                    <div style={{ fontSize: '0.72rem', color: '#0369a1', marginTop: '4px', fontWeight: 600 }}>
+                      Extracted Value: {feedIngestResult.numericValue} (Source: {feedIngestResult.machine})
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div style={{ padding: '14px 20px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowFeedSimulatorModal(false);
+                  setFeedIngestResult(null);
+                }}
+                className="btn-secondary"
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                disabled={isIngestingFeed}
+                onClick={async () => {
+                  try {
+                    setIsIngestingFeed(true);
+                    setFeedIngestResult(null);
+                    const res = await api.post('/laboratory/analyzer/feed', {
+                      protocol: simProtocol,
+                      rawPayload: simPayload,
+                      orderId: simOrderId ? parseInt(simOrderId) : null,
+                      machineIdentifier: simMachineId
+                    });
+                    setFeedIngestResult(res);
+                    loadLabData();
+                  } catch (err: any) {
+                    setFeedIngestResult({ success: false, message: err.message || 'Transmission failed.' });
+                  } finally {
+                    setIsIngestingFeed(false);
+                  }
+                }}
+                className="btn-primary"
+                style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                {isIngestingFeed ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
+                Send Live Feed to Backend LIS
+              </button>
             </div>
           </div>
         </div>

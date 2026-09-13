@@ -108,12 +108,22 @@ export default function AppointmentsPage() {
 
   const currentDoctorObj = doctors.find(d => d.id === selectedDoctor) || doctors[0] || { id: '1', name: 'Dr. Physician', spec: 'Clinical', fee: 300, room: 'Room 101' };
 
-  const handleCheckIn = (slotId: number) => {
+  const handleCheckIn = async (slotId: number) => {
     setActiveSlots(activeSlots.map(s => s.id === slotId ? { ...s, status: 'CheckedIn' } : s));
+    try {
+      await api.put(`/appointments/${slotId}/status`, { statusId: 3 });
+    } catch (err) {
+      console.warn('Backend appointment check-in status sync error:', err);
+    }
   };
 
-  const handleCancelSlot = (slotId: number) => {
+  const handleCancelSlot = async (slotId: number) => {
     setActiveSlots(activeSlots.map(s => s.id === slotId ? { ...s, patient: null, status: 'Available' } : s));
+    try {
+      await api.put(`/appointments/${slotId}/status`, { statusId: 4, cancelReason: 'Patient / Clinic requested cancellation' });
+    } catch (err) {
+      console.warn('Backend appointment cancel sync error:', err);
+    }
   };
 
   const handleBookSubmit = async (e: React.FormEvent) => {

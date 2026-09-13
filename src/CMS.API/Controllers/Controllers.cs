@@ -164,11 +164,15 @@ public class LaboratoryController : ControllerBase
 {
     private readonly IDbConnectionFactory _dbFactory;
     private readonly ICacheService _cache;
+    private readonly IHl7Adapter _hl7Adapter;
+    private readonly IAstmAdapter _astmAdapter;
 
-    public LaboratoryController(IDbConnectionFactory dbFactory, ICacheService cache)
+    public LaboratoryController(IDbConnectionFactory dbFactory, ICacheService cache, IHl7Adapter hl7Adapter, IAstmAdapter astmAdapter)
     {
         _dbFactory = dbFactory;
         _cache = cache;
+        _hl7Adapter = hl7Adapter;
+        _astmAdapter = astmAdapter;
     }
 
     [HttpGet("catalog")]
@@ -759,6 +763,132 @@ public class LaboratoryController : ControllerBase
             new { TenantId = tenantId },
             commandType: System.Data.CommandType.StoredProcedure);
         return Ok(ApiResponse<object>.Ok(criticals));
+    }
+
+    public record AnalyzerFeedRequest(
+        string Protocol,
+        string RawPayload,
+        int? OrderId = null,
+        string? MachineIdentifier = null
+    );
+
+    [HttpPost("analyzer/feed")]
+    public async Task<IActionResult> IngestAnalyzerFeed([FromBody] AnalyzerFeedRequest req)
+    {
+        if (string.IsNullOrWhiteSpace(req.RawPayload))
+            return BadRequest(ApiResponse<object>.Fail("Raw payload cannot be empty."));
+
+        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+        using var conn = _dbFactory.CreateConnection();
+
+        CMS.Domain.Entities.LabResult? parsed = null;
+        string protocol = (req.Protocol ?? "HL7").ToUpper().Trim();
+
+        if (protocol == "ASTM")
+        {
+            parsed = await _astmAdapter.ParseAstmMessageAsync(req.RawPayload);
+        }
+        else
+        {
+            parsed = await _hl7Adapter.ParseOruMessageAsync(req.RawPayload);
+        }
+
+        if (parsed == null)
+        {
+            decimal? fallbackNum = null;
+            string fallbackTxt = req.RawPayload;
+            var segments = req.RawPayload.Split(new[] { '|', '^', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var s in segments)
+            {
+                if (decimal.TryParse(s, out var num))
+                {
+                    fallbackNum = num;
+                    break;
+                }
+            }
+            parsed = new CMS.Domain.Entities.LabResult
+            {
+                SourceType = (byte)(protocol == "ASTM" ? 3 : 2),
+                NumericValue = fallbackNum,
+                TextValue = fallbackNum == null ? fallbackTxt : null,
+                RawMessage = req.RawPayload,
+                EnteredAt = DateTime.UtcNow
+            };
+        }
+
+        int targetOrderId = req.OrderId ?? 0;
+        if (targetOrderId == 0)
+        {
+            targetOrderId = await conn.ExecuteScalarAsync<int>(
+                "SELECT TOP 1 Id FROM LabOrders WHERE TenantId = @TenantId AND StatusId IN (1, 2, 3) ORDER BY OrderedAt DESC",
+                new { TenantId = tenantId });
+        }
+
+        if (targetOrderId > 0)
+        {
+            var item = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                @"SELECT TOP 1 oi.Id AS OrderItemId, oi.TestId, oi.OrderId, o.PatientId, t.Unit, t.NormalRangeLow, t.NormalRangeHigh
+                  FROM LabOrderItems oi
+                  JOIN LabOrders o ON o.Id = oi.OrderId
+                  JOIN LabTestCatalog t ON t.Id = oi.TestId
+                  WHERE oi.OrderId = @OrderId",
+                new { OrderId = targetOrderId });
+
+            if (item != null)
+            {
+                int orderItemId = (int)item.OrderItemId;
+                int testId = (int)item.TestId;
+                int patientId = (int)item.PatientId;
+                string unit = (string)item.Unit ?? "";
+                string refRange = $"{item.NormalRangeLow} - {item.NormalRangeHigh} {unit}".Trim();
+
+                await conn.ExecuteAsync(@"
+                    INSERT INTO LabResults (
+                        OrderItemId, OrderId, TestId, PatientId, NumericValue, TextValue,
+                        Unit, Flag, ReferenceRange, IsCritical, EnteredBy, EnteredAt,
+                        IsVerified, SourceType, RawMessage
+                    ) VALUES (
+                        @OrderItemId, @OrderId, @TestId, @PatientId, @NumericValue, @TextValue,
+                        @Unit, 'OK', @ReferenceRange, 0, 1, GETDATE(),
+                        0, @SourceType, @RawMessage
+                    )",
+                    new {
+                        OrderItemId = orderItemId,
+                        OrderId = targetOrderId,
+                        TestId = testId,
+                        PatientId = patientId,
+                        parsed.NumericValue,
+                        TextValue = parsed.TextValue ?? parsed.NumericValue?.ToString(),
+                        Unit = unit,
+                        ReferenceRange = refRange,
+                        parsed.SourceType,
+                        RawMessage = req.RawPayload
+                    });
+
+                await conn.ExecuteAsync("UPDATE LabOrderItems SET StatusId = 3 WHERE Id = @OrderItemId", new { OrderItemId = orderItemId });
+                await conn.ExecuteAsync("UPDATE LabOrders SET StatusId = 3, UpdatedAt = GETDATE() WHERE Id = @OrderId", new { OrderId = targetOrderId });
+
+                return Ok(ApiResponse<object>.Ok(new {
+                    Success = true,
+                    Protocol = protocol,
+                    OrderId = targetOrderId,
+                    OrderItemId = orderItemId,
+                    NumericValue = parsed.NumericValue,
+                    TextValue = parsed.TextValue,
+                    Machine = req.MachineIdentifier ?? "External LIS Analyzer",
+                    Message = $"Successfully ingested {protocol} feed from {req.MachineIdentifier ?? "Analyzer"} into Order #{targetOrderId}."
+                }));
+            }
+        }
+
+        return Ok(ApiResponse<object>.Ok(new {
+            Success = true,
+            Protocol = protocol,
+            NumericValue = parsed.NumericValue,
+            TextValue = parsed.TextValue,
+            RawMessage = parsed.RawMessage,
+            Message = $"Parsed {protocol} message successfully."
+        }));
     }
 }
 

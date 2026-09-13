@@ -138,6 +138,30 @@ public class TriageController : ControllerBase
         return Ok(ApiResponse<TriageDto?>.Ok(record));
     }
 
+    [HttpGet("patient/{patientId:int}/history")]
+    public async Task<IActionResult> GetPatientVitalsHistory(int patientId)
+    {
+        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+        using var conn = _dbFactory.CreateConnection();
+
+        var sql = @"
+            SELECT t.Id, t.TenantId, t.PatientId,
+                   p.FirstName + ' ' + ISNULL(p.MiddleName + ' ', '') + p.LastName AS PatientName,
+                   t.TriageCategory, t.PriorityLevel,
+                   t.SystolicBP, t.DiastolicBP, t.HeartRate, t.RespiratoryRate,
+                   t.Temperature, t.OxygenSaturation, t.WeightKg, t.HeightCm,
+                   t.Bmi, t.BloodGlucose, t.PainScale,
+                   t.ChiefComplaint, t.NurseNotes,
+                   t.TriagedAt, t.UpdatedAt
+            FROM PatientTriage t
+            JOIN Patients p ON p.Id = t.PatientId
+            WHERE t.TenantId = @TenantId AND t.PatientId = @PatientId
+            ORDER BY t.TriagedAt ASC";
+
+        var records = (await conn.QueryAsync<TriageDto>(sql, new { TenantId = tenantId, PatientId = patientId })).ToList();
+        return Ok(ApiResponse<List<TriageDto>>.Ok(records));
+    }
+
     [HttpPost]
     public async Task<IActionResult> RecordTriage([FromBody] RecordTriageDto dto)
     {

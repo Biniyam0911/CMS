@@ -8,6 +8,8 @@ import {
   ChevronLeft, Users, ChevronUp, DollarSign
 } from 'lucide-react';
 import { api } from '../../api/apiClient';
+import { evaluateCdsAlerts, CdsAlert } from '../../utils/cdsRuleEngine';
+import { searchIcd10, Icd10Item } from '../../utils/icd10Catalog';
 
 interface EmrSoapPageProps {
   selectedPatientId?: number | null;
@@ -100,6 +102,26 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
   const [plan, setPlan] = useState('');
   const [medications, setMedications] = useState<any[]>([]);
 
+  // CDS Alert Modal State
+  const [cdsAlerts, setCdsAlerts] = useState<CdsAlert[]>([]);
+  const [pendingCandidateItem, setPendingCandidateItem] = useState<{ source: 'quick' | 'basket' | 'batch'; data: any } | null>(null);
+  const [overrideReason, setOverrideReason] = useState('');
+
+  // ICD-10 Autocomplete State
+  const [icdSearchQuery, setIcdSearchQuery] = useState('');
+  const [icdSearchResults, setIcdSearchResults] = useState<Icd10Item[]>([]);
+  const [showIcdDropdown, setShowIcdDropdown] = useState(false);
+
+  // Vitals Longitudinal History State
+  const [vitalsHistory, setVitalsHistory] = useState<any[]>([]);
+  const [loadingVitalsHistory, setLoadingVitalsHistory] = useState(false);
+
+  // Appointment Follow-up Modal State
+  const [showFollowUpModal, setShowFollowUpModal] = useState(false);
+  const [followUpDate, setFollowUpDate] = useState(new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]);
+  const [followUpTime, setFollowUpTime] = useState('09:30');
+  const [followUpReason, setFollowUpReason] = useState('Follow-up evaluation & treatment review');
+
   // Quick Medication Input State
   const [newDrugName, setNewDrugName] = useState('Hydrocortisone 1% Cream');
   const [newDosage, setNewDosage] = useState('Apply thin layer');
@@ -191,7 +213,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
   const [historyPrescriptions, setHistoryPrescriptions] = useState<any[]>([]);
   const [historyProcedures, setHistoryProcedures] = useState<any[]>([]);
   const [historyInvoices, setHistoryInvoices] = useState<any[]>([]);
-  const [historyFilter, setHistoryFilter] = useState<'ALL' | 'NOTES' | 'LABS' | 'RX' | 'PROCEDURES' | 'CERTS' | 'BILLING'>('ALL');
+  const [historyFilter, setHistoryFilter] = useState<'ALL' | 'NOTES' | 'VITALS' | 'LABS' | 'RX' | 'PROCEDURES' | 'CERTS' | 'BILLING'>('ALL');
   const [loadingHistory, setLoadingHistory] = useState(false);
 
   // ==========================================
@@ -505,7 +527,11 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
       setHistoryInvoices((invs || []).filter((i: any) => (i.patientId || i.PatientId) === patId));
 
       // Also load results so the history tab can show results table per order
-      const results = await api.get<any[]>(`/laboratory/patient/${patId}/results`).catch(() => []);
+      const [results, vitalsRes] = await Promise.all([
+        api.get<any[]>(`/laboratory/patient/${patId}/results`).catch(() => []),
+        api.get<any[]>(`/triage/patient/${patId}/history`).catch(() => [])
+      ]);
+
       const mappedResults = (results || []).map((r: any) => ({
         id: r.id || r.Id,
         testName: r.testName || r.TestName || r.clinicalInfo || 'Lab Test',
@@ -519,6 +545,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
         isCritical: r.isCritical || r.IsCritical || false
       }));
       setPatientLabResults(mappedResults);
+      setVitalsHistory(vitalsRes || []);
     } catch (err) {
       console.error('Failed to fetch patient history records:', err);
     } finally {
@@ -567,18 +594,47 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
     }
   }, [activeSubTab, activePatient]);
 
+  const executeAddMedicationDirect = (item: any) => {
+    setMedications(prev => [...prev, item]);
+  };
+
+  const handleConfirmCdsOverride = () => {
+    if (!pendingCandidateItem) return;
+    if (pendingCandidateItem.source === 'quick') {
+      executeAddMedicationDirect(pendingCandidateItem.data);
+    } else if (pendingCandidateItem.source === 'basket') {
+      setOrderBasket(prev => [...prev, pendingCandidateItem.data]);
+    }
+    setCdsAlerts([]);
+    setPendingCandidateItem(null);
+    setOverrideReason('');
+  };
+
   const handleAddMedication = () => {
     if (!newDrugName) return;
-    setMedications([
-      ...medications,
-      {
-        drugName: newDrugName,
-        dosage: newDosage,
-        qty: newQty,
-        frequency: newFreq,
-        duration: newDuration
-      }
-    ]);
+    const newItem = {
+      drugName: newDrugName,
+      dosage: newDosage,
+      qty: newQty,
+      frequency: newFreq,
+      duration: newDuration
+    };
+
+    // Evaluate Clinical Decision Support (CDS) Allergies & Interactions
+    const existingRxNames = [
+      ...medications.map(m => m.drugName),
+      ...orderBasket.filter(b => b.type === 'RX').map(b => b.title),
+      ...historyPrescriptions.map(p => p.drugName || p.DrugName || '')
+    ];
+    const alerts = evaluateCdsAlerts(activePatient?.allergies, existingRxNames, newDrugName);
+
+    if (alerts.length > 0) {
+      setCdsAlerts(alerts);
+      setPendingCandidateItem({ source: 'quick', data: newItem });
+      return;
+    }
+
+    executeAddMedicationDirect(newItem);
   };
 
   const handleRemoveMedication = (idx: number) => {
@@ -693,6 +749,18 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
         paramsSummary: `${orderRxDosage} - ${orderRxRoute} - ${orderRxFreq} for ${orderRxDuration} (Qty: ${orderRxQty})`,
         details: { dosage: orderRxDosage, route: orderRxRoute, freq: orderRxFreq, duration: orderRxDuration, qty: orderRxQty, timing: orderRxTiming }
       };
+
+      const existingRxNames = [
+        ...medications.map(m => m.drugName),
+        ...orderBasket.filter(b => b.type === 'RX').map(b => b.title),
+        ...historyPrescriptions.map(p => p.drugName || p.DrugName || '')
+      ];
+      const alerts = evaluateCdsAlerts(activePatient?.allergies, existingRxNames, item.name);
+      if (alerts.length > 0) {
+        setCdsAlerts(alerts);
+        setPendingCandidateItem({ source: 'basket', data: newBasketItem });
+        return;
+      }
     } else {
       // CERT
       newBasketItem = {
@@ -1414,47 +1482,174 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                     />
                   </div>
 
-                  {/* FIELD 4: DIAGNOSIS */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: '10px' }}>
-                    <div>
-                      <label style={{ fontSize: '0.78rem', color: '#0369a1', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
-                        ICD-10 Code
-                      </label>
-                      <input
-                        type="text"
-                        value={icdCode}
-                        onChange={e => !isEditingClosed && setIcdCode(e.target.value)}
-                        readOnly={isEditingClosed}
-                        placeholder="e.g. L20.9"
-                        style={{ fontFamily: 'monospace', fontWeight: 700, ...(isEditingClosed ? readOnlyStyle : {}) }}
-                      />
+                  {/* FIELD 4: DIAGNOSIS & ICD-10 AUTOCOMPLETE */}
+                  <div style={{ position: 'relative' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr auto', gap: '10px', alignItems: 'flex-end' }}>
+                      <div>
+                        <label style={{ fontSize: '0.78rem', color: '#0369a1', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
+                          ICD-10 Code
+                        </label>
+                        <input
+                          type="text"
+                          value={icdCode}
+                          onChange={e => {
+                            if (!isEditingClosed) {
+                              setIcdCode(e.target.value);
+                              const hits = searchIcd10(e.target.value);
+                              setIcdSearchResults(hits);
+                              setShowIcdDropdown(hits.length > 0);
+                            }
+                          }}
+                          readOnly={isEditingClosed}
+                          placeholder="e.g. L20.9"
+                          style={{ fontFamily: 'monospace', fontWeight: 700, ...(isEditingClosed ? readOnlyStyle : {}) }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.78rem', color: '#0369a1', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
+                          4. Diagnosis (Clinical Assessment)
+                        </label>
+                        <input
+                          type="text"
+                          value={diagnosis}
+                          onChange={e => {
+                            if (!isEditingClosed) {
+                              setDiagnosis(e.target.value);
+                              setCertDiagnosis(e.target.value);
+                              const hits = searchIcd10(e.target.value);
+                              setIcdSearchResults(hits);
+                              setShowIcdDropdown(hits.length > 0);
+                            }
+                          }}
+                          onFocus={() => {
+                            if (!isEditingClosed) {
+                              const hits = searchIcd10(diagnosis || icdCode);
+                              setIcdSearchResults(hits);
+                              setShowIcdDropdown(true);
+                            }
+                          }}
+                          readOnly={isEditingClosed}
+                          placeholder="Search ICD-10 diagnosis (e.g., Atopic dermatitis, Eczema, Acne, Tinea...)"
+                          required
+                          style={isEditingClosed ? readOnlyStyle : {}}
+                        />
+                      </div>
+                      {!isEditingClosed && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const hits = searchIcd10('');
+                            setIcdSearchResults(hits);
+                            setShowIcdDropdown(!showIcdDropdown);
+                          }}
+                          className="btn-secondary"
+                          style={{ padding: '8px 12px', fontSize: '0.75rem', height: '36px' }}
+                          title="Browse ICD-10 Catalog"
+                        >
+                          <Search size={14} /> ICD-10
+                        </button>
+                      )}
                     </div>
-                    <div>
-                      <label style={{ fontSize: '0.78rem', color: '#0369a1', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
-                        4. Diagnosis
-                      </label>
-                      <input
-                        type="text"
-                        value={diagnosis}
-                        onChange={e => {
-                          if (!isEditingClosed) {
-                            setDiagnosis(e.target.value);
-                            setCertDiagnosis(e.target.value);
-                          }
+
+                    {/* ICD-10 Search Popover Dropdown */}
+                    {showIcdDropdown && !isEditingClosed && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: '100%',
+                          left: 0,
+                          right: 0,
+                          zIndex: 200,
+                          marginTop: '4px',
+                          background: '#ffffff',
+                          borderRadius: '8px',
+                          boxShadow: '0 10px 25px rgba(0,0,0,0.18)',
+                          border: '1.5px solid #0284c7',
+                          maxHeight: '260px',
+                          overflowY: 'auto'
                         }}
-                        readOnly={isEditingClosed}
-                        placeholder="e.g. Acute Atopic Dermatitis & Contact Dermatosis"
-                        required
-                        style={isEditingClosed ? readOnlyStyle : {}}
-                      />
-                    </div>
+                      >
+                        <div style={{ padding: '8px 12px', background: '#f0f9ff', borderBottom: '1px solid #bae6fd', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#0369a1' }}>
+                            ICD-10 Clinical Diagnostic Catalog ({icdSearchResults.length} matches)
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setShowIcdDropdown(false)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                        {icdSearchResults.length === 0 ? (
+                          <div style={{ padding: '12px', textAlign: 'center', color: '#64748b', fontSize: '0.78rem' }}>
+                            No matching ICD-10 codes found.
+                          </div>
+                        ) : (
+                          icdSearchResults.map(item => (
+                            <div
+                              key={item.code}
+                              onClick={() => {
+                                setIcdCode(item.code);
+                                setDiagnosis(`${item.description} [${item.code}]`);
+                                setCertDiagnosis(item.description);
+                                setShowIcdDropdown(false);
+                              }}
+                              style={{
+                                padding: '8px 12px',
+                                borderBottom: '1px solid #f1f5f9',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                fontSize: '0.78rem',
+                                transition: 'background 0.1s'
+                              }}
+                              onMouseEnter={e => (e.currentTarget.style.background = '#f8fafc')}
+                              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                            >
+                              <div>
+                                <span style={{ fontWeight: 800, color: '#0284c7', fontFamily: 'monospace', marginRight: '8px' }}>
+                                  {item.code}
+                                </span>
+                                <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>
+                                  {item.description}
+                                </span>
+                              </div>
+                              <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+                                {item.isChronic && (
+                                  <span style={{ fontSize: '0.62rem', fontWeight: 700, padding: '1px 5px', borderRadius: '4px', background: '#fef3c7', color: '#b45309' }}>
+                                    Chronic
+                                  </span>
+                                )}
+                                <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', background: '#f1f5f9', padding: '1px 6px', borderRadius: '4px' }}>
+                                  {item.chapter}
+                                </span>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* FIELD 5: PLAN */}
                   <div>
-                    <label style={{ fontSize: '0.78rem', color: '#0369a1', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
-                      5. Plan &amp; Treatment Instructions
-                    </label>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                      <label style={{ fontSize: '0.78rem', color: '#0369a1', fontWeight: 700 }}>
+                        5. Plan &amp; Treatment Instructions
+                      </label>
+                      {!isEditingClosed && (
+                        <button
+                          type="button"
+                          onClick={() => setShowFollowUpModal(true)}
+                          className="btn-secondary"
+                          style={{ padding: '3px 8px', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+                        >
+                          <Calendar size={13} color="#0284c7" /> Schedule Follow-up Visit
+                        </button>
+                      )}
+                    </div>
                     <textarea
                       rows={3}
                       value={plan}
@@ -1462,7 +1657,6 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                       readOnly={isEditingClosed}
                       placeholder="Enter clinical treatment instructions, ordered investigations, patient education, follow-up date..."
                       style={isEditingClosed ? readOnlyStyle : {}}
-
                     />
                   </div>
                 </>
@@ -1837,6 +2031,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
               {[
                 { key: 'ALL', label: 'All Records' },
                 { key: 'NOTES', label: `Consultations (${historyEncounters.length})` },
+                { key: 'VITALS', label: `Vitals & Chronic Trends (${vitalsHistory.length})` },
                 { key: 'LABS', label: `Lab Orders (${historyLabOrders.length})` },
                 { key: 'PROCEDURES', label: `Procedures (${historyProcedures.length})` },
                 { key: 'RX', label: `Prescriptions (${historyPrescriptions.length})` },
@@ -1868,7 +2063,190 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              
+
+              {/* VITALS LONGITUDINAL TRENDS & CHRONIC CARE GRAPH */}
+              {(historyFilter === 'ALL' || historyFilter === 'VITALS') && (
+                <div style={{ padding: '16px 18px', borderRadius: '8px', background: '#f8fafc', border: '1.5px solid #cbd5e1' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Activity size={18} color="#0284c7" />
+                      <strong style={{ fontSize: '0.9rem', color: '#0f172a' }}>Longitudinal Vitals & Chronic Disease Trajectory</strong>
+                      <span className="badge badge-info" style={{ fontSize: '0.65rem' }}>{vitalsHistory.length} Recorded Visits</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '12px', fontSize: '0.72rem', fontWeight: 600 }}>
+                      <span style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: '4px' }}>● Systolic BP (mmHg)</span>
+                      <span style={{ color: '#3b82f6', display: 'flex', alignItems: 'center', gap: '4px' }}>● Diastolic BP (mmHg)</span>
+                      <span style={{ color: '#10b981', display: 'flex', alignItems: 'center', gap: '4px' }}>● Heart Rate (bpm)</span>
+                      <span style={{ color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '4px' }}>● Blood Glucose (mg/dL)</span>
+                    </div>
+                  </div>
+
+                  {vitalsHistory.length === 0 ? (
+                    <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.78rem', fontStyle: 'italic' }}>
+                      No longitudinal triage vitals recorded for this patient yet.
+                    </div>
+                  ) : (
+                    <div>
+                      {/* SVG Trend Graph */}
+                      <div style={{ background: '#ffffff', borderRadius: '6px', padding: '14px', border: '1px solid #e2e8f0', marginBottom: '12px' }}>
+                        <svg viewBox="0 0 700 160" style={{ width: '100%', height: '160px', overflow: 'visible' }}>
+                          {/* Grid lines & Normal Thresholds */}
+                          <line x1="40" y1="20" x2="680" y2="20" stroke="#f1f5f9" strokeWidth="1" />
+                          <line x1="40" y1="50" x2="680" y2="50" stroke="#fecaca" strokeWidth="1" strokeDasharray="3,3" />
+                          <text x="682" y="53" fontSize="9" fill="#ef4444">140 (HTN Stage 1)</text>
+                          <line x1="40" y1="75" x2="680" y2="75" stroke="#bbf7d0" strokeWidth="1" strokeDasharray="3,3" />
+                          <text x="682" y="78" fontSize="9" fill="#16a34a">120 (Normal BP)</text>
+                          <line x1="40" y1="110" x2="680" y2="110" stroke="#bfdbfe" strokeWidth="1" strokeDasharray="3,3" />
+                          <text x="682" y="113" fontSize="9" fill="#3b82f6">80 (Normal Dia)</text>
+                          <line x1="40" y1="140" x2="680" y2="140" stroke="#f1f5f9" strokeWidth="1" />
+
+                          {(() => {
+                            const pts = vitalsHistory.slice(-8); // Show up to last 8 visits
+                            const count = pts.length;
+                            const stepX = count > 1 ? (620 / (count - 1)) : 310;
+
+                            const getCoords = (val: number | null | undefined, minV = 40, maxV = 180) => {
+                              if (val == null) return null;
+                              const clamped = Math.max(minV, Math.min(maxV, val));
+                              const norm = (clamped - minV) / (maxV - minV);
+                              return 140 - norm * 120;
+                            };
+
+                            const sysPoints: { x: number; y: number; val: number; date: string }[] = [];
+                            const diaPoints: { x: number; y: number; val: number }[] = [];
+                            const hrPoints: { x: number; y: number; val: number }[] = [];
+                            const gluPoints: { x: number; y: number; val: number }[] = [];
+
+                            pts.forEach((p, idx) => {
+                              const x = 50 + idx * stepX;
+                              const dStr = p.triagedAt ? String(p.triagedAt).split('T')[0] : `V${idx + 1}`;
+                              if (p.systolicBP) {
+                                const y = getCoords(p.systolicBP);
+                                if (y != null) sysPoints.push({ x, y, val: p.systolicBP, date: dStr });
+                              }
+                              if (p.diastolicBP) {
+                                const y = getCoords(p.diastolicBP);
+                                if (y != null) diaPoints.push({ x, y, val: p.diastolicBP });
+                              }
+                              if (p.heartRate) {
+                                const y = getCoords(p.heartRate);
+                                if (y != null) hrPoints.push({ x, y, val: p.heartRate });
+                              }
+                              if (p.bloodGlucose) {
+                                const y = getCoords(p.bloodGlucose, 40, 250);
+                                if (y != null) gluPoints.push({ x, y, val: p.bloodGlucose });
+                              }
+                            });
+
+                            return (
+                              <>
+                                {/* Polyline Systolic */}
+                                {sysPoints.length > 1 && (
+                                  <polyline
+                                    fill="none"
+                                    stroke="#ef4444"
+                                    strokeWidth="2.5"
+                                    points={sysPoints.map(p => `${p.x},${p.y}`).join(' ')}
+                                  />
+                                )}
+                                {/* Polyline Diastolic */}
+                                {diaPoints.length > 1 && (
+                                  <polyline
+                                    fill="none"
+                                    stroke="#3b82f6"
+                                    strokeWidth="2"
+                                    points={diaPoints.map(p => `${p.x},${p.y}`).join(' ')}
+                                  />
+                                )}
+                                {/* Polyline HR */}
+                                {hrPoints.length > 1 && (
+                                  <polyline
+                                    fill="none"
+                                    stroke="#10b981"
+                                    strokeWidth="2"
+                                    strokeDasharray="4,2"
+                                    points={hrPoints.map(p => `${p.x},${p.y}`).join(' ')}
+                                  />
+                                )}
+                                {/* Polyline Glucose */}
+                                {gluPoints.length > 1 && (
+                                  <polyline
+                                    fill="none"
+                                    stroke="#f59e0b"
+                                    strokeWidth="2"
+                                    points={gluPoints.map(p => `${p.x},${p.y}`).join(' ')}
+                                  />
+                                )}
+
+                                {/* Data Dots & Labels */}
+                                {sysPoints.map((pt, i) => (
+                                  <g key={`sys-${i}`}>
+                                    <circle cx={pt.x} cy={pt.y} r="4" fill="#ef4444" />
+                                    <text x={pt.x} y={pt.y - 7} fontSize="10" fontWeight="bold" fill="#ef4444" textAnchor="middle">{pt.val}</text>
+                                    <text x={pt.x} y="155" fontSize="9" fill="#64748b" textAnchor="middle">{pt.date}</text>
+                                  </g>
+                                ))}
+
+                                {diaPoints.map((pt, i) => (
+                                  <g key={`dia-${i}`}>
+                                    <circle cx={pt.x} cy={pt.y} r="3.5" fill="#3b82f6" />
+                                    <text x={pt.x} y={pt.y + 12} fontSize="9" fill="#3b82f6" textAnchor="middle">{pt.val}</text>
+                                  </g>
+                                ))}
+
+                                {gluPoints.map((pt, i) => (
+                                  <g key={`glu-${i}`}>
+                                    <circle cx={pt.x} cy={pt.y} r="3" fill="#f59e0b" />
+                                  </g>
+                                ))}
+                              </>
+                            );
+                          })()}
+                        </svg>
+                      </div>
+
+                      {/* Longitudinal Vitals Visit Table */}
+                      <table className="cms-table" style={{ fontSize: '0.75rem' }}>
+                        <thead>
+                          <tr>
+                            <th>Encounter Date</th>
+                            <th>BP (mmHg)</th>
+                            <th>HR (bpm)</th>
+                            <th>Temp (°C)</th>
+                            <th>SpO2</th>
+                            <th>Weight / BMI</th>
+                            <th>Blood Glucose</th>
+                            <th>Triage Acuity</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {vitalsHistory.map((vh, i) => (
+                            <tr key={i}>
+                              <td style={{ fontWeight: 600 }}>{vh.triagedAt ? String(vh.triagedAt).split('T')[0] : 'Encounter'}</td>
+                              <td style={{ fontWeight: 700, color: (vh.systolicBP || 0) >= 140 ? '#ef4444' : '#0369a1' }}>
+                                {vh.systolicBP || '—'}/{vh.diastolicBP || '—'}
+                              </td>
+                              <td>{vh.heartRate || '—'} bpm</td>
+                              <td>{vh.temperature || '—'} °C</td>
+                              <td>{vh.oxygenSaturation ? `${vh.oxygenSaturation}%` : '—'}</td>
+                              <td>{vh.weightKg ? `${vh.weightKg} kg (${vh.bmi || '—'})` : '—'}</td>
+                              <td style={{ fontWeight: 600, color: (vh.bloodGlucose || 0) > 126 ? '#f59e0b' : 'inherit' }}>
+                                {vh.bloodGlucose ? `${vh.bloodGlucose} mg/dL` : '—'}
+                              </td>
+                              <td>
+                                <span className={`badge badge-${(vh.triageCategory || 'Yellow').toLowerCase()}`}>
+                                  {vh.triageCategory || 'Routine'}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Encounters & Notes */}
               {(historyFilter === 'ALL' || historyFilter === 'NOTES') && historyEncounters.map((enc, idx) => (
                 <div key={`enc-${idx}`} style={{ padding: '14px', borderRadius: '8px', background: '#fdfcf9', border: '1px solid var(--border-color)' }}>
@@ -2539,6 +2917,223 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                 <div style={{ fontWeight: 800, fontSize: '1rem' }}>{showPrintModal.doctorName || certDoctorName}</div>
                 <div style={{ fontSize: '0.82rem', color: '#57534e', fontWeight: 600 }}>{showPrintModal.doctorTitle || certDoctorTitle}</div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 5. CLINICAL DECISION SUPPORT (CDS) SAFETY ALERT MODAL                    */}
+      {/* ========================================================================= */}
+      {cdsAlerts.length > 0 && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div className="glass-panel" style={{ background: '#ffffff', width: '100%', maxWidth: '580px', borderRadius: '12px', border: '2px solid #ef4444', overflow: 'hidden', boxShadow: '0 20px 40px rgba(0,0,0,0.3)' }}>
+            <div style={{ padding: '16px 20px', background: '#fee2e2', borderBottom: '1px solid #fca5a5', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <ShieldAlert size={24} color="#dc2626" />
+              <div>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#991b1b', margin: 0 }}>
+                  Clinical Decision Support: Safety Warning
+                </h3>
+                <span style={{ fontSize: '0.75rem', color: '#b91c1c' }}>
+                  Patient: <strong>{activePatient?.name}</strong> • Known Allergies: <strong>{activePatient?.allergies || 'None'}</strong>
+                </span>
+              </div>
+            </div>
+
+            <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px', maxHeight: '60vh', overflowY: 'auto' }}>
+              {cdsAlerts.map(alt => (
+                <div
+                  key={alt.id}
+                  style={{
+                    padding: '14px',
+                    borderRadius: '8px',
+                    background: alt.severity === 'CRITICAL' ? '#fef2f2' : '#fffbeb',
+                    border: `1.5px solid ${alt.severity === 'CRITICAL' ? '#f87171' : '#fcd34d'}`
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <AlertTriangle size={16} color={alt.severity === 'CRITICAL' ? '#dc2626' : '#d97706'} />
+                      <strong style={{ fontSize: '0.85rem', color: alt.severity === 'CRITICAL' ? '#991b1b' : '#92400e' }}>
+                        {alt.title}
+                      </strong>
+                    </div>
+                    <span
+                      style={{
+                        fontSize: '0.65rem',
+                        fontWeight: 800,
+                        padding: '2px 7px',
+                        borderRadius: '4px',
+                        background: alt.severity === 'CRITICAL' ? '#dc2626' : '#d97706',
+                        color: '#ffffff'
+                      }}
+                    >
+                      {alt.severity}
+                    </span>
+                  </div>
+
+                  <p style={{ fontSize: '0.78rem', color: '#334155', margin: '4px 0 8px' }}>
+                    {alt.mechanism}
+                  </p>
+
+                  <div style={{ padding: '8px 10px', background: '#ffffff', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '0.74rem', color: '#0f172a' }}>
+                    <strong>Clinical Recommendation:</strong> {alt.clinicalRecommendation}
+                  </div>
+                </div>
+              ))}
+
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                  Override Justification (Required for Audit Trail if proceeding):
+                </label>
+                <input
+                  type="text"
+                  value={overrideReason}
+                  onChange={e => setOverrideReason(e.target.value)}
+                  placeholder="e.g. Benefit outweighs risk; desensitization protocol active; monitored administration"
+                  style={{ width: '100%', padding: '8px 10px', fontSize: '0.78rem' }}
+                />
+              </div>
+            </div>
+
+            <div style={{ padding: '14px 20px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setCdsAlerts([]);
+                  setPendingCandidateItem(null);
+                  setOverrideReason('');
+                }}
+                className="btn-secondary"
+                style={{ padding: '8px 14px' }}
+              >
+                Cancel &amp; Select Alternate Drug
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmCdsOverride}
+                disabled={!overrideReason.trim()}
+                className="btn-primary"
+                style={{
+                  background: overrideReason.trim() ? '#dc2626' : '#94a3b8',
+                  borderColor: overrideReason.trim() ? '#b91c1c' : '#94a3b8',
+                  padding: '8px 16px',
+                  cursor: overrideReason.trim() ? 'pointer' : 'not-allowed'
+                }}
+              >
+                Override Alert &amp; Add Drug
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 6. SCHEDULE FOLLOW-UP APPOINTMENT MODAL (EMR SOAP PLAN)                   */}
+      {/* ========================================================================= */}
+      {showFollowUpModal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div className="glass-panel" style={{ background: '#ffffff', width: '100%', maxWidth: '480px', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 20px 40px rgba(0,0,0,0.25)' }}>
+            <div style={{ padding: '16px 20px', background: 'linear-gradient(135deg, #0284c7, #0369a1)', color: '#ffffff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Calendar size={18} />
+                <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>Schedule Follow-up Visit</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowFollowUpModal(false)}
+                style={{ background: 'none', border: 'none', color: '#ffffff', cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>Patient</label>
+                <div style={{ fontWeight: 700, fontSize: '0.88rem' }}>{activePatient?.name} ({activePatient?.mrn})</div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>Attending Doctor</label>
+                <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{certDoctorName}</div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>Follow-up Date</label>
+                  <input
+                    type="date"
+                    value={followUpDate}
+                    onChange={e => setFollowUpDate(e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                    required
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>Slot Time</label>
+                  <input
+                    type="time"
+                    value={followUpTime}
+                    onChange={e => setFollowUpTime(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>Reason / Clinical Objective</label>
+                <input
+                  type="text"
+                  value={followUpReason}
+                  onChange={e => setFollowUpReason(e.target.value)}
+                  placeholder="e.g. Skin biopsy suture removal & biopsy pathology review"
+                  required
+                />
+              </div>
+            </div>
+
+            <div style={{ padding: '14px 20px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setShowFollowUpModal(false)}
+                className="btn-secondary"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    const slotDateTime = `${followUpDate}T${followUpTime}:00`;
+                    await api.post('/appointments', {
+                      tenantId: 1,
+                      patientId: activePatient.id,
+                      doctorId: selectedDoctorId,
+                      slotDateTime: slotDateTime,
+                      durationMinutes: 30,
+                      reasonForVisit: followUpReason
+                    });
+
+                    // Append follow-up appointment confirmation line to Clinical Plan
+                    setPlan(prev => prev
+                      ? `${prev}\n• Scheduled Follow-up Appointment on ${followUpDate} at ${followUpTime} with ${certDoctorName} (${followUpReason})`
+                      : `• Scheduled Follow-up Appointment on ${followUpDate} at ${followUpTime} with ${certDoctorName} (${followUpReason})`
+                    );
+
+                    setShowFollowUpModal(false);
+                    setOrderDispatchedToast(`✓ Follow-up visit booked for ${followUpDate} at ${followUpTime}!`);
+                    setTimeout(() => setOrderDispatchedToast(null), 4000);
+                  } catch (err: any) {
+                    console.error('Book follow-up appointment error:', err);
+                    setOrderDispatchedToast(`Appointment booking error: ${err.message || 'Server error'}`);
+                    setTimeout(() => setOrderDispatchedToast(null), 4000);
+                  }
+                }}
+                className="btn-primary"
+              >
+                Confirm &amp; Book Appointment
+              </button>
             </div>
           </div>
         </div>

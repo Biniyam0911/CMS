@@ -77,12 +77,36 @@ public class AppointmentsController : ControllerBase
         return Ok(ApiResponse<object>.Ok(new { AppointmentId = appointmentId }));
     }
 
+    [HttpGet]
+    public async Task<IActionResult> GetAllAppointments([FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate, [FromQuery] int? doctorId)
+    {
+        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+        var list = await _appointmentService.GetAllAppointmentsAsync(tenantId, startDate, endDate, doctorId);
+        return Ok(ApiResponse<List<AppointmentDto>>.Ok(list));
+    }
+
     [HttpGet("doctor/{doctorId}")]
     public async Task<IActionResult> GetDoctorAppointments(int doctorId, [FromQuery] DateTime date)
     {
         byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
         var appointments = await _appointmentService.GetDoctorAppointmentsAsync(tenantId, doctorId, date);
         return Ok(ApiResponse<List<AppointmentDto>>.Ok(appointments));
+    }
+
+    [HttpPut("{id}/status")]
+    public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateAppointmentStatusDto dto)
+    {
+        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+        var success = await _appointmentService.UpdateAppointmentStatusAsync(tenantId, id, dto.StatusId, dto.CancelReason);
+        return Ok(ApiResponse<object>.Ok(new { Success = success, AppointmentId = id }));
+    }
+
+    [HttpPut("{id}/reschedule")]
+    public async Task<IActionResult> Reschedule(int id, [FromBody] RescheduleAppointmentDto dto)
+    {
+        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+        var success = await _appointmentService.RescheduleAppointmentAsync(tenantId, id, dto.NewSlotDateTime, dto.DurationMinutes);
+        return Ok(ApiResponse<object>.Ok(new { Success = success, AppointmentId = id }));
     }
 }
 

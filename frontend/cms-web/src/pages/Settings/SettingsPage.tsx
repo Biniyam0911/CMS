@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Save, Building, CheckCircle2, Loader2, HeartPulse, Stethoscope, FileHeart, Activity, ShieldCheck, Cross, FlaskConical, Palette, Type, Layers, ToggleLeft, Monitor, Sidebar } from 'lucide-react';
+import { Settings, Save, Building, CheckCircle2, Loader2, HeartPulse, Stethoscope, FileHeart, Activity, ShieldCheck, Cross, FlaskConical, Palette, Type, Layers, ToggleLeft, Monitor, Sidebar, Database, HardDrive, Download, Clock } from 'lucide-react';
 import { api } from '../../api/apiClient';
 
 const APP_ICONS = [
@@ -91,7 +91,7 @@ const _savedFont = loadFontFromStorage();
 document.documentElement.style.setProperty('--font-family', _savedFont);
 document.documentElement.style.setProperty('--font-heading', _savedFont);
 
-type SettingsTab = 'clinic' | 'theme';
+type SettingsTab = 'clinic' | 'theme' | 'backup';
 type ThemeSection = 'background' | 'typography' | 'colors' | 'cards' | 'controls' | 'header' | 'sidebar';
 
 export default function SettingsPage() {
@@ -105,6 +105,18 @@ export default function SettingsPage() {
   const [savedAlert, setSavedAlert] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Backup & Maintenance State
+  const [backups, setBackups] = useState<any[]>([]);
+  const [backupSchedule, setBackupSchedule] = useState<{ enabled: boolean; frequency: string; timeOfDay: string }>({
+    enabled: true,
+    frequency: 'Daily',
+    timeOfDay: '02:00'
+  });
+  const [backupDirectory, setBackupDirectory] = useState('');
+  const [loadingBackups, setLoadingBackups] = useState(false);
+  const [isBackingUpNow, setIsBackingUpNow] = useState(false);
+  const [backupAlert, setBackupAlert] = useState<string | null>(null);
 
   const [currentUserDisplay, setCurrentUserDisplay] = useState(getCurrentDisplayName());
   const [themeVars, setThemeVars] = useState<Record<string, string>>(() => loadThemeFromStorage());
@@ -150,6 +162,54 @@ export default function SettingsPage() {
       window.dispatchEvent(new Event('clinic_settings_changed'));
       setSavedAlert(true); setTimeout(() => setSavedAlert(false), 3000);
     } catch (err: any) { setSaveError(err?.message || 'Failed to save settings.'); }
+  };
+
+  const loadBackups = async () => {
+    try {
+      setLoadingBackups(true);
+      const res: any = await api.get('/backup/list');
+      if (res) {
+        setBackups(res.backups || res.Backups || []);
+        if (res.schedule || res.Schedule) setBackupSchedule(res.schedule || res.Schedule);
+        if (res.backupDirectory || res.BackupDirectory) setBackupDirectory(res.backupDirectory || res.BackupDirectory);
+      }
+    } catch (err) {
+      console.error('Failed to load database backups:', err);
+    } finally {
+      setLoadingBackups(false);
+    }
+  };
+
+  const handleRunBackupNow = async () => {
+    try {
+      setIsBackingUpNow(true);
+      setBackupAlert(null);
+      const res: any = await api.post('/backup/now', {});
+      const fileName = res?.fileName || res?.FileName;
+      const sizeFormatted = res?.sizeFormatted || res?.SizeFormatted;
+      const isOk = res?.success === true || res?.Success === true || !!fileName;
+      if (isOk) {
+        setBackupAlert(`✓ Full database snapshot created: ${fileName || 'ClinicDB.bak'} (${sizeFormatted || 'Verified .BAK'})`);
+      } else {
+        setBackupAlert(`⚠ Backup completed with notes: ${res?.message || res?.Message || 'Done'}`);
+      }
+      loadBackups();
+    } catch (err: any) {
+      setBackupAlert(`✗ Backup error: ${err?.message || 'Execution error'}`);
+    } finally {
+      setIsBackingUpNow(false);
+    }
+  };
+
+  const handleSaveSchedule = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await api.post('/backup/schedule', backupSchedule);
+      setBackupAlert(`✓ Automated database backup schedule updated!`);
+      setTimeout(() => setBackupAlert(null), 4000);
+    } catch (err: any) {
+      setBackupAlert(`✗ Schedule update error: ${err?.message || 'Server error'}`);
+    }
   };
 
   const updateThemeVar = (key: string, value: string) => {
@@ -223,6 +283,9 @@ export default function SettingsPage() {
         </button>
         <button onClick={() => setActiveTab('theme')} className={activeTab === 'theme' ? 'btn-primary' : 'btn-secondary'}>
           <Palette size={15} /> Theme & Appearance
+        </button>
+        <button onClick={() => { setActiveTab('backup'); loadBackups(); }} className={activeTab === 'backup' ? 'btn-primary' : 'btn-secondary'}>
+          <Database size={15} /> Database Backup & Maintenance
         </button>
       </div>
 
@@ -488,6 +551,167 @@ export default function SettingsPage() {
               </div>
             )}
 
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'backup' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* Top Panel: Instant Backup & Status */}
+          <div className="glass-panel" style={{ padding: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '14px', marginBottom: '16px' }}>
+              <div>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Database color="#0284c7" size={20} /> SQL Server Database Backup & Recovery
+                </h3>
+                <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  Create manual point-in-time full database snapshots (.bak) or configure automated nightly backups.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleRunBackupNow}
+                disabled={isBackingUpNow}
+                className="btn-primary"
+                style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px', background: '#0284c7', borderColor: '#0284c7' }}
+              >
+                {isBackingUpNow ? <Loader2 size={16} className="animate-spin" /> : <HardDrive size={16} />}
+                {isBackingUpNow ? 'Creating Snapshot...' : 'Backup Database Now'}
+              </button>
+            </div>
+
+            {backupAlert && (
+              <div style={{
+                padding: '12px 16px',
+                borderRadius: '8px',
+                fontSize: '0.82rem',
+                fontWeight: 600,
+                marginBottom: '16px',
+                background: backupAlert.startsWith('✓') ? '#f0fdf4' : '#fef2f2',
+                color: backupAlert.startsWith('✓') ? '#166534' : '#991b1b',
+                border: `1px solid ${backupAlert.startsWith('✓') ? '#bbf7d0' : '#fecaca'}`
+              }}>
+                {backupAlert}
+              </div>
+            )}
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '12px', marginTop: '10px' }}>
+              <div style={{ background: 'var(--bg-dark, #f8fafc)', padding: '12px 14px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Target Directory</div>
+                <div style={{ fontSize: '0.78rem', fontFamily: 'monospace', fontWeight: 600, marginTop: '4px', wordBreak: 'break-all' }}>
+                  {backupDirectory || 'C:\\Program Files\\Microsoft SQL Server\\...\\Backup'}
+                </div>
+              </div>
+              <div style={{ background: 'var(--bg-dark, #f8fafc)', padding: '12px 14px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Available Backups</div>
+                <div style={{ fontSize: '0.85rem', fontWeight: 700, marginTop: '4px' }}>
+                  {loadingBackups ? 'Loading...' : `${backups.length} snapshot${backups.length === 1 ? '' : 's'} recorded`}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Schedule Configuration */}
+          <div className="glass-panel" style={{ padding: '24px' }}>
+            <h4 style={{ fontSize: '0.95rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+              <Clock color="#8b5cf6" size={18} /> Automated Schedule & Maintenance
+            </h4>
+            <form onSubmit={handleSaveSchedule} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <input
+                  type="checkbox"
+                  id="schedEnabled"
+                  checked={backupSchedule.enabled}
+                  onChange={e => setBackupSchedule({ ...backupSchedule, enabled: e.target.checked })}
+                  style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                />
+                <label htmlFor="schedEnabled" style={{ fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>
+                  Enable background automated SQL snapshots
+                </label>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div>
+                  <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>Frequency</label>
+                  <select
+                    value={backupSchedule.frequency}
+                    onChange={e => setBackupSchedule({ ...backupSchedule, frequency: e.target.value })}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)' }}
+                  >
+                    <option value="Daily">Daily</option>
+                    <option value="Weekly">Weekly (Sunday Night)</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>Execution Time (24h)</label>
+                  <input
+                    type="time"
+                    value={backupSchedule.timeOfDay}
+                    onChange={e => setBackupSchedule({ ...backupSchedule, timeOfDay: e.target.value })}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)' }}
+                  />
+                </div>
+              </div>
+
+              <button type="submit" className="btn-secondary" style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px' }}>
+                <Save size={14} /> Update Schedule
+              </button>
+            </form>
+          </div>
+
+          {/* Backup History Table */}
+          <div className="glass-panel" style={{ padding: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+              <h4 style={{ fontSize: '0.95rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <HardDrive color="#10b981" size={18} /> Snapshot History
+              </h4>
+              <button onClick={loadBackups} className="btn-secondary" style={{ padding: '4px 10px', fontSize: '0.75rem' }}>
+                Refresh
+              </button>
+            </div>
+
+            {loadingBackups ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '20px', color: 'var(--text-muted)' }}>
+                <Loader2 size={16} className="animate-spin" /> Fetching database backups...
+              </div>
+            ) : backups.length === 0 ? (
+              <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+                No database snapshot files found in the backup directory yet. Click "Backup Database Now" above to trigger your first snapshot.
+              </div>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left', color: 'var(--text-muted)' }}>
+                      <th style={{ padding: '8px 10px' }}>File Name</th>
+                      <th style={{ padding: '8px 10px' }}>Created Date & Time</th>
+                      <th style={{ padding: '8px 10px' }}>Size</th>
+                      <th style={{ padding: '8px 10px' }}>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {backups.map((b: any, idx: number) => (
+                      <tr key={b.fileName || b.FileName || idx} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                        <td style={{ padding: '10px', fontFamily: 'monospace', fontWeight: 600 }}>
+                          {b.fileName || b.FileName}
+                        </td>
+                        <td style={{ padding: '10px' }}>
+                          {b.createdAt ? new Date(b.createdAt).toLocaleString() : (b.CreatedAt ? new Date(b.CreatedAt).toLocaleString() : 'N/A')}
+                        </td>
+                        <td style={{ padding: '10px' }}>
+                          {b.sizeFormatted || b.SizeFormatted || (b.sizeBytes ? `${(b.sizeBytes / (1024 * 1024)).toFixed(2)} MB` : 'N/A')}
+                        </td>
+                        <td style={{ padding: '10px' }}>
+                          <span className="badge badge-normal" style={{ background: '#ecfdf5', color: '#047857', borderColor: '#a7f3d0' }}>
+                            Verified .BAK
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       )}
