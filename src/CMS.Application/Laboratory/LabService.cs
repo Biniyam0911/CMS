@@ -48,7 +48,25 @@ public class LabService
         p.Add("@NewOrderId", dbType: System.Data.DbType.Int32, direction: System.Data.ParameterDirection.Output);
 
         await conn.ExecuteAsync("sp_CreateLabOrder", p, commandType: System.Data.CommandType.StoredProcedure);
-        return p.Get<int>("@NewOrderId");
+        int newOrderId = p.Get<int>("@NewOrderId");
+
+        try
+        {
+            var isStat = dto.Priority == 1;
+            await conn.ExecuteAsync(@"
+                INSERT INTO Notifications (TenantId, RecipientUserId, Channel, Subject, Body, Priority, NotificationType, RefType, RefId, StatusId, CreatedAt)
+                VALUES (@TenantId, NULL, 3, @Subject, @Body, @Priority, 'CriticalLabResult', 'LabTechnician,Doctor,Admin', @RefId, 1, GETDATE())",
+                new {
+                    dto.TenantId,
+                    Subject = isStat ? $"STAT Lab Order: #{newOrderId}" : $"New Lab Order: #{newOrderId}",
+                    Body = $"Diagnostic lab order #{newOrderId} for patient #{dto.PatientId} ({dto.ClinicalInfo ?? "Laboratory Panel"}). Awaiting phlebotomy/specimen collection.",
+                    Priority = isStat ? 1 : 2,
+                    RefId = newOrderId
+                });
+        }
+        catch { /* non-blocking notification */ }
+
+        return newOrderId;
     }
 
     public async Task<int> CollectSampleAsync(int orderId, string barcode, string sampleType, int collectedBy)

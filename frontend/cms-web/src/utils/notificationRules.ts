@@ -1,4 +1,4 @@
-﻿import { ModuleKey } from '../components/Sidebar';
+import { ModuleKey } from '../components/Sidebar';
 
 export interface NotificationEventDef {
   key: string;
@@ -75,6 +75,15 @@ export const NOTIFICATION_EVENTS: NotificationEventDef[] = [
     color: '#10b981'
   },
   {
+    key: 'ProcedureOrdered',
+    name: 'Clinical Procedure Ordered',
+    category: 'Clinical',
+    description: 'Physician ordered a minor procedure, dressing, or surgery for a patient',
+    targetModule: 'QUEUE',
+    defaultRoles: ['Doctor', 'Nurse', 'Admin'],
+    color: '#06b6d4'
+  },
+  {
     key: 'SystemSecurity',
     name: 'Security & Role Privilege Changes',
     category: 'System',
@@ -95,6 +104,7 @@ export const DEFAULT_ROLE_RULES: RoleNotificationMatrix = {
   MedicationLowStock: ['Pharmacist', 'Admin', 'SuperAdmin'],
   InvoicePending: ['BillingOfficer', 'Admin'],
   PaymentSettled: ['BillingOfficer', 'Admin', 'SuperAdmin'],
+  ProcedureOrdered: ['Doctor', 'Nurse', 'Admin'],
   SystemSecurity: ['SuperAdmin', 'Admin']
 };
 

@@ -27,6 +27,11 @@ public class NotificationService
     public async Task<List<NotificationItemDto>> GetNotificationsAsync(byte tenantId, int? userId = null, string? role = null)
     {
         using var conn = _dbFactory.CreateConnection();
+        // Ensure any legacy seed mock records are purged so only authentic operational notifications appear
+        await conn.ExecuteAsync(@"
+            DELETE FROM Notifications 
+            WHERE (Body LIKE '%160/100 and tachycardia%' OR Body LIKE '%flagged critical hemoglobin%' OR Body LIKE '%Prescription RX-201%' OR Body LIKE '%#10042 (Br 450.00)%' OR Body LIKE '%Paracetamol 500mg stock has reached%')");
+
         var sql = @"
             SELECT TOP 50
                 Id, TenantId, RecipientUserId,
@@ -39,23 +44,6 @@ public class NotificationService
             ORDER BY StatusId ASC, Priority ASC, CreatedAt DESC";
 
         var list = (await conn.QueryAsync<NotificationItemDto>(sql, new { TenantId = tenantId, UserId = userId })).ToList();
-
-        if (list.Count == 0)
-        {
-            // Seed baseline notifications so clinical staff immediately have active notifications to view and test
-            var seedSql = @"
-                INSERT INTO Notifications (TenantId, RecipientUserId, Channel, Subject, Body, Priority, NotificationType, RefType, StatusId, CreatedAt)
-                VALUES
-                (@TenantId, NULL, 3, 'Emergency Triage Checked In', 'Patient #101 checked in with elevated BP 160/100 and tachycardia. Immediate nurse review required.', 1, 'EmergencyTriage', 'Doctor,Nurse', 1, DATEADD(minute, -5, GETDATE())),
-                (@TenantId, NULL, 3, 'Critical Lab Result Ready', 'CBC Panel for MRN-000102 has flagged critical hemoglobin level. Attending physician notification.', 1, 'CriticalLabResult', 'Doctor,LabTechnician', 1, DATEADD(minute, -15, GETDATE())),
-                (@TenantId, NULL, 3, 'New Prescription Waiting Dispense', 'Prescription RX-201 (Amoxicillin 500mg) is paid and awaiting pharmacy dispensary fulfillment.', 2, 'NewPrescription', 'Pharmacist', 1, DATEADD(minute, -25, GETDATE())),
-                (@TenantId, NULL, 3, 'Invoice Pending Cashier Payment', 'Outpatient invoice #10042 (Br 450.00) issued for consultation and laboratory services.', 2, 'InvoicePending', 'BillingOfficer,Cashier', 1, DATEADD(minute, -40, GETDATE())),
-                (@TenantId, NULL, 3, 'Drug Formulary Low Stock Warning', 'Paracetamol 500mg stock has reached reorder threshold (18 units remaining).', 3, 'MedicationLowStock', 'Pharmacist,Admin', 1, DATEADD(hour, -2, GETDATE()));";
-
-            await conn.ExecuteAsync(seedSql, new { TenantId = tenantId });
-            list = (await conn.QueryAsync<NotificationItemDto>(sql, new { TenantId = tenantId, UserId = userId })).ToList();
-        }
-
         return list;
     }
 
@@ -116,6 +104,16 @@ public class NotificationService
                 VALUES (@TenantId, 'Notification.RoleRules', @SettingValue, 'Notifications', 'Role-based notification subscription matrix');";
 
         int rows = await conn.ExecuteAsync(sql, new { TenantId = tenantId, SettingValue = jsonRules });
+
+        try
+        {
+            await conn.ExecuteAsync(@"
+                INSERT INTO Notifications (TenantId, RecipientUserId, Channel, Subject, Body, Priority, NotificationType, RefType, StatusId, CreatedAt)
+                VALUES (@TenantId, NULL, 3, 'Security: Notification Rules Updated', 'Role alert subscription matrix was modified by administrator.', 2, 'SystemSecurity', 'SuperAdmin,Admin', 1, GETDATE())",
+                new { TenantId = tenantId });
+        }
+        catch { /* non-blocking */ }
+
         return rows > 0;
     }
 }

@@ -137,9 +137,23 @@ public class BillingService
                 UnitPrice = itemUnitPrice,
                 Discount = isFree ? 0 : item.Discount,
                 Total = itemTotal,
-                RefId = refId
             });
         }
+
+        try
+        {
+            var notifType = initialStatus == 4 ? "PaymentSettled" : "InvoicePending";
+            var notifSub = initialStatus == 4 ? $"Payment Settled: {invoiceNumber} (Br {total:F2})" : $"Invoice Issued: {invoiceNumber} (Br {total:F2})";
+            var notifBody = initialStatus == 4 
+                ? $"Invoice {invoiceNumber} settled in full for Br {total:F2}. Receipt generated."
+                : $"Invoice {invoiceNumber} for Br {total:F2} generated for patient #{dto.PatientId}. Awaiting payment at cashier.";
+            
+            await conn.ExecuteAsync(@"
+                INSERT INTO Notifications (TenantId, RecipientUserId, Channel, Subject, Body, Priority, NotificationType, RefType, RefId, StatusId, CreatedAt)
+                VALUES (@TenantId, NULL, 3, @Subject, @Body, 2, @NotificationType, 'BillingOfficer,Doctor,Admin', @RefId, 1, GETDATE())",
+                new { dto.TenantId, Subject = notifSub, Body = notifBody, NotificationType = notifType, RefId = invoiceId });
+        }
+        catch { /* notification logging non-blocking */ }
 
         return invoiceId;
     }
@@ -239,5 +253,14 @@ public class BillingService
             dto.Reference,
             dto.ReceivedBy
         });
+
+        try
+        {
+            await conn.ExecuteAsync(@"
+                INSERT INTO Notifications (TenantId, RecipientUserId, Channel, Subject, Body, Priority, NotificationType, RefType, RefId, StatusId, CreatedAt)
+                VALUES (@TenantId, NULL, 3, 'Payment Settled: Invoice #' + CAST(@InvoiceId AS VARCHAR), 'Payment of Br ' + CAST(@Amount AS VARCHAR) + ' collected for patient #' + CAST(@PatientId AS VARCHAR) + ' (Ref: ' + ISNULL(@Reference, 'Cash') + ').', 2, 'PaymentSettled', 'BillingOfficer,Doctor,Admin', @InvoiceId, 1, GETDATE())",
+                new { dto.TenantId, dto.InvoiceId, dto.PatientId, dto.Amount, dto.Reference });
+        }
+        catch { /* non-blocking notification */ }
     }
 }

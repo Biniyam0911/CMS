@@ -227,6 +227,24 @@ public class TriageController : ControllerBase
             });
         }
 
+        try
+        {
+            bool isEmergency = dto.PriorityLevel == 1 || (dto.TriageCategory != null && dto.TriageCategory.Contains("Emergency", StringComparison.OrdinalIgnoreCase));
+            var notifType = isEmergency ? "EmergencyTriage" : "PatientCheckIn";
+            var notifSub = isEmergency 
+                ? $"Emergency Triage Alert: Patient #{dto.PatientId}" 
+                : $"Patient Triaged: #{dto.PatientId} ({dto.TriageCategory ?? "Routine"})";
+            var notifBody = isEmergency
+                ? $"Patient #{dto.PatientId} flagged with critical vitals (BP {dto.SystolicBP}/{dto.DiastolicBP}, HR {dto.HeartRate}, SpO2 {dto.OxygenSaturation}%). Immediate doctor review required."
+                : $"Patient #{dto.PatientId} triaged: BP {dto.SystolicBP}/{dto.DiastolicBP}, Chief Complaint: {dto.ChiefComplaint ?? "Routine assessment"}. Ready for doctor.";
+
+            await conn.ExecuteAsync(@"
+                INSERT INTO Notifications (TenantId, RecipientUserId, Channel, Subject, Body, Priority, NotificationType, RefType, RefId, StatusId, CreatedAt)
+                VALUES (@TenantId, NULL, 3, @Subject, @Body, @Priority, @NotificationType, 'Doctor,Nurse,Admin', @RefId, 1, GETDATE())",
+                new { TenantId = tenantId, Subject = notifSub, Body = notifBody, Priority = isEmergency ? 1 : 2, NotificationType = notifType, RefId = triageId });
+        }
+        catch { /* non-blocking notification */ }
+
         return Ok(ApiResponse<object>.Ok(new { TriageId = triageId, Bmi = bmi }));
     }
 

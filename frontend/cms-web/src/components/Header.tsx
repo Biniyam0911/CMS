@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Bell, Clock, LucideIcon, Check, CheckCheck, X, AlertTriangle,
   Flame, Pill, FlaskConical, DollarSign, Activity, ChevronRight,
@@ -76,45 +76,7 @@ export default function Header({ title, subtitle, user, clinicName, appIconName 
       const filtered = items.filter(n => isUserSubscribedToEvent(n.notificationType, userRoles));
       setNotifications(filtered);
     } catch {
-      // Fallback baseline notifications
-      setNotifications([
-        {
-          id: 1,
-          subject: 'Emergency Triage Checked In',
-          body: 'Patient #101 checked in with severe tachycardia (142 bpm) and elevated BP 165/100.',
-          priority: 1,
-          notificationType: 'EmergencyTriage',
-          statusId: 1,
-          createdAt: new Date().toISOString()
-        },
-        {
-          id: 2,
-          subject: 'Critical Lab Result Ready',
-          body: 'CBC panel for MRN-000102 has critical low platelets (42,000 /uL).',
-          priority: 1,
-          notificationType: 'CriticalLabResult',
-          statusId: 1,
-          createdAt: new Date(Date.now() - 15 * 60000).toISOString()
-        },
-        {
-          id: 3,
-          subject: 'New Prescription Waiting Dispense',
-          body: 'Prescription RX-201 (Amoxicillin 500mg) is paid and ready for pharmacy fulfillment.',
-          priority: 2,
-          notificationType: 'NewPrescription',
-          statusId: 1,
-          createdAt: new Date(Date.now() - 35 * 60000).toISOString()
-        },
-        {
-          id: 4,
-          subject: 'Invoice Pending Payment',
-          body: 'Outpatient invoice #10042 (Br 450.00) issued for consultation and laboratory panel.',
-          priority: 2,
-          notificationType: 'InvoicePending',
-          statusId: 2,
-          createdAt: new Date(Date.now() - 60 * 60000).toISOString()
-        }
-      ]);
+      // Real notifications only; do not set mock fallback data on error
     }
   };
 

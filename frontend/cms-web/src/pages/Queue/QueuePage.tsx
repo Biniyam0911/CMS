@@ -181,6 +181,50 @@ export default function QueuePage() {
     setTokens(tokens.map(t => t.id === tokenId ? { ...t, status: 'Completed' } : t));
   };
 
+  // Cross-department waiting tickets aggregation for "All Overview"
+  const allWaitingTickets = [
+    ...tokens.filter(t => t.status === 'Waiting').map(t => ({
+      id: `gen-${t.id}`,
+      token: t.token,
+      patientName: t.patientName,
+      department: 'Doctor Consultation',
+      deptColor: '#0071e3',
+      service: t.service,
+      priority: t.priority,
+      callStation: t.counter !== '-' ? t.counter : activeCounter
+    })),
+    ...triageQueue.filter(t => t.status === 'Waiting' || t.status === 'WaitingTriage' || !t.status).map(t => ({
+      id: `trg-${t.id}`,
+      token: t.token,
+      patientName: t.patientName,
+      department: 'Triage & Nursing',
+      deptColor: '#ff9500',
+      service: `${t.category} — ${t.chiefComplaint}`,
+      priority: t.priority,
+      callStation: 'Triage Station 1'
+    })),
+    ...labQueue.filter(l => l.status.includes('Awaiting') || l.status.includes('Sample') || l.status.includes('Testing') || l.status.includes('Ordered')).map(l => ({
+      id: `lab-${l.id}`,
+      token: l.token,
+      patientName: l.patientName,
+      department: 'Laboratory / Phlebotomy',
+      deptColor: '#af52de',
+      service: `${l.testName} (${l.sampleType})`,
+      priority: l.priority.includes('Emergency') || l.priority.includes('STAT') ? 'Emergency' : 'Routine',
+      callStation: 'Lab Phlebotomy Counter 1'
+    })),
+    ...procedureQueue.filter(p => p.status === 'Ordered' || p.status === 'Scheduled' || p.status === 'InProgress').map(p => ({
+      id: `proc-${p.id}`,
+      token: p.token,
+      patientName: p.patientName,
+      department: 'Clinical Procedure',
+      deptColor: '#06b6d4',
+      service: `${p.procedureName} (${p.procedureCode})`,
+      priority: 'Routine',
+      callStation: 'Minor Procedure Room'
+    }))
+  ];
+
   return (
     <div>
       {/* Big TV Screen Announcer Banner with Live Audio Broadcast */}
@@ -265,7 +309,7 @@ export default function QueuePage() {
             onClick={() => setActiveTab('all')}
             className={activeTab === 'all' ? 'btn-primary' : 'btn-secondary'}
           >
-            <ListOrdered size={15} /> All Overview ({tokens.filter(t => t.status === 'Waiting').length})
+            <ListOrdered size={15} /> All Overview ({allWaitingTickets.length})
           </button>
           <button
             onClick={() => setActiveTab('triage')}
@@ -288,15 +332,20 @@ export default function QueuePage() {
         </div>
       </div>
 
-      {/* TAB 1: ALL OVERVIEW & GENERAL QUEUE */}
+      {/* TAB 1: ALL OVERVIEW & CROSS-DEPARTMENT UNIFIED QUEUE */}
       {activeTab === 'all' && (
         <div className="grid-2">
-          {/* Waiting General Tickets */}
+          {/* Waiting Cross-Department Tickets */}
           <div className="glass-panel" style={{ padding: '24px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <ListOrdered color="#0071e3" size={18} /> Active Waiting Tickets ({tokens.filter(t => t.status === 'Waiting').length})
-              </h3>
+              <div>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <ListOrdered color="#0071e3" size={18} /> Cross-Department Waiting Patients ({allWaitingTickets.length})
+                </h3>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: '2px' }}>
+                  Unified real-time waiting roster across Doctor Rooms, Triage, Laboratory, and Clinical Procedures.
+                </p>
+              </div>
               {loading && <Loader2 size={16} className="animate-spin" color="#0071e3" />}
             </div>
 
@@ -305,31 +354,37 @@ export default function QueuePage() {
                 <tr>
                   <th>Token</th>
                   <th>Patient</th>
-                  <th>Service</th>
+                  <th>Department Station</th>
+                  <th>Service / Reason</th>
                   <th>Priority</th>
                   <th>Action</th>
                 </tr>
               </thead>
               <tbody>
-                {tokens.filter(t => t.status === 'Waiting').length === 0 ? (
+                {allWaitingTickets.length === 0 ? (
                   <tr>
-                    <td colSpan={5} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
-                      No waiting tickets. Check In patients at reception or triage to summon them.
+                    <td colSpan={6} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
+                      No patients currently waiting across any clinical stations today. Check In patients at reception, triage, or EMR to summon them.
                     </td>
                   </tr>
                 ) : (
-                  tokens.filter(t => t.status === 'Waiting').map(t => (
+                  allWaitingTickets.map(t => (
                     <tr key={t.id}>
-                      <td style={{ fontWeight: 700, fontSize: '1.05rem', color: '#0071e3', fontFamily: 'monospace' }}>{t.token}</td>
+                      <td style={{ fontWeight: 700, fontSize: '1rem', color: t.deptColor, fontFamily: 'monospace' }}>{t.token}</td>
                       <td style={{ fontWeight: 600 }}>{t.patientName}</td>
-                      <td>{t.service}</td>
                       <td>
-                        <span className={t.priority === 'Emergency' ? 'badge badge-critical' : (t.priority === 'VIP' ? 'badge badge-warning' : 'badge badge-normal')}>
+                        <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700, background: `${t.deptColor}15`, color: t.deptColor, border: `1px solid ${t.deptColor}30` }}>
+                          {t.department}
+                        </span>
+                      </td>
+                      <td style={{ fontSize: '0.82rem' }}>{t.service}</td>
+                      <td>
+                        <span className={t.priority === 'Emergency' ? 'badge badge-critical' : (t.priority === 'VIP' || t.priority === 'Urgent' ? 'badge badge-warning' : 'badge badge-normal')}>
                           {t.priority}
                         </span>
                       </td>
                       <td>
-                        <button onClick={() => handleCallPatient(t.token, t.patientName, activeCounter)} className="btn-primary" style={{ padding: '5px 12px', fontSize: '0.75rem' }}>
+                        <button onClick={() => handleCallPatient(t.token, t.patientName, t.callStation)} className="btn-primary" style={{ padding: '5px 12px', fontSize: '0.75rem' }}>
                           <Play size={12} /> Call Ticket
                         </button>
                       </td>

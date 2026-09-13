@@ -76,6 +76,15 @@ public class QueueService
             dto.PriorityLevel, dto.AssignedDoctorId, dto.Notes
         });
 
+        try
+        {
+            await conn.ExecuteAsync(@"
+                INSERT INTO Notifications (TenantId, RecipientUserId, Channel, Subject, Body, Priority, NotificationType, RefType, StatusId, CreatedAt)
+                VALUES (@TenantId, NULL, 3, 'Patient Arrival: ' + @TokenNumber, 'Patient #' + CAST(@PatientId AS VARCHAR) + ' checked in for ' + @ServiceType + '. Queue Token: ' + @TokenNumber + '.', @PriorityLevel, 'PatientCheckIn', 'Doctor,Nurse,Receptionist', 1, GETDATE())",
+                new { dto.TenantId, TokenNumber = token, dto.PatientId, dto.ServiceType, dto.PriorityLevel });
+        }
+        catch { /* non-blocking notification */ }
+
         return token;
     }
 

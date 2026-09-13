@@ -152,6 +152,7 @@ public class MedicalCertificatesController : ControllerBase
 
 [ApiController]
 [Route("api/v1/[controller]")]
+[Route("api/v1/encounters/procedures")]
 public class ProceduresController : ControllerBase
 {
     private readonly SoapAndClinicalService _clinicalService;
@@ -171,6 +172,7 @@ public class ProceduresController : ControllerBase
     }
 
     [HttpGet("patient/{patientId}")]
+    [HttpGet("/api/v1/encounters/patient/{patientId}/procedures")]
     public async Task<IActionResult> GetPatientProcedures(int patientId)
     {
         var procs = await _clinicalService.GetPatientProceduresAsync(patientId);

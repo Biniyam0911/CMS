@@ -478,7 +478,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
         api.get<any[]>('/pharmacy/prescriptions').catch(() => []),
         api.get<any[]>('/billing/invoices').catch(() => []),
         api.get<any[]>(`/medicalcertificates/patient/${patId}`).catch(() => []),
-        api.get<any[]>(`/encounters/patient/${patId}/procedures`).catch(() => [])
+        api.get<any[]>(`/procedures/patient/${patId}`).catch(() => [])
       ]);
 
       setHistoryEncounters(encs || []);
@@ -963,18 +963,24 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
       }
 
       // 3. Dispatch Clinical Procedures
-      const procItems = currentBasket.filter(x => x.type === 'PROCEDURE');
+      // Rule: Anything other than consultation, laboratory, prescription and medical certificate orders should be treated as procedures
+      const procItems = currentBasket.filter(x => 
+        x.type !== 'LAB' && 
+        x.type !== 'RX' && 
+        x.type !== 'CERT' && 
+        (x.type as string) !== 'CONSULTATION'
+      );
       if (procItems.length > 0) {
         for (const p of procItems) {
           try {
-            await api.post('/encounters/procedures', {
+            await api.post('/procedures', {
               tenantId: 1,
               encounterId: null,
               patientId: patId,
               orderedBy: selectedDoctorId || 1,
               procedureName: p.title,
               procedureCode: p.code,
-              clinicalNotes: p.paramsSummary
+              clinicalNotes: p.paramsSummary || 'Clinical procedure order'
             });
           } catch (pErr) {
             console.warn('Procedure order error:', pErr);
@@ -985,7 +991,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
             id: Date.now() + idx,
             procedureCode: p.code,
             procedureName: p.title,
-            clinicalNotes: p.paramsSummary,
+            clinicalNotes: p.paramsSummary || 'Clinical procedure order',
             statusName: 'Ordered',
             createdAt: new Date().toISOString()
           })),
@@ -1014,7 +1020,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
 
       // 5. Database Billing Invoice Creation for Billable Items
       const billableItems = currentBasket.filter(x => x.price > 0).map(item => ({
-        itemType: item.type === 'LAB' ? 'Laboratory' : (item.type === 'PROCEDURE' ? 'Procedure' : 'Pharmacy'),
+        itemType: item.type === 'LAB' ? 'Laboratory' : (item.type === 'RX' ? 'Pharmacy' : ((item.type as string) === 'CONSULTATION' ? 'Consultation' : 'Procedure')),
         description: `${item.title} (${item.code})`,
         quantity: item.type === 'RX' ? Number(item.details.qty) || 1 : 1,
         unitPrice: item.type === 'RX' ? Math.round((item.price / (Number(item.details.qty) || 1)) * 100) / 100 : item.price,

@@ -60,6 +60,15 @@ public class PharmacyService
             }
         }
 
+        try
+        {
+            await conn.ExecuteAsync(@"
+                INSERT INTO Notifications (TenantId, RecipientUserId, Channel, Subject, Body, Priority, NotificationType, RefType, RefId, StatusId, CreatedAt)
+                VALUES (@TenantId, NULL, 3, 'New Prescription Issued', 'Prescription #' + CAST(@PrescriptionId AS VARCHAR) + ' issued for patient #' + CAST(@PatientId AS VARCHAR) + '. Ready for pharmacy fulfillment.', 2, 'NewPrescription', 'Pharmacist,Doctor,Admin', @PrescriptionId, 1, GETDATE())",
+                new { dto.TenantId, PrescriptionId = pId, dto.PatientId });
+        }
+        catch { /* non-blocking notification */ }
+
         return pId;
     }
 
@@ -160,5 +169,24 @@ public class PharmacyService
             WHERE pi.Id = @ItemId;";
 
         await conn.ExecuteAsync(sql, new { dto.ItemId });
+
+        try
+        {
+            var lowStock = await conn.QueryFirstOrDefaultAsync<dynamic>(@"
+                SELECT TOP 1 d.GenericName, d.StockQuantity, d.MinStockLevel
+                FROM DrugFormulary d
+                JOIN PrescriptionItems pi ON pi.DrugId = d.Id
+                WHERE pi.Id = @ItemId AND d.StockQuantity <= d.MinStockLevel",
+                new { dto.ItemId });
+
+            if (lowStock != null)
+            {
+                await conn.ExecuteAsync(@"
+                    INSERT INTO Notifications (TenantId, RecipientUserId, Channel, Subject, Body, Priority, NotificationType, RefType, StatusId, CreatedAt)
+                    VALUES (1, NULL, 3, 'Formulary Drug Low Stock: ' + @GenericName, 'Medication ' + @GenericName + ' stock is low (' + CAST(@StockQuantity AS VARCHAR) + ' units remaining). Reorder recommended.', 2, 'MedicationLowStock', 'Pharmacist,Admin', 1, GETDATE())",
+                    new { GenericName = (string)lowStock.GenericName, StockQuantity = (int)lowStock.StockQuantity });
+            }
+        }
+        catch { /* non-blocking notification */ }
     }
 }

@@ -66,7 +66,18 @@ public class SoapAndClinicalService
             VALUES (@TenantId, @EncounterId, @PatientId, @OrderedBy, @ProcedureCode, @ProcedureName, @ClinicalNotes, 1);
             SELECT SCOPE_IDENTITY();";
 
-        return await conn.ExecuteScalarAsync<int>(sql, dto);
+        int orderId = await conn.ExecuteScalarAsync<int>(sql, dto);
+
+        try
+        {
+            await conn.ExecuteAsync(@"
+                INSERT INTO Notifications (TenantId, RecipientUserId, Channel, Subject, Body, Priority, NotificationType, RefType, RefId, StatusId, CreatedAt)
+                VALUES (@TenantId, NULL, 3, 'Procedure Ordered: ' + @ProcedureName, 'Clinical procedure ' + @ProcedureName + ' (' + @ProcedureCode + ') ordered for patient #' + CAST(@PatientId AS VARCHAR) + '.', 2, 'ProcedureOrdered', 'Doctor,Nurse,Admin', @RefId, 1, GETDATE())",
+                new { dto.TenantId, dto.ProcedureName, dto.ProcedureCode, dto.PatientId, RefId = orderId });
+        }
+        catch { /* non-blocking notification */ }
+
+        return orderId;
     }
 
     public async Task<List<ProcedureOrderDto>> GetPatientProceduresAsync(int patientId)
@@ -74,13 +85,13 @@ public class SoapAndClinicalService
         using var conn = _dbFactory.CreateConnection();
         var sql = @"
             SELECT po.Id, po.EncounterId, po.PatientId, p.FirstName + ' ' + p.LastName AS PatientName,
-                   po.OrderedBy, s.FirstName + ' ' + s.LastName AS DoctorName,
+                   po.OrderedBy, ISNULL(s.FirstName + ' ' + s.LastName, 'Attending Physician') AS DoctorName,
                    po.ProcedureCode, po.ProcedureName, po.ClinicalNotes, po.StatusId,
                    CASE po.StatusId WHEN 1 THEN 'Ordered' WHEN 2 THEN 'Scheduled' WHEN 3 THEN 'InProgress' WHEN 4 THEN 'Completed' ELSE 'Cancelled' END AS StatusName,
                    po.CreatedAt, po.PerformedAt, po.ProcedureResult
             FROM ProcedureOrders po
             JOIN Patients p ON p.Id = po.PatientId
-            JOIN Staff s ON s.UserId = po.OrderedBy
+            LEFT JOIN Staff s ON s.UserId = po.OrderedBy
             WHERE po.PatientId = @PatientId
             ORDER BY po.CreatedAt DESC";
 

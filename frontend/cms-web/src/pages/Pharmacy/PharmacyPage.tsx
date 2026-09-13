@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Pill, CheckCircle, Package, AlertTriangle, Plus, RefreshCw, X, Search, Edit3, DollarSign, TrendingUp, ShieldAlert, FileText, Loader2 } from 'lucide-react';
+import { Pill, CheckCircle, Package, AlertTriangle, Plus, RefreshCw, X, Search, Edit3, DollarSign, TrendingUp, ShieldAlert, FileText, Loader2, Calendar } from 'lucide-react';
 import { api } from '../../api/apiClient';
 
 export default function PharmacyPage() {
@@ -50,6 +50,11 @@ export default function PharmacyPage() {
   const [doSelectedDrug, setDoSelectedDrug] = useState<any>(null);
   const [doQty, setDoQty] = useState('1');
   const [doSubmitting, setDoSubmitting] = useState(false);
+
+  // Date Filter States (defaults to Today)
+  const todayDateStr = new Date().toISOString().split('T')[0];
+  const [dispensaryDate, setDispensaryDate] = useState<string>(todayDateStr);
+  const [soldDate, setSoldDate] = useState<string>(todayDateStr);
 
   const loadPharmacyData = async () => {
     try {
@@ -382,148 +387,238 @@ export default function PharmacyPage() {
 
 
       {/* SUB TAB 1: FEFO Prescriptions Queue */}
-      {activeSubTab === 'prescriptions' && (
-        <div className="glass-panel" style={{ padding: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Pill color="#06b6d4" size={18} /> Dispensary Requisition Worklist (First Expired, First Out Priority)
-            </h3>
-            {loading && <Loader2 size={16} className="animate-spin" color="#06b6d4" />}
-          </div>
-          <table className="cms-table">
-            <thead>
-              <tr>
-                <th>Patient Name</th>
-                <th>MRN</th>
-                <th>Prescribing Doctor</th>
-                <th>Medication</th>
-                <th>Quantity</th>
-                <th>Payment</th>
-                <th>Substance Class</th>
-                <th>Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {prescriptions.map(p => (
-                <tr key={p.id}>
-                  <td style={{ fontWeight: 600 }}>{p.patientName}</td>
-                  <td style={{ fontFamily: 'monospace', color: '#06b6d4' }}>{p.mrn}</td>
-                  <td>{p.doctorName}</td>
-                  <td>{p.drug}</td>
-                  <td style={{ fontWeight: 700 }}>{p.qty}</td>
-                  <td>
-                    {p.isPaid ? (
-                      <span style={{ padding: '3px 8px', borderRadius: '4px', background: '#d1fae5', color: '#065f46', fontSize: '0.72rem', fontWeight: 700 }}>✓ Paid — Ready</span>
-                    ) : (
-                      <span style={{ padding: '3px 8px', borderRadius: '4px', background: '#fef9c3', color: '#92400e', fontSize: '0.72rem', fontWeight: 700 }}>⏳ Awaiting Payment</span>
-                    )}
-                  </td>
-                  <td>
-                    {p.isControlled ? (
-                      <span className="badge badge-critical">Controlled (Rx Only)</span>
-                    ) : (
-                      <span className="badge badge-normal">Standard</span>
-                    )}
-                  </td>
-                  <td>
-                    <span className={p.status === 'Dispensed' ? 'badge badge-normal' : 'badge badge-warning'}>
-                      {p.status}
-                    </span>
-                  </td>
-                  <td>
-                    {p.status === 'Pending' ? (
-                      p.isPaid ? (
-                        <button onClick={() => handleDispense(p)} className="btn-primary" style={{ padding: '4px 10px', fontSize: '0.75rem' }}>
-                          Dispense Drug
-                        </button>
-                      ) : (
-                        <span style={{ fontSize: '0.72rem', color: '#92400e', fontStyle: 'italic' }}>Awaiting payment at cashier</span>
-                      )
-                    ) : (
-                      <span style={{ fontSize: '0.75rem', color: '#34d399' }}><CheckCircle size={14} /> Completed</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      {activeSubTab === 'prescriptions' && (() => {
+        const filteredDispensary = prescriptions.filter(p => !dispensaryDate || p.date === dispensaryDate);
+        return (
+          <div className="glass-panel" style={{ padding: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Pill color="#06b6d4" size={18} /> Dispensary Requisition Worklist ({filteredDispensary.length})
+                </h3>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: '2px' }}>
+                  Queue of prescribed medications awaiting pharmacy fulfillment (First Expired, First Out Priority).
+                </p>
+              </div>
 
-      {/* SUB TAB: Sold / Dispensed Prescriptions */}
-      {activeSubTab === 'sold' && (
-        <div className="glass-panel" style={{ padding: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <div>
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <CheckCircle color="#34c759" size={18} /> Sold & Dispensed Prescriptions ({prescriptions.filter(p => p.status === 'Dispensed' || p.isPaid).length})
-              </h3>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: '2px' }}>
-                Historical log of completed sales, over-the-counter orders, and billed medication records.
-              </p>
+              {/* Date Filter Controls */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-dark)', padding: '6px 12px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                <Calendar size={15} color="#06b6d4" />
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Date:</span>
+                <input
+                  type="date"
+                  value={dispensaryDate}
+                  onChange={e => setDispensaryDate(e.target.value)}
+                  style={{
+                    background: 'var(--bg-main)',
+                    border: '1px solid var(--border-color)',
+                    color: 'var(--text-main)',
+                    borderRadius: '6px',
+                    padding: '3px 8px',
+                    fontSize: '0.8rem',
+                    outline: 'none'
+                  }}
+                />
+                <button
+                  onClick={() => setDispensaryDate(todayDateStr)}
+                  className={dispensaryDate === todayDateStr ? 'btn-primary' : 'btn-secondary'}
+                  style={{ padding: '3px 10px', fontSize: '0.75rem' }}
+                >
+                  Today
+                </button>
+                <button
+                  onClick={() => setDispensaryDate('')}
+                  className={!dispensaryDate ? 'btn-primary' : 'btn-secondary'}
+                  style={{ padding: '3px 10px', fontSize: '0.75rem' }}
+                >
+                  All Dates
+                </button>
+                {loading && <Loader2 size={16} className="animate-spin" color="#06b6d4" />}
+              </div>
             </div>
-            {loading && <Loader2 size={16} className="animate-spin" color="#0071e3" />}
-          </div>
 
-          <table className="cms-table">
-            <thead>
-              <tr>
-                <th>Receipt / RX #</th>
-                <th>Patient Details</th>
-                <th>Prescribed Medication</th>
-                <th>Quantity</th>
-                <th>Doctor / Channel</th>
-                <th>Dispensed Date</th>
-                <th>Payment Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {prescriptions.filter(p => p.status === 'Dispensed' || p.isPaid).length === 0 ? (
+            <table className="cms-table">
+              <thead>
                 <tr>
-                  <td colSpan={8} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
-                    No sold prescriptions found. Complete an order to view sold receipts here.
-                  </td>
+                  <th>Patient Name</th>
+                  <th>MRN</th>
+                  <th>Prescribing Doctor</th>
+                  <th>Medication</th>
+                  <th>Quantity</th>
+                  <th>Date</th>
+                  <th>Payment</th>
+                  <th>Substance Class</th>
+                  <th>Status</th>
+                  <th>Action</th>
                 </tr>
-              ) : (
-                prescriptions.filter(p => p.status === 'Dispensed' || p.isPaid).map(p => (
-                  <tr key={p.id}>
-                    <td style={{ fontFamily: 'monospace', fontWeight: 600, color: '#0071e3' }}>
-                      RX-{p.id}
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 600 }}>{p.patientName}</div>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{p.mrn}</div>
-                    </td>
-                    <td>
-                      <strong style={{ color: 'var(--text-main)' }}>{p.drug}</strong>
-                      {p.isControlled && <span className="badge badge-critical" style={{ marginLeft: '6px' }}>Controlled</span>}
-                    </td>
-                    <td><strong>{p.qty}</strong> units</td>
-                    <td>{p.doctorName || 'Attending Physician'}</td>
-                    <td>{p.date}</td>
-                    <td>
-                      <span className="badge badge-normal">
-                        <CheckCircle size={11} /> Paid & Dispensed
-                      </span>
-                    </td>
-                    <td>
-                      <button
-                        onClick={() => setSelectedSoldReceipt(p)}
-                        className="btn-secondary"
-                        style={{ padding: '4px 10px', fontSize: '0.75rem' }}
-                      >
-                        <FileText size={13} /> View Receipt
-                      </button>
+              </thead>
+              <tbody>
+                {filteredDispensary.length === 0 ? (
+                  <tr>
+                    <td colSpan={10} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
+                      No prescriptions found for {dispensaryDate ? `date ${dispensaryDate}` : 'the selected filter'}.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
+                ) : (
+                  filteredDispensary.map(p => (
+                    <tr key={p.id}>
+                      <td style={{ fontWeight: 600 }}>{p.patientName}</td>
+                      <td style={{ fontFamily: 'monospace', color: '#06b6d4' }}>{p.mrn}</td>
+                      <td>{p.doctorName}</td>
+                      <td>{p.drug}</td>
+                      <td style={{ fontWeight: 700 }}>{p.qty}</td>
+                      <td style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{p.date}</td>
+                      <td>
+                        {p.isPaid ? (
+                          <span style={{ padding: '3px 8px', borderRadius: '4px', background: '#d1fae5', color: '#065f46', fontSize: '0.72rem', fontWeight: 700 }}>✓ Paid — Ready</span>
+                        ) : (
+                          <span style={{ padding: '3px 8px', borderRadius: '4px', background: '#fef9c3', color: '#92400e', fontSize: '0.72rem', fontWeight: 700 }}>⏳ Awaiting Payment</span>
+                        )}
+                      </td>
+                      <td>
+                        {p.isControlled ? (
+                          <span className="badge badge-critical">Controlled (Rx Only)</span>
+                        ) : (
+                          <span className="badge badge-normal">Standard</span>
+                        )}
+                      </td>
+                      <td>
+                        <span className={p.status === 'Dispensed' ? 'badge badge-normal' : 'badge badge-warning'}>
+                          {p.status}
+                        </span>
+                      </td>
+                      <td>
+                        {p.status === 'Pending' ? (
+                          p.isPaid ? (
+                            <button onClick={() => handleDispense(p)} className="btn-primary" style={{ padding: '4px 10px', fontSize: '0.75rem' }}>
+                              Dispense Drug
+                            </button>
+                          ) : (
+                            <span style={{ fontSize: '0.72rem', color: '#92400e', fontStyle: 'italic' }}>Awaiting payment at cashier</span>
+                          )
+                        ) : (
+                          <span style={{ fontSize: '0.75rem', color: '#34d399' }}><CheckCircle size={14} /> Completed</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        );
+      })()}
+
+      {/* SUB TAB: Sold / Dispensed Prescriptions */}
+      {activeSubTab === 'sold' && (() => {
+        const filteredSold = prescriptions.filter(p => (p.status === 'Dispensed' || p.isPaid) && (!soldDate || p.date === soldDate));
+        return (
+          <div className="glass-panel" style={{ padding: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <CheckCircle color="#34c759" size={18} /> Sold & Dispensed Prescriptions ({filteredSold.length})
+                </h3>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: '2px' }}>
+                  Historical log of completed sales, over-the-counter orders, and billed medication records.
+                </p>
+              </div>
+
+              {/* Sold Date Filter Controls */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-dark)', padding: '6px 12px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                <Calendar size={15} color="#34c759" />
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Date:</span>
+                <input
+                  type="date"
+                  value={soldDate}
+                  onChange={e => setSoldDate(e.target.value)}
+                  style={{
+                    background: 'var(--bg-main)',
+                    border: '1px solid var(--border-color)',
+                    color: 'var(--text-main)',
+                    borderRadius: '6px',
+                    padding: '3px 8px',
+                    fontSize: '0.8rem',
+                    outline: 'none'
+                  }}
+                />
+                <button
+                  onClick={() => setSoldDate(todayDateStr)}
+                  className={soldDate === todayDateStr ? 'btn-primary' : 'btn-secondary'}
+                  style={{ padding: '3px 10px', fontSize: '0.75rem' }}
+                >
+                  Today
+                </button>
+                <button
+                  onClick={() => setSoldDate('')}
+                  className={!soldDate ? 'btn-primary' : 'btn-secondary'}
+                  style={{ padding: '3px 10px', fontSize: '0.75rem' }}
+                >
+                  All Dates
+                </button>
+                {loading && <Loader2 size={16} className="animate-spin" color="#34c759" />}
+              </div>
+            </div>
+
+            <table className="cms-table">
+              <thead>
+                <tr>
+                  <th>Receipt / RX #</th>
+                  <th>Patient Details</th>
+                  <th>Prescribed Medication</th>
+                  <th>Quantity</th>
+                  <th>Doctor / Channel</th>
+                  <th>Dispensed Date</th>
+                  <th>Payment Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredSold.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
+                      No sold prescriptions found for {soldDate ? `date ${soldDate}` : 'the selected filter'}.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredSold.map(p => (
+                    <tr key={p.id}>
+                      <td style={{ fontFamily: 'monospace', fontWeight: 600, color: '#0071e3' }}>
+                        RX-{p.id}
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: 600 }}>{p.patientName}</div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{p.mrn}</div>
+                      </td>
+                      <td>
+                        <strong style={{ color: 'var(--text-main)' }}>{p.drug}</strong>
+                        {p.isControlled && <span className="badge badge-critical" style={{ marginLeft: '6px' }}>Controlled</span>}
+                      </td>
+                      <td><strong>{p.qty}</strong> units</td>
+                      <td>{p.doctorName || 'Attending Physician'}</td>
+                      <td>{p.date}</td>
+                      <td>
+                        <span className="badge badge-normal">
+                          <CheckCircle size={11} /> Paid & Dispensed
+                        </span>
+                      </td>
+                      <td>
+                        <button
+                          onClick={() => setSelectedSoldReceipt(p)}
+                          className="btn-secondary"
+                          style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                        >
+                          <FileText size={13} /> View Receipt
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        );
+      })()}
 
       {/* Modal: Sold Prescription Receipt */}
       {selectedSoldReceipt && (
