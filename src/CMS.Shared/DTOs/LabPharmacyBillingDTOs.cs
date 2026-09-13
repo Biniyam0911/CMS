@@ -58,6 +58,16 @@ public record EnqueueNotificationDto(
     string Channel, string Subject, string Body, int Priority = 1,
     string? NotificationType = null, string? RefType = null, long? RefId = null);
 
+public record NotificationItemDto(
+    long Id, byte TenantId, int? RecipientUserId, string? Channel,
+    string Subject, string Body, int Priority, string NotificationType,
+    string? RefType, long? RefId, byte StatusId, DateTime CreatedAt,
+    string? TargetRole = null);
+
+public record BroadcastNotificationDto(
+    string Subject, string Body, string NotificationType,
+    string? TargetRole = null, int Priority = 1);
+
 public class InvoiceItemDto
 {
     public int Id { get; set; }

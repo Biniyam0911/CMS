@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Settings, Save, Building, CheckCircle2, Loader2, HeartPulse, Stethoscope, FileHeart, Activity, ShieldCheck, Cross, FlaskConical, Palette, Type, Layers, ToggleLeft, Monitor, Sidebar } from 'lucide-react';
 import { api } from '../../api/apiClient';
 
@@ -48,16 +48,43 @@ function applyThemeToRoot(vars: Record<string, string>) {
   });
 }
 
-function loadThemeFromStorage(): Record<string, string> {
-  try { const raw = localStorage.getItem('cms_theme'); if (raw) return JSON.parse(raw); } catch (_) {}
+function getCurrentUsername(): string {
+  try {
+    const raw = localStorage.getItem('current_user');
+    if (raw) {
+      const u = JSON.parse(raw);
+      if (u && (u.username || u.name)) return String(u.username || u.name).toLowerCase().trim();
+    }
+  } catch {}
+  return 'default';
+}
+
+function getCurrentDisplayName(): string {
+  try {
+    const raw = localStorage.getItem('current_user');
+    if (raw) {
+      const u = JSON.parse(raw);
+      if (u) return `${u.username || u.name || 'User'} (${u.roles?.[0] || 'Staff'})`;
+    }
+  } catch {}
+  return 'Current User';
+}
+
+function loadThemeFromStorage(user?: string): Record<string, string> {
+  const username = user || getCurrentUsername();
+  try {
+    const raw = localStorage.getItem(`cms_theme_user_${username}`);
+    if (raw) return JSON.parse(raw);
+  } catch (_) {}
   return DEFAULT_THEME;
 }
 
-function loadFontFromStorage(): string {
-  return localStorage.getItem('cms_font') || FONT_OPTIONS[0].value;
+function loadFontFromStorage(user?: string): string {
+  const username = user || getCurrentUsername();
+  return localStorage.getItem(`cms_font_user_${username}`) || FONT_OPTIONS[0].value;
 }
 
-// Apply persisted theme on module load
+// Apply persisted theme for active user on module load
 const _savedTheme = loadThemeFromStorage();
 applyThemeToRoot(_savedTheme);
 const _savedFont = loadFontFromStorage();
@@ -79,8 +106,9 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  const [themeVars, setThemeVars] = useState<Record<string, string>>(loadThemeFromStorage());
-  const [selectedFont, setSelectedFont] = useState(loadFontFromStorage());
+  const [currentUserDisplay, setCurrentUserDisplay] = useState(getCurrentDisplayName());
+  const [themeVars, setThemeVars] = useState<Record<string, string>>(() => loadThemeFromStorage());
+  const [selectedFont, setSelectedFont] = useState(() => loadFontFromStorage());
   const [themeSavedAlert, setThemeSavedAlert] = useState(false);
   const [activePreset, setActivePreset] = useState<string | null>(null);
   const [themeSection, setThemeSection] = useState<ThemeSection>('background');
@@ -141,18 +169,23 @@ export default function SettingsPage() {
   };
 
   const handleSaveTheme = () => {
-    localStorage.setItem('cms_theme', JSON.stringify(themeVars));
-    localStorage.setItem('cms_font', selectedFont);
+    const username = getCurrentUsername();
+    localStorage.setItem(`cms_theme_user_${username}`, JSON.stringify(themeVars));
+    localStorage.setItem(`cms_font_user_${username}`, selectedFont);
+    window.dispatchEvent(new CustomEvent('cms_user_theme_changed', { detail: { username, theme: themeVars, font: selectedFont } }));
     setThemeSavedAlert(true); setTimeout(() => setThemeSavedAlert(false), 3000);
   };
 
   const handleResetTheme = () => {
+    const username = getCurrentUsername();
     setThemeVars(DEFAULT_THEME); applyThemeToRoot(DEFAULT_THEME);
     setSelectedFont(FONT_OPTIONS[0].value);
     document.documentElement.style.setProperty('--font-family', FONT_OPTIONS[0].value);
     document.documentElement.style.setProperty('--font-heading', FONT_OPTIONS[0].value);
     setActivePreset('apple');
-    localStorage.removeItem('cms_theme'); localStorage.removeItem('cms_font');
+    localStorage.removeItem(`cms_theme_user_${username}`);
+    localStorage.removeItem(`cms_font_user_${username}`);
+    window.dispatchEvent(new CustomEvent('cms_user_theme_changed', { detail: { username, theme: DEFAULT_THEME, font: FONT_OPTIONS[0].value } }));
   };
 
   const ColorRow = ({ label, varKey, description }: { label: string; varKey: string; description?: string }) => (
@@ -244,10 +277,10 @@ export default function SettingsPage() {
           <div className="glass-panel" style={{ padding: '20px 24px', marginBottom: '18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <h3 style={{ fontSize: '1.05rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Palette color="#af52de" size={18} /> Theme & Appearance Customization
+                <Palette color="#af52de" size={18} /> Personal Theme & Appearance Customization
               </h3>
               <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                Changes apply instantly system-wide. Save Theme to persist across sessions.
+                Preferences are saved per-user for <strong>{currentUserDisplay}</strong>. Your customized colors and typography will not affect other clinic users.
               </p>
             </div>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>

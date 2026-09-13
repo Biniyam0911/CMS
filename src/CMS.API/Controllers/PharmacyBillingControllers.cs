@@ -116,4 +116,51 @@ public class NotificationsController : ControllerBase
         long id = await _notificationService.EnqueueNotificationAsync(dtoWithTenant);
         return Ok(ApiResponse<object>.Ok(new { NotificationId = id }));
     }
+
+    [HttpGet]
+    public async Task<IActionResult> GetNotifications([FromQuery] int? userId = null, [FromQuery] string? role = null)
+    {
+        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+        var list = await _notificationService.GetNotificationsAsync(tenantId, userId, role);
+        return Ok(ApiResponse<List<NotificationItemDto>>.Ok(list));
+    }
+
+    [HttpPut("{id}/read")]
+    public async Task<IActionResult> MarkAsRead(long id)
+    {
+        bool success = await _notificationService.MarkAsReadAsync(id);
+        return Ok(ApiResponse<bool>.Ok(success));
+    }
+
+    [HttpPost("mark-all-read")]
+    public async Task<IActionResult> MarkAllAsRead([FromQuery] int? userId = null)
+    {
+        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+        bool success = await _notificationService.MarkAllAsReadAsync(tenantId, userId);
+        return Ok(ApiResponse<bool>.Ok(success));
+    }
+
+    [HttpPost("broadcast")]
+    public async Task<IActionResult> Broadcast([FromBody] BroadcastNotificationDto dto)
+    {
+        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+        long id = await _notificationService.BroadcastNotificationAsync(tenantId, dto);
+        return Ok(ApiResponse<object>.Ok(new { NotificationId = id }));
+    }
+
+    [HttpGet("rules")]
+    public async Task<IActionResult> GetRules()
+    {
+        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+        string? rules = await _notificationService.GetRoleNotificationRulesAsync(tenantId);
+        return Ok(ApiResponse<object>.Ok(new { Rules = rules }));
+    }
+
+    [HttpPost("rules")]
+    public async Task<IActionResult> SaveRules([FromBody] UpdateSettingDto dto)
+    {
+        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+        bool success = await _notificationService.SaveRoleNotificationRulesAsync(tenantId, dto.SettingValue);
+        return Ok(ApiResponse<bool>.Ok(success));
+    }
 }

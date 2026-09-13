@@ -27,7 +27,7 @@ public class QueueService
         return (await conn.QueryAsync<ServiceCounterDto>(sql, new { TenantId = tenantId })).ToList();
     }
 
-    public async Task<List<PatientQueueDto>> GetLiveQueueAsync(byte tenantId)
+    public async Task<List<PatientQueueDto>> GetLiveQueueAsync(byte tenantId, DateTime? date = null)
     {
         using var conn = _dbFactory.CreateConnection();
         var sql = @"
@@ -45,9 +45,10 @@ public class QueueService
             LEFT JOIN Doctors d ON d.Id = pq.AssignedDoctorId
             LEFT JOIN Staff s ON s.Id = d.StaffId
             WHERE pq.TenantId = @TenantId AND pq.StatusId IN (1, 2, 3)
+              AND (@Date IS NULL OR CAST(pq.CheckInTime AS DATE) = CAST(@Date AS DATE))
             ORDER BY pq.PriorityLevel ASC, pq.CheckInTime ASC";
 
-        return (await conn.QueryAsync<PatientQueueDto>(sql, new { TenantId = tenantId })).ToList();
+        return (await conn.QueryAsync<PatientQueueDto>(sql, new { TenantId = tenantId, Date = date })).ToList();
     }
 
     public async Task<string> CheckInPatientAsync(CheckInQueueDto dto)

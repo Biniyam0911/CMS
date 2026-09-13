@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   ShieldCheck, UserPlus, Key, Lock, Check, X, Shield, RefreshCw,
   Loader2, Users, CheckCircle2, RotateCcw, Save, Eye, Layers, Settings,
-  Edit3, Stethoscope, Briefcase
+  Edit3, Stethoscope, Briefcase, Bell, Send, Volume2, Flame, Pill, FlaskConical, DollarSign
 } from 'lucide-react';
 import { api } from '../../api/apiClient';
 import { MODULE_ITEMS, ModuleKey } from '../../components/Sidebar';
@@ -13,9 +13,16 @@ import {
   DEFAULT_ROLE_PERMISSIONS,
   RolePermissionMap
 } from '../../utils/permissions';
+import {
+  NOTIFICATION_EVENTS,
+  getRoleNotificationRules,
+  saveRoleNotificationRules,
+  DEFAULT_ROLE_RULES,
+  RoleNotificationMatrix
+} from '../../utils/notificationRules';
 
 export default function UserManagementPage() {
-  const [activeTab, setActiveTab] = useState<'users' | 'permissions'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'permissions' | 'notifications'>('users');
 
   // Users & Staff State
   const [users, setUsers] = useState<any[]>([]);
@@ -47,6 +54,73 @@ export default function UserManagementPage() {
   const [rolePermissions, setRolePermissions] = useState<RolePermissionMap>(getRolePermissions());
   const [selectedRole, setSelectedRole] = useState<string>('Doctor');
   const [saveSuccessToast, setSaveSuccessToast] = useState<string | null>(null);
+
+  // Notification Manager State
+  const [notificationRules, setNotificationRules] = useState<RoleNotificationMatrix>(getRoleNotificationRules());
+  const [testEventType, setTestEventType] = useState<string>('EmergencyTriage');
+  const [testTargetRole, setTestTargetRole] = useState<string>('All');
+  const [testMessage, setTestMessage] = useState<string>('Emergency: Vital signs critical. Immediate attention requested in Triage Room 1.');
+  const [testSending, setTestSending] = useState(false);
+
+  const handleToggleNotificationRole = (eventKey: string, roleName: string) => {
+    const currentRoles = notificationRules[eventKey] || DEFAULT_ROLE_RULES[eventKey] || [];
+    let updated: string[];
+    if (currentRoles.includes(roleName)) {
+      updated = currentRoles.filter(r => r !== roleName);
+    } else {
+      updated = [...currentRoles, roleName];
+    }
+    setNotificationRules({
+      ...notificationRules,
+      [eventKey]: updated
+    });
+  };
+
+  const handleSaveNotificationRules = async () => {
+    saveRoleNotificationRules(notificationRules);
+    try {
+      await api.post('/notifications/rules', { settingKey: 'Notification.RoleRules', settingValue: JSON.stringify(notificationRules) });
+    } catch {}
+    setSaveSuccessToast('✓ Role notification rules saved successfully to database and active clinic profile!');
+    setTimeout(() => setSaveSuccessToast(null), 4000);
+  };
+
+  const handleResetNotificationDefaults = () => {
+    setNotificationRules(DEFAULT_ROLE_RULES);
+  };
+
+  const handleSendTestNotification = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setTestSending(true);
+    const eventDef = NOTIFICATION_EVENTS.find(ev => ev.key === testEventType);
+    const subject = eventDef?.name || 'Clinical Alert';
+    const notifItem = {
+      id: Date.now(),
+      subject,
+      body: testMessage,
+      priority: eventDef?.category === 'Critical' ? 1 : 2,
+      notificationType: testEventType,
+      statusId: 1,
+      createdAt: new Date().toISOString(),
+      targetRole: testTargetRole
+    };
+
+    try {
+      await api.post('/notifications/broadcast', {
+        subject,
+        body: testMessage,
+        notificationType: testEventType,
+        targetRole: testTargetRole === 'All' ? null : testTargetRole,
+        priority: eventDef?.category === 'Critical' ? 1 : 2
+      });
+    } catch {}
+
+    // Dispatch locally so UI immediately fires Toast and increments Bell
+    window.dispatchEvent(new CustomEvent('cms_new_notification', { detail: notifItem }));
+    setTestSending(false);
+    setSaveSuccessToast(`✓ Test alert "${subject}" sent to ${testTargetRole}!`);
+    setTimeout(() => setSaveSuccessToast(null), 4000);
+  };
 
   const availableRolesList = [
     { name: 'SuperAdmin', desc: 'Full unrestricted clinical and system administrative authority' },
@@ -326,6 +400,13 @@ export default function UserManagementPage() {
         >
           <ShieldCheck size={16} /> Role Permission Editor (Module Visibility)
         </button>
+        <button
+          onClick={() => setActiveTab('notifications')}
+          className={activeTab === 'notifications' ? 'btn-primary' : 'btn-secondary'}
+          style={{ display: 'flex', alignItems: 'center', gap: '7px' }}
+        >
+          <Bell size={16} /> Notification Manager (Role Alerts)
+        </button>
       </div>
 
       {/* ========================================================================= */}
@@ -545,6 +626,208 @@ export default function UserManagementPage() {
             <button onClick={handleSavePermissions} className="btn-primary" style={{ padding: '8px 20px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Save size={15} /> Save All Role Permissions
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 3: NOTIFICATION MANAGER (ROLE SUBSCRIPTIONS & ALERT DISPATCHER)       */}
+      {/* ========================================================================= */}
+      {activeTab === 'notifications' && (
+        <div>
+          {/* Top Panel: Header & Actions */}
+          <div className="glass-panel" style={{ padding: '20px 24px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
+            <div>
+              <h4 style={{ fontSize: '1.05rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-main)' }}>
+                <Bell color="#0071e3" size={18} /> Role Notification & Clinical Alert Subscriptions
+              </h4>
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '3px' }}>
+                Define exactly which roles receive real-time alerts in the top notification bell, floating toasts, and audio chimes.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button onClick={handleResetNotificationDefaults} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <RotateCcw size={14} /> Reset Defaults
+              </button>
+              <button onClick={handleSaveNotificationRules} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Save size={15} /> Save Notification Rules
+              </button>
+            </div>
+          </div>
+
+          {/* Main Matrix Table */}
+          <div className="glass-panel" style={{ padding: '24px', marginBottom: '24px', overflowX: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div>
+                <h4 style={{ fontWeight: 700, fontSize: '0.92rem' }}>Role-to-Alert Subscription Matrix</h4>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                  Click any checkbox to enable or disable notification delivery for that role.
+                </span>
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <span style={{ fontSize: '0.72rem', padding: '3px 8px', borderRadius: '12px', background: 'rgba(255, 59, 48, 0.1)', color: '#ff3b30', fontWeight: 600 }}>
+                  ● Critical Priority
+                </span>
+                <span style={{ fontSize: '0.72rem', padding: '3px 8px', borderRadius: '12px', background: 'rgba(0, 113, 227, 0.1)', color: '#0071e3', fontWeight: 600 }}>
+                  ● Routine Alert
+                </span>
+              </div>
+            </div>
+
+            <table className="cms-table" style={{ width: '100%', minWidth: '820px' }}>
+              <thead>
+                <tr>
+                  <th style={{ width: '280px' }}>Notification Event & Scope</th>
+                  <th style={{ width: '90px' }}>Target</th>
+                  {availableRolesList.map(r => (
+                    <th key={r.name} style={{ textAlign: 'center', fontSize: '0.75rem', padding: '8px 4px' }}>
+                      {r.name}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {NOTIFICATION_EVENTS.map(ev => {
+                  const subscribedRoles = notificationRules[ev.key] || DEFAULT_ROLE_RULES[ev.key] || [];
+                  return (
+                    <tr key={ev.key}>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                          <div
+                            style={{
+                              width: '26px',
+                              height: '26px',
+                              borderRadius: '6px',
+                              background: `${ev.color}15`,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                              marginTop: '2px'
+                            }}
+                          >
+                            <Bell size={14} color={ev.color} />
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: 600, fontSize: '0.82rem', color: 'var(--text-main)' }}>
+                              {ev.name}
+                            </div>
+                            <div style={{ fontSize: '0.71rem', color: 'var(--text-muted)', lineHeight: 1.3 }}>
+                              {ev.description}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <span
+                          style={{
+                            fontSize: '0.67rem',
+                            fontWeight: 600,
+                            padding: '2px 6px',
+                            borderRadius: '6px',
+                            background: 'var(--bg-dark)',
+                            color: 'var(--text-secondary)',
+                            fontFamily: 'monospace'
+                          }}
+                        >
+                          {ev.targetModule}
+                        </span>
+                      </td>
+                      {availableRolesList.map(r => {
+                        const isSubscribed = subscribedRoles.includes(r.name);
+                        return (
+                          <td key={r.name} style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                            <input
+                              type="checkbox"
+                              checked={isSubscribed}
+                              onChange={() => handleToggleNotificationRole(ev.key, r.name)}
+                              style={{
+                                width: '17px',
+                                height: '17px',
+                                cursor: 'pointer',
+                                accentColor: '#0071e3'
+                              }}
+                              title={`Toggle ${r.name} for ${ev.name}`}
+                            />
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Test Alert Dispatcher Panel */}
+          <div className="glass-panel" style={{ padding: '24px' }}>
+            <h4 style={{ fontWeight: 700, fontSize: '0.95rem', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Send size={16} color="#0071e3" /> Send & Test Live Clinical Notification
+            </h4>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '18px' }}>
+              Instantly broadcast a real-time notification to test delivery in the header bell and floating toast banner.
+            </p>
+
+            <form onSubmit={handleSendTestNotification} style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 2fr auto', gap: '14px', alignItems: 'flex-end' }}>
+              <div>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '5px' }}>
+                  Alert Category / Event Type
+                </label>
+                <select
+                  value={testEventType}
+                  onChange={e => {
+                    setTestEventType(e.target.value);
+                    const found = NOTIFICATION_EVENTS.find(ev => ev.key === e.target.value);
+                    if (found) setTestMessage(found.description);
+                  }}
+                  style={{ width: '100%', padding: '8px 10px', fontSize: '0.82rem' }}
+                >
+                  {NOTIFICATION_EVENTS.map(ev => (
+                    <option key={ev.key} value={ev.key}>{ev.name} ({ev.category})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '5px' }}>
+                  Target Role Audience
+                </label>
+                <select
+                  value={testTargetRole}
+                  onChange={e => setTestTargetRole(e.target.value)}
+                  style={{ width: '100%', padding: '8px 10px', fontSize: '0.82rem' }}
+                >
+                  <option value="All">All Subscribed Roles</option>
+                  {availableRolesList.map(r => (
+                    <option key={r.name} value={r.name}>{r.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '5px' }}>
+                  Notification Message Body
+                </label>
+                <input
+                  type="text"
+                  value={testMessage}
+                  onChange={e => setTestMessage(e.target.value)}
+                  placeholder="Enter message text..."
+                  required
+                  style={{ width: '100%', padding: '8px 10px', fontSize: '0.82rem' }}
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={testSending}
+                className="btn-primary"
+                style={{ padding: '9px 18px', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}
+              >
+                {testSending ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
+                Send Live Alert
+              </button>
+            </form>
           </div>
         </div>
       )}

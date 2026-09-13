@@ -87,7 +87,7 @@ public class SoapAndClinicalService
         return (await conn.QueryAsync<ProcedureOrderDto>(sql, new { PatientId = patientId })).ToList();
     }
 
-    public async Task<List<ProcedureOrderDto>> GetProcedureQueueAsync(byte tenantId)
+    public async Task<List<ProcedureOrderDto>> GetProcedureQueueAsync(byte tenantId, DateTime? date = null)
     {
         using var conn = _dbFactory.CreateConnection();
         var sql = @"
@@ -100,8 +100,9 @@ public class SoapAndClinicalService
             JOIN Patients p ON p.Id = po.PatientId
             LEFT JOIN Staff s ON s.UserId = po.OrderedBy
             WHERE po.TenantId = @TenantId AND po.StatusId IN (1, 2, 3)
+              AND (@Date IS NULL OR CAST(po.CreatedAt AS DATE) = CAST(@Date AS DATE))
             ORDER BY po.CreatedAt ASC";
 
-        return (await conn.QueryAsync<ProcedureOrderDto>(sql, new { TenantId = tenantId })).ToList();
+        return (await conn.QueryAsync<ProcedureOrderDto>(sql, new { TenantId = tenantId, Date = date })).ToList();
     }
 }

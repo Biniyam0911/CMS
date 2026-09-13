@@ -26,19 +26,27 @@ export default function QueuePage() {
   const fetchAllQueues = async () => {
     try {
       setLoading(true);
+      const todayIsoDate = new Date().toISOString().split('T')[0];
+
       const [liveData, counterData, triageData, labData, procData] = await Promise.all([
-        api.get<any[]>('/queue/live').catch(() => []),
+        api.get<any[]>(`/queue/live?date=${todayIsoDate}`).catch(() => []),
         api.get<any[]>('/queue/counters').catch(() => []),
-        api.get<any>('/triage/queue').catch(() => []),
-        api.get<any>('/lab/orders').catch(() => api.get<any>('/lab/worklist').catch(() => [])),
-        api.get<any>('/procedures/queue').catch(() => [])
+        api.get<any>(`/triage/queue?date=${todayIsoDate}`).catch(() => []),
+        api.get<any>(`/lab/orders?date=${todayIsoDate}`).catch(() => api.get<any>(`/lab/worklist?date=${todayIsoDate}`).catch(() => [])),
+        api.get<any>(`/procedures/queue?date=${todayIsoDate}`).catch(() => [])
       ]);
 
-      // ---- TODAY FILTER ----
-      const todayStr = new Date().toISOString().split('T')[0]; // e.g. "2026-09-11"
-      const isToday = (dateField: string | undefined | null) => {
-        if (!dateField) return true; // if no date field, include (don't hide)
-        return String(dateField).startsWith(todayStr);
+      // ---- STRICT LOCAL CALENDAR DAY MATCHING ----
+      const now = new Date();
+      const todayYear = now.getFullYear();
+      const todayMonth = now.getMonth();
+      const todayDay = now.getDate();
+
+      const isToday = (dateField: any): boolean => {
+        if (!dateField) return false; // Exclude records that do not belong to today
+        const d = new Date(dateField);
+        if (isNaN(d.getTime())) return false;
+        return d.getFullYear() === todayYear && d.getMonth() === todayMonth && d.getDate() === todayDay;
       };
 
       // Service Counters
@@ -60,8 +68,9 @@ export default function QueuePage() {
       }
 
       // Live Tokens — today only
-      if (liveData && Array.isArray(liveData) && liveData.length > 0) {
-        const todayTokens = liveData.filter((q: any) => isToday(q.createdAt || q.CreatedAt || q.tokenDate || q.TokenDate));
+      const rawTokens = Array.isArray(liveData) ? liveData : ((liveData as any)?.data || (liveData as any)?.Data || []);
+      if (rawTokens && rawTokens.length > 0) {
+        const todayTokens = rawTokens.filter((q: any) => isToday(q.checkInTime || q.CheckInTime || q.createdAt || q.CreatedAt || q.tokenDate || q.TokenDate));
         setTokens(todayTokens.map((q: any) => ({
           id: q.id || q.Id,
           token: q.tokenNumber || q.TokenNumber || `A-${String(q.id).padStart(3, '0')}`,
@@ -77,8 +86,8 @@ export default function QueuePage() {
 
       // Triage Queue — today only
       const rawTriage = Array.isArray(triageData) ? triageData : (triageData?.data || triageData?.Data || []);
-      const todayTriage = rawTriage.filter((t: any) => isToday(t.triageDate || t.TriageDate || t.createdAt || t.CreatedAt || t.date || t.Date));
-      if (todayTriage && todayTriage.length > 0) {
+      if (rawTriage && rawTriage.length > 0) {
+        const todayTriage = rawTriage.filter((t: any) => isToday(t.triagedAt || t.TriagedAt || t.updatedAt || t.UpdatedAt || t.createdAt || t.CreatedAt || t.triageDate || t.TriageDate));
         setTriageQueue(todayTriage.map((t: any) => ({
           id: t.id || t.Id,
           token: t.tokenNumber || t.TokenNumber || `TRG-${t.id || t.Id}`,
@@ -98,8 +107,8 @@ export default function QueuePage() {
 
       // Laboratory Queue — today only
       const rawLab = Array.isArray(labData) ? labData : (labData?.data || labData?.Data || []);
-      const todayLab = rawLab.filter((l: any) => isToday(l.orderedAt || l.OrderedAt || l.createdAt || l.CreatedAt || l.date || l.Date));
-      if (todayLab && todayLab.length > 0) {
+      if (rawLab && rawLab.length > 0) {
+        const todayLab = rawLab.filter((l: any) => isToday(l.orderedAt || l.OrderedAt || l.createdAt || l.CreatedAt));
         setLabQueue(todayLab.map((l: any) => ({
           id: l.id || l.Id || l.orderId || l.OrderId,
           token: l.orderNumber || l.OrderNumber || `LAB-${l.id || l.orderId}`,
@@ -117,8 +126,8 @@ export default function QueuePage() {
 
       // Procedure Queue — today only
       const rawProc = Array.isArray(procData) ? procData : (procData?.data || procData?.Data || []);
-      const todayProc = rawProc.filter((p: any) => isToday(p.orderedAt || p.OrderedAt || p.createdAt || p.CreatedAt || p.date || p.Date));
-      if (todayProc && todayProc.length > 0) {
+      if (rawProc && rawProc.length > 0) {
+        const todayProc = rawProc.filter((p: any) => isToday(p.createdAt || p.CreatedAt || p.orderedAt || p.OrderedAt));
         setProcedureQueue(todayProc.map((p: any) => ({
           id: p.id || p.Id,
           token: `PRC-${p.id || p.Id}`,
@@ -220,16 +229,34 @@ export default function QueuePage() {
       </div>
 
       {/* Counter Selection Bar */}
-      <div className="glass-panel" style={{ padding: '16px 20px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <label style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-            Active Staff Station:
-          </label>
-          <select value={activeCounter} onChange={e => setActiveCounter(e.target.value)} style={{ width: '280px', padding: '8px 12px' }}>
-            {counters.map(c => (
-              <option key={c.id} value={c.name}>{c.name} ({c.service})</option>
-            ))}
-          </select>
+      <div className="glass-panel" style={{ padding: '16px 20px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <label style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+              Active Staff Station:
+            </label>
+            <select value={activeCounter} onChange={e => setActiveCounter(e.target.value)} style={{ width: '240px', padding: '8px 12px' }}>
+              {counters.map(c => (
+                <option key={c.id} value={c.name}>{c.name} ({c.service})</option>
+              ))}
+            </select>
+          </div>
+
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '5px 12px',
+            borderRadius: '20px',
+            background: 'rgba(0, 113, 227, 0.08)',
+            border: '1px solid rgba(0, 113, 227, 0.2)',
+            fontSize: '0.78rem',
+            color: '#0071e3',
+            fontWeight: 600
+          }}>
+            <Clock size={13} />
+            <span>Today's Waiting List: {new Date().toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</span>
+          </div>
         </div>
 
         {/* Queue Switcher Navigation Tabs */}

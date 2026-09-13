@@ -93,14 +93,62 @@ export default function App() {
     } catch {}
   };
 
-  // Sync role permissions and branding on startup
+  const DEFAULT_THEME_VARS: Record<string, string> = {
+    '--bg-dark': '#f5f5f7', '--bg-card': '#ffffff', '--bg-sidebar': '#ffffff', '--accent-blue': '#0071e3',
+    '--accent-emerald': '#34c759', '--accent-rose': '#ff3b30', '--accent-amber': '#ff9500',
+    '--text-main': '#1d1d1f', '--text-secondary': '#6e6e73', '--border-color': '#e5e5ea', '--card-radius': '14px'
+  };
+  const DEFAULT_FONT = "'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+
+  const applyUserTheme = (username?: string) => {
+    const uKey = username ? username.toLowerCase().trim() : (function() {
+      try {
+        const saved = localStorage.getItem('current_user');
+        if (saved) {
+          const u = JSON.parse(saved);
+          if (u && (u.username || u.name)) return String(u.username || u.name).toLowerCase().trim();
+        }
+      } catch {}
+      return 'default';
+    })();
+
+    let theme = DEFAULT_THEME_VARS;
+    let font = DEFAULT_FONT;
+    try {
+      const rawTheme = localStorage.getItem(`cms_theme_user_${uKey}`);
+      if (rawTheme) theme = { ...DEFAULT_THEME_VARS, ...JSON.parse(rawTheme) };
+      const savedFont = localStorage.getItem(`cms_font_user_${uKey}`);
+      if (savedFont) font = savedFont;
+    } catch {}
+
+    const root = document.documentElement;
+    Object.entries(theme).forEach(([k, v]) => root.style.setProperty(k, v));
+    root.style.setProperty('--bg-input', theme['--bg-card'] || '#ffffff');
+    root.style.setProperty('--bg-card-hover', theme['--bg-card'] || '#ffffff');
+    root.style.setProperty('--border-focus', theme['--accent-blue'] || '#0071e3');
+    root.style.setProperty('--accent-cyan', theme['--accent-blue'] || '#0071e3');
+    root.style.setProperty('--text-muted', theme['--text-secondary'] || '#6e6e73');
+    root.style.setProperty('--font-family', font);
+    root.style.setProperty('--font-heading', font);
+  };
+
+  // Sync role permissions, branding and per-user theme on startup
   useEffect(() => {
     initRolePermissions();
     loadBranding();
+    applyUserTheme(user?.username);
+
     const handleBrandingChange = () => loadBranding();
+    const handleUserThemeChange = () => applyUserTheme(user?.username);
+
     window.addEventListener('clinic_settings_changed', handleBrandingChange);
-    return () => window.removeEventListener('clinic_settings_changed', handleBrandingChange);
-  }, []);
+    window.addEventListener('cms_user_theme_changed', handleUserThemeChange);
+
+    return () => {
+      window.removeEventListener('clinic_settings_changed', handleBrandingChange);
+      window.removeEventListener('cms_user_theme_changed', handleUserThemeChange);
+    };
+  }, [user]);
 
   if (!user || !token) {
     return (
@@ -112,6 +160,7 @@ export default function App() {
           localStorage.setItem('current_user', JSON.stringify(u));
           initRolePermissions();
           loadBranding();
+          applyUserTheme(u.username);
         }}
       />
     );
@@ -138,6 +187,7 @@ export default function App() {
           setToken('');
           localStorage.removeItem('auth_token');
           localStorage.removeItem('current_user');
+          applyUserTheme('default');
         }}
       />
 
@@ -149,6 +199,7 @@ export default function App() {
           user={user}
           clinicName={clinicName}
           appIconName={appIcon}
+          onNavigateModule={(key) => setActiveModule(key)}
         />
 
         {/* Dynamic Module Views */}

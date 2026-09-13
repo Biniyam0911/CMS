@@ -90,10 +90,10 @@ public class QueueController : ControllerBase
     }
 
     [HttpGet("live")]
-    public async Task<IActionResult> GetLiveQueue()
+    public async Task<IActionResult> GetLiveQueue([FromQuery] DateTime? date = null)
     {
         byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
-        var queue = await _queueService.GetLiveQueueAsync(tenantId);
+        var queue = await _queueService.GetLiveQueueAsync(tenantId, date);
         return Ok(ApiResponse<List<PatientQueueDto>>.Ok(queue));
     }
 
@@ -178,10 +178,10 @@ public class ProceduresController : ControllerBase
     }
 
     [HttpGet("queue")]
-    public async Task<IActionResult> GetProcedureQueue()
+    public async Task<IActionResult> GetProcedureQueue([FromQuery] DateTime? date = null)
     {
         byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
-        var procs = await _clinicalService.GetProcedureQueueAsync(tenantId);
+        var procs = await _clinicalService.GetProcedureQueueAsync(tenantId, date);
         return Ok(ApiResponse<List<ProcedureOrderDto>>.Ok(procs));
     }
 }

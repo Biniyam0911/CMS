@@ -35,3 +35,23 @@ export function playTicketChimeAndSpeech(tokenNumber: string, counterName: strin
     window.speechSynthesis.speak(utterance);
   }
 }
+
+export function playNotificationTone() {
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (AudioCtx) {
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(659.25, ctx.currentTime); // E5 note
+      osc.frequency.exponentialRampToValueAtTime(880.0, ctx.currentTime + 0.15); // A5 note
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.35);
+    }
+  } catch {}
+}
