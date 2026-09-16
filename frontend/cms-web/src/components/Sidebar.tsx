@@ -3,16 +3,16 @@ import {
   LayoutDashboard, Users, FileHeart, Calendar, ListOrdered, FlaskConical,
   Pill, CreditCard, BarChart3, FileSpreadsheet, Globe, ShieldCheck,
   Boxes, Key, Settings, Plug, LogOut, LucideIcon, HeartPulse, Layers,
-  ChevronLeft, ChevronRight, Stethoscope, Activity, Cross, Building
+  ChevronLeft, ChevronRight, Stethoscope, Activity, Cross, Building, Bed, Video
 } from 'lucide-react';
 
 import { hasModuleAccess } from '../utils/permissions';
 
 export type ModuleKey =
-  | 'DASHBOARD' | 'PATIENTS' | 'TRIAGE' | 'EMR' | 'APPOINTMENTS' | 'QUEUE'
+  | 'DASHBOARD' | 'PATIENTS' | 'TRIAGE' | 'EMR' | 'INPATIENT' | 'APPOINTMENTS' | 'QUEUE'
   | 'LAB' | 'PHARMACY' | 'BILLING' | 'REPORTS' | 'REPORT_BUILDER'
   | 'PATIENT_PORTAL' | 'USER_MGMT' | 'SERVICE_MGMT' | 'MODULE_MGMT' | 'API_MGMT'
-  | 'SETTINGS' | 'INTEGRATIONS';
+  | 'SETTINGS' | 'INTEGRATIONS' | 'TELEMED';
 
 interface SidebarProps {
   activeModule: ModuleKey;
@@ -28,8 +28,10 @@ export const MODULE_ITEMS: { key: ModuleKey; label: string; category: string; ic
   { key: 'PATIENTS', label: 'Patient Registry', category: 'Clinical', icon: Users },
   { key: 'TRIAGE', label: 'Triage & Vitals', category: 'Clinical', icon: HeartPulse },
   { key: 'EMR', label: 'EMR & Consultation', category: 'Clinical', icon: FileHeart },
+  { key: 'INPATIENT', label: 'Inpatient & Beds', category: 'Clinical', icon: Bed },
   { key: 'APPOINTMENTS', label: 'Appointments', category: 'Clinical', icon: Calendar },
   { key: 'QUEUE', label: 'Queue Board', category: 'Clinical', icon: ListOrdered },
+  { key: 'TELEMED', label: 'Telemedicine', category: 'Clinical', icon: Video },
   { key: 'LAB', label: 'Laboratory (LIS)', category: 'Clinical', icon: FlaskConical },
   { key: 'PHARMACY', label: 'Dispensary', category: 'Clinical', icon: Pill },
   { key: 'BILLING', label: 'Billing & Invoices', category: 'Financial', icon: CreditCard },

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   ShieldCheck, UserPlus, Key, Lock, Check, X, Shield, RefreshCw,
   Loader2, Users, CheckCircle2, RotateCcw, Save, Eye, Layers, Settings,
-  Edit3, Stethoscope, Briefcase, Bell, Send, Volume2, Flame, Pill, FlaskConical, DollarSign
+  Edit3, Stethoscope, Briefcase, Bell, Send, Volume2, Flame, Pill, FlaskConical, DollarSign, Search
 } from 'lucide-react';
 import { api } from '../../api/apiClient';
 import { MODULE_ITEMS, ModuleKey } from '../../components/Sidebar';
@@ -60,6 +60,7 @@ export default function UserManagementPage() {
   const [rolePermissions, setRolePermissions] = useState<RolePermissionMap>(getRolePermissions());
   const [selectedRole, setSelectedRole] = useState<string>('Doctor');
   const [saveSuccessToast, setSaveSuccessToast] = useState<string | null>(null);
+  const [permSearchQuery, setPermSearchQuery] = useState('');
 
   // Notification Manager State
   const [notificationRules, setNotificationRules] = useState<RoleNotificationMatrix>(getRoleNotificationRules());
@@ -129,13 +130,15 @@ export default function UserManagementPage() {
   };
 
   const availableRolesList = [
-    { name: 'SuperAdmin', desc: 'Full unrestricted clinical and system administrative authority' },
+    { name: 'SuperAdmin', desc: 'Full unrestricted clinical, financial, and system administrative authority' },
     { name: 'Admin', desc: 'Clinic operations, user accounts, and financial/billing manager' },
     { name: 'Doctor', desc: 'Physicians: EMR consultation notes, triage queue, lab orders & prescriptions' },
-    { name: 'Nurse', desc: 'Patient vitals triage, appointment check-in & token queue management' },
+    { name: 'Nurse', desc: 'Patient vitals triage, inpatient ward beds, appointment check-in & token queue management' },
     { name: 'LabTechnician', desc: 'Specimen processing, analyte result entry & LIS machine integrations' },
+    { name: 'Pathologist', desc: 'Senior clinical pathologist: Laboratory test result verification, critical alerts & LIS diagnostic reports' },
+    { name: 'Radiologist', desc: 'Radiology specialist: EMR consultation notes, PACS DICOM imaging viewer, calipers & diagnostic imaging reports' },
     { name: 'Pharmacist', desc: 'Medication formulary, stock inventory & prescription dispensing' },
-    { name: 'BillingOfficer', desc: 'Invoices, insurance claims, cashier receipts & payment processing' },
+    { name: 'BillingOfficer', desc: 'Invoices, insurance claims, cashier receipts, ERCA fiscal tax receipts & Telebirr QR payments' },
     { name: 'Receptionist', desc: 'Front desk patient registration, appointment booking & check-in' }
   ];
 
@@ -381,6 +384,37 @@ export default function UserManagementPage() {
     setTimeout(() => setSaveSuccessToast(null), 4000);
   };
 
+  const MODULE_FEATURE_HIGHLIGHTS: Record<string, { desc: string; tags: string[] }> = {
+    DASHBOARD: { desc: 'Executive KPI cards, revenue metrics, and operational overview', tags: ['KPIs', 'Live Revenue', 'System Health'] },
+    PATIENTS: { desc: 'Patient master index, demographics, MRN, and medical history', tags: ['Demographics', 'MRN Generation', 'Insurance'] },
+    TRIAGE: { desc: 'Nursing vitals, MEWS early warning scoring, and vitals trending', tags: ['MEWS Score', 'Vitals Trends', 'Emergency Priority'] },
+    EMR: { desc: 'SOAP clinical visit notes, ICD-10 coding, and 2D DICOM PACS radiology viewer', tags: ['SOAP Notes', 'DICOM PACS Viewer', 'Caliper Measurements', 'ICD-10'] },
+    INPATIENT: { desc: 'Ward floorplans, bed availability, patient admission, and nursing rounds', tags: ['Ward Floorplan', 'Bed Occupancy', 'Nursing Flowsheet', 'Discharge'] },
+    APPOINTMENTS: { desc: 'Physician calendars, slot reservation, and automated SMS reminders', tags: ['Doctor Matrix', 'Slot Reservation', 'SMS Alerts'] },
+    QUEUE: { desc: 'Token dispatching, counter calling, and waiting room TV screen with voice chime', tags: ['Waiting Room TV Display', 'Voice Chime', 'Multi-Counter Calling'] },
+    LAB: { desc: 'Diagnostic test catalog, HL7/ASTM analyzer feeds, and critical value alerts', tags: ['HL7 / ASTM Feeds', 'Specimen Phlebotomy', 'Verified Reports'] },
+    PHARMACY: { desc: 'Formulary, e-prescription queue, stock inventory, and batch dispensing', tags: ['E-Prescriptions', 'Inventory', 'Batch Logs'] },
+    BILLING: { desc: 'Invoicing, TPA insurance split-claims, ERCA fiscal receipts, and Telebirr QR', tags: ['ERCA Fiscal QR', 'Telebirr Dynamic QR', 'TPA Co-Pay Split'] },
+    REPORTS: { desc: 'Operational revenue, clinical volume, lab TAT, and pharmacy consumption', tags: ['Revenue Reports', 'Clinical Analytics', 'TAT Logs'] },
+    REPORT_BUILDER: { desc: 'Drag-and-drop query designer with PDF, Excel, and CSV export', tags: ['Custom Designer', 'Excel / PDF Export'] },
+    PATIENT_PORTAL: { desc: 'Self-service portal for appointments, lab results, and invoice payment', tags: ['Online Booking', 'Results Download', 'Online Payment'] },
+    SERVICE_MGMT: { desc: 'Centralized catalog for consultation charges, diagnostics, and procedure fees', tags: ['Fee Schedules', 'Procedure Catalog', 'Pricing Rules'] },
+    USER_MGMT: { desc: 'Staff directory, role permission matrix, and HIPAA compliance audit trail', tags: ['RBAC Matrix', 'Staff Directory', 'HIPAA Logs'] },
+    MODULE_MGMT: { desc: 'Enable, disable, and configure system modules per clinic tenant', tags: ['Module Registry', 'Feature Toggles'] },
+    API_MGMT: { desc: 'API key issuance, rate limiting per token, and webhook subscription logs', tags: ['API Keys', 'Webhook Logs'] },
+    SETTINGS: { desc: 'Clinic profile, working hours, notification templates, and VAT configuration', tags: ['Clinic Branding', 'VAT Rates', 'Print Headers'] },
+    INTEGRATIONS: { desc: 'Ethio Telecom SMS gateway, Telebirr webhooks, and analyzer TCP feeds', tags: ['Ethio Telecom SMS', 'Telebirr Mobile Webhook', 'HL7 Port 2575'] }
+  };
+
+  const handleGrantPreset = (presetKeys: ModuleKey[]) => {
+    const current = rolePermissions[selectedRole] || [];
+    const merged = Array.from(new Set([...current, ...presetKeys]));
+    setRolePermissions({
+      ...rolePermissions,
+      [selectedRole]: merged
+    });
+  };
+
   // Group modules by category
   const categories = Array.from(new Set(MODULE_ITEMS.map(m => m.category)));
 
@@ -550,35 +584,80 @@ export default function UserManagementPage() {
               })}
             </div>
 
-            {/* Role Summary Banner */}
-            <div style={{ padding: '12px 16px', background: '#fdfcf9', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-              <div>
-                <span style={{ fontWeight: 700, color: '#0369a1', fontSize: '0.9rem' }}>{selectedRole} Role</span>
-                <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                  {availableRolesList.find(r => r.name === selectedRole)?.desc}
-                </p>
+            {/* Role Summary Banner & Quick Presets */}
+            <div style={{ padding: '14px 18px', background: '#fdfcf9', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                <div>
+                  <span style={{ fontWeight: 700, color: '#0369a1', fontSize: '0.95rem' }}>{selectedRole} Role</span>
+                  <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                    {availableRolesList.find(r => r.name === selectedRole)?.desc}
+                  </p>
+                </div>
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <button onClick={handleSelectAllForRole} className="btn-secondary" style={{ padding: '5px 10px', fontSize: '0.72rem' }}>
+                    Select All
+                  </button>
+                  <button onClick={handleClearAllForRole} className="btn-secondary" style={{ padding: '5px 10px', fontSize: '0.72rem' }}>
+                    Clear All
+                  </button>
+                  <button onClick={handleResetRoleDefaults} className="btn-secondary" style={{ padding: '5px 10px', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <RotateCcw size={12} /> Reset to Defaults
+                  </button>
+                  <button onClick={handleSavePermissions} className="btn-primary" style={{ padding: '6px 14px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Save size={14} /> Save Permissions
+                  </button>
+                </div>
               </div>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <button onClick={handleSelectAllForRole} className="btn-secondary" style={{ padding: '5px 10px', fontSize: '0.72rem' }}>
-                  Select All
+
+              {/* Quick Preset Action Bar */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', borderTop: '1px solid var(--border-color)', paddingTop: '10px' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)' }}>QUICK SUITE PRESETS:</span>
+                <button
+                  onClick={() => handleGrantPreset(['PATIENTS', 'TRIAGE', 'EMR', 'INPATIENT', 'APPOINTMENTS', 'QUEUE', 'LAB', 'PHARMACY'])}
+                  style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534', padding: '3px 8px', borderRadius: '6px', fontSize: '0.72rem', cursor: 'pointer', fontWeight: 600 }}
+                >
+                  + Grant Clinical Suite (EMR, IPD, Triage, Appointments)
                 </button>
-                <button onClick={handleClearAllForRole} className="btn-secondary" style={{ padding: '5px 10px', fontSize: '0.72rem' }}>
-                  Clear All
+                <button
+                  onClick={() => handleGrantPreset(['BILLING', 'REPORTS', 'REPORT_BUILDER'])}
+                  style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1e40af', padding: '3px 8px', borderRadius: '6px', fontSize: '0.72rem', cursor: 'pointer', fontWeight: 600 }}
+                >
+                  + Grant Financial &amp; Cashier Suite (Billing, ERCA, Telebirr, Reports)
                 </button>
-                <button onClick={handleResetRoleDefaults} className="btn-secondary" style={{ padding: '5px 10px', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <RotateCcw size={12} /> Reset to Defaults
-                </button>
-                <button onClick={handleSavePermissions} className="btn-primary" style={{ padding: '6px 14px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Save size={14} /> Save Permissions
+                <button
+                  onClick={() => handleGrantPreset(['TRIAGE', 'INPATIENT', 'QUEUE', 'APPOINTMENTS'])}
+                  style={{ background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e', padding: '3px 8px', borderRadius: '6px', fontSize: '0.72rem', cursor: 'pointer', fontWeight: 600 }}
+                >
+                  + Grant Nursing Suite (Triage, Wards, Bed Care, Queue)
                 </button>
               </div>
             </div>
           </div>
 
+          {/* Module Filter Search */}
+          <div style={{ position: 'relative', width: '320px' }}>
+            <Search size={15} color="var(--text-muted)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+            <input
+              type="text"
+              placeholder="Search module permissions..."
+              value={permSearchQuery}
+              onChange={e => setPermSearchQuery(e.target.value)}
+              style={{ paddingLeft: '32px' }}
+            />
+          </div>
+
           {/* Module Grid by Category */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
             {categories.map(cat => {
-              const catModules = MODULE_ITEMS.filter(m => m.category === cat);
+              const catModules = MODULE_ITEMS.filter(m => {
+                const matchesCat = m.category === cat;
+                const q = permSearchQuery.toLowerCase().trim();
+                const matchesQ = !q || m.label.toLowerCase().includes(q) || m.key.toLowerCase().includes(q);
+                return matchesCat && matchesQ;
+              });
+
+              if (catModules.length === 0) return null;
+
               return (
                 <div key={cat} className="glass-panel" style={{ padding: '20px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>
@@ -590,57 +669,87 @@ export default function UserManagementPage() {
                     </span>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '12px' }}>
                     {catModules.map(moduleItem => {
                       const Icon = moduleItem.icon;
                       const isChecked = currentRoleAllowedModules.includes(moduleItem.key);
+                      const meta = MODULE_FEATURE_HIGHLIGHTS[moduleItem.key];
                       return (
                         <div
                           key={moduleItem.key}
                           onClick={() => handleToggleModuleForRole(moduleItem.key)}
                           style={{
-                            padding: '12px 14px',
+                            padding: '14px 16px',
                             borderRadius: '8px',
                             background: isChecked ? '#f0f9ff' : '#ffffff',
                             border: isChecked ? '1.5px solid #0284c7' : '1px solid var(--border-color)',
                             cursor: 'pointer',
                             display: 'flex',
-                            alignItems: 'center',
+                            flexDirection: 'column',
                             justifyContent: 'space-between',
+                            gap: '8px',
                             transition: 'all 0.15s ease'
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <div
-                              style={{
-                                width: '32px',
-                                height: '32px',
-                                borderRadius: '6px',
-                                background: isChecked ? '#e0f2fe' : '#f5f3ee',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                color: isChecked ? '#0284c7' : 'var(--text-muted)'
-                              }}
-                            >
-                              <Icon size={16} />
-                            </div>
-                            <div>
-                              <div style={{ fontSize: '0.82rem', fontWeight: 700, color: isChecked ? '#0369a1' : 'var(--text-main)' }}>
-                                {moduleItem.label}
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <div
+                                style={{
+                                  width: '34px',
+                                  height: '34px',
+                                  borderRadius: '6px',
+                                  background: isChecked ? '#e0f2fe' : '#f5f3ee',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  color: isChecked ? '#0284c7' : 'var(--text-muted)'
+                                }}
+                              >
+                                <Icon size={18} />
                               </div>
-                              <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
-                                Key: {moduleItem.key}
+                              <div>
+                                <div style={{ fontSize: '0.86rem', fontWeight: 700, color: isChecked ? '#0369a1' : 'var(--text-main)' }}>
+                                  {moduleItem.label}
+                                </div>
+                                <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                                  {moduleItem.key}
+                                </div>
                               </div>
                             </div>
+
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => {}} // handled by parent div
+                              style={{ cursor: 'pointer', width: '17px', height: '17px' }}
+                            />
                           </div>
 
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={() => {}} // handled by parent div
-                            style={{ cursor: 'pointer', width: '16px', height: '16px' }}
-                          />
+                          {/* Feature Description & Tags */}
+                          {meta && (
+                            <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '6px', marginTop: '2px' }}>
+                              <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: '0 0 6px 0', lineHeight: 1.3 }}>
+                                {meta.desc}
+                              </p>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                                {meta.tags.map((t, idx) => (
+                                  <span
+                                    key={idx}
+                                    style={{
+                                      fontSize: '0.62rem',
+                                      padding: '1px 5px',
+                                      borderRadius: '4px',
+                                      background: isChecked ? '#e0f2fe' : '#f1f5f9',
+                                      color: isChecked ? '#0369a1' : '#475569',
+                                      fontWeight: 600
+                                    }}
+                                  >
+                                    {t}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       );
                     })}

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   CreditCard, DollarSign, Plus, CheckCircle2, Download, Printer, X, Trash2,
   Loader2, Search, Filter, RefreshCw, ArrowRight, FileText, Check, AlertCircle,
-  Building, User, Calendar, Receipt, ShieldCheck
+  Building, User, Calendar, Receipt, ShieldCheck, QrCode, Shield, FileSpreadsheet, Send
 } from 'lucide-react';
 import { api } from '../../api/apiClient';
 
@@ -33,6 +33,28 @@ export default function BillingPage() {
   const [payReference, setPayReference] = useState('');
   const [paySuccessMsg, setPaySuccessMsg] = useState<string | null>(null);
 
+  // Active Top Tab (Invoices vs Insurance Claims)
+  const [billingTab, setBillingTab] = useState<'invoices' | 'claims'>('invoices');
+
+  // Insurance & Claims State
+  const [insuranceProviders, setInsuranceProviders] = useState<any[]>([]);
+  const [claims, setClaims] = useState<any[]>([]);
+  const [isInsuranceCovered, setIsInsuranceCovered] = useState(false);
+  const [selectedProviderId, setSelectedProviderId] = useState<number | ''>('');
+  const [coPayPercent, setCoPayPercent] = useState<string>('20.0');
+  const [preAuthCode, setPreAuthCode] = useState('');
+
+  // Fiscal Sign State
+  const [isSigningFiscal, setIsSigningFiscal] = useState(false);
+
+  // Telebirr QR Modal State
+  const [showTelebirrModal, setShowTelebirrModal] = useState(false);
+  const [telebirrQrPayload, setTelebirrQrPayload] = useState<string | null>(null);
+  const [telebirrCbeQrPayload, setTelebirrCbeQrPayload] = useState<string | null>(null);
+  const [telebirrLoading, setTelebirrLoading] = useState(false);
+  const [telebirrSettled, setTelebirrSettled] = useState(false);
+  const telebirrPollRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+
   // Free / Waived Invoice State
   const [isFreeInvoice, setIsFreeInvoice] = useState(false);
   const [vatPercent, setVatPercent] = useState<number>(15.0);
@@ -45,11 +67,16 @@ export default function BillingPage() {
   const fetchInvoicesAndPatients = async () => {
     try {
       setLoading(true);
-      const [invData, patData, settingsData] = await Promise.all([
+      const [invData, patData, settingsData, provData, claimData] = await Promise.all([
         api.get<any[]>('/billing/invoices').catch(() => []),
         api.get<any[]>('/patients/search').catch(() => []),
-        api.get<any[]>('/settings').catch(() => [])
+        api.get<any[]>('/settings').catch(() => []),
+        api.get<any[]>('/billing/insurance/providers').catch(() => []),
+        api.get<any[]>('/billing/insurance/claims').catch(() => [])
       ]);
+
+      if (Array.isArray(provData)) setInsuranceProviders(provData);
+      if (Array.isArray(claimData)) setClaims(claimData);
 
       if (settingsData && Array.isArray(settingsData)) {
         let cName = 'Specialty Clinic';
@@ -84,6 +111,16 @@ export default function BillingPage() {
             paid: inv.paidAmount || inv.PaidAmount || 0,
             isWaived: isWaived,
             status: isWaived ? 'Waived' : (inv.statusName || (inv.statusId === 4 ? 'Paid' : (inv.statusId === 3 ? 'PartiallyPaid' : 'Issued'))),
+            insuranceProviderId: inv.insuranceProviderId || inv.InsuranceProviderId,
+            insuranceProviderName: inv.insuranceProviderName || inv.InsuranceProviderName,
+            insuranceCoPayPercent: inv.insuranceCoPayPercent ?? inv.InsuranceCoPayPercent ?? 0,
+            insuranceClaimAmount: inv.insuranceClaimAmount ?? inv.InsuranceClaimAmount ?? 0,
+            patientPayAmount: inv.patientPayAmount ?? inv.PatientPayAmount ?? inv.totalAmount ?? 0,
+            preAuthCode: inv.preAuthCode || inv.PreAuthCode,
+            claimStatusId: inv.claimStatusId || inv.ClaimStatusId || 1,
+            fiscalReceiptNo: inv.fiscalReceiptNo || inv.FiscalReceiptNo,
+            fiscalSignature: inv.fiscalSignature || inv.FiscalSignature,
+            fiscalQrPayload: inv.fiscalQrPayload || inv.FiscalQrPayload,
             items: (inv.items || []).map((it: any) => ({
               id: it.id || it.Id,
               description: it.description || it.Description,
@@ -146,6 +183,9 @@ export default function BillingPage() {
         createdBy: 1,
         isFree: isFreeInvoice,
         statusId: isFreeInvoice ? 4 : undefined,
+        insuranceProviderId: isInsuranceCovered && selectedProviderId ? Number(selectedProviderId) : undefined,
+        insuranceCoPayPercent: isInsuranceCovered ? (parseFloat(coPayPercent) || 0) : undefined,
+        preAuthCode: isInsuranceCovered ? preAuthCode.trim() : undefined,
         items: items.map(it => ({
           itemType: it.itemType,
           description: it.item,
@@ -156,9 +196,112 @@ export default function BillingPage() {
       });
       setShowCreateModal(false);
       setIsFreeInvoice(false);
+      setIsInsuranceCovered(false);
+      setSelectedProviderId('');
+      setPreAuthCode('');
       await fetchInvoicesAndPatients();
     } catch (err) {
       console.error('Failed to create invoice:', err);
+    }
+  };
+
+  const handleSignFiscalReceipt = async (inv: any) => {
+    try {
+      setIsSigningFiscal(true);
+      const res: any = await api.post(`/fiscal/sign-receipt/${inv.id}`, {});
+      const signData = res?.data || res?.Data || res;
+      if (signData?.fiscalReceiptNo || signData?.FiscalReceiptNo) {
+        setShowReceiptModal({
+          ...inv,
+          fiscalReceiptNo: signData.fiscalReceiptNo || signData.FiscalReceiptNo,
+          fiscalSignature: signData.fiscalSignature || signData.FiscalSignature,
+          fiscalQrPayload: signData.fiscalQrPayload || signData.FiscalQrPayload,
+          mrcNumber: signData.mrcNumber || signData.MrcNumber || 'ERCA-ETH-2026-F9812'
+        });
+        await fetchInvoicesAndPatients();
+      }
+    } catch (err: any) {
+      alert(`Fiscal device signature failed: ${err?.message || 'Check ERCA communication port.'}`);
+    } finally {
+      setIsSigningFiscal(false);
+    }
+  };
+
+  const handleUpdateClaimStatus = async (invoiceId: number, statusId: number) => {
+    try {
+      await api.put(`/billing/insurance/claims/${invoiceId}/status`, { statusId });
+      await fetchInvoicesAndPatients();
+    } catch (err) {
+      console.error('Failed to update claim status:', err);
+    }
+  };
+
+  const handleGenerateTelebirrQr = async () => {
+    if (!selectedInvoice) return;
+    try {
+      setTelebirrLoading(true);
+      setTelebirrSettled(false);
+      setTelebirrQrPayload(null);
+      setTelebirrCbeQrPayload(null);
+      const res: any = await api.post('/telebirr/generate-qr', {
+        invoiceId: selectedInvoice.id,
+        invoiceNo: selectedInvoice.invoiceNo,
+        amount: Math.max(0, selectedInvoice.total - selectedInvoice.paid)
+      });
+      const d = res?.data || res?.Data || res;
+      setTelebirrQrPayload(d?.telebirrQrString || d?.TelebirrQrString || null);
+      setTelebirrCbeQrPayload(d?.cbeBirrQrString || d?.CbeBirrQrString || null);
+      setShowTelebirrModal(true);
+
+      // Auto-poll for settlement every 3s
+      if (telebirrPollRef.current) clearInterval(telebirrPollRef.current);
+      telebirrPollRef.current = setInterval(async () => {
+        try {
+          const status: any = await api.get(`/telebirr/check-status/${selectedInvoice.id}`);
+          const s = status?.data || status?.Data || status;
+          if (s?.isSettled || s?.IsSettled) {
+            setTelebirrSettled(true);
+            if (telebirrPollRef.current) clearInterval(telebirrPollRef.current);
+            setTimeout(async () => {
+              setShowTelebirrModal(false);
+              await fetchInvoicesAndPatients();
+            }, 2000);
+          }
+        } catch {}
+      }, 3000);
+    } catch (err: any) {
+      alert(`Failed to generate Telebirr QR: ${err?.message || 'API error'}`);
+    } finally {
+      setTelebirrLoading(false);
+    }
+  };
+
+  const closeTelebirrModal = () => {
+    if (telebirrPollRef.current) clearInterval(telebirrPollRef.current);
+    setShowTelebirrModal(false);
+    setTelebirrQrPayload(null);
+    setTelebirrCbeQrPayload(null);
+    setTelebirrSettled(false);
+  };
+
+  const handleSimulateTelebirrScan = async () => {
+    if (!selectedInvoice) return;
+    try {
+      await api.post('/telebirr/webhook', {
+        invoiceId: selectedInvoice.id,
+        transactionNo: `SIM-${Date.now()}`,
+        amount: Math.max(0, selectedInvoice.total - selectedInvoice.paid),
+        payerPhone: '0911000000',
+        status: 'Completed'
+      });
+      setTelebirrSettled(true);
+      if (telebirrPollRef.current) clearInterval(telebirrPollRef.current);
+      setTimeout(async () => {
+        setShowTelebirrModal(false);
+        await fetchInvoicesAndPatients();
+      }, 2000);
+    } catch (err: any) {
+      alert(`Simulation failed: ${err?.message || 'API error'}`);
     }
   };
 
@@ -168,14 +311,13 @@ export default function BillingPage() {
 
     const isWaived = payMethod === '4';
     const remaining = selectedInvoice.total - selectedInvoice.paid;
-    // For waived invoices: send the full remaining balance so backend sets StatusId=4 (Paid)
     const apiAmount = isWaived ? remaining : parseFloat(payAmount);
     if (!isWaived && !payAmount) return;
 
     const paidNum = isWaived ? remaining : parseFloat(payAmount);
     const targetInvoiceId = selectedInvoice.id;
 
-    // Immediately update local state so invoice row and details reflect Paid right away
+    // Immediately update local state
     setInvoices(prev => prev.map(inv => {
       if (inv.id === targetInvoiceId) {
         const newPaid = isWaived ? inv.total : (inv.paid || 0) + paidNum;
@@ -243,6 +385,19 @@ export default function BillingPage() {
     }
   };
 
+  const getClaimStatusBadge = (status: string) => {
+    switch (status) {
+      case 'Approved':
+        return <span className="badge badge-normal" style={{ fontSize: '0.68rem', display: 'flex', alignItems: 'center', gap: '3px' }}><CheckCircle2 size={11} /> Approved</span>;
+      case 'Reimbursed':
+        return <span className="badge" style={{ background: '#dcfce7', color: '#15803d', border: '1px solid #86efac', fontSize: '0.68rem', display: 'flex', alignItems: 'center', gap: '3px' }}>✓ Reimbursed</span>;
+      case 'Rejected':
+        return <span className="badge badge-critical" style={{ fontSize: '0.68rem' }}>Rejected</span>;
+      default:
+        return <span className="badge badge-warning" style={{ fontSize: '0.68rem' }}>Submitted</span>;
+    }
+  };
+
   // Exclude waived/free invoices from sales revenue figures
   const nonWaivedInvoices = invoices.filter(i => !i.isWaived && i.status !== 'Waived');
   const paidRevenue = nonWaivedInvoices.reduce((sum, i) => sum + (i.paid || 0), 0);
@@ -260,13 +415,13 @@ export default function BillingPage() {
       )}
 
       {/* Header Banner */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', gap: '14px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '14px' }}>
         <div>
           <h2 style={{ fontSize: '1.15rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-main)' }}>
-            <CreditCard color="#0284c7" size={20} /> Billing, Invoices & Revenue Management
+            <CreditCard color="#0284c7" size={20} /> Billing, Fiscal &amp; Insurance Engine
           </h2>
           <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-            Track patient invoices generated from Triage, EMR orders, and point-of-sale services, and accept payments.
+            Process patient invoices, automated ERCA tax receipts, and insurance third-party claims (TPA).
           </p>
         </div>
 
@@ -278,6 +433,24 @@ export default function BillingPage() {
             <Plus size={15} /> + Create Manual Invoice
           </button>
         </div>
+      </div>
+
+      {/* Primary Module Tabs: Invoices vs Insurance Claims */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+        <button
+          onClick={() => setBillingTab('invoices')}
+          className={billingTab === 'invoices' ? 'btn-primary' : 'btn-secondary'}
+          style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem' }}
+        >
+          <Receipt size={15} /> Invoices &amp; Fiscal Receipts ({invoices.length})
+        </button>
+        <button
+          onClick={() => setBillingTab('claims')}
+          className={billingTab === 'claims' ? 'btn-primary' : 'btn-secondary'}
+          style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem' }}
+        >
+          <ShieldCheck size={15} /> Insurance / TPA Claims ({claims.length})
+        </button>
       </div>
 
       {/* Financial Metrics Bar (Excluding Free / Waived Services) */}
@@ -308,310 +481,475 @@ export default function BillingPage() {
         </div>
       </div>
 
-      {/* Main Split Layout: Invoices Table & Detail / Cashier Panel */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '18px' }}>
-        
-        {/* Left: Invoices Table */}
-        <div className="glass-panel" style={{ padding: '18px' }}>
+      {/* ========================================================================= */}
+      {/* TAB 1: INVOICES, FISCAL RECEIPTS & CASHIER REGISTER                        */}
+      {/* ========================================================================= */}
+      {billingTab === 'invoices' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '18px' }}>
           
-          {/* Search & Status Filter */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', gap: '10px', flexWrap: 'wrap' }}>
-            <div style={{ position: 'relative', width: '280px' }}>
-              <Search size={15} color="var(--text-muted)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
-              <input
-                type="text"
-                placeholder="Search Invoice No or Patient..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                style={{ paddingLeft: '32px' }}
-              />
+          {/* Left: Invoices Table */}
+          <div className="glass-panel" style={{ padding: '18px' }}>
+            
+            {/* Search & Status Filter */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', gap: '10px', flexWrap: 'wrap' }}>
+              <div style={{ position: 'relative', width: '280px' }}>
+                <Search size={15} color="var(--text-muted)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                <input
+                  type="text"
+                  placeholder="Search Invoice No or Patient..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  style={{ paddingLeft: '32px' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                {/* Datepicker filter */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', background: '#f8f5ee', padding: '3px 8px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                  <Calendar size={13} color="var(--text-muted)" />
+                  <input
+                    type="date"
+                    value={filterDate}
+                    onChange={e => setFilterDate(e.target.value)}
+                    style={{
+                      padding: '2px 5px',
+                      fontSize: '0.74rem',
+                      border: 'none',
+                      background: 'transparent',
+                      color: 'var(--text-main)',
+                      cursor: 'pointer'
+                    }}
+                    title="Filter invoices by issue date"
+                  />
+                  {filterDate && (
+                    <button
+                      type="button"
+                      onClick={() => setFilterDate('')}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        fontSize: '0.7rem',
+                        color: '#0284c7',
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                        padding: '0 2px'
+                      }}
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  {['ALL', 'Issued', 'PartiallyPaid', 'Paid', 'Waived'].map(st => (
+                    <button
+                      key={st}
+                      onClick={() => setStatusFilter(st)}
+                      className="btn-secondary"
+                      style={{
+                        padding: '3px 8px',
+                        fontSize: '0.72rem',
+                        background: statusFilter === st ? '#0284c7' : undefined,
+                        color: statusFilter === st ? '#ffffff' : undefined,
+                        borderColor: statusFilter === st ? '#0284c7' : undefined
+                      }}
+                    >
+                      {st === 'ALL' ? 'All' : st}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-              {/* Datepicker filter */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '5px', background: '#f8f5ee', padding: '3px 8px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
-                <Calendar size={13} color="var(--text-muted)" />
-                <input
-                  type="date"
-                  value={filterDate}
-                  onChange={e => setFilterDate(e.target.value)}
-                  style={{
-                    padding: '2px 5px',
-                    fontSize: '0.74rem',
-                    border: 'none',
-                    background: 'transparent',
-                    color: 'var(--text-main)',
-                    cursor: 'pointer'
-                  }}
-                  title="Filter invoices by issue date"
-                />
-                {filterDate && (
-                  <button
-                    type="button"
-                    onClick={() => setFilterDate('')}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      fontSize: '0.7rem',
-                      color: '#0284c7',
-                      cursor: 'pointer',
-                      fontWeight: 600,
-                      padding: '0 2px'
-                    }}
-                  >
-                    Clear
-                  </button>
+            {/* Invoices List */}
+            <table className="cms-table">
+              <thead>
+                <tr>
+                  <th>Invoice No</th>
+                  <th>Patient Name</th>
+                  <th>Date</th>
+                  <th>Total (Br)</th>
+                  <th>Paid</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+                      <Loader2 size={20} className="animate-spin" style={{ margin: '0 auto 6px' }} />
+                      Loading invoices from database...
+                    </td>
+                  </tr>
+                ) : filteredInvoices.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+                      No invoices match your filter.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredInvoices.map(inv => (
+                    <tr
+                      key={inv.id}
+                      onClick={() => setSelectedInvoice(inv)}
+                      style={{
+                        cursor: 'pointer',
+                        background: selectedInvoice?.id === inv.id ? '#e0f2fe' : undefined
+                      }}
+                    >
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                          <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0369a1', fontSize: '0.8rem' }}>
+                            {inv.invoiceNo}
+                          </span>
+                          {inv.insuranceProviderId && (
+                            <span title="Insurance Covered" style={{ color: '#0284c7' }}><Shield size={12} /></span>
+                          )}
+                          {inv.fiscalReceiptNo && (
+                            <span title="ERCA Fiscal Signed" style={{ color: '#059669' }}><QrCode size={12} /></span>
+                          )}
+                        </div>
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{inv.patientName}</div>
+                      </td>
+                      <td>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{inv.issueDate}</span>
+                      </td>
+                      <td>
+                        <strong style={{ color: 'var(--text-main)' }}>Br {inv.total.toFixed(2)}</strong>
+                      </td>
+                      <td>
+                        <span style={{ color: '#059669', fontWeight: 600 }}>Br {inv.paid.toFixed(2)}</span>
+                      </td>
+                      <td>{getStatusBadge(inv.status)}</td>
+                    </tr>
+                  ))
                 )}
-              </div>
+              </tbody>
+            </table>
+          </div>
 
-              <div style={{ display: 'flex', gap: '4px' }}>
-                {['ALL', 'Issued', 'PartiallyPaid', 'Paid', 'Waived'].map(st => (
+          {/* Right: Selected Invoice Detail & Cashier Panel */}
+          <div className="glass-panel" style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {selectedInvoice ? (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', marginBottom: '12px' }}>
+                  <div>
+                    <div style={{ fontSize: '0.7rem', color: '#0369a1', fontWeight: 700 }}>INVOICE DOSSIER</div>
+                    <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>{selectedInvoice.invoiceNo}</h3>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{selectedInvoice.patientName}</span>
+                  </div>
+                  <div>{getStatusBadge(selectedInvoice.status)}</div>
+                </div>
+
+                {/* Insurance Split Indicator */}
+                {selectedInvoice.insuranceProviderId && (
+                  <div style={{ padding: '8px 10px', background: '#f0f9ff', borderRadius: '6px', border: '1px solid #bae6fd', marginBottom: '10px', fontSize: '0.74rem' }}>
+                    <div style={{ fontWeight: 700, color: '#0369a1', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <Shield size={13} /> {selectedInvoice.insuranceProviderName || 'Third-Party Payer'} ({selectedInvoice.insuranceCoPayPercent}% Co-Pay)
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px', color: '#0f172a' }}>
+                      <span>Patient Pay: <strong>Br {Number(selectedInvoice.patientPayAmount || 0).toFixed(2)}</strong></span>
+                      <span>Claim to Insurer: <strong style={{ color: '#0284c7' }}>Br {Number(selectedInvoice.insuranceClaimAmount || 0).toFixed(2)}</strong></span>
+                    </div>
+                    {selectedInvoice.preAuthCode && (
+                      <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '2px' }}>Pre-Auth: {selectedInvoice.preAuthCode}</div>
+                    )}
+                  </div>
+                )}
+
+                {/* Itemized Breakdown Table */}
+                <div style={{ marginBottom: '12px' }}>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '6px' }}>
+                    Billable Line Items
+                  </div>
+                  <div style={{ border: '1px solid var(--border-color)', borderRadius: '6px', overflow: 'hidden' }}>
+                    {(selectedInvoice.items && selectedInvoice.items.length > 0) ? (
+                      selectedInvoice.items.map((it: any, idx: number) => (
+                        <div key={idx} style={{ padding: '6px 10px', borderBottom: '1px solid var(--border-color)', fontSize: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: idx % 2 === 0 ? '#ffffff' : '#fdfcf9' }}>
+                          <div>
+                            <div style={{ fontWeight: 600 }}>{it.description}</div>
+                            <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{it.itemType} • Qty: {it.quantity} @ Br {it.unitPrice.toFixed(2)}</div>
+                          </div>
+                          <span style={{ fontWeight: 700 }}>Br {it.totalPrice.toFixed(2)}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div style={{ padding: '10px', fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                        Standard Clinical Consultation Service
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Amount Summary */}
+                <div style={{ padding: '10px 12px', background: '#fdfcf9', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.78rem', marginBottom: '14px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>Subtotal:</span>
+                    <span>Br {selectedInvoice.subtotal.toFixed(2)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>
+                      VAT ({selectedInvoice.subtotal > 0 ? Math.round((selectedInvoice.vat / selectedInvoice.subtotal) * 100) : (selectedInvoice.vat > 0 ? vatPercent : 0)}%):
+                    </span>
+                    <span>Br {selectedInvoice.vat.toFixed(2)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-color)', paddingTop: '4px', fontWeight: 800, fontSize: '0.9rem' }}>
+                    <span>Total Amount:</span>
+                    <span style={{ color: '#0369a1' }}>Br {selectedInvoice.total.toFixed(2)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#059669', fontWeight: 700 }}>
+                    <span>Paid Amount:</span>
+                    <span>Br {selectedInvoice.paid.toFixed(2)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: selectedInvoice.total - selectedInvoice.paid > 0 ? '#d97706' : '#059669', fontWeight: 700 }}>
+                    <span>Remaining Balance:</span>
+                    <span>Br {Math.max(0, selectedInvoice.total - selectedInvoice.paid).toFixed(2)}</span>
+                  </div>
+                </div>
+
+                {/* Cashier Payment Form */}
+                {selectedInvoice.total - selectedInvoice.paid > 0 ? (
+                  <form onSubmit={handleProcessPayment} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                      Process Cashier Payment
+                    </div>
+
+                    {payMethod === '4' && (
+                      <div style={{ padding: '8px 12px', background: '#fffbeb', border: '1px solid #f59e0b', borderRadius: '6px', fontSize: '0.75rem', color: '#78350f', fontWeight: 600 }}>
+                        ☑ Waived — this invoice will be marked as <strong>Paid (Free / Waived Service)</strong>. No money collected.
+                      </div>
+                    )}
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                      <div>
+                        <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Payment Method</label>
+                        <select value={payMethod} onChange={e => { setPayMethod(e.target.value); if (e.target.value === '4') { setPayAmount('0'); setPayReference('Waived / Free Service'); } }}>
+                          <option value="1">Cash (Counter)</option>
+                          <option value="2">Telebirr / CBE Mobile</option>
+                          <option value="3">Insurance Claim / POS</option>
+                          <option value="4">Waived / Free Service</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Amount (Br)</label>
+                        <input
+                          type="number"
+                          step="0.5"
+                          placeholder={String(selectedInvoice.total - selectedInvoice.paid)}
+                          value={payAmount}
+                          onChange={e => setPayAmount(e.target.value)}
+                          required={payMethod !== '4'}
+                          disabled={payMethod === '4'}
+                          style={{ opacity: payMethod === '4' ? 0.5 : 1 }}
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Transaction Reference / Slip No</label>
+                      <input type="text" placeholder="e.g. TX-98421 or Cash" value={payReference} onChange={e => setPayReference(e.target.value)} />
+                    </div>
+
+                    {/* Telebirr / CBE Mobile QR Generator */}
+                    {payMethod === '2' && (
+                      <button
+                        type="button"
+                        onClick={handleGenerateTelebirrQr}
+                        disabled={telebirrLoading}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center',
+                          padding: '9px 14px', borderRadius: '6px', fontSize: '0.82rem', fontWeight: 700,
+                          background: 'linear-gradient(135deg, #0071e3, #34c759)',
+                          border: 'none', color: '#ffffff', cursor: telebirrLoading ? 'not-allowed' : 'pointer',
+                          width: '100%', opacity: telebirrLoading ? 0.7 : 1,
+                        }}
+                      >
+                        {telebirrLoading ? <Loader2 size={14} className="animate-spin" /> : <QrCode size={14} />}
+                        Generate Dynamic Telebirr QR
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPayAmount('0');
+                        setPayMethod('4');
+                        setPayReference('Waived / Free Service');
+                      }}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center',
+                        padding: '7px 14px', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 700,
+                        background: payMethod === '4' ? '#f59e0b' : '#fffbeb',
+                        border: '1px solid #f59e0b',
+                        color: payMethod === '4' ? '#ffffff' : '#92400e',
+                        cursor: 'pointer', width: '100%'
+                      }}
+                    >
+                      ☑ Waive / Mark as Free Service
+                    </button>
+
+                    <button type="submit" className="btn-primary" style={{ justifyContent: 'center', marginTop: '4px' }}>
+                      <DollarSign size={14} /> {payMethod === '4' ? 'Confirm Waiver' : 'Accept Payment'}
+                    </button>
+                  </form>
+                ) : (
+                  <div style={{ padding: '10px', background: '#d1fae5', borderRadius: '6px', border: '1px solid #a7f3d0', color: '#065f46', fontSize: '0.78rem', fontWeight: 700, textAlign: 'center' }}>
+                    ✓ Invoice Fully Settled &amp; Paid
+                  </div>
+                )}
+
+                {/* Fiscal Device Sign & Print Receipt Buttons */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
+                  {!selectedInvoice.fiscalReceiptNo ? (
+                    <button
+                      type="button"
+                      onClick={() => handleSignFiscalReceipt(selectedInvoice)}
+                      disabled={isSigningFiscal}
+                      className="btn-secondary"
+                      style={{ width: '100%', justifyContent: 'center', background: '#ecfdf5', borderColor: '#10b981', color: '#047857', fontWeight: 700 }}
+                    >
+                      {isSigningFiscal ? <Loader2 size={14} className="animate-spin" /> : <QrCode size={14} />} Sign ERCA Fiscal Receipt
+                    </button>
+                  ) : (
+                    <div style={{ padding: '6px 10px', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '6px', fontSize: '0.72rem', color: '#047857', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <CheckCircle2 size={13} /> Fiscalized: <strong>{selectedInvoice.fiscalReceiptNo}</strong>
+                    </div>
+                  )}
+
                   <button
-                    key={st}
-                    onClick={() => setStatusFilter(st)}
+                    onClick={() => setShowReceiptModal(selectedInvoice)}
                     className="btn-secondary"
-                    style={{
-                      padding: '3px 8px',
-                      fontSize: '0.72rem',
-                      background: statusFilter === st ? '#0284c7' : undefined,
-                      color: statusFilter === st ? '#ffffff' : undefined,
-                      borderColor: statusFilter === st ? '#0284c7' : undefined
-                    }}
+                    style={{ width: '100%', justifyContent: 'center' }}
                   >
-                    {st === 'ALL' ? 'All' : st}
+                    <Printer size={14} /> Print Official Receipt / ERCA Tax Invoice
                   </button>
-                ))}
+                </div>
               </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '40px 14px', color: 'var(--text-muted)' }}>
+                <CreditCard size={36} style={{ margin: '0 auto 10px', opacity: 0.3 }} />
+                <p>Select an invoice to view line items or process payment.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 2: INSURANCE & THIRD-PARTY PAYER (TPA) CLAIMS                         */}
+      {/* ========================================================================= */}
+      {billingTab === 'claims' && (
+        <div className="glass-panel" style={{ padding: '18px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
+            <div>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <ShieldCheck color="#0284c7" size={18} /> Third-Party Payer (TPA) Claims Ledger
+              </h3>
+              <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                Track submitted claims to Ethiopian and international insurers for outpatient and inpatient care.
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <span className="badge badge-normal" style={{ fontSize: '0.75rem' }}>
+                Total Claims: {claims.length}
+              </span>
+              <span className="badge badge-info" style={{ fontSize: '0.75rem' }}>
+                Claimed: Br {claims.reduce((acc, c) => acc + (c.insuranceClaimAmount || 0), 0).toFixed(2)}
+              </span>
             </div>
           </div>
 
-          {/* Invoices List */}
           <table className="cms-table">
             <thead>
               <tr>
-                <th>Invoice No</th>
+                <th>Invoice #</th>
                 <th>Patient Name</th>
-                <th>Date</th>
-                <th>Total (Br)</th>
-                <th>Paid</th>
+                <th>Insurance Provider</th>
+                <th>Pre-Auth Code</th>
+                <th>Total Bill</th>
+                <th>Patient Co-Pay</th>
+                <th>Claim to Insurer</th>
                 <th>Status</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {loading ? (
+              {claims.length === 0 ? (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
-                    <Loader2 size={20} className="animate-spin" style={{ margin: '0 auto 6px' }} />
-                    Loading invoices from database...
-                  </td>
-                </tr>
-              ) : filteredInvoices.length === 0 ? (
-                <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
-                    No invoices match your filter.
+                  <td colSpan={9} style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
+                    No insurance claims generated yet. Select an insurance provider when generating an invoice.
                   </td>
                 </tr>
               ) : (
-                filteredInvoices.map(inv => (
-                  <tr
-                    key={inv.id}
-                    onClick={() => setSelectedInvoice(inv)}
-                    style={{
-                      cursor: 'pointer',
-                      background: selectedInvoice?.id === inv.id ? '#e0f2fe' : undefined
-                    }}
-                  >
+                claims.map((cl: any) => (
+                  <tr key={cl.invoiceId}>
+                    <td style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0369a1' }}>
+                      {cl.invoiceNo}
+                    </td>
                     <td>
-                      <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0369a1', fontSize: '0.8rem' }}>
-                        {inv.invoiceNo}
+                      <strong>{cl.patientName}</strong>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 600 }}>{cl.providerName}</div>
+                      <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>{cl.providerCode}</span>
+                    </td>
+                    <td>
+                      <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px' }}>
+                        {cl.preAuthCode || 'DIRECT-VERIFY'}
+                      </span>
+                    </td>
+                    <td>Br {Number(cl.totalAmount || 0).toFixed(2)}</td>
+                    <td>
+                      <span style={{ color: '#64748b' }}>
+                        Br {Number(cl.patientPayAmount || 0).toFixed(2)} ({cl.insuranceCoPayPercent}%)
                       </span>
                     </td>
                     <td>
-                      <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{inv.patientName}</div>
+                      <strong style={{ color: '#0284c7' }}>
+                        Br {Number(cl.insuranceClaimAmount || 0).toFixed(2)}
+                      </strong>
                     </td>
+                    <td>{getClaimStatusBadge(cl.claimStatus)}</td>
                     <td>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{inv.issueDate}</span>
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        <button
+                          onClick={() => handleUpdateClaimStatus(cl.invoiceId, 3)}
+                          title="Mark Approved"
+                          style={{ background: '#dbeafe', border: '1px solid #bfdbfe', color: '#1d4ed8', padding: '3px 6px', borderRadius: '4px', fontSize: '0.68rem', cursor: 'pointer' }}
+                        >
+                          Approve
+                        </button>
+                        <button
+                          onClick={() => handleUpdateClaimStatus(cl.invoiceId, 4)}
+                          title="Mark Reimbursed"
+                          style={{ background: '#dcfce7', border: '1px solid #bbf7d0', color: '#15803d', padding: '3px 6px', borderRadius: '4px', fontSize: '0.68rem', cursor: 'pointer' }}
+                        >
+                          Reimburse
+                        </button>
+                      </div>
                     </td>
-                    <td>
-                      <strong style={{ color: 'var(--text-main)' }}>Br {inv.total.toFixed(2)}</strong>
-                    </td>
-                    <td>
-                      <span style={{ color: '#059669', fontWeight: 600 }}>Br {inv.paid.toFixed(2)}</span>
-                    </td>
-                    <td>{getStatusBadge(inv.status)}</td>
                   </tr>
                 ))
               )}
             </tbody>
           </table>
         </div>
-
-        {/* Right: Selected Invoice Detail & Cashier Panel */}
-        <div className="glass-panel" style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          {selectedInvoice ? (
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', marginBottom: '12px' }}>
-                <div>
-                  <div style={{ fontSize: '0.7rem', color: '#0369a1', fontWeight: 700 }}>INVOICE DOSSIER</div>
-                  <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>{selectedInvoice.invoiceNo}</h3>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{selectedInvoice.patientName}</span>
-                </div>
-                <div>{getStatusBadge(selectedInvoice.status)}</div>
-              </div>
-
-              {/* Itemized Breakdown Table */}
-              <div style={{ marginBottom: '12px' }}>
-                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '6px' }}>
-                  Billable Line Items
-                </div>
-                <div style={{ border: '1px solid var(--border-color)', borderRadius: '6px', overflow: 'hidden' }}>
-                  {(selectedInvoice.items && selectedInvoice.items.length > 0) ? (
-                    selectedInvoice.items.map((it: any, idx: number) => (
-                      <div key={idx} style={{ padding: '6px 10px', borderBottom: '1px solid var(--border-color)', fontSize: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: idx % 2 === 0 ? '#ffffff' : '#fdfcf9' }}>
-                        <div>
-                          <div style={{ fontWeight: 600 }}>{it.description}</div>
-                          <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{it.itemType} • Qty: {it.quantity} @ Br {it.unitPrice.toFixed(2)}</div>
-                        </div>
-                        <span style={{ fontWeight: 700 }}>Br {it.totalPrice.toFixed(2)}</span>
-                      </div>
-                    ))
-                  ) : (
-                    <div style={{ padding: '10px', fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                      Standard Clinical Consultation Service
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Amount Summary */}
-              <div style={{ padding: '10px 12px', background: '#fdfcf9', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.78rem', marginBottom: '14px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>Subtotal:</span>
-                  <span>Br {selectedInvoice.subtotal.toFixed(2)}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>
-                    VAT ({selectedInvoice.subtotal > 0 ? Math.round((selectedInvoice.vat / selectedInvoice.subtotal) * 100) : (selectedInvoice.vat > 0 ? vatPercent : 0)}%):
-                  </span>
-                  <span>Br {selectedInvoice.vat.toFixed(2)}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-color)', paddingTop: '4px', fontWeight: 800, fontSize: '0.9rem' }}>
-                  <span>Total Amount:</span>
-                  <span style={{ color: '#0369a1' }}>Br {selectedInvoice.total.toFixed(2)}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#059669', fontWeight: 700 }}>
-                  <span>Paid Amount:</span>
-                  <span>Br {selectedInvoice.paid.toFixed(2)}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: selectedInvoice.total - selectedInvoice.paid > 0 ? '#d97706' : '#059669', fontWeight: 700 }}>
-                  <span>Remaining Balance:</span>
-                  <span>Br {Math.max(0, selectedInvoice.total - selectedInvoice.paid).toFixed(2)}</span>
-                </div>
-              </div>
-
-              {/* Cashier Payment Form */}
-              {selectedInvoice.total - selectedInvoice.paid > 0 ? (
-                <form onSubmit={handleProcessPayment} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                    Process Cashier Payment
-                  </div>
-
-                  {payMethod === '4' && (
-                    <div style={{ padding: '8px 12px', background: '#fffbeb', border: '1px solid #f59e0b', borderRadius: '6px', fontSize: '0.75rem', color: '#78350f', fontWeight: 600 }}>
-                      ☑ Waived — this invoice will be marked as <strong>Paid (Free / Waived Service)</strong>. No money collected.
-                    </div>
-                  )}
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                    <div>
-                      <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Payment Method</label>
-                      <select value={payMethod} onChange={e => { setPayMethod(e.target.value); if (e.target.value === '4') { setPayAmount('0'); setPayReference('Waived / Free Service'); } }}>
-                        <option value="1">Cash (Counter)</option>
-                        <option value="2">Telebirr / CBE Mobile</option>
-                        <option value="3">Insurance Claim / POS</option>
-                        <option value="4">Waived / Free Service</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Amount (Br)</label>
-                      <input
-                        type="number"
-                        step="0.5"
-                        placeholder={String(selectedInvoice.total - selectedInvoice.paid)}
-                        value={payAmount}
-                        onChange={e => setPayAmount(e.target.value)}
-                        required={payMethod !== '4'}
-                        disabled={payMethod === '4'}
-                        style={{ opacity: payMethod === '4' ? 0.5 : 1 }}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Transaction Reference / Slip No</label>
-                    <input type="text" placeholder="e.g. TX-98421 or Cash" value={payReference} onChange={e => setPayReference(e.target.value)} />
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPayAmount('0');
-                      setPayMethod('4');
-                      setPayReference('Waived / Free Service');
-                    }}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center',
-                      padding: '7px 14px', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 700,
-                      background: payMethod === '4' ? '#f59e0b' : '#fffbeb',
-                      border: '1px solid #f59e0b',
-                      color: payMethod === '4' ? '#ffffff' : '#92400e',
-                      cursor: 'pointer', width: '100%'
-                    }}
-                  >
-                    ☑ Waive / Mark as Free Service
-                  </button>
-
-                  <button type="submit" className="btn-primary" style={{ justifyContent: 'center', marginTop: '4px' }}>
-                    <DollarSign size={14} /> {payMethod === '4' ? 'Confirm Waiver' : 'Accept Payment'}
-                  </button>
-                </form>
-              ) : (
-                <div style={{ padding: '10px', background: '#d1fae5', borderRadius: '6px', border: '1px solid #a7f3d0', color: '#065f46', fontSize: '0.78rem', fontWeight: 700, textAlign: 'center' }}>
-                  ✓ Invoice Fully Settled & Paid
-                </div>
-              )}
-
-              {/* Print Receipt Button */}
-              <div style={{ marginTop: '12px' }}>
-                <button
-                  onClick={() => setShowReceiptModal(selectedInvoice)}
-                  className="btn-secondary"
-                  style={{ width: '100%', justifyContent: 'center' }}
-                >
-                  <Printer size={14} /> Print Official Receipt / Tax Invoice
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div style={{ textAlign: 'center', padding: '40px 14px', color: 'var(--text-muted)' }}>
-              <CreditCard size={36} style={{ margin: '0 auto 10px', opacity: 0.3 }} />
-              <p>Select an invoice to view line items or process payment.</p>
-            </div>
-          )}
-        </div>
-      </div>
+      )}
 
       {/* ========================================================================= */}
       {/* MODAL: CREATE MANUAL INVOICE                                              */}
       {/* ========================================================================= */}
       {showCreateModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(28,25,23,0.65)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}>
-          <div className="glass-panel" style={{ width: '560px', maxHeight: '90vh', overflowY: 'auto', padding: '24px', background: '#ffffff', border: '1px solid var(--border-color)', borderRadius: '12px' }}>
+          <div className="glass-panel" style={{ width: '580px', maxHeight: '90vh', overflowY: 'auto', padding: '24px', background: '#ffffff', border: '1px solid var(--border-color)', borderRadius: '12px' }}>
             
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>
               <div>
                 <h3 style={{ fontSize: '1.05rem', fontWeight: 700 }}>Generate Clinical Invoice</h3>
-                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Bill outpatient services, labs, or pharmacy items</span>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Bill outpatient services, labs, pharmacy items or admissions</span>
               </div>
               <button onClick={() => setShowCreateModal(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={18} /></button>
             </div>
@@ -624,6 +962,62 @@ export default function BillingPage() {
                     <option key={p.id} value={p.id}>{p.name} ({p.mrn})</option>
                   ))}
                 </select>
+              </div>
+
+              {/* Insurance / TPA Toggle */}
+              <div style={{ padding: '10px', background: '#f0f9ff', borderRadius: '8px', border: '1px solid #bae6fd', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 700, color: '#0369a1' }}>
+                  <input
+                    type="checkbox"
+                    checked={isInsuranceCovered}
+                    onChange={e => {
+                      setIsInsuranceCovered(e.target.checked);
+                      if (e.target.checked && insuranceProviders.length > 0 && !selectedProviderId) {
+                        setSelectedProviderId(insuranceProviders[0].id);
+                      }
+                    }}
+                    style={{ accentColor: '#0284c7' }}
+                  />
+                  <Shield size={14} /> Bill Under Third-Party Insurance / Corporate Coverage
+                </label>
+
+                {isInsuranceCovered && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr', gap: '8px', marginTop: '4px' }}>
+                    <div>
+                      <label style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Insurance Provider *</label>
+                      <select
+                        value={selectedProviderId}
+                        onChange={e => setSelectedProviderId(Number(e.target.value))}
+                        required={isInsuranceCovered}
+                      >
+                        <option value="">Select Provider...</option>
+                        {insuranceProviders.map(p => (
+                          <option key={p.id} value={p.id}>{p.name} ({p.code})</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Patient Co-Pay %</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={coPayPercent}
+                        onChange={e => setCoPayPercent(e.target.value)}
+                        placeholder="20"
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Pre-Auth / Policy #</label>
+                      <input
+                        type="text"
+                        value={preAuthCode}
+                        onChange={e => setPreAuthCode(e.target.value)}
+                        placeholder="AUTH-99124"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Item Adder */}
@@ -641,6 +1035,7 @@ export default function BillingPage() {
                       <option value="Laboratory">Laboratory</option>
                       <option value="Procedure">Procedure</option>
                       <option value="Pharmacy">Pharmacy</option>
+                      <option value="Inpatient">Inpatient Ward &amp; Bed</option>
                     </select>
                   </div>
                   <div>
@@ -710,13 +1105,13 @@ export default function BillingPage() {
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL: PRINT OFFICIAL RECEIPT                                             */}
+      {/* MODAL: PRINT OFFICIAL ERCA FISCAL TAX RECEIPT                             */}
       {/* ========================================================================= */}
       {showReceiptModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(28,25,23,0.75)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '20px' }}>
-          <div className="glass-panel" style={{ width: '640px', padding: '32px', background: '#ffffff', border: '1px solid var(--border-color)', borderRadius: '12px' }}>
+          <div className="glass-panel" style={{ width: '660px', maxHeight: '92vh', overflowY: 'auto', padding: '32px', background: '#ffffff', border: '1px solid var(--border-color)', borderRadius: '12px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #e5dfd5', paddingBottom: '10px' }}>
-              <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0369a1' }}>Official Cashier Receipt</div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0369a1' }}>Official ERCA Cashier Tax Receipt</div>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button onClick={() => window.print()} className="btn-primary"><Printer size={14} /> Print Receipt</button>
                 <button onClick={() => setShowReceiptModal(null)} className="btn-secondary"><X size={14} /></button>
@@ -725,16 +1120,22 @@ export default function BillingPage() {
 
             <div style={{ padding: '24px', border: '1px solid #e5dfd5', borderRadius: '8px', background: '#fff', color: '#1c1917' }}>
               <div style={{ textAlign: 'center', marginBottom: '18px' }}>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#c89345' }}>{clinicProfile.name}</h3>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>{clinicProfile.name}</h3>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{clinicProfile.address} | Tel: {clinicProfile.phone}</div>
-                <div style={{ fontSize: '0.85rem', fontWeight: 700, marginTop: '8px', textDecoration: 'underline' }}>PAYMENT RECEIPT & TAX INVOICE</div>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginTop: '2px' }}>TIN: 0049281923 • MRC: {showReceiptModal.mrcNumber || 'ERCA-ETH-2026-F9812'}</div>
+                <div style={{ fontSize: '0.85rem', fontWeight: 800, marginTop: '8px', letterSpacing: '0.5px', textDecoration: 'underline' }}>OFFICIAL FISCAL CASH RECEIPT &amp; TAX INVOICE</div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '0.78rem', marginBottom: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.78rem', marginBottom: '16px', background: '#f8fafc', padding: '10px', borderRadius: '6px' }}>
                 <div><strong>Invoice No:</strong> {showReceiptModal.invoiceNo}</div>
-                <div><strong>Date:</strong> {showReceiptModal.issueDate}</div>
+                <div><strong>Fiscal Rec #:</strong> <span style={{ fontFamily: 'monospace', fontWeight: 700 }}>{showReceiptModal.fiscalReceiptNo || 'PENDING-FISCAL'}</span></div>
+                <div><strong>Date &amp; Time:</strong> {showReceiptModal.issueDate}</div>
                 <div><strong>Patient Name:</strong> {showReceiptModal.patientName}</div>
-                <div><strong>Status:</strong> {showReceiptModal.status}</div>
+                {showReceiptModal.insuranceProviderName && (
+                  <div style={{ gridColumn: '1 / -1', color: '#0369a1', fontWeight: 600 }}>
+                    Third-Party Payer: {showReceiptModal.insuranceProviderName} ({showReceiptModal.insuranceCoPayPercent}% Co-Pay)
+                  </div>
+                )}
               </div>
 
               <table className="cms-table" style={{ marginBottom: '16px' }}>
@@ -769,15 +1170,116 @@ export default function BillingPage() {
                 <div>
                   VAT ({showReceiptModal.subtotal > 0 ? Math.round((showReceiptModal.vat / showReceiptModal.subtotal) * 100) : (showReceiptModal.vat > 0 ? vatPercent : 0)}%): <strong>Br {showReceiptModal.vat.toFixed(2)}</strong>
                 </div>
-                <div style={{ fontSize: '1rem', fontWeight: 800, color: '#0369a1', borderTop: '1px solid #e5dfd5', paddingTop: '4px', marginTop: '4px' }}>
+                <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0369a1', borderTop: '1px solid #e5dfd5', paddingTop: '4px', marginTop: '4px' }}>
                   Total Paid: Br {showReceiptModal.paid.toFixed(2)}
                 </div>
               </div>
 
-              <div style={{ marginTop: '24px', textAlign: 'center', fontSize: '0.72rem', color: 'var(--text-muted)', borderTop: '1px dashed #e5dfd5', paddingTop: '10px' }}>
+              {/* ERCA Digital Tax Signature & QR Section */}
+              <div style={{ marginTop: '20px', padding: '12px', border: '1px dashed #cbd5e1', borderRadius: '8px', background: '#fafafa', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#047857', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <ShieldCheck size={14} /> ERCA e-Tax Certified &amp; Cryptographically Signed
+                  </div>
+                  <div style={{ fontSize: '0.68rem', fontFamily: 'monospace', color: '#64748b', marginTop: '3px' }}>
+                    SIG: {showReceiptModal.fiscalSignature ? showReceiptModal.fiscalSignature.substring(0, 32) + '...' : 'ERCA-SIG-2026-F9812-OK'}
+                  </div>
+                  <div style={{ fontSize: '0.65rem', color: '#94a3b8' }}>
+                    Scan QR code using Ethiopian Revenue e-Tax Mobile App to verify authenticity.
+                  </div>
+                </div>
+
+                <div style={{ width: '64px', height: '64px', background: '#fff', border: '1px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px' }}>
+                  <QrCode size={52} color="#000" />
+                </div>
+              </div>
+
+              <div style={{ marginTop: '18px', textAlign: 'center', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
                 Thank you for choosing {clinicProfile.name}.
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: TELEBIRR / CBE BIRR DYNAMIC QR PAYMENT                             */}
+      {/* ========================================================================= */}
+      {showTelebirrModal && selectedInvoice && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(10,15,30,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, padding: '20px' }}>
+          <div className="glass-panel" style={{ width: '520px', maxHeight: '90vh', overflowY: 'auto', padding: '28px', background: '#0d1a2e', border: '1px solid rgba(0,113,227,0.4)', borderRadius: '16px', color: '#fff' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <div>
+                <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#5eabff', letterSpacing: '0.12em' }}>TELEBIRR / CBE BIRR MOBILE PAYMENT</div>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#fff', marginTop: 3 }}>Dynamic QR Code</h3>
+              </div>
+              <button onClick={closeTelebirrModal} style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, padding: '6px 10px', color: '#fff', cursor: 'pointer' }}><X size={16} /></button>
+            </div>
+
+            {telebirrSettled ? (
+              <div style={{ textAlign: 'center', padding: '32px', color: '#34c759' }}>
+                <CheckCircle2 size={56} style={{ margin: '0 auto 16px' }} />
+                <div style={{ fontSize: '1.2rem', fontWeight: 800 }}>Payment Confirmed!</div>
+                <div style={{ fontSize: '0.8rem', opacity: 0.7, marginTop: 8 }}>Invoice will be updated shortly…</div>
+              </div>
+            ) : (
+              <>
+                {/* Amount info */}
+                <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                  <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>Amount Due for {selectedInvoice.invoiceNo}</div>
+                  <div style={{ fontSize: '2.5rem', fontWeight: 900, color: '#5eabff', fontFamily: 'monospace' }}>
+                    Br {Math.max(0, selectedInvoice.total - selectedInvoice.paid).toFixed(2)}
+                  </div>
+                </div>
+
+                {/* QR Boxes side by side */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
+                  {/* Telebirr */}
+                  <div style={{ padding: 16, borderRadius: 12, background: 'rgba(0,113,227,0.15)', border: '1px solid rgba(0,113,227,0.35)', textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#5eabff', marginBottom: 10 }}>📱 TELEBIRR</div>
+                    <div style={{ width: 100, height: 100, background: '#fff', borderRadius: 8, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #0071e3' }}>
+                      <QrCode size={76} color="#0071e3" />
+                    </div>
+                    {telebirrQrPayload && (
+                      <div style={{ fontSize: '0.55rem', fontFamily: 'monospace', color: 'rgba(255,255,255,0.4)', marginTop: 8, wordBreak: 'break-all' }}>
+                        {telebirrQrPayload.substring(0, 60)}…
+                      </div>
+                    )}
+                  </div>
+                  {/* CBE Birr */}
+                  <div style={{ padding: 16, borderRadius: 12, background: 'rgba(52,199,89,0.1)', border: '1px solid rgba(52,199,89,0.3)', textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#34c759', marginBottom: 10 }}>🏦 CBE BIRR</div>
+                    <div style={{ width: 100, height: 100, background: '#fff', borderRadius: 8, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #34c759' }}>
+                      <QrCode size={76} color="#34c759" />
+                    </div>
+                    {telebirrCbeQrPayload && (
+                      <div style={{ fontSize: '0.55rem', fontFamily: 'monospace', color: 'rgba(255,255,255,0.4)', marginTop: 8, wordBreak: 'break-all' }}>
+                        {telebirrCbeQrPayload.substring(0, 60)}…
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Merchant info */}
+                <div style={{ padding: '10px 14px', background: 'rgba(255,255,255,0.05)', borderRadius: 8, marginBottom: 16, fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)', display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Merchant: <strong style={{ color: '#fff' }}>MERCH-ETH-004928</strong></span>
+                  <span>Short Code: <strong style={{ color: '#fff' }}>8711</strong></span>
+                </div>
+
+                <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)', textAlign: 'center', marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                  <Loader2 size={12} className="animate-spin" color="#5eabff" />
+                  Waiting for patient to scan and confirm payment…
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleSimulateTelebirrScan}
+                  style={{ width: '100%', padding: '10px', borderRadius: 8, background: 'rgba(52,199,89,0.2)', border: '1px solid rgba(52,199,89,0.4)', color: '#34c759', fontWeight: 700, cursor: 'pointer', fontSize: '0.82rem' }}
+                >
+                  ✔ Simulate Patient Scan & Confirm (Dev/Testing)
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}

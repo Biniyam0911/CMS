@@ -87,6 +87,11 @@ builder.Services.AddScoped<QueueService>();
 builder.Services.AddScoped<ModuleManagementService>();
 builder.Services.AddScoped<SettingsAndApiService>();
 builder.Services.AddScoped<DashboardService>();
+builder.Services.AddScoped<CMS.Application.Notifications.SmsGatewayService>();
+builder.Services.AddScoped<CMS.Application.Billing.TelebirrPaymentService>();
+builder.Services.AddScoped<CMS.Application.Telemedicine.TelemedService>();
+builder.Services.AddHttpClient<CMS.Application.Telemedicine.TelegramBotService>();
+builder.Services.AddHttpClient<CMS.Application.Telemedicine.WhatsAppCloudService>();
 
 builder.Services.AddSignalR();
 

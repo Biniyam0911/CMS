@@ -6,6 +6,7 @@ import DashboardPage from './pages/Dashboard/DashboardPage';
 import PatientsPage from './pages/Patients/PatientsPage';
 import TriagePage from './pages/Triage/TriagePage';
 import EmrSoapPage from './pages/EMR/EmrSoapPage';
+import InpatientPage from './pages/Inpatient/InpatientPage';
 import AppointmentsPage from './pages/Appointments/AppointmentsPage';
 import QueuePage from './pages/Queue/QueuePage';
 import LaboratoryPage from './pages/Laboratory/LaboratoryPage';
@@ -20,6 +21,7 @@ import ModuleManagementPage from './pages/ModuleManagement/ModuleManagementPage'
 import ApiManagementPage from './pages/ApiManagement/ApiManagementPage';
 import SettingsPage from './pages/Settings/SettingsPage';
 import IntegrationsPage from './pages/Integrations/IntegrationsPage';
+import TelemedQueuePage from './pages/Telemedicine/TelemedQueuePage';
 import { initRolePermissions } from './utils/permissions';
 
 export default function App() {
@@ -207,6 +209,7 @@ export default function App() {
         {activeModule === 'PATIENTS' && <PatientsPage onSelectEmrPatient={navigateToEmrWithPatient} />}
         {activeModule === 'TRIAGE' && <TriagePage />}
         {activeModule === 'EMR' && <EmrSoapPage selectedPatientId={selectedEmrPatientId} currentUser={user} />}
+        {activeModule === 'INPATIENT' && <InpatientPage />}
         {activeModule === 'APPOINTMENTS' && <AppointmentsPage />}
         {activeModule === 'QUEUE' && <QueuePage />}
         {activeModule === 'LAB' && <LaboratoryPage />}
@@ -221,6 +224,7 @@ export default function App() {
         {activeModule === 'API_MGMT' && <ApiManagementPage />}
         {activeModule === 'SETTINGS' && <SettingsPage />}
         {activeModule === 'INTEGRATIONS' && <IntegrationsPage />}
+        {activeModule === 'TELEMED' && <TelemedQueuePage />}
       </main>
     </div>
   );

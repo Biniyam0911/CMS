@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import {
   ListOrdered, Volume2, Monitor, CheckCircle, Play, RefreshCw,
-  Activity, FlaskConical, Stethoscope, Clock, ShieldAlert, Loader2, UserCheck
+  Activity, FlaskConical, Stethoscope, Clock, ShieldAlert, Loader2, UserCheck, Tv
 } from 'lucide-react';
 import { api } from '../../api/apiClient';
 import { playTicketChimeAndSpeech } from '../../utils/audioAnnouncer';
+import WaitingRoomTvScreen from './WaitingRoomTvScreen';
 
 type QueueTab = 'all' | 'triage' | 'lab' | 'procedure';
 
 export default function QueuePage() {
   const [activeTab, setActiveTab] = useState<QueueTab>('all');
+  const [tvMode, setTvMode] = useState(false);
   const [tokens, setTokens] = useState<any[]>([]);
   const [triageQueue, setTriageQueue] = useState<any[]>([]);
   const [labQueue, setLabQueue] = useState<any[]>([]);
@@ -227,6 +229,9 @@ export default function QueuePage() {
 
   return (
     <div>
+      {/* TV Mode overlay — replaces entire page content */}
+      {tvMode && <WaitingRoomTvScreen onExit={() => setTvMode(false)} />}
+
       {/* Big TV Screen Announcer Banner with Live Audio Broadcast */}
       <div
         style={{
@@ -254,6 +259,14 @@ export default function QueuePage() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button
+            onClick={() => setTvMode(true)}
+            className="btn-secondary"
+            style={{ padding: '12px 20px', borderRadius: '12px', fontSize: '0.9rem', background: '#0071e3', color: '#fff', borderColor: '#0071e3' }}
+            title="Launch full-screen waiting room TV display"
+          >
+            <Tv size={18} /> Launch TV Display
+          </button>
           <button
             onClick={() => playTicketChimeAndSpeech(lastCalled.token, lastCalled.counter)}
             className="btn-primary"

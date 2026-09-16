@@ -95,7 +95,32 @@ public class BillingController : ControllerBase
         await _billingService.ProcessPaymentAsync(dtoWithTenant);
         return Ok(ApiResponse<string>.Ok("Payment processed successfully."));
     }
+
+    [HttpGet("insurance/providers")]
+    public async Task<IActionResult> GetInsuranceProviders()
+    {
+        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+        var providers = await _billingService.GetInsuranceProvidersAsync(tenantId);
+        return Ok(ApiResponse<List<InsuranceProviderDto>>.Ok(providers));
+    }
+
+    [HttpGet("insurance/claims")]
+    public async Task<IActionResult> GetInsuranceClaims()
+    {
+        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+        var claims = await _billingService.GetInsuranceClaimsAsync(tenantId);
+        return Ok(ApiResponse<List<InsuranceClaimDto>>.Ok(claims));
+    }
+
+    [HttpPut("insurance/claims/{invoiceId}/status")]
+    public async Task<IActionResult> UpdateClaimStatus(int invoiceId, [FromBody] UpdateClaimStatusRequest request)
+    {
+        bool ok = await _billingService.UpdateClaimStatusAsync(invoiceId, request.StatusId);
+        return Ok(ApiResponse<bool>.Ok(ok));
+    }
 }
+
+public record UpdateClaimStatusRequest(byte StatusId);
 
 [ApiController]
 [Route("api/v1/[controller]")]

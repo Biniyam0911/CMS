@@ -10,6 +10,7 @@ import {
 import { api } from '../../api/apiClient';
 import { evaluateCdsAlerts, CdsAlert } from '../../utils/cdsRuleEngine';
 import { searchIcd10, Icd10Item } from '../../utils/icd10Catalog';
+import RadiologyViewerModal, { RadiologyStudy } from '../../components/RadiologyViewerModal';
 
 interface EmrSoapPageProps {
   selectedPatientId?: number | null;
@@ -213,7 +214,9 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
   const [historyPrescriptions, setHistoryPrescriptions] = useState<any[]>([]);
   const [historyProcedures, setHistoryProcedures] = useState<any[]>([]);
   const [historyInvoices, setHistoryInvoices] = useState<any[]>([]);
-  const [historyFilter, setHistoryFilter] = useState<'ALL' | 'NOTES' | 'VITALS' | 'LABS' | 'RX' | 'PROCEDURES' | 'CERTS' | 'BILLING'>('ALL');
+  const [radiologyStudies, setRadiologyStudies] = useState<RadiologyStudy[]>([]);
+  const [selectedDicomStudy, setSelectedDicomStudy] = useState<RadiologyStudy | null>(null);
+  const [historyFilter, setHistoryFilter] = useState<'ALL' | 'NOTES' | 'VITALS' | 'LABS' | 'RX' | 'PROCEDURES' | 'CERTS' | 'BILLING' | 'RADIOLOGY'>('ALL');
   const [loadingHistory, setLoadingHistory] = useState(false);
 
   // ==========================================
@@ -526,11 +529,15 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
       setHistoryPrescriptions((rxs || []).filter((r: any) => (r.patientId || r.PatientId) === patId));
       setHistoryInvoices((invs || []).filter((i: any) => (i.patientId || i.PatientId) === patId));
 
-      // Also load results so the history tab can show results table per order
-      const [results, vitalsRes] = await Promise.all([
+      // Also load results and radiology studies so the history tab can show results table per order
+      const [results, vitalsRes, radRes] = await Promise.all([
         api.get<any[]>(`/laboratory/patient/${patId}/results`).catch(() => []),
-        api.get<any[]>(`/triage/patient/${patId}/history`).catch(() => [])
+        api.get<any[]>(`/triage/patient/${patId}/history`).catch(() => []),
+        api.get<any[]>(`/radiology/patient/${patId}`).catch(() => [])
       ]);
+
+      const radStudies = Array.isArray(radRes) ? radRes : ((radRes as any)?.data || []);
+      setRadiologyStudies(radStudies);
 
       const mappedResults = (results || []).map((r: any) => ({
         id: r.id || r.Id,
@@ -2036,7 +2043,8 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                 { key: 'PROCEDURES', label: `Procedures (${historyProcedures.length})` },
                 { key: 'RX', label: `Prescriptions (${historyPrescriptions.length})` },
                 { key: 'CERTS', label: `Certificates (${issuedCerts.length})` },
-                { key: 'BILLING', label: `Invoices (${historyInvoices.length})` }
+                { key: 'BILLING', label: `Invoices (${historyInvoices.length})` },
+                { key: 'RADIOLOGY', label: `Radiology & PACS (${radiologyStudies.length})` }
               ].map(f => (
                 <button
                   key={f.key}
@@ -2419,9 +2427,42 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Status: {inv.statusName || inv.status || 'Issued'} • Paid: Br {(inv.paidAmount || inv.paid || 0).toFixed(2)}</div>
                 </div>
               ))}
+
+              {/* Radiology & PACS DICOM Studies */}
+              {(historyFilter === 'ALL' || historyFilter === 'RADIOLOGY') && radiologyStudies.map((study, idx) => (
+                <div key={`rad-${idx}`} style={{ padding: '16px', borderRadius: '8px', background: '#f8fafc', border: '1.5px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span className="badge badge-info" style={{ fontSize: '0.7rem', fontWeight: 800 }}>{study.modalityCode || 'CR'}</span>
+                      <strong style={{ fontSize: '0.9rem', color: '#0f172a' }}>{study.studyType} — {study.bodyPart}</strong>
+                    </div>
+                    <button
+                      onClick={() => setSelectedDicomStudy(study)}
+                      className="btn-primary"
+                      style={{ padding: '5px 12px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+                    >
+                      <Eye size={13} /> Launch DICOM PACS Viewer
+                    </button>
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#475569' }}>
+                    <strong>Indication:</strong> {study.clinicalIndication || 'Routine radiographic evaluation.'}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#0369a1', background: '#f0f9ff', padding: '6px 10px', borderRadius: '6px', border: '1px solid #bae6fd' }}>
+                    <strong>Impression:</strong> {study.impression || 'Clear study. No acute abnormality detected.'}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
+      )}
+
+      {/* DICOM PACS Viewer Modal */}
+      {selectedDicomStudy && (
+        <RadiologyViewerModal
+          study={selectedDicomStudy}
+          onClose={() => setSelectedDicomStudy(null)}
+        />
       )}
 
 

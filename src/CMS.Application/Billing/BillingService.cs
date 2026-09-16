@@ -38,6 +38,25 @@ public class BillingService
         decimal total = isFree ? 0 : subTotal + tax;
         decimal paid = isFree ? 0 : (isPaid ? total : 0);
 
+        // Insurance Split Calculations
+        decimal coPayPercent = dto.InsuranceCoPayPercent ?? 0;
+        decimal insuranceClaim = 0;
+        decimal patientPay = total;
+        if (dto.InsuranceProviderId.HasValue && dto.InsuranceProviderId.Value > 0 && !isFree)
+        {
+            if (coPayPercent > 0 && coPayPercent <= 100)
+            {
+                patientPay = Math.Round(total * (coPayPercent / 100m), 2);
+                insuranceClaim = total - patientPay;
+            }
+            else
+            {
+                // Default 100% covered if 0 co-pay specified with insurance
+                insuranceClaim = total;
+                patientPay = 0;
+            }
+        }
+
         // Verify if EncounterId exists in Encounters table to satisfy FK_Invoices_Encounters
         int? validEncounterId = null;
         if (dto.EncounterId.HasValue && dto.EncounterId.Value > 0)
@@ -49,9 +68,9 @@ public class BillingService
         }
 
         var sqlHeader = @"
-            INSERT INTO Invoices (TenantId, InvoiceNumber, PatientId, EncounterId, StatusId, IssueDate, SubTotal, TaxAmt, TotalAmount, PaidAmount, DiscountAmt, InsuranceClaim, CreatedBy, CreatedAt)
+            INSERT INTO Invoices (TenantId, InvoiceNumber, PatientId, EncounterId, StatusId, IssueDate, SubTotal, TaxAmt, TotalAmount, PaidAmount, DiscountAmt, InsuranceClaim, InsuranceProviderId, InsuranceCoPayPercent, InsuranceClaimAmount, PatientPayAmount, PreAuthCode, ClaimStatusId, CreatedBy, CreatedAt)
             OUTPUT INSERTED.Id
-            VALUES (@TenantId, @InvoiceNumber, @PatientId, @EncounterId, @InitialStatus, GETDATE(), @SubTotal, @TaxAmt, @TotalAmount, @PaidAmount, 0, 0, @CreatedBy, GETDATE());";
+            VALUES (@TenantId, @InvoiceNumber, @PatientId, @EncounterId, @InitialStatus, GETDATE(), @SubTotal, @TaxAmt, @TotalAmount, @PaidAmount, 0, @InsuranceClaim, @InsuranceProviderId, @InsuranceCoPayPercent, @InsuranceClaimAmount, @PatientPayAmount, @PreAuthCode, @ClaimStatusId, @CreatedBy, GETDATE());";
 
         int invoiceId = await conn.ExecuteScalarAsync<int>(sqlHeader, new {
             dto.TenantId,
@@ -63,6 +82,13 @@ public class BillingService
             TaxAmt = tax,
             TotalAmount = total,
             PaidAmount = paid,
+            InsuranceClaim = insuranceClaim,
+            dto.InsuranceProviderId,
+            InsuranceCoPayPercent = coPayPercent,
+            InsuranceClaimAmount = insuranceClaim,
+            PatientPayAmount = patientPay,
+            dto.PreAuthCode,
+            ClaimStatusId = (dto.InsuranceProviderId.HasValue && dto.InsuranceProviderId.Value > 0) ? 2 : 1, // 2=Submitted, 1=Draft/N/A
             CreatedBy = dto.CreatedBy > 0 ? dto.CreatedBy : 1
         });
 
@@ -184,9 +210,20 @@ public class BillingService
                              AND (pm.PaymentMethod = 4 OR pm.Reference LIKE '%Waiv%' OR pm.Reference LIKE '%Free%')
                        ) THEN CAST(1 AS BIT)
                        ELSE CAST(0 AS BIT)
-                   END AS IsWaived
+                   END AS IsWaived,
+                   i.InsuranceProviderId,
+                   ip.Name AS InsuranceProviderName,
+                   ISNULL(i.InsuranceCoPayPercent, 0) AS InsuranceCoPayPercent,
+                   ISNULL(i.InsuranceClaimAmount, 0) AS InsuranceClaimAmount,
+                   ISNULL(i.PatientPayAmount, i.TotalAmount) AS PatientPayAmount,
+                   i.PreAuthCode,
+                   ISNULL(i.ClaimStatusId, 1) AS ClaimStatusId,
+                   i.FiscalReceiptNo,
+                   i.FiscalSignature,
+                   i.FiscalQrPayload
             FROM Invoices i
             JOIN Patients p ON p.Id = i.PatientId
+            LEFT JOIN InsuranceProviders ip ON ip.Id = i.InsuranceProviderId
             WHERE i.TenantId = @TenantId
             ORDER BY i.Id DESC";
 
@@ -262,5 +299,56 @@ public class BillingService
                 new { dto.TenantId, dto.InvoiceId, dto.PatientId, dto.Amount, dto.Reference });
         }
         catch { /* non-blocking notification */ }
+    }
+
+    public async Task<List<InsuranceProviderDto>> GetInsuranceProvidersAsync(byte tenantId)
+    {
+        using var conn = _dbFactory.CreateConnection();
+        var sql = @"
+            SELECT Id, TenantId, Name, Code, ContactPerson, Phone, Email, DefaultCoPayPercent, IsActive
+            FROM InsuranceProviders
+            WHERE TenantId = @TenantId AND IsActive = 1
+            ORDER BY Name ASC";
+        return (await conn.QueryAsync<InsuranceProviderDto>(sql, new { TenantId = tenantId })).ToList();
+    }
+
+    public async Task<List<InsuranceClaimDto>> GetInsuranceClaimsAsync(byte tenantId)
+    {
+        using var conn = _dbFactory.CreateConnection();
+        var sql = @"
+            SELECT i.Id AS InvoiceId, i.InvoiceNumber AS InvoiceNo,
+                   i.PatientId, p.FirstName + ' ' + ISNULL(p.MiddleName + ' ', '') + p.LastName AS PatientName,
+                   p.MRN,
+                   ISNULL(i.InsuranceProviderId, 0) AS InsuranceProviderId,
+                   ISNULL(ip.Name, 'Self / Cash') AS ProviderName,
+                   ISNULL(ip.Code, 'CASH') AS ProviderCode,
+                   p.InsurancePolicyNo AS PolicyNumber,
+                   i.PreAuthCode,
+                   i.TotalAmount,
+                   ISNULL(i.InsuranceCoPayPercent, 0) AS InsuranceCoPayPercent,
+                   ISNULL(i.InsuranceClaimAmount, 0) AS InsuranceClaimAmount,
+                   ISNULL(i.PatientPayAmount, i.TotalAmount) AS PatientPayAmount,
+                   ISNULL(i.ClaimStatusId, 2) AS ClaimStatusId,
+                   CASE i.ClaimStatusId
+                       WHEN 1 THEN 'Draft'
+                       WHEN 2 THEN 'Submitted'
+                       WHEN 3 THEN 'Approved'
+                       WHEN 4 THEN 'Reimbursed'
+                       WHEN 5 THEN 'Rejected'
+                       ELSE 'Submitted' END AS ClaimStatus,
+                   i.IssueDate
+            FROM Invoices i
+            JOIN Patients p ON p.Id = i.PatientId
+            JOIN InsuranceProviders ip ON ip.Id = i.InsuranceProviderId
+            WHERE i.TenantId = @TenantId AND i.InsuranceProviderId IS NOT NULL
+            ORDER BY i.Id DESC";
+        return (await conn.QueryAsync<InsuranceClaimDto>(sql, new { TenantId = tenantId })).ToList();
+    }
+
+    public async Task<bool> UpdateClaimStatusAsync(int invoiceId, byte statusId)
+    {
+        using var conn = _dbFactory.CreateConnection();
+        var sql = "UPDATE Invoices SET ClaimStatusId = @StatusId, UpdatedAt = GETDATE() WHERE Id = @InvoiceId";
+        return await conn.ExecuteAsync(sql, new { InvoiceId = invoiceId, StatusId = statusId }) > 0;
     }
 }
