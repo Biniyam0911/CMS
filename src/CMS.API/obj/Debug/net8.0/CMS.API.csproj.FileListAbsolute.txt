@@ -157,3 +157,4 @@ C:\Users\ASUS\source\repos\CMS\src\CMS.API\obj\Debug\net8.0\CMS.API.genruntimeco
 C:\Users\ASUS\source\repos\CMS\src\CMS.API\obj\Debug\net8.0\ref\CMS.API.dll
 C:\Users\ASUS\source\repos\CMS\src\CMS.API\bin\Debug\net8.0\web.config
 C:\Users\ASUS\source\repos\CMS\src\CMS.API\obj\Debug\net8.0\CMS.API.sourcelink.json
+C:\Users\ASUS\source\repos\CMS\src\CMS.API\bin\Debug\net8.0\CMS.API.staticwebassets.runtime.json

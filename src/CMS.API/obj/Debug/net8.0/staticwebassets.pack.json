@@ -1,0 +1,29 @@
+{
+  "Files": [
+    {
+      "Id": "C:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.API\\wwwroot\\uploads\\receipts\\receipt_330642940_20260916132309.jpg",
+      "PackagePath": "staticwebassets\\uploads\\receipts\\receipt_330642940_20260916132309.jpg"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.CMS.API.Microsoft.AspNetCore.StaticWebAssetEndpoints.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssetEndpoints.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.CMS.API.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.build.CMS.API.props",
+      "PackagePath": "build\\CMS.API.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildMultiTargeting.CMS.API.props",
+      "PackagePath": "buildMultiTargeting\\CMS.API.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildTransitive.CMS.API.props",
+      "PackagePath": "buildTransitive\\CMS.API.props"
+    }
+  ],
+  "ElementsToRemove": []
+}

@@ -156,6 +156,8 @@ public class InvoiceDto
     public string? FiscalSignature { get; set; }
     public string? FiscalQrPayload { get; set; }
     public bool IsWaived { get; set; } = false;
+    public string? ReceiptImageUrl { get; set; }
+    public string? Notes { get; set; }
     public List<InvoiceItemDto> Items { get; set; } = new();
 
     public InvoiceDto() { }

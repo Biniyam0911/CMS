@@ -17,6 +17,7 @@ export default function BillingPage() {
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState<any>(null);
+  const [showScreenshotModal, setShowScreenshotModal] = useState<string | null>(null);
 
   // New Invoice Form State
   const [selectedPatientId, setSelectedPatientId] = useState<number>(1);
@@ -57,7 +58,8 @@ export default function BillingPage() {
 
   // Free / Waived Invoice State
   const [isFreeInvoice, setIsFreeInvoice] = useState(false);
-  const [vatPercent, setVatPercent] = useState<number>(15.0);
+  const [vatPercent, setVatPercent] = useState<number>(0.0);
+  const [isVerifyingTransfer, setIsVerifyingTransfer] = useState(false);
   const [clinicProfile, setClinicProfile] = useState<{ name: string; address: string; phone: string }>({
     name: 'Specialty Clinic',
     address: 'Addis Ababa, Ethiopia',
@@ -82,17 +84,28 @@ export default function BillingPage() {
         let cName = 'Specialty Clinic';
         let cAddr = 'Addis Ababa, Ethiopia';
         let cPhone = '+251 911 00 00 00';
+        let foundTaxRate = false;
         settingsData.forEach((s: any) => {
           const k = s.settingKey || s.SettingKey;
           const v = s.settingValue || s.SettingValue;
           if (k === 'ClinicName' && v) cName = v;
           if (k === 'ClinicAddress' && v) cAddr = v;
           if (k === 'ClinicPhone' && v) cPhone = v;
-          if (k === 'TaxRate' || k === 'Tax.DefaultVatPercent') {
+          if (k === 'TaxRate') {
             const parsed = parseFloat(v);
-            if (!isNaN(parsed) && parsed >= 0) setVatPercent(parsed);
+            if (!isNaN(parsed) && parsed >= 0) {
+              setVatPercent(parsed);
+              foundTaxRate = true;
+            }
           }
         });
+        if (!foundTaxRate) {
+          const fallbackVat = settingsData.find((s: any) => (s.settingKey || s.SettingKey) === 'Tax.DefaultVatPercent');
+          if (fallbackVat) {
+            const parsed = parseFloat(fallbackVat.settingValue || fallbackVat.SettingValue);
+            if (!isNaN(parsed) && parsed >= 0) setVatPercent(parsed);
+          }
+        }
         setClinicProfile({ name: cName, address: cAddr, phone: cPhone });
       }
 
@@ -121,6 +134,8 @@ export default function BillingPage() {
             fiscalReceiptNo: inv.fiscalReceiptNo || inv.FiscalReceiptNo,
             fiscalSignature: inv.fiscalSignature || inv.FiscalSignature,
             fiscalQrPayload: inv.fiscalQrPayload || inv.FiscalQrPayload,
+            receiptImageUrl: inv.receiptImageUrl || inv.ReceiptImageUrl || null,
+            notes: inv.notes || inv.Notes || '',
             items: (inv.items || []).map((it: any) => ({
               id: it.id || it.Id,
               description: it.description || it.Description,
@@ -233,6 +248,20 @@ export default function BillingPage() {
       await fetchInvoicesAndPatients();
     } catch (err) {
       console.error('Failed to update claim status:', err);
+    }
+  };
+
+  const handleVerifyTelemedTransfer = async (invoiceId: number) => {
+    try {
+      setIsVerifyingTransfer(true);
+      await api.post(`/billing/invoices/${invoiceId}/verify-telemed-payment`, {});
+      setPaySuccessMsg('✓ Transfer verified & confirmed! Telegram notification sent to patient.');
+      setTimeout(() => setPaySuccessMsg(null), 4500);
+      await fetchInvoicesAndPatients();
+    } catch (err: any) {
+      alert(`Transfer verification failed: ${err?.message || 'Check server connection.'}`);
+    } finally {
+      setIsVerifyingTransfer(false);
     }
   };
 
@@ -608,6 +637,11 @@ export default function BillingPage() {
                           {inv.fiscalReceiptNo && (
                             <span title="ERCA Fiscal Signed" style={{ color: '#059669' }}><QrCode size={12} /></span>
                           )}
+                          {inv.receiptImageUrl && (
+                            <span title="Payment Screenshot Uploaded" style={{ background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0', borderRadius: '4px', padding: '1px 5px', fontSize: '0.68rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                              📸 Slip
+                            </span>
+                          )}
                         </div>
                       </td>
                       <td>
@@ -711,92 +745,178 @@ export default function BillingPage() {
 
                 {/* Cashier Payment Form */}
                 {selectedInvoice.total - selectedInvoice.paid > 0 ? (
-                  <form onSubmit={handleProcessPayment} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                      Process Cashier Payment
-                    </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {/* Patient Payment Transfer Proof Preview */}
+                    {selectedInvoice.receiptImageUrl ? (
+                      <div style={{ padding: '12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                          <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            📸 Transfer Screenshot (Uploaded by Patient)
+                          </span>
+                          <span className="badge badge-warning" style={{ fontSize: '0.65rem' }}>
+                            Needs Verification
+                          </span>
+                        </div>
 
-                    {payMethod === '4' && (
-                      <div style={{ padding: '8px 12px', background: '#fffbeb', border: '1px solid #f59e0b', borderRadius: '6px', fontSize: '0.75rem', color: '#78350f', fontWeight: 600 }}>
-                        ☑ Waived — this invoice will be marked as <strong>Paid (Free / Waived Service)</strong>. No money collected.
+                        <div
+                          onClick={() => setShowScreenshotModal(selectedInvoice.receiptImageUrl.startsWith('http') ? selectedInvoice.receiptImageUrl : `http://localhost:5010${selectedInvoice.receiptImageUrl}`)}
+                          style={{
+                            cursor: 'pointer',
+                            borderRadius: '6px',
+                            overflow: 'hidden',
+                            border: '1px solid #cbd5e1',
+                            maxHeight: '220px',
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            background: '#0f172a',
+                            position: 'relative'
+                          }}
+                          title="Click to view full-size screenshot"
+                        >
+                          <img
+                            src={selectedInvoice.receiptImageUrl.startsWith('http') ? selectedInvoice.receiptImageUrl : `http://localhost:5010${selectedInvoice.receiptImageUrl}`}
+                            alt="Transfer Screenshot"
+                            style={{ maxWidth: '100%', maxHeight: '220px', objectFit: 'contain' }}
+                          />
+                          <div style={{ position: 'absolute', bottom: '6px', right: '6px', background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: '0.68rem', padding: '3px 8px', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
+                            <Search size={12} /> Click to View Full Size
+                          </div>
+                        </div>
                       </div>
+                    ) : (
+                      selectedInvoice.notes && selectedInvoice.notes.toLowerCase().includes('telemedicine') && selectedInvoice.status !== 'Paid' && (
+                        <div style={{ padding: '10px 12px', background: '#eff6ff', borderRadius: '6px', border: '1px solid #bfdbfe', color: '#1e40af', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <AlertCircle size={14} /> Telemedicine Consultation — Awaiting patient transfer proof on Telegram.
+                        </div>
+                      )
                     )}
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                      <div>
-                        <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Payment Method</label>
-                        <select value={payMethod} onChange={e => { setPayMethod(e.target.value); if (e.target.value === '4') { setPayAmount('0'); setPayReference('Waived / Free Service'); } }}>
-                          <option value="1">Cash (Counter)</option>
-                          <option value="2">Telebirr / CBE Mobile</option>
-                          <option value="3">Insurance Claim / POS</option>
-                          <option value="4">Waived / Free Service</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Amount (Br)</label>
-                        <input
-                          type="number"
-                          step="0.5"
-                          placeholder={String(selectedInvoice.total - selectedInvoice.paid)}
-                          value={payAmount}
-                          onChange={e => setPayAmount(e.target.value)}
-                          required={payMethod !== '4'}
-                          disabled={payMethod === '4'}
-                          style={{ opacity: payMethod === '4' ? 0.5 : 1 }}
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Transaction Reference / Slip No</label>
-                      <input type="text" placeholder="e.g. TX-98421 or Cash" value={payReference} onChange={e => setPayReference(e.target.value)} />
-                    </div>
-
-                    {/* Telebirr / CBE Mobile QR Generator */}
-                    {payMethod === '2' && (
-                      <button
-                        type="button"
-                        onClick={handleGenerateTelebirrQr}
-                        disabled={telebirrLoading}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center',
-                          padding: '9px 14px', borderRadius: '6px', fontSize: '0.82rem', fontWeight: 700,
-                          background: 'linear-gradient(135deg, #0071e3, #34c759)',
-                          border: 'none', color: '#ffffff', cursor: telebirrLoading ? 'not-allowed' : 'pointer',
-                          width: '100%', opacity: telebirrLoading ? 0.7 : 1,
-                        }}
-                      >
-                        {telebirrLoading ? <Loader2 size={14} className="animate-spin" /> : <QrCode size={14} />}
-                        Generate Dynamic Telebirr QR
-                      </button>
-                    )}
-
                     <button
                       type="button"
-                      onClick={() => {
-                        setPayAmount('0');
-                        setPayMethod('4');
-                        setPayReference('Waived / Free Service');
-                      }}
+                      onClick={() => handleVerifyTelemedTransfer(selectedInvoice.id)}
+                      disabled={isVerifyingTransfer}
                       style={{
-                        display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center',
-                        padding: '7px 14px', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 700,
-                        background: payMethod === '4' ? '#f59e0b' : '#fffbeb',
-                        border: '1px solid #f59e0b',
-                        color: payMethod === '4' ? '#ffffff' : '#92400e',
-                        cursor: 'pointer', width: '100%'
+                        display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center',
+                        padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700,
+                        background: 'linear-gradient(135deg, #059669, #0d9488)', border: 'none', color: '#ffffff',
+                        cursor: isVerifyingTransfer ? 'not-allowed' : 'pointer', width: '100%',
+                        boxShadow: '0 2px 8px rgba(5, 150, 105, 0.25)'
                       }}
                     >
-                      ☑ Waive / Mark as Free Service
+                      {isVerifyingTransfer ? <Loader2 size={15} className="animate-spin" /> : <ShieldCheck size={16} />}
+                      Confirm Transfer &amp; Send Telegram Verification
                     </button>
 
-                    <button type="submit" className="btn-primary" style={{ justifyContent: 'center', marginTop: '4px' }}>
-                      <DollarSign size={14} /> {payMethod === '4' ? 'Confirm Waiver' : 'Accept Payment'}
-                    </button>
-                  </form>
+                    <form onSubmit={handleProcessPayment} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                        Or Process Counter / Custom Payment
+                      </div>
+
+                      {payMethod === '4' && (
+                        <div style={{ padding: '8px 12px', background: '#fffbeb', border: '1px solid #f59e0b', borderRadius: '6px', fontSize: '0.75rem', color: '#78350f', fontWeight: 600 }}>
+                          ☑ Waived — this invoice will be marked as <strong>Paid (Free / Waived Service)</strong>. No money collected.
+                        </div>
+                      )}
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                        <div>
+                          <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Payment Method</label>
+                          <select value={payMethod} onChange={e => { setPayMethod(e.target.value); if (e.target.value === '4') { setPayAmount('0'); setPayReference('Waived / Free Service'); } }}>
+                            <option value="1">Cash (Counter)</option>
+                            <option value="2">Telebirr / CBE Mobile</option>
+                            <option value="3">Insurance Claim / POS</option>
+                            <option value="4">Waived / Free Service</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Amount (Br)</label>
+                          <input
+                            type="number"
+                            step="0.5"
+                            placeholder={String(selectedInvoice.total - selectedInvoice.paid)}
+                            value={payAmount}
+                            onChange={e => setPayAmount(e.target.value)}
+                            required={payMethod !== '4'}
+                            disabled={payMethod === '4'}
+                            style={{ opacity: payMethod === '4' ? 0.5 : 1 }}
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Transaction Reference / Slip No</label>
+                        <input type="text" placeholder="e.g. TX-98421 or Cash" value={payReference} onChange={e => setPayReference(e.target.value)} />
+                      </div>
+
+                      {/* Telebirr / CBE Mobile QR Generator */}
+                      {payMethod === '2' && (
+                        <button
+                          type="button"
+                          onClick={handleGenerateTelebirrQr}
+                          disabled={telebirrLoading}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center',
+                            padding: '9px 14px', borderRadius: '6px', fontSize: '0.82rem', fontWeight: 700,
+                            background: 'linear-gradient(135deg, #0071e3, #34c759)',
+                            border: 'none', color: '#ffffff', cursor: telebirrLoading ? 'not-allowed' : 'pointer',
+                            width: '100%', opacity: telebirrLoading ? 0.7 : 1,
+                          }}
+                        >
+                          {telebirrLoading ? <Loader2 size={14} className="animate-spin" /> : <QrCode size={14} />}
+                          Generate Dynamic Telebirr QR
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPayAmount('0');
+                          setPayMethod('4');
+                          setPayReference('Waived / Free Service');
+                        }}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center',
+                          padding: '7px 14px', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 700,
+                          background: payMethod === '4' ? '#f59e0b' : '#fffbeb',
+                          border: '1px solid #f59e0b',
+                          color: payMethod === '4' ? '#ffffff' : '#92400e',
+                          cursor: 'pointer', width: '100%'
+                        }}
+                      >
+                        ☑ Waive / Mark as Free Service
+                      </button>
+
+                      <button type="submit" className="btn-primary" style={{ justifyContent: 'center', marginTop: '4px' }}>
+                        <DollarSign size={14} /> {payMethod === '4' ? 'Confirm Waiver' : 'Accept Payment'}
+                      </button>
+                    </form>
+                  </div>
                 ) : (
-                  <div style={{ padding: '10px', background: '#d1fae5', borderRadius: '6px', border: '1px solid #a7f3d0', color: '#065f46', fontSize: '0.78rem', fontWeight: 700, textAlign: 'center' }}>
-                    ✓ Invoice Fully Settled &amp; Paid
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ padding: '10px', background: '#d1fae5', borderRadius: '6px', border: '1px solid #a7f3d0', color: '#065f46', fontSize: '0.78rem', fontWeight: 700, textAlign: 'center' }}>
+                      ✓ Invoice Fully Settled &amp; Paid
+                    </div>
+                    {selectedInvoice.receiptImageUrl && (
+                      <div style={{ padding: '10px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                        <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                          📸 Payment Transfer Receipt (Verified)
+                        </div>
+                        <div
+                          onClick={() => setShowScreenshotModal(selectedInvoice.receiptImageUrl.startsWith('http') ? selectedInvoice.receiptImageUrl : selectedInvoice.receiptImageUrl)}
+                          style={{ cursor: 'pointer', borderRadius: '6px', overflow: 'hidden', border: '1px solid #cbd5e1', maxHeight: '180px', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#0f172a', position: 'relative' }}
+                          title="Click to view full-size screenshot"
+                        >
+                          <img
+                            src={selectedInvoice.receiptImageUrl.startsWith('http') ? selectedInvoice.receiptImageUrl : selectedInvoice.receiptImageUrl}
+                            alt="Transfer Receipt"
+                            style={{ maxWidth: '100%', maxHeight: '180px', objectFit: 'contain' }}
+                          />
+                          <div style={{ position: 'absolute', bottom: '5px', right: '5px', background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: '0.68rem', padding: '3px 7px', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
+                            <Search size={11} /> Full Size
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1280,6 +1400,32 @@ export default function BillingPage() {
                 </button>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Transfer Screenshot Full-Screen Modal */}
+      {showScreenshotModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 10000, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '20px' }}>
+          <div style={{ maxWidth: '90vw', maxHeight: '90vh', background: '#1e293b', borderRadius: '12px', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
+            <div style={{ padding: '12px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #334155', color: '#f8fafc' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, fontSize: '0.9rem' }}>
+                📸 Telemedicine Payment Transfer Screenshot
+              </div>
+              <button
+                onClick={() => setShowScreenshotModal(null)}
+                style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div style={{ padding: '16px', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'auto', maxHeight: 'calc(90vh - 60px)', background: '#090d16' }}>
+              <img
+                src={showScreenshotModal}
+                alt="Payment Screenshot Full Size"
+                style={{ maxWidth: '100%', maxHeight: '75vh', objectFit: 'contain', borderRadius: '6px' }}
+              />
+            </div>
           </div>
         </div>
       )}

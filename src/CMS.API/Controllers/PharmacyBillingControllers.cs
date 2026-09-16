@@ -96,6 +96,31 @@ public class BillingController : ControllerBase
         return Ok(ApiResponse<string>.Ok("Payment processed successfully."));
     }
 
+    [HttpPost("invoices/{id}/verify-telemed-payment")]
+    public async Task<IActionResult> VerifyTelemedPayment(int id, [FromServices] CMS.Application.Telemedicine.TelemedService telemedService)
+    {
+        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+        var invoices = await _billingService.GetInvoicesAsync(tenantId);
+        var target = invoices.FirstOrDefault(x => x.Id == id);
+        if (target != null && target.StatusId != 4)
+        {
+            await _billingService.ProcessPaymentAsync(new ProcessPaymentDto(
+                TenantId: tenantId,
+                InvoiceId: id,
+                PatientId: target.PatientId,
+                Amount: target.TotalAmount - target.PaidAmount,
+                PaymentMethod: "2", // Telebirr / CBE Transfer
+                ReceivedBy: 1,
+                Reference: "Transfer Receipt Verified by Cashier"
+            ));
+        }
+        else
+        {
+            await telemedService.NotifyPaymentVerifiedAsync(tenantId, id);
+        }
+        return Ok(ApiResponse<string>.Ok("Transfer receipt verified and confirmed to patient."));
+    }
+
     [HttpGet("insurance/providers")]
     public async Task<IActionResult> GetInsuranceProviders()
     {

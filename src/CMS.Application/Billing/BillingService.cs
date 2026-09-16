@@ -7,10 +7,12 @@ namespace CMS.Application.Billing;
 public class BillingService
 {
     private readonly IDbConnectionFactory _dbFactory;
+    private readonly IServiceProvider _serviceProvider;
 
-    public BillingService(IDbConnectionFactory dbFactory)
+    public BillingService(IDbConnectionFactory dbFactory, IServiceProvider serviceProvider)
     {
         _dbFactory = dbFactory;
+        _serviceProvider = serviceProvider;
     }
 
     public async Task<int> CreateInvoiceAsync(CreateInvoiceDto dto)
@@ -21,15 +23,23 @@ public class BillingService
         bool isPaid = dto.StatusId == 4;
         byte initialStatus = (isFree || isPaid) ? (byte)4 : (dto.StatusId ?? (byte)2); // 4 = Paid, 2 = Issued
         decimal subTotal = isFree ? 0 : dto.Items.Sum(i => (i.Quantity * i.UnitPrice) - i.Discount);
-        // Dynamic VAT rate from ClinicSettings (TaxRate key, stored as percent e.g. "15" = 15%)
-        decimal vatRate = 0.15m;
+        // Dynamic VAT rate from ClinicSettings (TaxRate key, stored as percent e.g. "0" = 0%, "15" = 15%)
+        decimal vatRate = 0.0m;
         try
         {
-            var vatStr = await conn.ExecuteScalarAsync<string?>(
-                @"SELECT TOP 1 SettingValue FROM ClinicSettings 
-                  WHERE TenantId = @TenantId AND SettingKey IN ('TaxRate', 'Tax.DefaultVatPercent')
-                  ORDER BY CASE WHEN SettingKey = 'TaxRate' THEN 0 ELSE 1 END",
+            var vatStr = await conn.ExecuteScalarAsync<string?>(@"
+                SELECT TOP 1 SettingValue FROM ClinicSettings 
+                WHERE TenantId = @TenantId AND SettingKey = 'TaxRate'",
                 new { dto.TenantId });
+
+            if (string.IsNullOrWhiteSpace(vatStr))
+            {
+                vatStr = await conn.ExecuteScalarAsync<string?>(@"
+                    SELECT TOP 1 SettingValue FROM ClinicSettings 
+                    WHERE TenantId = @TenantId AND SettingKey = 'Tax.DefaultVatPercent'",
+                    new { dto.TenantId });
+            }
+
             if (!string.IsNullOrWhiteSpace(vatStr) && decimal.TryParse(vatStr, out var parsed))
                 vatRate = parsed / 100m;
         }
@@ -220,7 +230,9 @@ public class BillingService
                    ISNULL(i.ClaimStatusId, 1) AS ClaimStatusId,
                    i.FiscalReceiptNo,
                    i.FiscalSignature,
-                   i.FiscalQrPayload
+                   i.FiscalQrPayload,
+                   i.ReceiptImageUrl,
+                   i.Notes
             FROM Invoices i
             JOIN Patients p ON p.Id = i.PatientId
             LEFT JOIN InsuranceProviders ip ON ip.Id = i.InsuranceProviderId
@@ -278,9 +290,11 @@ public class BillingService
             SET PaidAmount = PaidAmount + @Amount,
                 StatusId = CASE WHEN (PaidAmount + @Amount) >= TotalAmount THEN 4 ELSE 3 END,
                 UpdatedAt = GETDATE()
-            WHERE Id = @InvoiceId AND TenantId = @TenantId;";
+            WHERE Id = @InvoiceId AND TenantId = @TenantId;
 
-        await conn.ExecuteAsync(paymentSql, new
+            SELECT StatusId FROM Invoices WHERE Id = @InvoiceId;";
+
+        byte newStatus = await conn.ExecuteScalarAsync<byte>(paymentSql, new
         {
             dto.TenantId,
             dto.InvoiceId,
@@ -290,6 +304,23 @@ public class BillingService
             dto.Reference,
             dto.ReceivedBy
         });
+
+        // When invoice is marked as Paid (StatusId = 4), verify and notify patient on Telegram if applicable
+        if (newStatus == 4)
+        {
+            try
+            {
+                var telemedService = _serviceProvider.GetService(typeof(CMS.Application.Telemedicine.TelemedService)) as CMS.Application.Telemedicine.TelemedService;
+                if (telemedService != null)
+                {
+                    await telemedService.NotifyPaymentVerifiedAsync(dto.TenantId, dto.InvoiceId);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[TELEMED PAYMENT NOTIFY ERROR] {ex.Message}");
+            }
+        }
 
         try
         {

@@ -143,6 +143,47 @@ export default function ServicesPage() {
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<number | 'ALL'>('ALL');
   const [expandedLabId, setExpandedLabId] = useState<number | null>(1);
 
+  // Filtered lists based on search query and category filter
+  const filteredServices = services.filter(s => {
+    if (selectedCategoryFilter !== 'ALL' && s.categoryId !== selectedCategoryFilter) return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const matchName = s.name?.toLowerCase().includes(q);
+      const matchCode = s.code?.toLowerCase().includes(q);
+      const matchCat = s.categoryName?.toLowerCase().includes(q);
+      const matchDept = s.department?.toLowerCase().includes(q);
+      const matchDesc = s.description?.toLowerCase().includes(q);
+      if (!matchName && !matchCode && !matchCat && !matchDept && !matchDesc) return false;
+    }
+    return true;
+  });
+
+  const filteredLabTests = labTests.filter(t => {
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const matchName = t.name?.toLowerCase().includes(q);
+      const matchCode = t.code?.toLowerCase().includes(q);
+      const matchCat = t.category?.toLowerCase().includes(q);
+      const matchSample = t.sampleType?.toLowerCase().includes(q);
+      const matchParams = (t.parameters || []).some(p =>
+        p.name?.toLowerCase().includes(q) || p.code?.toLowerCase().includes(q)
+      );
+      if (!matchName && !matchCode && !matchCat && !matchSample && !matchParams) return false;
+    }
+    return true;
+  });
+
+  const filteredCategories = categories.filter(c => {
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const matchName = c.name?.toLowerCase().includes(q);
+      const matchCode = c.code?.toLowerCase().includes(q);
+      const matchDesc = c.description?.toLowerCase().includes(q);
+      if (!matchName && !matchCode && !matchDesc) return false;
+    }
+    return true;
+  });
+
   // Modals State
   const [showServiceModal, setShowServiceModal] = useState(false);
   const [editingService, setEditingService] = useState<ClinicalService | null>(null);
@@ -499,44 +540,143 @@ export default function ServicesPage() {
         </button>
       </div>
 
+      {/* Search & Filter Toolbar */}
+      <div style={{
+        background: 'var(--bg-card)', padding: '12px 16px', borderRadius: '10px',
+        border: '1px solid var(--border-color)', marginBottom: '16px',
+        display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap'
+      }}>
+        <div style={{ position: 'relative', flex: '1 1 280px' }}>
+          <Search size={15} style={{ position: 'absolute', left: 12, top: 11, color: 'var(--text-muted)' }} />
+          <input
+            type="text"
+            placeholder={
+              activeTab === 'services'
+                ? "Search clinical services by name, code, category, department..."
+                : activeTab === 'lab_catalog'
+                ? "Search laboratory tests, codes, categories, specimens, analytes..."
+                : "Search service categories by name, code, description..."
+            }
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            style={{
+              width: '100%', padding: '8px 32px 8px 36px', borderRadius: 8,
+              border: '1.5px solid var(--border-color)', background: 'var(--bg-input)',
+              fontSize: '0.82rem', color: 'var(--text-main)', boxSizing: 'border-box'
+            }}
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              style={{ position: 'absolute', right: 10, top: 9, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+              title="Clear search"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+
+        {activeTab === 'services' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Filter size={14} color="var(--text-muted)" />
+            <select
+              value={selectedCategoryFilter}
+              onChange={e => setSelectedCategoryFilter(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value))}
+              style={{
+                padding: '8px 12px', borderRadius: 8, border: '1.5px solid var(--border-color)',
+                background: 'var(--bg-input)', fontSize: '0.82rem', color: 'var(--text-main)'
+              }}
+            >
+              <option value="ALL">All Categories</option>
+              {categories.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Match Count Badge */}
+        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span>
+            {activeTab === 'services' && `Showing ${filteredServices.length} of ${services.length} services`}
+            {activeTab === 'lab_catalog' && `Showing ${filteredLabTests.length} of ${labTests.length} tests`}
+            {activeTab === 'categories' && `Showing ${filteredCategories.length} of ${categories.length} categories`}
+          </span>
+          {(searchQuery || selectedCategoryFilter !== 'ALL') && (
+            <button
+              onClick={() => { setSearchQuery(''); setSelectedCategoryFilter('ALL'); }}
+              style={{
+                background: 'none', border: 'none', color: '#0284c7', fontSize: '0.72rem',
+                cursor: 'pointer', textDecoration: 'underline', padding: 0
+              }}
+            >
+              Reset
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* ========================================================================= */}
       {/* TAB 1: CLINICAL SERVICES CATALOGUE                                        */}
       {/* ========================================================================= */}
       {activeTab === 'services' && (
         <div className="glass-panel" style={{ padding: '18px' }}>
-          <table className="cms-table">
-            <thead>
-              <tr>
-                <th>Service Code</th>
-                <th>Service Name</th>
-                <th>Category</th>
-                <th>Department</th>
-                <th>Standard Fee (Br)</th>
-                <th>Tax</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {services.map(s => (
-                <tr key={s.id}>
-                  <td><span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0369a1' }}>{s.code}</span></td>
-                  <td><strong>{s.name}</strong></td>
-                  <td><span className="badge badge-info">{s.categoryName}</span></td>
-                  <td>{s.department}</td>
-                  <td><strong style={{ color: '#059669' }}>Br {s.standardFee.toFixed(2)}</strong></td>
-                  <td>{s.taxable ? 'VAT 15%' : 'Exempt'}</td>
-                  <td><span className="badge badge-normal">Active</span></td>
-                  <td>
-                    <div style={{ display: 'flex', gap: '5px' }}>
-                      <button onClick={() => openEditServiceModal(s)} title="Edit service parameters" className="btn-secondary" style={{ padding: '3px 6px' }}><Edit2 size={12} /></button>
-                      <button onClick={() => handleDeleteService(s.id)} title="Delete service" className="btn-secondary" style={{ padding: '3px 6px', color: '#b91c1c' }}><Trash2 size={12} /></button>
-                    </div>
-                  </td>
+          {filteredServices.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '36px 16px', color: 'var(--text-muted)' }}>
+              <Search size={32} style={{ margin: '0 auto 8px', opacity: 0.35 }} />
+              <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-main)', marginBottom: 4 }}>
+                No clinical services found
+              </div>
+              <div style={{ fontSize: '0.78rem', marginBottom: 12 }}>
+                {searchQuery || selectedCategoryFilter !== 'ALL'
+                  ? 'No services match your active search or category filter.'
+                  : 'No clinical services configured yet.'}
+              </div>
+              {(searchQuery || selectedCategoryFilter !== 'ALL') && (
+                <button
+                  onClick={() => { setSearchQuery(''); setSelectedCategoryFilter('ALL'); }}
+                  className="btn-secondary"
+                  style={{ fontSize: '0.75rem', padding: '4px 10px' }}
+                >
+                  Clear search &amp; filter
+                </button>
+              )}
+            </div>
+          ) : (
+            <table className="cms-table">
+              <thead>
+                <tr>
+                  <th>Service Code</th>
+                  <th>Service Name</th>
+                  <th>Category</th>
+                  <th>Department</th>
+                  <th>Standard Fee (Br)</th>
+                  <th>Tax</th>
+                  <th>Status</th>
+                  <th>Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filteredServices.map(s => (
+                  <tr key={s.id}>
+                    <td><span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0369a1' }}>{s.code}</span></td>
+                    <td><strong>{s.name}</strong></td>
+                    <td><span className="badge badge-info">{s.categoryName}</span></td>
+                    <td>{s.department}</td>
+                    <td><strong style={{ color: '#059669' }}>Br {s.standardFee.toFixed(2)}</strong></td>
+                    <td>{s.taxable ? 'VAT 15%' : 'Exempt'}</td>
+                    <td><span className="badge badge-normal">Active</span></td>
+                    <td>
+                      <div style={{ display: 'flex', gap: '5px' }}>
+                        <button onClick={() => openEditServiceModal(s)} title="Edit service parameters" className="btn-secondary" style={{ padding: '3px 6px' }}><Edit2 size={12} /></button>
+                        <button onClick={() => handleDeleteService(s.id)} title="Delete service" className="btn-secondary" style={{ padding: '3px 6px', color: '#b91c1c' }}><Trash2 size={12} /></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       )}
 
