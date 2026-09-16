@@ -1239,6 +1239,22 @@ public class TelemedController : ControllerBase
         int doctorStaffId = HttpContext.Items["UserId"] is int uid ? uid : 1;
         req.SessionId = id;
         var msg = await _telemedService.SendDoctorMessageAsync(tenantId, doctorStaffId, req);
+
+        // Forward to Telegram or WhatsApp
+        var session = await _telemedService.GetSessionDetailAsync(tenantId, id);
+        if (session != null)
+        {
+            string cleanText = req.ContentText ?? "";
+            if (session.Platform == "Telegram" && !string.IsNullOrWhiteSpace(session.PlatformChatId))
+            {
+                await _telegramService.SendTelegramMessageAsync(tenantId, session.PlatformChatId, cleanText);
+            }
+            else if (session.Platform == "WhatsApp" && !string.IsNullOrWhiteSpace(session.PatientPhone))
+            {
+                await _whatsappService.SendWhatsAppTextMessageAsync(tenantId, session.PatientPhone, cleanText);
+            }
+        }
+
         return Ok(ApiResponse<CMS.Shared.DTOs.TelemedMessageDto>.Ok(msg));
     }
 
@@ -1250,6 +1266,22 @@ public class TelemedController : ControllerBase
         int doctorStaffId = HttpContext.Items["UserId"] is int uid ? uid : 1;
         req.SessionId = id;
         var videoUrl = await _telemedService.InitiateVideoCallAsync(tenantId, doctorStaffId, req);
+
+        // Forward video room link to patient's Telegram/WhatsApp
+        var session = await _telemedService.GetSessionDetailAsync(tenantId, id);
+        if (session != null)
+        {
+            string notice = $"📹 *Dr. Bekele has started your 1-click video consultation room.*\n\nPlease tap the link below to join from your phone:\n🔗 {videoUrl}";
+            if (session.Platform == "Telegram" && !string.IsNullOrWhiteSpace(session.PlatformChatId))
+            {
+                await _telegramService.SendTelegramMessageAsync(tenantId, session.PlatformChatId, notice);
+            }
+            else if (session.Platform == "WhatsApp" && !string.IsNullOrWhiteSpace(session.PatientPhone))
+            {
+                await _whatsappService.SendWhatsAppTextMessageAsync(tenantId, session.PatientPhone, notice);
+            }
+        }
+
         return Ok(ApiResponse<object>.Ok(new { VideoUrl = videoUrl, Message = "Video call room ready." }));
     }
 
@@ -1261,6 +1293,18 @@ public class TelemedController : ControllerBase
         int doctorStaffId = HttpContext.Items["UserId"] is int uid ? uid : 1;
         req.SessionId = id;
         await _telemedService.CompleteConsultationAsync(tenantId, doctorStaffId, req);
+
+        // Forward completion summary to patient
+        var session = await _telemedService.GetSessionDetailAsync(tenantId, id);
+        if (session != null && session.Platform == "Telegram" && !string.IsNullOrWhiteSpace(session.PlatformChatId))
+        {
+            string summary = $"✅ *Consultation Completed by Dr. Bekele*\n\n" +
+                $"📋 *Diagnosis:* {req.Diagnosis ?? "Clinical advice provided"}\n" +
+                (string.IsNullOrWhiteSpace(req.PrescriptionText) ? "" : $"💊 *Prescription:* {req.PrescriptionText}\n\n") +
+                "Thank you for choosing Specialty Clinic Telehealth.";
+            await _telegramService.SendTelegramMessageAsync(tenantId, session.PlatformChatId, summary);
+        }
+
         return Ok(ApiResponse<object>.Ok(new { Message = "Consultation completed successfully." }));
     }
 
@@ -1275,11 +1319,12 @@ public class TelemedController : ControllerBase
         try
         {
             byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+            _logger.LogInformation(">>> INBOUND TELEGRAM UPDATE: {RawJson}", update.GetRawText());
             await _telegramService.HandleInboundTelegramUpdateAsync(tenantId, update);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error processing Telegram webhook update.");
+            _logger.LogError(ex, "!!! Error processing Telegram webhook update: {Message}", ex.Message);
         }
         return Ok(); // Always return 200 to Telegram
     }
