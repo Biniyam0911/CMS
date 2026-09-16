@@ -700,7 +700,12 @@ export default function ServicesPage() {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {labTests.map(test => {
+            {filteredLabTests.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+                <FlaskConical size={32} style={{ opacity: 0.3, margin: '0 auto 10px' }} />
+                <div style={{ fontSize: '0.9rem' }}>No lab tests match your search.</div>
+              </div>
+            ) : filteredLabTests.map(test => {
               const isExpanded = expandedLabId === test.id;
               return (
                 <div
@@ -806,18 +811,24 @@ export default function ServicesPage() {
       {/* ========================================================================= */}
       {activeTab === 'categories' && (
         <div className="glass-panel" style={{ padding: '18px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '14px' }}>
-            {categories.map(c => (
-              <div key={c.id} style={{ padding: '16px', borderRadius: '8px', background: '#fdfcf9', border: '1px solid var(--border-color)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0369a1' }}>{c.code}</span>
-                  <button onClick={() => openEditCategoryModal(c)} className="btn-secondary" style={{ padding: '2px 6px' }}><Edit2 size={11} /></button>
+          {filteredCategories.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+              <div style={{ fontSize: '0.9rem' }}>No categories match your search.</div>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '14px' }}>
+              {filteredCategories.map(c => (
+                <div key={c.id} style={{ padding: '16px', borderRadius: '8px', background: '#fdfcf9', border: '1px solid var(--border-color)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0369a1' }}>{c.code}</span>
+                    <button onClick={() => openEditCategoryModal(c)} className="btn-secondary" style={{ padding: '2px 6px' }}><Edit2 size={11} /></button>
+                  </div>
+                  <h4 style={{ fontSize: '0.95rem', fontWeight: 700, marginTop: '4px' }}>{c.name}</h4>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>{c.description}</p>
                 </div>
-                <h4 style={{ fontSize: '0.95rem', fontWeight: 700, marginTop: '4px' }}>{c.name}</h4>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>{c.description}</p>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
