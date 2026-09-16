@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   X, Send, Video, CheckCircle, Pill, RefreshCw, Phone,
   ExternalLink, AlertTriangle, Loader2
@@ -6,14 +6,14 @@ import {
 import { api } from '../api/apiClient';
 
 interface TelemedMessage {
-  Id: number;
-  SessionId: number;
-  SenderType: number; // 1=Patient, 2=Doctor, 3=System
-  ContentType: string; // Text | Image | VideoLink | Prescription | SystemEvent
-  Content: string;
-  MediaUrl?: string;
-  IsRead: boolean;
-  SentAt: string;
+  id: number;
+  sessionId: number;
+  senderType: string; // 'Patient' | 'Doctor' | 'SystemBot'
+  messageType: string; // 'Text' | 'Image' | 'VideoLink' | 'Prescription'
+  contentText: string;
+  mediaUrl?: string;
+  isReadByDoctor: boolean;
+  sentAt: string;
 }
 
 interface TelemedSession {
@@ -47,9 +47,9 @@ const PlatformBadge = ({ platform }: { platform: string }) => {
 
 const MessageBubble = ({ msg }: { msg: TelemedMessage }) => {
   const [imgOpen, setImgOpen] = useState(false);
-  const isPatient = msg.SenderType === 1;
-  const isDoctor = msg.SenderType === 2;
-  const isSystem = msg.SenderType === 3;
+  const isPatient = msg.senderType?.toLowerCase() === 'patient';
+  const isDoctor = msg.senderType?.toLowerCase() === 'doctor';
+  const isSystem = msg.senderType?.toLowerCase().includes('system');
 
   if (isSystem) {
     return (
@@ -58,14 +58,14 @@ const MessageBubble = ({ msg }: { msg: TelemedMessage }) => {
           fontSize: 11, color: 'var(--text-secondary)', background: 'var(--bg-dark)',
           borderRadius: 12, padding: '4px 12px'
         }}>
-          {msg.Content}
+          {msg.contentText}
         </span>
       </div>
     );
   }
 
   const bubbleStyle: React.CSSProperties = {
-    maxWidth: '70%',
+    maxWidth: '75%',
     padding: '10px 14px',
     borderRadius: isPatient ? '4px 16px 16px 16px' : '16px 4px 16px 16px',
     background: isPatient ? '#e8f4fd' : '#dcf8c6',
@@ -92,10 +92,10 @@ const MessageBubble = ({ msg }: { msg: TelemedMessage }) => {
         </div>
 
         <div style={bubbleStyle}>
-          {msg.ContentType === 'Image' && msg.MediaUrl && (
+          {msg.messageType === 'Image' && msg.mediaUrl && (
             <div>
               <img
-                src={msg.MediaUrl}
+                src={msg.mediaUrl}
                 alt="Attachment"
                 onClick={() => setImgOpen(true)}
                 style={{
@@ -103,11 +103,11 @@ const MessageBubble = ({ msg }: { msg: TelemedMessage }) => {
                   cursor: 'pointer', display: 'block', marginBottom: 4
                 }}
               />
-              {msg.Content && <div style={{ fontSize: 12 }}>{msg.Content}</div>}
+              {msg.contentText && <div style={{ fontSize: 12 }}>{msg.contentText}</div>}
             </div>
           )}
 
-          {msg.ContentType === 'VideoLink' && (
+          {msg.messageType === 'VideoLink' && (
             <div style={{
               border: '1.5px solid #0071e3', borderRadius: 10, padding: '8px 12px',
               background: '#f0f7ff'
@@ -115,9 +115,9 @@ const MessageBubble = ({ msg }: { msg: TelemedMessage }) => {
               <div style={{ fontSize: 12, fontWeight: 600, color: '#0071e3', marginBottom: 4 }}>
                 📹 Video Consultation Room
               </div>
-              <div style={{ fontSize: 11, marginBottom: 8, wordBreak: 'break-all' }}>{msg.Content}</div>
+              <div style={{ fontSize: 11, marginBottom: 8, wordBreak: 'break-all' }}>{msg.contentText}</div>
               <a
-                href={msg.Content}
+                href={msg.mediaUrl || msg.contentText}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{
@@ -131,7 +131,7 @@ const MessageBubble = ({ msg }: { msg: TelemedMessage }) => {
             </div>
           )}
 
-          {msg.ContentType === 'Prescription' && (
+          {msg.messageType === 'Prescription' && (
             <div style={{
               border: '1.5px solid #34c759', borderRadius: 10, padding: '8px 12px',
               background: '#f0fff4'
@@ -143,23 +143,23 @@ const MessageBubble = ({ msg }: { msg: TelemedMessage }) => {
                 margin: 0, fontFamily: 'inherit', fontSize: 12,
                 whiteSpace: 'pre-wrap', lineHeight: 1.6
               }}>
-                {msg.Content}
+                {msg.contentText}
               </pre>
             </div>
           )}
 
-          {(msg.ContentType === 'Text' || (!['Image', 'VideoLink', 'Prescription'].includes(msg.ContentType))) && (
-            <span>{msg.Content}</span>
+          {(msg.messageType === 'Text' || (!['Image', 'VideoLink', 'Prescription'].includes(msg.messageType))) && (
+            <span>{msg.contentText}</span>
           )}
 
           <div style={{ fontSize: 10, color: 'var(--text-secondary)', textAlign: 'right', marginTop: 4 }}>
-            {new Date(msg.SentAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-            {msg.IsRead && isDoctor && ' ✓✓'}
+            {msg.sentAt ? new Date(msg.sentAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : ''}
+            {msg.isReadByDoctor && isDoctor && ' ✓✓'}
           </div>
         </div>
       </div>
 
-      {imgOpen && msg.MediaUrl && (
+      {imgOpen && msg.mediaUrl && (
         <div
           onClick={() => setImgOpen(false)}
           style={{
@@ -168,7 +168,7 @@ const MessageBubble = ({ msg }: { msg: TelemedMessage }) => {
           }}
         >
           <img
-            src={msg.MediaUrl}
+            src={msg.mediaUrl}
             alt="Full size"
             style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 8 }}
             onClick={e => e.stopPropagation()}
@@ -209,8 +209,9 @@ const CompleteModal = ({
     setError('');
     try {
       await api.post(`/telemed/sessions/${sessionId}/complete`, {
+        SessionId: sessionId,
         Diagnosis: diagnosis,
-        ClinicalNotes: notes,
+        DoctorNotes: notes,
         PrescriptionText: prescription
       });
       onDone();
@@ -335,16 +336,25 @@ export default function TelemedChatDrawer({ session, onClose, onCompleted }: Pro
   const fetchMessages = useCallback(async () => {
     try {
       const res: any = await api.get(`/telemed/sessions/${session.Id}/messages`);
-      const list: TelemedMessage[] = Array.isArray(res?.Data || res?.data)
-        ? (res?.Data || res?.data)
-        : [];
-      setMessages(list);
+      const rawList = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : (Array.isArray(res?.Data) ? res.Data : []));
+      
+      const normalized: TelemedMessage[] = rawList.map((m: any) => ({
+        id: m.id ?? m.Id,
+        sessionId: m.sessionId ?? m.SessionId,
+        senderType: m.senderType ?? m.SenderType ?? 'Patient',
+        messageType: m.messageType ?? m.MessageType ?? 'Text',
+        contentText: m.contentText ?? m.ContentText ?? m.content ?? '',
+        mediaUrl: m.mediaUrl ?? m.MediaUrl,
+        isReadByDoctor: m.isReadByDoctor ?? m.IsReadByDoctor ?? false,
+        sentAt: m.sentAt ?? m.SentAt ?? ''
+      }));
+      setMessages(normalized);
     } catch {}
   }, [session.Id]);
 
   useEffect(() => {
     fetchMessages();
-    pollingRef.current = setInterval(fetchMessages, 8000);
+    pollingRef.current = setInterval(fetchMessages, 5000);
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
@@ -354,17 +364,17 @@ export default function TelemedChatDrawer({ session, onClose, onCompleted }: Pro
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const sendMessage = async (contentType = 'Text', content?: string) => {
+  const sendMessage = async (msgType = 'Text', content?: string) => {
     const text = content ?? replyText.trim();
     if (!text) return;
     setSending(true);
     try {
-      const res: any = await api.post(`/telemed/sessions/${session.Id}/messages`, {
-        Content: text,
-        ContentType: contentType
+      await api.post(`/telemed/sessions/${session.Id}/messages`, {
+        SessionId: session.Id,
+        ContentText: text,
+        MessageType: msgType
       });
-      const newMsg: TelemedMessage = res?.Data || res?.data;
-      if (newMsg) setMessages(prev => [...prev, newMsg]);
+      await fetchMessages();
       setReplyText('');
       inputRef.current?.focus();
     } catch (e: any) {
@@ -384,10 +394,13 @@ export default function TelemedChatDrawer({ session, onClose, onCompleted }: Pro
   const handleStartCall = async () => {
     setStartingCall(true);
     try {
-      const res: any = await api.post(`/telemed/sessions/${session.Id}/call`, {});
-      const url: string = res?.Data?.VideoUrl || res?.data?.VideoUrl;
+      const res: any = await api.post(`/telemed/sessions/${session.Id}/call`, {
+        SessionId: session.Id,
+        CallType: 'Video'
+      });
+      const url: string = res?.videoUrl ?? res?.VideoUrl ?? res?.data?.videoUrl ?? res?.Data?.VideoUrl;
       setVideoUrl(url);
-      window.open(url, '_blank', 'noopener,noreferrer');
+      if (url) window.open(url, '_blank', 'noopener,noreferrer');
       await fetchMessages();
     } catch (e: any) {
       alert(`Could not start video call: ${e?.message || 'Unknown error'}`);
@@ -407,7 +420,7 @@ export default function TelemedChatDrawer({ session, onClose, onCompleted }: Pro
 
       <div style={{
         position: 'fixed', right: 0, top: 0, bottom: 0,
-        width: 480, maxWidth: '100vw',
+        width: 500, maxWidth: '100vw',
         background: 'var(--bg-card)', zIndex: 6001,
         display: 'flex', flexDirection: 'column',
         boxShadow: '-8px 0 40px rgba(0,0,0,0.15)'
@@ -513,7 +526,7 @@ export default function TelemedChatDrawer({ session, onClose, onCompleted }: Pro
               <div style={{ fontSize: 12, opacity: 0.7 }}>Waiting for patient to connect…</div>
             </div>
           ) : (
-            messages.map(msg => <MessageBubble key={msg.Id} msg={msg} />)
+            messages.map(msg => <MessageBubble key={msg.id} msg={msg} />)
           )}
           <div ref={messagesEndRef} />
         </div>

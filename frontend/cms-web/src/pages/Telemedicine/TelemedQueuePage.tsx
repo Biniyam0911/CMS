@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import {
   Video, Phone, MessageSquare, Clock, CheckCircle, Search,
   RefreshCw, AlertCircle, Play, DollarSign, Calendar
@@ -7,20 +7,20 @@ import { api } from '../../api/apiClient';
 import TelemedChatDrawer from '../../components/TelemedChatDrawer';
 
 interface TelemedSession {
-  Id: number;
-  SessionNumber: string;
-  PatientId: number;
-  PatientName: string;
-  Platform: string; // 'Telegram' | 'WhatsApp'
-  StatusId: number; // 1=PendingPayment, 2=Queued, 3=InConsultation, 4=Completed, 5=Cancelled
-  ChiefComplaint?: string;
-  ConsultationFee: number;
-  DoctorName?: string;
-  DoctorId?: number;
-  CreatedAt: string;
-  StartedAt?: string;
-  EndedAt?: string;
-  UnreadCount?: number;
+  id: number;
+  sessionNumber: string;
+  patientId: number;
+  patientName: string;
+  platform: string;
+  statusId: number;
+  chiefComplaint?: string;
+  consultationFee: number;
+  doctorName?: string;
+  doctorId?: number;
+  createdAt: string;
+  startedAt?: string;
+  endTime?: string;
+  unreadCount?: number;
 }
 
 const STATUS_CONFIG: Record<number, { label: string; color: string; bg: string }> = {
@@ -37,15 +37,30 @@ export default function TelemedQueuePage() {
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
   const [filterPlatform, setFilterPlatform] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedSession, setSelectedSession] = useState<TelemedSession | null>(null);
+  const [selectedSession, setSelectedSession] = useState<any | null>(null);
 
   const fetchSessions = useCallback(async () => {
     try {
       const res: any = await api.get('/telemed/sessions');
-      const list: TelemedSession[] = Array.isArray(res?.Data || res?.data)
-        ? (res?.Data || res?.data)
-        : [];
-      setSessions(list);
+      const rawList = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : (Array.isArray(res?.Data) ? res.Data : []));
+      
+      const normalized: TelemedSession[] = rawList.map((s: any) => ({
+        id: s.id ?? s.Id,
+        sessionNumber: s.sessionNumber ?? s.SessionNumber ?? '',
+        patientId: s.patientId ?? s.PatientId ?? 0,
+        patientName: s.patientName ?? s.PatientName ?? 'Unknown Patient',
+        platform: s.platform ?? s.Platform ?? 'Telegram',
+        statusId: s.statusId ?? s.StatusId ?? 1,
+        chiefComplaint: s.chiefComplaint ?? s.ChiefComplaint ?? '',
+        consultationFee: s.consultationFee ?? s.ConsultationFee ?? 0,
+        doctorName: s.doctorName ?? s.DoctorName,
+        doctorId: s.doctorId ?? s.DoctorId,
+        createdAt: s.createdAt ?? s.CreatedAt ?? '',
+        startedAt: s.actualStartTime ?? s.ActualStartTime ?? s.startedAt,
+        endTime: s.endTime ?? s.EndTime,
+        unreadCount: s.unreadCount ?? s.UnreadCount ?? 0
+      }));
+      setSessions(normalized);
     } catch (err) {
       console.error('Failed to load telemed sessions:', err);
     } finally {
@@ -55,26 +70,25 @@ export default function TelemedQueuePage() {
 
   useEffect(() => {
     fetchSessions();
-    const interval = setInterval(fetchSessions, 15000);
+    const interval = setInterval(fetchSessions, 10000);
     return () => clearInterval(interval);
   }, [fetchSessions]);
 
-  // Statistics
-  const totalWaiting = sessions.filter(s => s.StatusId === 2).length;
-  const totalActive = sessions.filter(s => s.StatusId === 3).length;
-  const totalCompleted = sessions.filter(s => s.StatusId === 4).length;
+  const totalWaiting = sessions.filter(s => s.statusId === 2).length;
+  const totalActive = sessions.filter(s => s.statusId === 3).length;
+  const totalCompleted = sessions.filter(s => s.statusId === 4).length;
   const totalRevenue = sessions
-    .filter(s => s.StatusId === 3 || s.StatusId === 4)
-    .reduce((sum, s) => sum + (s.ConsultationFee || 0), 0);
+    .filter(s => s.statusId === 3 || s.statusId === 4)
+    .reduce((sum, s) => sum + (s.consultationFee || 0), 0);
 
   const filteredSessions = sessions.filter(s => {
-    if (filterStatus !== 'ALL' && s.StatusId.toString() !== filterStatus) return false;
-    if (filterPlatform !== 'ALL' && !s.Platform?.toLowerCase().includes(filterPlatform.toLowerCase())) return false;
+    if (filterStatus !== 'ALL' && s.statusId.toString() !== filterStatus) return false;
+    if (filterPlatform !== 'ALL' && !s.platform?.toLowerCase().includes(filterPlatform.toLowerCase())) return false;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      const matchName = s.PatientName?.toLowerCase().includes(q);
-      const matchNum = s.SessionNumber?.toLowerCase().includes(q);
-      const matchComplaint = s.ChiefComplaint?.toLowerCase().includes(q);
+      const matchName = s.patientName?.toLowerCase().includes(q);
+      const matchNum = s.sessionNumber?.toLowerCase().includes(q);
+      const matchComplaint = s.chiefComplaint?.toLowerCase().includes(q);
       if (!matchName && !matchNum && !matchComplaint) return false;
     }
     return true;
@@ -205,12 +219,12 @@ export default function TelemedQueuePage() {
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 16 }}>
           {filteredSessions.map(session => {
-            const st = STATUS_CONFIG[session.StatusId] || { label: 'Unknown', color: '#6e6e73', bg: '#f5f5f7' };
-            const isTelegram = session.Platform?.toLowerCase().includes('telegram');
+            const st = STATUS_CONFIG[session.statusId] || { label: 'Unknown', color: '#6e6e73', bg: '#f5f5f7' };
+            const isTelegram = session.platform?.toLowerCase().includes('telegram');
 
             return (
               <div
-                key={session.Id}
+                key={session.id}
                 style={{
                   background: 'var(--bg-card)', borderRadius: 12, border: '1px solid var(--border-color)',
                   padding: 16, display: 'flex', flexDirection: 'column', gap: 12,
@@ -220,7 +234,7 @@ export default function TelemedQueuePage() {
                 {/* Top Row: Session No & Status Badge */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>
-                    {session.SessionNumber}
+                    {session.sessionNumber}
                   </span>
                   <span style={{
                     fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 12,
@@ -234,7 +248,7 @@ export default function TelemedQueuePage() {
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                     <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-main)' }}>
-                      {session.PatientName}
+                      {session.patientName}
                     </span>
                     <span style={{
                       fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 4,
@@ -245,7 +259,7 @@ export default function TelemedQueuePage() {
                     </span>
                   </div>
                   <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                    {session.ChiefComplaint || 'Routine tele-consultation request'}
+                    {session.chiefComplaint || 'Routine tele-consultation request'}
                   </div>
                 </div>
 
@@ -255,26 +269,34 @@ export default function TelemedQueuePage() {
                   justifyContent: 'space-between', padding: '8px 0',
                   borderTop: '1px dashed var(--border-color)', borderBottom: '1px dashed var(--border-color)'
                 }}>
-                  <span>Fee: <strong>Br {session.ConsultationFee?.toFixed(2)}</strong></span>
-                  <span>{new Date(session.CreatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                  <span>Fee: <strong>Br {session.consultationFee?.toFixed(2)}</strong></span>
+                  <span>{session.createdAt ? new Date(session.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
                 </div>
 
                 {/* Action button */}
                 <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
                   <button
-                    onClick={() => setSelectedSession(session)}
+                    onClick={() => setSelectedSession({
+                      Id: session.id,
+                      SessionNumber: session.sessionNumber,
+                      PatientName: session.patientName,
+                      Platform: session.platform,
+                      StatusId: session.statusId,
+                      ChiefComplaint: session.chiefComplaint,
+                      ConsultationFee: session.consultationFee
+                    })}
                     style={{
                       flex: 1, padding: '8px 14px', borderRadius: 8, border: 'none',
-                      background: session.StatusId === 3 ? '#34c759' : '#0071e3',
+                      background: session.statusId === 3 ? '#34c759' : '#0071e3',
                       color: '#fff', fontSize: 12, fontWeight: 600,
                       cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
                     }}
                   >
-                    {session.StatusId === 3 ? (
+                    {session.statusId === 3 ? (
                       <>
                         <Video size={14} /> Continue Consultation
                       </>
-                    ) : session.StatusId === 4 ? (
+                    ) : session.statusId === 4 ? (
                       <>
                         <CheckCircle size={14} /> View History
                       </>

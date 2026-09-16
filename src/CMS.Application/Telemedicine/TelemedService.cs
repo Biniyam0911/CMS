@@ -14,6 +14,19 @@ public class TelemedService
         _dbFactory = dbFactory;
     }
 
+    public async Task<decimal> GetTelemedConsultationFeeAsync(byte tenantId)
+    {
+        using var conn = _dbFactory.CreateConnection();
+        var feeStr = await conn.QueryFirstOrDefaultAsync<string>(
+            "SELECT SettingValue FROM ClinicSettings WHERE SettingKey = 'Telemed.StandardConsultationFee' AND TenantId = @TenantId",
+            new { TenantId = tenantId });
+
+        if (decimal.TryParse(feeStr, out var fee))
+            return fee;
+
+        return 1000.00m;
+    }
+
     public async Task<List<TelemedSessionSummaryDto>> GetSessionsAsync(byte tenantId, int? statusId = null)
     {
         using var conn = _dbFactory.CreateConnection();
@@ -75,7 +88,6 @@ public class TelemedService
     {
         using var conn = _dbFactory.CreateConnection();
         
-        // Mark all patient messages in this session as read by doctor
         await conn.ExecuteAsync(@"
             UPDATE TelemedMessages 
             SET IsReadByDoctor = 1 
@@ -104,7 +116,6 @@ public class TelemedService
     {
         using var conn = _dbFactory.CreateConnection();
 
-        // 1. Verify session exists
         var session = await conn.QueryFirstOrDefaultAsync<dynamic>(
             "SELECT Id, Platform, PlatformChatId, StatusId FROM TelemedSessions WHERE Id = @Id AND TenantId = @TenantId",
             new { Id = req.SessionId, TenantId = tenantId });
@@ -112,7 +123,6 @@ public class TelemedService
         if (session == null)
             throw new InvalidOperationException("Telemedicine session not found.");
 
-        // 2. Insert into TelemedMessages
         var insertSql = @"
             INSERT INTO TelemedMessages (
                 TenantId, SessionId, SenderType, SenderStaffId, MessageType,
@@ -135,7 +145,6 @@ public class TelemedService
             MediaFileName = req.MediaFileName
         });
 
-        // 3. Update session to InConsultation (3) if it was Queued (2)
         if (session.StatusId == 2)
         {
             await conn.ExecuteAsync(
@@ -143,7 +152,6 @@ public class TelemedService
                 new { Id = req.SessionId });
         }
 
-        // Return the created message DTO
         var st = await conn.QueryFirstOrDefaultAsync<dynamic>("SELECT FirstName + ' ' + LastName AS Name FROM Staff WHERE Id = @Id", new { Id = doctorStaffId });
         return new TelemedMessageDto
         {
@@ -173,19 +181,16 @@ public class TelemedService
         if (session == null)
             throw new InvalidOperationException("Telemedicine session not found.");
 
-        // Generate encrypted WebRTC room URL using Jitsi Meet / zero-install room
         string roomName = $"CMS-Telemed-{session.SessionNumber}";
         string roomUrl = $"https://meet.jit.si/{roomName}#config.prejoinPageEnabled=false&config.startWithAudioMuted=false";
 
-        // Update session with RoomUrl
         await conn.ExecuteAsync(
             "UPDATE TelemedSessions SET RoomUrl = @RoomUrl, StatusId = 3, ActualStartTime = ISNULL(ActualStartTime, GETDATE()), UpdatedAt = GETDATE() WHERE Id = @Id",
             new { RoomUrl = roomUrl, Id = req.SessionId });
 
-        // Post a message in the chat stream with the join link
         var st = await conn.QueryFirstOrDefaultAsync<dynamic>("SELECT FirstName + ' ' + LastName AS Name FROM Staff WHERE Id = @Id", new { Id = doctorStaffId });
         string docName = st?.Name ?? "The Doctor";
-        string callNotice = $"📹 {docName} has initiated a secure video consultation room. Please tap the link below to join immediately from your phone or browser:\n\n🔗 {roomUrl}\n\n(No app installation required. Ensure microphone and camera permissions are allowed.)";
+        string callNotice = $"📹 {docName} has initiated a 100% free and secure video consultation room. Please tap the link below to join from your smartphone or browser:\n\n🔗 {roomUrl}\n\n(No account or app download required.)";
 
         await SendDoctorMessageAsync(tenantId, doctorStaffId, new SendDoctorMessageRequestDto
         {
@@ -208,7 +213,6 @@ public class TelemedService
 
         if (session == null) return false;
 
-        // 1. Update session status to Completed (4)
         await conn.ExecuteAsync(@"
             UPDATE TelemedSessions 
             SET StatusId = 4, 
@@ -218,11 +222,10 @@ public class TelemedService
             WHERE Id = @Id AND TenantId = @TenantId",
             new { req.DoctorNotes, Id = req.SessionId, TenantId = tenantId });
 
-        // 2. Post consultation completion & prescription card to chat
         string summaryNotice = $"✅ Clinical consultation successfully completed by your physician.\n\n" +
             $"📋 Diagnosis: {req.Diagnosis ?? "Clinical advice & home care regimen provided"}\n" +
             (string.IsNullOrWhiteSpace(req.PrescriptionText) ? "" : $"💊 Prescribed Medication:\n{req.PrescriptionText}\n\n") +
-            $"Your digital prescription and ERCA fiscal receipt have been generated. Thank you for choosing Specialty Clinic Telehealth.";
+            $"Your digital prescription and official clinic record have been archived. Thank you for using Specialty Clinic Telehealth.";
 
         await SendDoctorMessageAsync(tenantId, doctorStaffId, new SendDoctorMessageRequestDto
         {
@@ -234,31 +237,34 @@ public class TelemedService
         return true;
     }
 
-    public async Task<int> ProcessInboundPatientMessageAsync(byte tenantId, string platform, string platformChatId, string text, string? mediaUrl = null, string? mediaFileName = null, string? mediaMime = null)
+    public async Task<int> ProcessInboundPatientMessageAsync(byte tenantId, string platform, string platformChatId, string text, string? mediaUrl = null, string? mediaFileName = null, string? mediaMime = null, int? explicitPatientId = null)
     {
         using var conn = _dbFactory.CreateConnection();
 
-        // 1. Find or create patient social identity
-        var identity = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT PatientId FROM PatientSocialIdentities WHERE Platform = @Platform AND ExternalPlatformId = @ChatId AND TenantId = @TenantId",
-            new { Platform = platform, ChatId = platformChatId, TenantId = tenantId });
-
         int patientId;
-        if (identity != null)
+        if (explicitPatientId.HasValue && explicitPatientId.Value > 0)
         {
-            patientId = (int)identity.PatientId;
+            patientId = explicitPatientId.Value;
         }
         else
         {
-            // Default to first patient or seed patient 19
-            patientId = 19;
-            await conn.ExecuteAsync(@"
-                INSERT INTO PatientSocialIdentities (TenantId, PatientId, Platform, ExternalPlatformId, DisplayName, LinkedAt)
-                VALUES (@TenantId, @PatientId, @Platform, @ChatId, 'Telegram/WhatsApp Patient', GETDATE())",
-                new { TenantId = tenantId, PatientId = patientId, Platform = platform, ChatId = platformChatId });
+            var identity = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                "SELECT PatientId FROM PatientSocialIdentities WHERE Platform = @Platform AND ExternalPlatformId = @ChatId AND TenantId = @TenantId",
+                new { Platform = platform, ChatId = platformChatId, TenantId = tenantId });
+
+            if (identity != null && identity.PatientId != null)
+            {
+                patientId = (int)identity.PatientId;
+            }
+            else
+            {
+                var p = await conn.QueryFirstOrDefaultAsync<dynamic>("SELECT TOP 1 Id FROM Patients WHERE TenantId = @TenantId ORDER BY Id ASC", new { TenantId = tenantId });
+                patientId = p != null ? (int)p.Id : 1;
+            }
         }
 
-        // 2. Find active session (Status 1, 2, or 3)
+        decimal consultationFee = await GetTelemedConsultationFeeAsync(tenantId);
+
         var session = await conn.QueryFirstOrDefaultAsync<dynamic>(@"
             SELECT TOP 1 Id, StatusId 
             FROM TelemedSessions 
@@ -273,7 +279,6 @@ public class TelemedService
         }
         else
         {
-            // Create a new session
             string sessNum = $"TEL-{DateTime.UtcNow:yyyyMMdd}-{new Random().Next(1000, 9999)}";
             sessionId = await conn.QuerySingleAsync<int>(@"
                 INSERT INTO TelemedSessions (
@@ -282,7 +287,7 @@ public class TelemedService
                 )
                 VALUES (
                     @TenantId, @SessionNumber, @PatientId, 1, @Platform, @ChatId,
-                    2, @Complaint, 350.00, 1, GETDATE(), GETDATE()
+                    2, @Complaint, @Fee, 1, GETDATE(), GETDATE()
                 );
                 SELECT CAST(SCOPE_IDENTITY() AS INT);",
                 new
@@ -292,14 +297,13 @@ public class TelemedService
                     PatientId = patientId,
                     Platform = platform,
                     ChatId = platformChatId,
+                    Fee = consultationFee,
                     Complaint = text.Length > 100 ? text.Substring(0, 100) : text
                 });
         }
 
-        // 3. Determine message type
         string msgType = !string.IsNullOrWhiteSpace(mediaUrl) ? "Image" : "Text";
 
-        // 4. Insert message
         int msgId = await conn.QuerySingleAsync<int>(@"
             INSERT INTO TelemedMessages (
                 TenantId, SessionId, SenderType, SenderPatientId, MessageType,
