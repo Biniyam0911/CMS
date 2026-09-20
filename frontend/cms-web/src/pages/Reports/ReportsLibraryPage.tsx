@@ -1,8 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BarChart3, Download, Play, FileText, X, Check, Loader2 } from 'lucide-react';
 import { api } from '../../api/apiClient';
 
 export default function ReportsLibraryPage() {
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const [activeReport, setActiveReport] = useState<any>(null);
   const [reportData, setReportData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -87,7 +94,7 @@ export default function ReportsLibraryPage() {
               <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{r.desc}</p>
             </div>
 
-            <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '10px' }}>
               <button onClick={() => handleRunReport(r)} className="btn-primary" style={{ padding: '6px 14px', fontSize: '0.8rem' }}>
                 <Play size={14} /> Run Report
               </button>
@@ -104,19 +111,19 @@ export default function ReportsLibraryPage() {
 
       {/* Report Modal Preview */}
       {activeReport && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,15,15,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
-          <div style={{ width: '1000px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', background: '#fff', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.2)' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,15,15,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: isMobile ? '8px' : '20px' }}>
+          <div style={{ width: '100%', maxWidth: '1000px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', background: '#fff', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.2)' }}>
             
-            <div style={{ padding: '14px 20px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ padding: isMobile ? '12px 16px' : '14px 20px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <div style={{ fontSize: '0.72rem', color: '#0369a1', fontWeight: 700, textTransform: 'uppercase' }}>{activeReport.category} Report</div>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>{activeReport.title}</h3>
+                <h3 style={{ fontSize: isMobile ? '0.95rem' : '1.1rem', fontWeight: 800, color: '#0f172a' }}>{activeReport.title}</h3>
               </div>
               <button onClick={() => setActiveReport(null)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}><X size={20} /></button>
             </div>
 
             {activeReport.id === 2 && (
-              <div style={{ padding: '14px 20px', background: '#f0fdf4', borderBottom: '1px solid #bbf7d0', display: 'flex', gap: '28px', fontSize: '0.82rem' }}>
+              <div style={{ padding: isMobile ? '12px 16px' : '14px 20px', background: '#f0fdf4', borderBottom: '1px solid #bbf7d0', display: 'flex', flexWrap: 'wrap', gap: isMobile ? '12px' : '28px', fontSize: '0.82rem' }}>
                 <div>
                   <span style={{ color: '#166534', fontWeight: 600 }}>Total Billed (excl. waived):</span>
                   <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#15803d' }}>Br {totalBilled.toFixed(2)}</div>
@@ -129,13 +136,13 @@ export default function ReportsLibraryPage() {
                   <span style={{ color: '#166534', fontWeight: 600 }}>Paid Sales Revenue:</span>
                   <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#15803d' }}>Br {totalSalesRevenue.toFixed(2)}</div>
                 </div>
-                <div style={{ marginLeft: 'auto', alignSelf: 'center', fontSize: '0.75rem', color: '#15803d', fontStyle: 'italic' }}>
+                <div style={{ marginLeft: isMobile ? '0' : 'auto', alignSelf: 'center', fontSize: '0.75rem', color: '#15803d', fontStyle: 'italic', width: isMobile ? '100%' : 'auto' }}>
                   ✓ Waived/Free invoices are 100% excluded from these revenue calculations.
                 </div>
               </div>
             )}
 
-            <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
+            <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '12px' : '20px' }}>
               {loading ? (
                 <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
                   <Loader2 size={24} className="animate-spin" style={{ margin: '0 auto 8px' }} />
@@ -146,44 +153,46 @@ export default function ReportsLibraryPage() {
                   No records found matching this report scope.
                 </div>
               ) : (
-                <table className="cms-table" style={{ margin: 0 }}>
-                  <thead>
-                    <tr>
-                      <th>Invoice No</th>
-                      <th>Patient Name</th>
-                      <th>Issue Date</th>
-                      <th>Subtotal</th>
-                      <th>VAT (15%)</th>
-                      <th>Total Amount</th>
-                      <th>Paid Amount</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {reportData.map((row, i) => (
-                      <tr key={i}>
-                        <td style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0369a1' }}>{row.InvoiceNo}</td>
-                        <td style={{ fontWeight: 600 }}>{row.PatientName}</td>
-                        <td>{row.IssueDate}</td>
-                        <td>Br {row.SubTotal.toFixed(2)}</td>
-                        <td>Br {row.TaxAmount.toFixed(2)}</td>
-                        <td style={{ fontWeight: 700 }}>Br {row.TotalAmount.toFixed(2)}</td>
-                        <td style={{ color: '#059669', fontWeight: 700 }}>Br {row.PaidAmount.toFixed(2)}</td>
-                        <td>
-                          <span className={row.Status === 'Paid' ? 'badge badge-normal' : 'badge badge-warning'} style={{ fontSize: '0.68rem' }}>
-                            {row.Status}
-                          </span>
-                        </td>
+                <div className="table-responsive">
+                  <table className="cms-table" style={{ margin: 0 }}>
+                    <thead>
+                      <tr>
+                        <th>Invoice No</th>
+                        <th>Patient Name</th>
+                        <th>Issue Date</th>
+                        <th>Subtotal</th>
+                        <th>VAT (15%)</th>
+                        <th>Total Amount</th>
+                        <th>Paid Amount</th>
+                        <th>Status</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {reportData.map((row, i) => (
+                        <tr key={i}>
+                          <td style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0369a1' }}>{row.InvoiceNo}</td>
+                          <td style={{ fontWeight: 600 }}>{row.PatientName}</td>
+                          <td>{row.IssueDate}</td>
+                          <td>Br {row.SubTotal.toFixed(2)}</td>
+                          <td>Br {row.TaxAmount.toFixed(2)}</td>
+                          <td style={{ fontWeight: 700 }}>Br {row.TotalAmount.toFixed(2)}</td>
+                          <td style={{ color: '#059669', fontWeight: 700 }}>Br {row.PaidAmount.toFixed(2)}</td>
+                          <td>
+                            <span className={row.Status === 'Paid' ? 'badge badge-normal' : 'badge badge-warning'} style={{ fontSize: '0.68rem' }}>
+                              {row.Status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
 
-            <div style={{ padding: '12px 20px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ padding: isMobile ? '10px 14px' : '12px 20px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', gap: '10px' }}>
               <span style={{ fontSize: '0.75rem', color: '#64748b' }}>{reportData.length} billable line records returned</span>
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: isMobile ? 'flex-end' : 'flex-start' }}>
                 <button onClick={() => triggerExport('PDF')} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.8rem' }}><Download size={14} /> Export PDF</button>
                 <button onClick={() => triggerExport('Excel')} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.8rem' }}><Download size={14} /> Export Excel</button>
                 <button onClick={() => setActiveReport(null)} className="btn-primary" style={{ padding: '6px 16px', fontSize: '0.8rem' }}>Done</button>

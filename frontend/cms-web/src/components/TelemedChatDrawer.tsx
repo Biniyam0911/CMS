@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   X, Send, Video, CheckCircle, Pill, RefreshCw, Phone,
   ExternalLink, AlertTriangle, Loader2
@@ -541,7 +541,9 @@ export default function TelemedChatDrawer({ session, onClose, onCompleted }: Pro
           </div>
         ) : (
           <div style={{
-            padding: '12px 16px', borderTop: '1px solid var(--border-color)',
+            padding: '12px 16px',
+            paddingBottom: 'max(12px, calc(12px + env(safe-area-inset-bottom, 0px)))',
+            borderTop: '1px solid var(--border-color)',
             display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0,
             background: 'var(--bg-card)'
           }}>
@@ -554,7 +556,7 @@ export default function TelemedChatDrawer({ session, onClose, onCompleted }: Pro
               style={{
                 flex: 1, padding: '10px 14px', borderRadius: 24,
                 border: '1.5px solid var(--border-color)',
-                background: 'var(--bg-input)', fontSize: 13,
+                background: 'var(--bg-input)', fontSize: 16,
                 color: 'var(--text-main)', outline: 'none'
               }}
             />

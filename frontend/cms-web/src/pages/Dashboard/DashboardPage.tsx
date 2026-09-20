@@ -10,6 +10,13 @@ interface DashboardPageProps {
 }
 
 export default function DashboardPage({ token, onNavigateModule }: DashboardPageProps) {
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const [metrics, setMetrics] = useState<any>({
     activePatientsCount: 0,
     todayAppointmentsCount: 0,
@@ -70,7 +77,7 @@ export default function DashboardPage({ token, onNavigateModule }: DashboardPage
       </div>
 
       {/* KPI Cards Grid */}
-      <div className="grid-4" style={{ marginBottom: '28px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: '16px', marginBottom: '28px' }}>
         <div className="glass-panel" style={{ padding: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-muted)' }}>
             <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>Active Patients</span>
@@ -109,7 +116,7 @@ export default function DashboardPage({ token, onNavigateModule }: DashboardPage
       </div>
 
       {/* Main Grid: Queue & Revenue Graph */}
-      <div className="grid-2">
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '24px' }}>
         {/* Live Queue Panel */}
         <div className="glass-panel" style={{ padding: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -125,32 +132,34 @@ export default function DashboardPage({ token, onNavigateModule }: DashboardPage
               <div style={{ fontSize: '0.85rem' }}>No patients in triage queue right now.</div>
             </div>
           ) : (
-            <table className="cms-table">
-              <thead>
-                <tr>
-                  <th>Token</th>
-                  <th>Patient</th>
-                  <th>Service</th>
-                  <th>Priority</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {metrics.liveQueue.map((q: any) => (
-                  <tr key={q.id}>
-                    <td style={{ fontWeight: 700, color: '#06b6d4', fontFamily: 'monospace' }}>{q.tokenNumber}</td>
-                    <td style={{ fontWeight: 600 }}>{q.patientName}</td>
-                    <td>{q.serviceType}</td>
-                    <td>
-                      <span className={q.priorityName === 'Emergency' ? 'badge badge-critical' : 'badge badge-normal'}>
-                        {q.priorityName}
-                      </span>
-                    </td>
-                    <td><span className="badge badge-warning">{q.statusName}</span></td>
+            <div className="table-responsive">
+              <table className="cms-table">
+                <thead>
+                  <tr>
+                    <th>Token</th>
+                    <th>Patient</th>
+                    <th>Service</th>
+                    <th>Priority</th>
+                    <th>Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {metrics.liveQueue.map((q: any) => (
+                    <tr key={q.id}>
+                      <td style={{ fontWeight: 700, color: '#06b6d4', fontFamily: 'monospace' }}>{q.tokenNumber}</td>
+                      <td style={{ fontWeight: 600 }}>{q.patientName}</td>
+                      <td>{q.serviceType}</td>
+                      <td>
+                        <span className={q.priorityName === 'Emergency' ? 'badge badge-critical' : 'badge badge-normal'}>
+                          {q.priorityName}
+                        </span>
+                      </td>
+                      <td><span className="badge badge-warning">{q.statusName}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
 

@@ -219,3 +219,91 @@ input:focus, select:focus, textarea:focus {
 .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
 .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
 .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 18px; }
+
+/* Responsive Table Wrapper */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 12px;
+  border-radius: 8px;
+}
+
+.table-responsive::-webkit-scrollbar {
+  height: 6px;
+}
+.table-responsive::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+.table-responsive::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+/* ========================================================================= */
+/* PROGRESSIVE WEB APP & MOBILE RESPONSIVE SYSTEM                            */
+/* ========================================================================= */
+
+/* Desktop defaults */
+.mobile-only { display: none !important; }
+.desktop-only { display: block !important; }
+.mobile-bottom-nav { display: none !important; }
+
+@media (max-width: 768px) {
+  .desktop-only { display: none !important; }
+  .mobile-only { display: block !important; }
+  .mobile-bottom-nav { display: flex !important; }
+
+  /* Responsive Grids on Mobile */
+  .grid-4 { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
+  .grid-3 { grid-template-columns: 1fr !important; gap: 12px !important; }
+  .grid-2 { grid-template-columns: 1fr !important; gap: 12px !important; }
+
+  /* Touch-friendly inputs: 16px font prevents iOS automatic zoom on focus */
+  input, select, textarea {
+    font-size: 16px !important;
+    min-height: 42px;
+    padding: 9px 12px !important;
+    touch-action: manipulation;
+  }
+
+  /* Touch-friendly button sizes */
+  .btn-primary, .btn-secondary, .btn-danger {
+    min-height: 38px;
+    padding: 8px 14px !important;
+    font-size: 0.85rem !important;
+    touch-action: manipulation;
+  }
+
+  /* Compact glass panels for smaller viewports */
+  .glass-panel {
+    padding: 14px !important;
+    border-radius: 12px !important;
+  }
+
+  /* Responsive utilities */
+  .mobile-stack {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .mobile-full-width {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .hide-on-mobile {
+    display: none !important;
+  }
+
+  /* Typography adjustment for phones */
+  h1 { font-size: 1.18rem !important; }
+  h2 { font-size: 1.05rem !important; }
+  h3 { font-size: 0.96rem !important; }
+}
+
+@media (max-width: 480px) {
+  .grid-4 { grid-template-columns: 1fr !important; gap: 8px !important; }
+}
+

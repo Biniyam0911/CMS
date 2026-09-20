@@ -22,6 +22,8 @@ import ApiManagementPage from './pages/ApiManagement/ApiManagementPage';
 import SettingsPage from './pages/Settings/SettingsPage';
 import IntegrationsPage from './pages/Integrations/IntegrationsPage';
 import TelemedQueuePage from './pages/Telemedicine/TelemedQueuePage';
+import BottomNav from './components/BottomNav';
+import PwaInstallBanner from './components/PwaInstallBanner';
 import { initRolePermissions } from './utils/permissions';
 
 export default function App() {
@@ -35,6 +37,14 @@ export default function App() {
   const [token, setToken] = useState<string | null>(localStorage.getItem('auth_token'));
   const [activeModule, setActiveModule] = useState<ModuleKey>('DASHBOARD');
   const [selectedEmrPatientId, setSelectedEmrPatientId] = useState<number | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const [clinicName, setClinicName] = useState('AethelCMS');
   const [appIcon, setAppIcon] = useState('FileHeart');
@@ -176,56 +186,83 @@ export default function App() {
   const currentModuleItem = MODULE_ITEMS.find(m => m.key === activeModule);
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-dark)' }}>
-      {/* Sidebar Navigation */}
-      <Sidebar
-        activeModule={activeModule}
-        userRoles={user?.roles || []}
-        clinicName={clinicName}
-        appIconName={appIcon}
-        onSelectModule={(key) => setActiveModule(key)}
-        onLogout={() => {
-          setUser(null);
-          setToken('');
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('current_user');
-          applyUserTheme('default');
-        }}
-      />
-
-      {/* Main Content Area */}
-      <main style={{ flex: 1, padding: '28px 32px', overflowY: 'auto', maxHeight: '100vh' }}>
-        <Header
-          title={currentModuleItem?.label || 'Executive Operations'}
-          subtitle={`Module: ${currentModuleItem?.category || 'Core'} | Clinic Tenant #1 | On-Premise MSSQL Server Express`}
-          user={user}
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--bg-dark)' }}>
+      <PwaInstallBanner />
+      <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
+        {/* Sidebar Navigation */}
+        <Sidebar
+          activeModule={activeModule}
+          userRoles={user?.roles || []}
           clinicName={clinicName}
           appIconName={appIcon}
-          onNavigateModule={(key) => setActiveModule(key)}
+          isMobileOpen={isMobileMenuOpen}
+          onCloseMobile={() => setIsMobileMenuOpen(false)}
+          onSelectModule={(key) => {
+            setActiveModule(key);
+            setIsMobileMenuOpen(false);
+          }}
+          onLogout={() => {
+            setUser(null);
+            setToken('');
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('current_user');
+            applyUserTheme('default');
+          }}
         />
 
-        {/* Dynamic Module Views */}
-        {activeModule === 'DASHBOARD' && <DashboardPage token={token} onNavigateModule={(key) => setActiveModule(key as ModuleKey)} />}
-        {activeModule === 'PATIENTS' && <PatientsPage onSelectEmrPatient={navigateToEmrWithPatient} />}
-        {activeModule === 'TRIAGE' && <TriagePage />}
-        {activeModule === 'EMR' && <EmrSoapPage selectedPatientId={selectedEmrPatientId} currentUser={user} />}
-        {activeModule === 'INPATIENT' && <InpatientPage />}
-        {activeModule === 'APPOINTMENTS' && <AppointmentsPage />}
-        {activeModule === 'QUEUE' && <QueuePage />}
-        {activeModule === 'LAB' && <LaboratoryPage />}
-        {activeModule === 'PHARMACY' && <PharmacyPage />}
-        {activeModule === 'BILLING' && <BillingPage />}
-        {activeModule === 'REPORTS' && <ReportsLibraryPage />}
-        {activeModule === 'REPORT_BUILDER' && <ReportBuilderPage />}
-        {activeModule === 'PATIENT_PORTAL' && <PatientPortalPage />}
-        {activeModule === 'SERVICE_MGMT' && <ServicesPage />}
-        {activeModule === 'USER_MGMT' && <UserManagementPage />}
-        {activeModule === 'MODULE_MGMT' && <ModuleManagementPage />}
-        {activeModule === 'API_MGMT' && <ApiManagementPage />}
-        {activeModule === 'SETTINGS' && <SettingsPage />}
-        {activeModule === 'INTEGRATIONS' && <IntegrationsPage />}
-        {activeModule === 'TELEMED' && <TelemedQueuePage />}
-      </main>
+        {/* Main Content Area */}
+        <main
+          style={{
+            flex: 1,
+            padding: isMobile ? '12px 12px 84px 12px' : '28px 32px',
+            overflowY: 'auto',
+            maxHeight: isMobile ? '100vh' : '100vh',
+            minWidth: 0
+          }}
+        >
+          <Header
+            title={currentModuleItem?.label || 'Executive Operations'}
+            subtitle={`Module: ${currentModuleItem?.category || 'Core'} | Clinic Tenant #1 | On-Premise MSSQL Server Express`}
+            user={user}
+            clinicName={clinicName}
+            appIconName={appIcon}
+            onNavigateModule={(key) => setActiveModule(key)}
+            onToggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          />
+
+          {/* Dynamic Module Views */}
+          {activeModule === 'DASHBOARD' && <DashboardPage token={token} onNavigateModule={(key) => setActiveModule(key as ModuleKey)} />}
+          {activeModule === 'PATIENTS' && <PatientsPage onSelectEmrPatient={navigateToEmrWithPatient} />}
+          {activeModule === 'TRIAGE' && <TriagePage />}
+          {activeModule === 'EMR' && <EmrSoapPage selectedPatientId={selectedEmrPatientId} currentUser={user} />}
+          {activeModule === 'INPATIENT' && <InpatientPage />}
+          {activeModule === 'APPOINTMENTS' && <AppointmentsPage />}
+          {activeModule === 'QUEUE' && <QueuePage />}
+          {activeModule === 'LAB' && <LaboratoryPage />}
+          {activeModule === 'PHARMACY' && <PharmacyPage />}
+          {activeModule === 'BILLING' && <BillingPage />}
+          {activeModule === 'REPORTS' && <ReportsLibraryPage />}
+          {activeModule === 'REPORT_BUILDER' && <ReportBuilderPage />}
+          {activeModule === 'PATIENT_PORTAL' && <PatientPortalPage />}
+          {activeModule === 'SERVICE_MGMT' && <ServicesPage />}
+          {activeModule === 'USER_MGMT' && <UserManagementPage />}
+          {activeModule === 'MODULE_MGMT' && <ModuleManagementPage />}
+          {activeModule === 'API_MGMT' && <ApiManagementPage />}
+          {activeModule === 'SETTINGS' && <SettingsPage />}
+          {activeModule === 'INTEGRATIONS' && <IntegrationsPage />}
+          {activeModule === 'TELEMED' && <TelemedQueuePage />}
+        </main>
+      </div>
+
+      {/* Mobile Bottom Navigation Bar */}
+      <BottomNav
+        activeModule={activeModule}
+        onSelectModule={(key) => {
+          setActiveModule(key);
+          setIsMobileMenuOpen(false);
+        }}
+        onToggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+      />
     </div>
   );
 }

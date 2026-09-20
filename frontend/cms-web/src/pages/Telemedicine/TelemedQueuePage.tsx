@@ -398,7 +398,7 @@ export default function TelemedQueuePage() {
           )}
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
           {paginatedSessions.map(session => {
             const st = STATUS_CONFIG[session.statusId] || { label: 'Unknown', color: '#6e6e73', bg: '#f5f5f7' };
             const isTelegram = session.platform?.toLowerCase().includes('telegram');

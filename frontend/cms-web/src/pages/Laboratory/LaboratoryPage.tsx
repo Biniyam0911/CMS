@@ -890,17 +890,17 @@ export default function LaboratoryPage() {
 
       {/* Sub Tabs */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          <button onClick={() => setActiveTab('worklist')} className={activeTab === 'worklist' ? 'btn-primary' : 'btn-secondary'} style={{ fontWeight: 600 }}>
+        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '4px', maxWidth: '100%' }}>
+          <button onClick={() => setActiveTab('worklist')} className={activeTab === 'worklist' ? 'btn-primary' : 'btn-secondary'} style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
             <Layers size={15} /> Order Worklist ({orders.length})
           </button>
-          <button onClick={() => setActiveTab('custody')} className={activeTab === 'custody' ? 'btn-primary' : 'btn-secondary'} style={{ fontWeight: 600 }}>
+          <button onClick={() => setActiveTab('custody')} className={activeTab === 'custody' ? 'btn-primary' : 'btn-secondary'} style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
             <GitCommit size={15} /> Chain of Custody Tracker
           </button>
-          <button onClick={() => setActiveTab('catalog')} className={activeTab === 'catalog' ? 'btn-primary' : 'btn-secondary'} style={{ fontWeight: 600 }}>
+          <button onClick={() => setActiveTab('catalog')} className={activeTab === 'catalog' ? 'btn-primary' : 'btn-secondary'} style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
             <FlaskConical size={15} /> Test Catalog ({catalog.length})
           </button>
-          <button onClick={() => setActiveTab('instruments')} className={activeTab === 'instruments' ? 'btn-primary' : 'btn-secondary'} style={{ fontWeight: 600 }}>
+          <button onClick={() => setActiveTab('instruments')} className={activeTab === 'instruments' ? 'btn-primary' : 'btn-secondary'} style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
             <Network size={15} /> Machine Integration ({machines.length})
           </button>
         </div>
@@ -1161,7 +1161,7 @@ export default function LaboratoryPage() {
                                 </button>
                                 <span className={test.status === 'Resulted' || test.status === 'Verified' ? 'badge badge-normal' : 'badge badge-warning'} style={{ fontSize: '0.68rem', marginLeft: 'auto' }}>{test.status}</span>
                               </div>
-                              <div style={{ background: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+                              <div className="table-responsive" style={{ background: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                                 <table className="cms-table" style={{ background: '#ffffff', margin: 0 }}>
                                   <thead style={{ background: '#f1f5f9' }}>
                                     <tr>
@@ -1411,8 +1411,8 @@ export default function LaboratoryPage() {
           {/* Department Filter Pills & Search Bar */}
           <div className="glass-panel" style={{ padding: '14px 18px', background: '#ffffff', borderRadius: '10px', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px', boxShadow: '0 1px 4px rgba(0,0,0,0.02)' }}>
             {/* Department Chips */}
-            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginRight: '4px' }}>
+            <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '4px', maxWidth: '100%', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginRight: '4px', whiteSpace: 'nowrap' }}>
                 Department:
               </span>
               {['ALL', ...Object.keys(LAB_MACHINE_CATALOGUE)].map(dept => (
@@ -1428,7 +1428,8 @@ export default function LaboratoryPage() {
                     background: machineDeptFilter === dept ? '#0284c7' : '#f8f5ee',
                     color: machineDeptFilter === dept ? '#ffffff' : 'var(--text-main)',
                     borderColor: machineDeptFilter === dept ? '#0284c7' : 'var(--border-color)',
-                    fontWeight: 600
+                    fontWeight: 600,
+                    whiteSpace: 'nowrap'
                   }}
                 >
                   {dept === 'ALL' ? 'All Departments' : dept}
@@ -1619,8 +1620,8 @@ export default function LaboratoryPage() {
       {/* MODAL: ADD / EDIT LAB MACHINE INTEGRATION                                  */}
       {/* ========================================================================= */}
       {showAddMachineModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
-          <div className="glass-panel" style={{ width: '640px', maxHeight: '92vh', overflowY: 'auto', padding: '28px', background: '#111827', border: '1px solid var(--border-color)', borderRadius: '12px' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '640px', maxHeight: '92vh', overflowY: 'auto', padding: '24px 20px', background: '#111827', border: '1px solid var(--border-color)', borderRadius: '12px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
@@ -1889,8 +1890,8 @@ export default function LaboratoryPage() {
 
       {/* Modal: Add Test Profile with Sub-Test Parameters */}
       {showAddTestModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div className="glass-panel" style={{ width: '560px', padding: '28px', maxHeight: '90vh', overflowY: 'auto' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '16px' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '560px', padding: '24px 20px', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Add Diagnostic Profile & Sub-Test Parameters</h3>
               <button onClick={() => setShowAddTestModal(false)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}><X size={18} /></button>

@@ -158,11 +158,19 @@ export default function PatientsPage({ onSelectEmrPatient }: PatientsPageProps) 
   const endIndex = Math.min(startIndex + pageSize, totalCount);
   const paginatedPatients = patients.slice(startIndex, endIndex);
 
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   return (
     <div>
       {/* Search and Action Bar */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', gap: '14px', flexWrap: 'wrap' }}>
-        <div style={{ position: 'relative', width: '380px' }}>
+        <div style={{ position: 'relative', width: isMobile ? '100%' : '380px' }}>
           <Search size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
           <input
             type="text"
@@ -173,21 +181,21 @@ export default function PatientsPage({ onSelectEmrPatient }: PatientsPageProps) 
           />
         </div>
 
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button onClick={() => setShowMpiModal(true)} className="btn-secondary">
+        <div style={{ display: 'flex', gap: '8px', width: isMobile ? '100%' : 'auto', flexWrap: 'wrap' }}>
+          <button onClick={() => setShowMpiModal(true)} className="btn-secondary" style={{ flex: isMobile ? 1 : undefined, justifyContent: 'center' }}>
             <ShieldCheck size={15} /> MPI Duplicate Check
           </button>
-          <button onClick={openRegisterModal} className="btn-primary">
+          <button onClick={openRegisterModal} className="btn-primary" style={{ flex: isMobile ? 1 : undefined, justifyContent: 'center' }}>
             <Plus size={15} /> + Register New Patient
           </button>
         </div>
       </div>
 
       {/* Main Content Layout: Table & Detail Drawer */}
-      <div style={{ display: 'grid', gridTemplateColumns: selectedPatient ? '1fr 360px' : '1fr', gap: '18px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: (!isMobile && selectedPatient) ? '1fr 360px' : '1fr', gap: '18px' }}>
         {/* Patients Table Panel */}
         <div className="glass-panel" style={{ padding: '18px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
             <h3 style={{ fontSize: '0.98rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Users size={16} color="#0284c7" /> Patient Registry ({totalCount} Registered)
             </h3>
@@ -208,7 +216,8 @@ export default function PatientsPage({ onSelectEmrPatient }: PatientsPageProps) 
             </div>
           </div>
 
-          <table className="cms-table">
+          <div className="table-responsive">
+            <table className="cms-table">
             <thead>
               <tr>
                 <th>Card No / MRN</th>
@@ -295,6 +304,7 @@ export default function PatientsPage({ onSelectEmrPatient }: PatientsPageProps) 
               )}
             </tbody>
           </table>
+          </div>
 
           {/* Pagination Controls Footer */}
           {!loading && totalCount > 0 && (

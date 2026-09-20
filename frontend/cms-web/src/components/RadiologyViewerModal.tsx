@@ -42,6 +42,13 @@ export default function RadiologyViewerModal({ study, onClose }: Props) {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [showDicomMeta, setShowDicomMeta] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Apply Window / Level Presets
   const applyPreset = (preset: 'Default' | 'Bone' | 'Lung' | 'SoftTissue') => {
@@ -231,10 +238,10 @@ export default function RadiologyViewerModal({ study, onClose }: Props) {
     <div style={{
       position: 'fixed', inset: 0, background: 'rgba(7, 10, 15, 0.88)',
       backdropFilter: 'blur(6px)', zIndex: 3000, display: 'flex',
-      alignItems: 'center', justifyContent: 'center', padding: '16px'
+      alignItems: 'center', justifyContent: 'center', padding: isMobile ? '4px' : '16px'
     }}>
       <div style={{
-        width: '95vw', maxWidth: '1280px', height: '90vh',
+        width: isMobile ? '99vw' : '95vw', maxWidth: '1280px', height: isMobile ? '97vh' : '90vh',
         background: '#0e131b', border: '1px solid #1f293d',
         borderRadius: '12px', display: 'flex', flexDirection: 'column',
         boxShadow: '0 25px 60px rgba(0,0,0,0.85)', overflow: 'hidden'
@@ -309,7 +316,7 @@ export default function RadiologyViewerModal({ study, onClose }: Props) {
         </div>
 
         {/* Viewer Center Canvas & Side Inspector */}
-        <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', flex: 1, overflow: 'hidden' }}>
           
           {/* Main DICOM Display & Caliper Canvas */}
           <div style={{
@@ -320,21 +327,20 @@ export default function RadiologyViewerModal({ study, onClose }: Props) {
             <div style={{ position: 'absolute', top: 14, left: 16, color: '#0284c7', fontSize: '0.75rem', fontFamily: 'monospace', pointerEvents: 'none', lineHeight: 1.4 }}>
               <div>{study.patientName.toUpperCase()}</div>
               <div>MRN: {study.mrn}</div>
-              <div>MOD: {study.modalityCode} | {study.studyType}</div>
+              <div className="desktop-only">MOD: {study.modalityCode} | {study.studyType}</div>
             </div>
 
             <div style={{ position: 'absolute', top: 14, right: 16, color: '#94a3b8', fontSize: '0.72rem', fontFamily: 'monospace', pointerEvents: 'none', textAlign: 'right', lineHeight: 1.4 }}>
-              <div>ACQ: {new Date(study.studyDate).toISOString().split('T')[0]}</div>
               <div>ZOOM: {Math.round(zoom * 100)}%</div>
-              <div>W/L: {brightness}% / {contrast}%</div>
+              <div className="desktop-only">W/L: {brightness}% / {contrast}%</div>
             </div>
 
-            <div style={{ position: 'absolute', bottom: 14, left: 16, color: '#64748b', fontSize: '0.72rem', fontFamily: 'monospace', pointerEvents: 'none', lineHeight: 1.4 }}>
+            <div className="desktop-only" style={{ position: 'absolute', bottom: 14, left: 16, color: '#64748b', fontSize: '0.72rem', fontFamily: 'monospace', pointerEvents: 'none', lineHeight: 1.4 }}>
               <div>REF DOCTOR: {study.doctorName || 'Dr. Specialist'}</div>
               <div>FACILITY: SPECIALTY CLINIC PACS</div>
             </div>
 
-            <div style={{ position: 'absolute', bottom: 14, right: 16, color: '#f59e0b', fontSize: '0.72rem', fontFamily: 'monospace', pointerEvents: 'none', textAlign: 'right' }}>
+            <div className="desktop-only" style={{ position: 'absolute', bottom: 14, right: 16, color: '#f59e0b', fontSize: '0.72rem', fontFamily: 'monospace', pointerEvents: 'none', textAlign: 'right' }}>
               <div>ANTERIOR-POSTERIOR (PA)</div>
               <div>LOSSLESS 16-BIT GRAYSCALE</div>
             </div>
@@ -347,9 +353,26 @@ export default function RadiologyViewerModal({ study, onClose }: Props) {
               onMouseDown={handleMouseDown}
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
+              onTouchStart={(e) => {
+                if (e.touches.length === 1) {
+                  const t = e.touches[0];
+                  const rect = canvasRef.current?.getBoundingClientRect();
+                  if (!rect) return;
+                  setIsDragging(true);
+                  setDragStart({ x: t.clientX - pan.x, y: t.clientY - pan.y });
+                }
+              }}
+              onTouchMove={(e) => {
+                if (isDragging && e.touches.length === 1) {
+                  const t = e.touches[0];
+                  setPan({ x: t.clientX - dragStart.x, y: t.clientY - dragStart.y });
+                }
+              }}
+              onTouchEnd={() => setIsDragging(false)}
               style={{
                 cursor: tool === 'measure' ? 'crosshair' : (tool === 'pan' ? (isDragging ? 'grabbing' : 'grab') : 'default'),
-                boxShadow: '0 0 30px rgba(0,0,0,0.9)'
+                boxShadow: '0 0 30px rgba(0,0,0,0.9)',
+                touchAction: 'none'
               }}
             />
 
@@ -431,8 +454,13 @@ export default function RadiologyViewerModal({ study, onClose }: Props) {
 
           {/* Right Clinical Dossier & Findings Panel */}
           <div style={{
-            width: '380px', background: '#111827', borderLeft: '1px solid #1f293d',
-            padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px',
+            width: isMobile ? '100%' : '380px',
+            maxHeight: isMobile ? '180px' : undefined,
+            background: '#111827',
+            borderLeft: isMobile ? 'none' : '1px solid #1f293d',
+            borderTop: isMobile ? '1px solid #1f293d' : 'none',
+            padding: isMobile ? '12px 16px' : '20px',
+            display: 'flex', flexDirection: 'column', gap: '14px',
             overflowY: 'auto', color: '#e2e8f0'
           }}>
             <div style={{ borderBottom: '1px solid #1f293d', paddingBottom: '12px' }}>

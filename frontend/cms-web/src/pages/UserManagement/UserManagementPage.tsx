@@ -22,6 +22,13 @@ import {
 } from '../../utils/notificationRules';
 
 export default function UserManagementPage() {
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const [activeTab, setActiveTab] = useState<'users' | 'permissions' | 'notifications' | 'audit'>('users');
 
   // HIPAA Compliance Audit State
@@ -428,9 +435,9 @@ export default function UserManagementPage() {
       )}
 
       {/* Top Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main)' }}>Staff Accounts & Role Permission Access Control</h3>
+          <h3 style={{ fontSize: isMobile ? '1.1rem' : '1.25rem', fontWeight: 700, color: 'var(--text-main)' }}>Staff Accounts & Role Permission Access Control</h3>
           <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Manage clinic users, roles, and configure which roles can view each module and page</p>
         </div>
         {activeTab === 'users' && (
@@ -441,25 +448,25 @@ export default function UserManagementPage() {
       </div>
 
       {/* Main Tabs Navigation */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '4px' }}>
         <button
           onClick={() => setActiveTab('users')}
           className={activeTab === 'users' ? 'btn-primary' : 'btn-secondary'}
-          style={{ display: 'flex', alignItems: 'center', gap: '7px' }}
+          style={{ display: 'flex', alignItems: 'center', gap: '7px', whiteSpace: 'nowrap', flexShrink: 0 }}
         >
           <Users size={16} /> User Directory & Accounts ({users.length})
         </button>
         <button
           onClick={() => setActiveTab('permissions')}
           className={activeTab === 'permissions' ? 'btn-primary' : 'btn-secondary'}
-          style={{ display: 'flex', alignItems: 'center', gap: '7px' }}
+          style={{ display: 'flex', alignItems: 'center', gap: '7px', whiteSpace: 'nowrap', flexShrink: 0 }}
         >
           <ShieldCheck size={16} /> Role Permission Editor (Module Visibility)
         </button>
         <button
           onClick={() => setActiveTab('notifications')}
           className={activeTab === 'notifications' ? 'btn-primary' : 'btn-secondary'}
-          style={{ display: 'flex', alignItems: 'center', gap: '7px' }}
+          style={{ display: 'flex', alignItems: 'center', gap: '7px', whiteSpace: 'nowrap', flexShrink: 0 }}
         >
           <Bell size={16} /> Notification Manager (Role Alerts)
         </button>
@@ -469,7 +476,7 @@ export default function UserManagementPage() {
             loadAuditLogs();
           }}
           className={activeTab === 'audit' ? 'btn-primary' : 'btn-secondary'}
-          style={{ display: 'flex', alignItems: 'center', gap: '7px' }}
+          style={{ display: 'flex', alignItems: 'center', gap: '7px', whiteSpace: 'nowrap', flexShrink: 0 }}
         >
           <Shield size={16} color="#0284c7" /> Compliance &amp; Access Audit Trail (HIPAA)
         </button>
@@ -479,61 +486,63 @@ export default function UserManagementPage() {
       {/* TAB 1: USERS DIRECTORY                                                    */}
       {/* ========================================================================= */}
       {activeTab === 'users' && (
-        <div className="glass-panel" style={{ padding: '24px' }}>
+        <div className="glass-panel" style={{ padding: isMobile ? '16px 12px' : '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <h4 style={{ fontWeight: 700 }}>System Users Directory</h4>
             {loading && <Loader2 size={16} className="animate-spin" color="#06b6d4" />}
           </div>
-          <table className="cms-table">
-            <thead>
-              <tr>
-                <th>Username</th>
-                <th>Full Name</th>
-                <th>Email</th>
-                <th>Assigned Roles</th>
-                <th>MFA Security</th>
-                <th>Account Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map(u => (
-                <tr key={u.id}>
-                  <td style={{ fontWeight: 700, color: '#0284c7' }}>{u.username}</td>
-                  <td style={{ fontWeight: 600 }}>{u.name}</td>
-                  <td>{u.email}</td>
-                  <td>
-                    {(u.roles || []).map((r: string) => (
-                      <span key={r} className="badge badge-info" style={{ marginRight: '4px' }}>
-                        {r}
-                      </span>
-                    ))}
-                  </td>
-                  <td>
-                    <button onClick={() => handleToggleMfa(u.id)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-                      <span className={u.mfaEnabled ? 'badge badge-normal' : 'badge badge-warning'}>
-                        {u.mfaEnabled ? 'TOTP Enabled' : 'Disabled'}
-                      </span>
-                    </button>
-                  </td>
-                  <td><span className="badge badge-normal">{u.status}</span></td>
-                  <td>
-                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                      <button onClick={() => handleOpenEditStaffModal(u)} className="btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem', color: '#0284c7', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <Edit3 size={12} /> Edit Staff
-                      </button>
-                      <button onClick={() => setShowRoleModal(u)} className="btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }}>
-                        Edit Roles
-                      </button>
-                      <button onClick={() => setShowResetPasswordModal(u)} className="btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem', color: '#c2410c' }}>
-                        <Lock size={12} /> Reset
-                      </button>
-                    </div>
-                  </td>
+          <div className="table-responsive">
+            <table className="cms-table">
+              <thead>
+                <tr>
+                  <th>Username</th>
+                  <th>Full Name</th>
+                  <th>Email</th>
+                  <th>Assigned Roles</th>
+                  <th>MFA Security</th>
+                  <th>Account Status</th>
+                  <th>Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {users.map(u => (
+                  <tr key={u.id}>
+                    <td style={{ fontWeight: 700, color: '#0284c7' }}>{u.username}</td>
+                    <td style={{ fontWeight: 600 }}>{u.name}</td>
+                    <td>{u.email}</td>
+                    <td>
+                      {(u.roles || []).map((r: string) => (
+                        <span key={r} className="badge badge-info" style={{ marginRight: '4px' }}>
+                          {r}
+                        </span>
+                      ))}
+                    </td>
+                    <td>
+                      <button onClick={() => handleToggleMfa(u.id)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                        <span className={u.mfaEnabled ? 'badge badge-normal' : 'badge badge-warning'}>
+                          {u.mfaEnabled ? 'TOTP Enabled' : 'Disabled'}
+                        </span>
+                      </button>
+                    </td>
+                    <td><span className="badge badge-normal">{u.status}</span></td>
+                    <td>
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                        <button onClick={() => handleOpenEditStaffModal(u)} className="btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem', color: '#0284c7', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <Edit3 size={12} /> Edit Staff
+                        </button>
+                        <button onClick={() => setShowRoleModal(u)} className="btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }}>
+                          Edit Roles
+                        </button>
+                        <button onClick={() => setShowResetPasswordModal(u)} className="btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem', color: '#c2410c' }}>
+                          <Lock size={12} /> Reset
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -635,7 +644,7 @@ export default function UserManagementPage() {
           </div>
 
           {/* Module Filter Search */}
-          <div style={{ position: 'relative', width: '320px' }}>
+          <div style={{ position: 'relative', width: isMobile ? '100%' : '320px' }}>
             <Search size={15} color="var(--text-muted)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
             <input
               type="text"
@@ -659,7 +668,7 @@ export default function UserManagementPage() {
               if (catModules.length === 0) return null;
 
               return (
-                <div key={cat} className="glass-panel" style={{ padding: '20px' }}>
+                <div key={cat} className="glass-panel" style={{ padding: isMobile ? '16px 12px' : '20px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>
                     <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-main)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                       {cat} Modules
@@ -669,7 +678,7 @@ export default function UserManagementPage() {
                     </span>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '12px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
                     {catModules.map(moduleItem => {
                       const Icon = moduleItem.icon;
                       const isChecked = currentRoleAllowedModules.includes(moduleItem.key);
@@ -901,7 +910,7 @@ export default function UserManagementPage() {
           </div>
 
           {/* Test Alert Dispatcher Panel */}
-          <div className="glass-panel" style={{ padding: '24px' }}>
+          <div className="glass-panel" style={{ padding: isMobile ? '16px 14px' : '24px' }}>
             <h4 style={{ fontWeight: 700, fontSize: '0.95rem', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Send size={16} color="#0071e3" /> Send & Test Live Clinical Notification
             </h4>
@@ -909,7 +918,7 @@ export default function UserManagementPage() {
               Instantly broadcast a real-time notification to test delivery in the header bell and floating toast banner.
             </p>
 
-            <form onSubmit={handleSendTestNotification} style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 2fr auto', gap: '14px', alignItems: 'flex-end' }}>
+            <form onSubmit={handleSendTestNotification} style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.2fr 1fr 2fr auto', gap: '14px', alignItems: 'flex-end' }}>
               <div>
                 <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '5px' }}>
                   Alert Category / Event Type
@@ -963,7 +972,7 @@ export default function UserManagementPage() {
                 type="submit"
                 disabled={testSending}
                 className="btn-primary"
-                style={{ padding: '9px 18px', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}
+                style={{ padding: '9px 18px', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', justifyContent: 'center' }}
               >
                 {testSending ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
                 Send Live Alert
@@ -979,11 +988,11 @@ export default function UserManagementPage() {
       {activeTab === 'audit' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {/* Header & Filter Bar */}
-          <div className="glass-panel" style={{ padding: '18px 24px', background: '#ffffff', borderRadius: '12px', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
+          <div className="glass-panel" style={{ padding: isMobile ? '16px 14px' : '18px 24px', background: '#ffffff', borderRadius: '12px', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Shield size={20} color="#0284c7" />
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                <h3 style={{ fontSize: isMobile ? '1rem' : '1.15rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
                   HIPAA &amp; Privacy Immutable Access Audit Trail
                 </h3>
               </div>
@@ -992,11 +1001,11 @@ export default function UserManagementPage() {
               </p>
             </div>
 
-            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', width: isMobile ? '100%' : 'auto' }}>
               <select
                 value={auditTableFilter}
                 onChange={e => setAuditTableFilter(e.target.value)}
-                style={{ padding: '6px 10px', fontSize: '0.78rem' }}
+                style={{ padding: '6px 10px', fontSize: '0.78rem', flex: isMobile ? 1 : 'initial' }}
               >
                 <option value="">All Entities / Tables</option>
                 <option value="Patients">Patients</option>
@@ -1010,7 +1019,7 @@ export default function UserManagementPage() {
               <select
                 value={auditOpFilter}
                 onChange={e => setAuditOpFilter(e.target.value)}
-                style={{ padding: '6px 10px', fontSize: '0.78rem' }}
+                style={{ padding: '6px 10px', fontSize: '0.78rem', flex: isMobile ? 1 : 'initial' }}
               >
                 <option value="">All Operations</option>
                 <option value="I">Insert / Create (I)</option>
@@ -1031,7 +1040,7 @@ export default function UserManagementPage() {
           </div>
 
           {/* Audit Log Table */}
-          <div className="glass-panel" style={{ padding: '20px', background: '#ffffff', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+          <div className="glass-panel" style={{ padding: isMobile ? '14px 10px' : '20px', background: '#ffffff', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
             {loadingAudit ? (
               <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
                 <Loader2 size={24} className="animate-spin" style={{ margin: '0 auto 8px' }} />
@@ -1042,52 +1051,54 @@ export default function UserManagementPage() {
                 No audit log entries found matching criteria. Actions taken by practitioners across EMR, billing, and pharmacy will log here.
               </div>
             ) : (
-              <table className="cms-table" style={{ fontSize: '0.78rem' }}>
-                <thead>
-                  <tr>
-                    <th>Log ID</th>
-                    <th>Timestamp (UTC)</th>
-                    <th>User / Actor</th>
-                    <th>IP Address</th>
-                    <th>Target Entity</th>
-                    <th>Record ID</th>
-                    <th>Operation</th>
-                    <th>Changes / Payload</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {auditLogs.map(log => {
-                    const opBadge =
-                      log.operation === 'I' ? { text: 'INSERT', bg: '#dcfce7', col: '#15803d' } :
-                      log.operation === 'U' ? { text: 'UPDATE', bg: '#e0f2fe', col: '#0369a1' } :
-                      log.operation === 'D' ? { text: 'DELETE', bg: '#fee2e2', col: '#991b1b' } :
-                      { text: 'ACCESS', bg: '#fef3c7', col: '#92400e' };
+              <div className="table-responsive">
+                <table className="cms-table" style={{ fontSize: '0.78rem' }}>
+                  <thead>
+                    <tr>
+                      <th>Log ID</th>
+                      <th>Timestamp (UTC)</th>
+                      <th>User / Actor</th>
+                      <th>IP Address</th>
+                      <th>Target Entity</th>
+                      <th>Record ID</th>
+                      <th>Operation</th>
+                      <th>Changes / Payload</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {auditLogs.map(log => {
+                      const opBadge =
+                        log.operation === 'I' ? { text: 'INSERT', bg: '#dcfce7', col: '#15803d' } :
+                        log.operation === 'U' ? { text: 'UPDATE', bg: '#e0f2fe', col: '#0369a1' } :
+                        log.operation === 'D' ? { text: 'DELETE', bg: '#fee2e2', col: '#991b1b' } :
+                        { text: 'ACCESS', bg: '#fef3c7', col: '#92400e' };
 
-                    return (
-                      <tr key={log.id}>
-                        <td style={{ fontFamily: 'monospace', fontWeight: 700 }}>#{log.id}</td>
-                        <td style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                          {log.changedAt ? new Date(log.changedAt).toLocaleString() : 'Recent'}
-                        </td>
-                        <td style={{ fontWeight: 700, color: 'var(--text-main)' }}>
-                          {log.userName || `User #${log.changedBy || 1}`}
-                        </td>
-                        <td style={{ fontFamily: 'monospace', color: '#64748b' }}>{log.ipAddress || '127.0.0.1'}</td>
-                        <td style={{ fontWeight: 600 }}>{log.tableName}</td>
-                        <td style={{ fontFamily: 'monospace' }}>{log.recordId}</td>
-                        <td>
-                          <span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 800, background: opBadge.bg, color: opBadge.col }}>
-                            {opBadge.text}
-                          </span>
-                        </td>
-                        <td style={{ maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-muted)', fontSize: '0.72rem' }}>
-                          {log.newValues || log.oldValues || 'Action recorded successfully.'}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                      return (
+                        <tr key={log.id}>
+                          <td style={{ fontFamily: 'monospace', fontWeight: 700 }}>#{log.id}</td>
+                          <td style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                            {log.changedAt ? new Date(log.changedAt).toLocaleString() : 'Recent'}
+                          </td>
+                          <td style={{ fontWeight: 700, color: 'var(--text-main)' }}>
+                            {log.userName || `User #${log.changedBy || 1}`}
+                          </td>
+                          <td style={{ fontFamily: 'monospace', color: '#64748b' }}>{log.ipAddress || '127.0.0.1'}</td>
+                          <td style={{ fontWeight: 600 }}>{log.tableName}</td>
+                          <td style={{ fontFamily: 'monospace' }}>{log.recordId}</td>
+                          <td>
+                            <span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 800, background: opBadge.bg, color: opBadge.col }}>
+                              {opBadge.text}
+                            </span>
+                          </td>
+                          <td style={{ maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-muted)', fontSize: '0.72rem' }}>
+                            {log.newValues || log.oldValues || 'Action recorded successfully.'}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         </div>
@@ -1095,14 +1106,14 @@ export default function UserManagementPage() {
 
       {/* Modal: Add User */}
       {showAddUserModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div className="glass-panel" style={{ width: '480px', padding: '28px', background: '#fff' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: isMobile ? '8px' : '16px' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '480px', padding: isMobile ? '16px' : '28px', background: '#fff', borderRadius: '12px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Add New Staff User Account</h3>
               <button onClick={() => setShowAddUserModal(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={18} /></button>
             </div>
             <form onSubmit={handleAddUserSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>First Name</label>
                   <input type="text" value={newFirstName} onChange={e => setNewFirstName(e.target.value)} required />
@@ -1144,8 +1155,8 @@ export default function UserManagementPage() {
 
       {/* Modal: Reset Password */}
       {showResetPasswordModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div className="glass-panel" style={{ width: '420px', padding: '28px', background: '#fff' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: isMobile ? '8px' : '16px' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '420px', padding: isMobile ? '16px' : '28px', background: '#fff', borderRadius: '12px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Reset Password: {showResetPasswordModal.username}</h3>
               <button onClick={() => setShowResetPasswordModal(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={18} /></button>
@@ -1178,8 +1189,8 @@ export default function UserManagementPage() {
 
       {/* Modal: Edit Roles */}
       {showRoleModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div className="glass-panel" style={{ width: '440px', padding: '28px', background: '#fff' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: isMobile ? '8px' : '16px' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '440px', padding: isMobile ? '16px' : '28px', background: '#fff', borderRadius: '12px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Edit Assigned Roles: {showRoleModal.name}</h3>
               <button onClick={() => setShowRoleModal(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={18} /></button>
@@ -1214,17 +1225,17 @@ export default function UserManagementPage() {
 
       {/* Modal: Edit Staff Profile & Specialization */}
       {showEditStaffModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 110, overflowY: 'auto', padding: '20px' }}>
-          <div className="glass-panel" style={{ width: '560px', maxHeight: '90vh', overflowY: 'auto', padding: '26px', background: '#fff', borderRadius: '12px' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 110, overflowY: 'auto', padding: isMobile ? '8px' : '20px' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '560px', maxHeight: '90vh', overflowY: 'auto', padding: isMobile ? '16px' : '26px', background: '#fff', borderRadius: '12px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px' }}>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: '#0369a1' }}>
+              <h3 style={{ fontSize: isMobile ? '1rem' : '1.15rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: '#0369a1' }}>
                 <Edit3 size={18} /> Edit Staff Profile & Specialization
               </h3>
               <button onClick={() => setShowEditStaffModal(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={18} /></button>
             </div>
 
             <form onSubmit={handleUpdateStaffSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr 1fr', gap: '10px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '120px 1fr 1fr', gap: '10px' }}>
                 <div>
                   <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Title</label>
                   <select value={showEditStaffModal.title} onChange={e => setShowEditStaffModal({ ...showEditStaffModal, title: e.target.value })}>
@@ -1247,7 +1258,7 @@ export default function UserManagementPage() {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '10px' }}>
                 <div>
                   <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Email Address</label>
                   <input type="email" value={showEditStaffModal.email} onChange={e => setShowEditStaffModal({ ...showEditStaffModal, email: e.target.value })} required />
@@ -1258,7 +1269,7 @@ export default function UserManagementPage() {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '10px' }}>
                 <div>
                   <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Department</label>
                   <input type="text" value={showEditStaffModal.department} onChange={e => setShowEditStaffModal({ ...showEditStaffModal, department: e.target.value })} placeholder="e.g. Dermatology, Pediatrics" />
@@ -1282,7 +1293,7 @@ export default function UserManagementPage() {
                 <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0369a1', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Stethoscope size={16} /> Clinical Specialization & Credentials
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '10px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.2fr 1fr', gap: '10px' }}>
                   <div>
                     <label style={{ fontSize: '0.75rem', color: '#0369a1', fontWeight: 600 }}>Medical Specialization (Catalog)</label>
                     <select

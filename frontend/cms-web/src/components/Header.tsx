@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   Bell, Clock, LucideIcon, Check, CheckCheck, X, AlertTriangle,
   Flame, Pill, FlaskConical, DollarSign, Activity, ChevronRight,
-  Settings, HeartPulse, Stethoscope, FileHeart, ShieldCheck, Building, Cross
+  Settings, HeartPulse, Stethoscope, FileHeart, ShieldCheck, Building, Cross, Menu
 } from 'lucide-react';
 import { api } from '../api/apiClient';
 import { ModuleKey } from './Sidebar';
@@ -16,6 +16,7 @@ interface HeaderProps {
   clinicName?: string;
   appIconName?: string;
   onNavigateModule?: (module: ModuleKey) => void;
+  onToggleMobileMenu?: () => void;
 }
 
 const ICON_MAP: Record<string, LucideIcon> = {
@@ -40,7 +41,7 @@ interface NotificationItem {
   targetRole?: string;
 }
 
-export default function Header({ title, subtitle, user, clinicName, appIconName = 'FileHeart', onNavigateModule }: HeaderProps) {
+export default function Header({ title, subtitle, user, clinicName, appIconName = 'FileHeart', onNavigateModule, onToggleMobileMenu }: HeaderProps) {
   const [time, setTime] = useState(new Date().toLocaleTimeString());
   const [showDropdown, setShowDropdown] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
@@ -201,8 +202,27 @@ export default function Header({ title, subtitle, user, clinicName, appIconName 
           position: 'relative'
         }}
       >
-        <div>
+        <div style={{ minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {onToggleMobileMenu && (
+              <button
+                onClick={onToggleMobileMenu}
+                className="mobile-only"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  padding: '4px',
+                  cursor: 'pointer',
+                  color: 'var(--text-main)',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '6px'
+                }}
+                title="Open Navigation"
+              >
+                <Menu size={22} />
+              </button>
+            )}
             <div
               style={{
                 width: '30px',
@@ -212,14 +232,16 @@ export default function Header({ title, subtitle, user, clinicName, appIconName 
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 2px 6px rgba(0, 113, 227, 0.28)'
+                boxShadow: '0 2px 6px rgba(0, 113, 227, 0.28)',
+                flexShrink: 0
               }}
             >
               <ClinicIcon size={16} color="#ffffff" />
             </div>
-            <h1 style={{ fontSize: '1.2rem', fontWeight: 600, color: 'var(--text-main)', letterSpacing: '-0.015em' }}>{title}</h1>
+            <h1 style={{ fontSize: '1.2rem', fontWeight: 600, color: 'var(--text-main)', letterSpacing: '-0.015em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</h1>
             {clinicName && (
               <span
+                className="desktop-only"
                 style={{
                   fontSize: '0.7rem',
                   fontWeight: 600,
@@ -227,21 +249,22 @@ export default function Header({ title, subtitle, user, clinicName, appIconName 
                   borderRadius: '20px',
                   background: 'rgba(0, 113, 227, 0.08)',
                   color: '#0071e3',
-                  border: '1px solid rgba(0, 113, 227, 0.16)'
+                  border: '1px solid rgba(0, 113, 227, 0.16)',
+                  whiteSpace: 'nowrap'
                 }}
               >
                 {clinicName}
               </span>
             )}
           </div>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: '3px', paddingLeft: '40px' }}>{subtitle}</p>
+          <p className="desktop-only" style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: '3px', paddingLeft: '40px' }}>{subtitle}</p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {/* Real-time Clock */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+          {/* Real-time Clock (Desktop only) */}
           <div
+            className="desktop-only"
             style={{
-              display: 'flex',
               alignItems: 'center',
               gap: '6px',
               fontSize: '0.75rem',
@@ -311,7 +334,7 @@ export default function Header({ title, subtitle, user, clinicName, appIconName 
                   position: 'absolute',
                   top: '46px',
                   right: 0,
-                  width: '380px',
+                  width: 'min(380px, calc(100vw - 32px))',
                   maxHeight: '480px',
                   borderRadius: '16px',
                   background: 'var(--bg-card)',

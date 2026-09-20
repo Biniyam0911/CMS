@@ -57,6 +57,13 @@ ORDER BY StockQuantity ASC;`
 ];
 
 export default function ReportBuilderPage() {
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const [activeTab, setActiveTab] = useState<'visual' | 'sql'>('visual');
   const [dataSources, setDataSources] = useState<TableMeta[]>([]);
   const [loadingSources, setLoadingSources] = useState(false);
@@ -201,11 +208,11 @@ export default function ReportBuilderPage() {
   const joinSourceMeta = dataSources.find(d => d.tableName === joinTable);
 
   return (
-    <div className="glass-panel" style={{ padding: '24px' }}>
+    <div className="glass-panel" style={{ padding: isMobile ? '16px 12px' : '24px' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <h3 style={{ fontSize: '1.15rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <h3 style={{ fontSize: isMobile ? '1rem' : '1.15rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
             <FileSpreadsheet color="#06b6d4" size={20} /> Advanced Clinical & Operational Report Builder
           </h3>
           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
@@ -213,12 +220,13 @@ export default function ReportBuilderPage() {
           </span>
         </div>
 
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
           {exportedAlert && <span className="badge badge-normal"><Check size={12} /> {exportedAlert}</span>}
-          <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '8px', padding: '3px' }}>
+          <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '8px', padding: '3px', width: isMobile ? '100%' : 'auto' }}>
             <button
               onClick={() => setActiveTab('visual')}
               style={{
+                flex: isMobile ? 1 : 'initial',
                 padding: '6px 14px', borderRadius: '6px', border: 'none', cursor: 'pointer',
                 fontWeight: 600, fontSize: '0.78rem',
                 background: activeTab === 'visual' ? '#0284c7' : 'transparent',
@@ -230,6 +238,7 @@ export default function ReportBuilderPage() {
             <button
               onClick={() => setActiveTab('sql')}
               style={{
+                flex: isMobile ? 1 : 'initial',
                 padding: '6px 14px', borderRadius: '6px', border: 'none', cursor: 'pointer',
                 fontWeight: 600, fontSize: '0.78rem',
                 background: activeTab === 'sql' ? '#0284c7' : 'transparent',
@@ -244,9 +253,9 @@ export default function ReportBuilderPage() {
 
       {/* Mode 1: Visual Builder with Multi-table Join */}
       {activeTab === 'visual' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '20px', marginBottom: '24px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '320px 1fr', gap: '20px', marginBottom: '24px' }}>
           {/* Config column */}
-          <div style={{ background: '#f8fafc', padding: '18px', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={{ background: '#f8fafc', padding: isMobile ? '14px' : '18px', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <div>
               <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
                 Primary Table ({dataSources.length} available)
@@ -420,11 +429,11 @@ export default function ReportBuilderPage() {
             />
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', gap: '10px' }}>
             <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
               ℹ Strict server validation: Only SELECT / WITH queries permitted. DDL/DML prohibited.
             </span>
-            <div style={{ display: 'flex', gap: '8px' }}>
+            <div style={{ display: 'flex', gap: '8px', justifyContent: isMobile ? 'flex-end' : 'flex-start' }}>
               <button onClick={() => setShowSaveModal(true)} className="btn-secondary">
                 <Save size={14} /> Save Template
               </button>
@@ -451,7 +460,7 @@ export default function ReportBuilderPage() {
 
       {/* Query Results Table */}
       <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
           <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0284c7' }}>
             Results ({results.length} records returned)
           </h4>
@@ -467,7 +476,7 @@ export default function ReportBuilderPage() {
             {executing ? 'Executing query on database...' : 'Run a query or execute from visual builder to view records.'}
           </div>
         ) : (
-          <div style={{ overflowX: 'auto', maxHeight: '420px', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+          <div className="table-responsive" style={{ maxHeight: '420px', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
             <table className="cms-table" style={{ margin: 0 }}>
               <thead style={{ position: 'sticky', top: 0, background: '#f8fafc', zIndex: 1 }}>
                 <tr>
@@ -517,8 +526,8 @@ export default function ReportBuilderPage() {
 
       {/* Modal: Save Template */}
       {showSaveModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div className="glass-panel" style={{ width: '420px', padding: '24px', background: '#fff', color: '#1c1917' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '16px' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '420px', padding: isMobile ? '16px' : '24px', background: '#fff', color: '#1c1917', borderRadius: '12px' }}>
             <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '14px' }}>Save Query as Template</h3>
             <form onSubmit={handleSaveTemplate} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>

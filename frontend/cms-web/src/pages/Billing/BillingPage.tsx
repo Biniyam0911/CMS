@@ -7,6 +7,13 @@ import {
 import { api } from '../../api/apiClient';
 
 export default function BillingPage() {
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const [invoices, setInvoices] = useState<any[]>([]);
   const [patients, setPatients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,6 +72,13 @@ export default function BillingPage() {
     address: 'Addis Ababa, Ethiopia',
     phone: '+251 911 00 00 00'
   });
+
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 768);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const fetchInvoicesAndPatients = async () => {
     try {
@@ -465,18 +479,18 @@ export default function BillingPage() {
       </div>
 
       {/* Primary Module Tabs: Invoices vs Insurance Claims */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '4px', maxWidth: '100%' }}>
         <button
           onClick={() => setBillingTab('invoices')}
           className={billingTab === 'invoices' ? 'btn-primary' : 'btn-secondary'}
-          style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem' }}
+          style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', whiteSpace: 'nowrap' }}
         >
           <Receipt size={15} /> Invoices &amp; Fiscal Receipts ({invoices.length})
         </button>
         <button
           onClick={() => setBillingTab('claims')}
           className={billingTab === 'claims' ? 'btn-primary' : 'btn-secondary'}
-          style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem' }}
+          style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', whiteSpace: 'nowrap' }}
         >
           <ShieldCheck size={15} /> Insurance / TPA Claims ({claims.length})
         </button>
@@ -514,7 +528,7 @@ export default function BillingPage() {
       {/* TAB 1: INVOICES, FISCAL RECEIPTS & CASHIER REGISTER                        */}
       {/* ========================================================================= */}
       {billingTab === 'invoices' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '18px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 400px', gap: '18px' }}>
           
           {/* Left: Invoices Table */}
           <div className="glass-panel" style={{ padding: '18px' }}>
@@ -591,77 +605,79 @@ export default function BillingPage() {
             </div>
 
             {/* Invoices List */}
-            <table className="cms-table">
-              <thead>
-                <tr>
-                  <th>Invoice No</th>
-                  <th>Patient Name</th>
-                  <th>Date</th>
-                  <th>Total (Br)</th>
-                  <th>Paid</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
+            <div className="table-responsive">
+              <table className="cms-table">
+                <thead>
                   <tr>
-                    <td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
-                      <Loader2 size={20} className="animate-spin" style={{ margin: '0 auto 6px' }} />
-                      Loading invoices from database...
-                    </td>
+                    <th>Invoice No</th>
+                    <th>Patient Name</th>
+                    <th>Date</th>
+                    <th>Total (Br)</th>
+                    <th>Paid</th>
+                    <th>Status</th>
                   </tr>
-                ) : filteredInvoices.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
-                      No invoices match your filter.
-                    </td>
-                  </tr>
-                ) : (
-                  filteredInvoices.map(inv => (
-                    <tr
-                      key={inv.id}
-                      onClick={() => setSelectedInvoice(inv)}
-                      style={{
-                        cursor: 'pointer',
-                        background: selectedInvoice?.id === inv.id ? '#e0f2fe' : undefined
-                      }}
-                    >
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                          <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0369a1', fontSize: '0.8rem' }}>
-                            {inv.invoiceNo}
-                          </span>
-                          {inv.insuranceProviderId && (
-                            <span title="Insurance Covered" style={{ color: '#0284c7' }}><Shield size={12} /></span>
-                          )}
-                          {inv.fiscalReceiptNo && (
-                            <span title="ERCA Fiscal Signed" style={{ color: '#059669' }}><QrCode size={12} /></span>
-                          )}
-                          {inv.receiptImageUrl && (
-                            <span title="Payment Screenshot Uploaded" style={{ background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0', borderRadius: '4px', padding: '1px 5px', fontSize: '0.68rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                              📸 Slip
-                            </span>
-                          )}
-                        </div>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    <tr>
+                      <td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+                        <Loader2 size={20} className="animate-spin" style={{ margin: '0 auto 6px' }} />
+                        Loading invoices from database...
                       </td>
-                      <td>
-                        <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{inv.patientName}</div>
-                      </td>
-                      <td>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{inv.issueDate}</span>
-                      </td>
-                      <td>
-                        <strong style={{ color: 'var(--text-main)' }}>Br {inv.total.toFixed(2)}</strong>
-                      </td>
-                      <td>
-                        <span style={{ color: '#059669', fontWeight: 600 }}>Br {inv.paid.toFixed(2)}</span>
-                      </td>
-                      <td>{getStatusBadge(inv.status)}</td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : filteredInvoices.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+                        No invoices match your filter.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredInvoices.map(inv => (
+                      <tr
+                        key={inv.id}
+                        onClick={() => setSelectedInvoice(inv)}
+                        style={{
+                          cursor: 'pointer',
+                          background: selectedInvoice?.id === inv.id ? '#e0f2fe' : undefined
+                        }}
+                      >
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                            <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0369a1', fontSize: '0.8rem' }}>
+                              {inv.invoiceNo}
+                            </span>
+                            {inv.insuranceProviderId && (
+                              <span title="Insurance Covered" style={{ color: '#0284c7' }}><Shield size={12} /></span>
+                            )}
+                            {inv.fiscalReceiptNo && (
+                              <span title="ERCA Fiscal Signed" style={{ color: '#059669' }}><QrCode size={12} /></span>
+                            )}
+                            {inv.receiptImageUrl && (
+                              <span title="Payment Screenshot Uploaded" style={{ background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0', borderRadius: '4px', padding: '1px 5px', fontSize: '0.68rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                📸 Slip
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td>
+                          <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{inv.patientName}</div>
+                        </td>
+                        <td>
+                          <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{inv.issueDate}</span>
+                        </td>
+                        <td>
+                          <strong style={{ color: 'var(--text-main)' }}>Br {inv.total.toFixed(2)}</strong>
+                        </td>
+                        <td>
+                          <span style={{ color: '#059669', fontWeight: 600 }}>Br {inv.paid.toFixed(2)}</span>
+                        </td>
+                        <td>{getStatusBadge(inv.status)}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           {/* Right: Selected Invoice Detail & Cashier Panel */}
@@ -982,80 +998,82 @@ export default function BillingPage() {
             </div>
           </div>
 
-          <table className="cms-table">
-            <thead>
-              <tr>
-                <th>Invoice #</th>
-                <th>Patient Name</th>
-                <th>Insurance Provider</th>
-                <th>Pre-Auth Code</th>
-                <th>Total Bill</th>
-                <th>Patient Co-Pay</th>
-                <th>Claim to Insurer</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {claims.length === 0 ? (
+          <div className="table-responsive">
+            <table className="cms-table">
+              <thead>
                 <tr>
-                  <td colSpan={9} style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
-                    No insurance claims generated yet. Select an insurance provider when generating an invoice.
-                  </td>
+                  <th>Invoice #</th>
+                  <th>Patient Name</th>
+                  <th>Insurance Provider</th>
+                  <th>Pre-Auth Code</th>
+                  <th>Total Bill</th>
+                  <th>Patient Co-Pay</th>
+                  <th>Claim to Insurer</th>
+                  <th>Status</th>
+                  <th>Actions</th>
                 </tr>
-              ) : (
-                claims.map((cl: any) => (
-                  <tr key={cl.invoiceId}>
-                    <td style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0369a1' }}>
-                      {cl.invoiceNo}
-                    </td>
-                    <td>
-                      <strong>{cl.patientName}</strong>
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 600 }}>{cl.providerName}</div>
-                      <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>{cl.providerCode}</span>
-                    </td>
-                    <td>
-                      <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px' }}>
-                        {cl.preAuthCode || 'DIRECT-VERIFY'}
-                      </span>
-                    </td>
-                    <td>Br {Number(cl.totalAmount || 0).toFixed(2)}</td>
-                    <td>
-                      <span style={{ color: '#64748b' }}>
-                        Br {Number(cl.patientPayAmount || 0).toFixed(2)} ({cl.insuranceCoPayPercent}%)
-                      </span>
-                    </td>
-                    <td>
-                      <strong style={{ color: '#0284c7' }}>
-                        Br {Number(cl.insuranceClaimAmount || 0).toFixed(2)}
-                      </strong>
-                    </td>
-                    <td>{getClaimStatusBadge(cl.claimStatus)}</td>
-                    <td>
-                      <div style={{ display: 'flex', gap: '4px' }}>
-                        <button
-                          onClick={() => handleUpdateClaimStatus(cl.invoiceId, 3)}
-                          title="Mark Approved"
-                          style={{ background: '#dbeafe', border: '1px solid #bfdbfe', color: '#1d4ed8', padding: '3px 6px', borderRadius: '4px', fontSize: '0.68rem', cursor: 'pointer' }}
-                        >
-                          Approve
-                        </button>
-                        <button
-                          onClick={() => handleUpdateClaimStatus(cl.invoiceId, 4)}
-                          title="Mark Reimbursed"
-                          style={{ background: '#dcfce7', border: '1px solid #bbf7d0', color: '#15803d', padding: '3px 6px', borderRadius: '4px', fontSize: '0.68rem', cursor: 'pointer' }}
-                        >
-                          Reimburse
-                        </button>
-                      </div>
+              </thead>
+              <tbody>
+                {claims.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
+                      No insurance claims generated yet. Select an insurance provider when generating an invoice.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  claims.map((cl: any) => (
+                    <tr key={cl.invoiceId}>
+                      <td style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0369a1' }}>
+                        {cl.invoiceNo}
+                      </td>
+                      <td>
+                        <strong>{cl.patientName}</strong>
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: 600 }}>{cl.providerName}</div>
+                        <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>{cl.providerCode}</span>
+                      </td>
+                      <td>
+                        <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px' }}>
+                          {cl.preAuthCode || 'DIRECT-VERIFY'}
+                        </span>
+                      </td>
+                      <td>Br {Number(cl.totalAmount || 0).toFixed(2)}</td>
+                      <td>
+                        <span style={{ color: '#64748b' }}>
+                          Br {Number(cl.patientPayAmount || 0).toFixed(2)} ({cl.insuranceCoPayPercent}%)
+                        </span>
+                      </td>
+                      <td>
+                        <strong style={{ color: '#0284c7' }}>
+                          Br {Number(cl.insuranceClaimAmount || 0).toFixed(2)}
+                        </strong>
+                      </td>
+                      <td>{getClaimStatusBadge(cl.claimStatus)}</td>
+                      <td>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                          <button
+                            onClick={() => handleUpdateClaimStatus(cl.invoiceId, 3)}
+                            title="Mark Approved"
+                            style={{ background: '#dbeafe', border: '1px solid #bfdbfe', color: '#1d4ed8', padding: '3px 6px', borderRadius: '4px', fontSize: '0.68rem', cursor: 'pointer' }}
+                          >
+                            Approve
+                          </button>
+                          <button
+                            onClick={() => handleUpdateClaimStatus(cl.invoiceId, 4)}
+                            title="Mark Reimbursed"
+                            style={{ background: '#dcfce7', border: '1px solid #bbf7d0', color: '#15803d', padding: '3px 6px', borderRadius: '4px', fontSize: '0.68rem', cursor: 'pointer' }}
+                          >
+                            Reimburse
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -1063,8 +1081,8 @@ export default function BillingPage() {
       {/* MODAL: CREATE MANUAL INVOICE                                              */}
       {/* ========================================================================= */}
       {showCreateModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(28,25,23,0.65)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}>
-          <div className="glass-panel" style={{ width: '580px', maxHeight: '90vh', overflowY: 'auto', padding: '24px', background: '#ffffff', border: '1px solid var(--border-color)', borderRadius: '12px' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(28,25,23,0.65)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: isMobile ? '8px' : '16px' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '580px', maxHeight: '90vh', overflowY: 'auto', padding: isMobile ? '16px' : '24px', background: '#ffffff', border: '1px solid var(--border-color)', borderRadius: '12px' }}>
             
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>
               <div>
@@ -1102,7 +1120,7 @@ export default function BillingPage() {
                 </label>
 
                 {isInsuranceCovered && (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr', gap: '8px', marginTop: '4px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.5fr 1fr 1fr', gap: '8px', marginTop: '4px' }}>
                     <div>
                       <label style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Insurance Provider *</label>
                       <select
@@ -1143,7 +1161,7 @@ export default function BillingPage() {
               {/* Item Adder */}
               <div style={{ padding: '10px', background: '#fdfcf9', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#0369a1' }}>+ Add Billable Service Line</div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr auto', gap: '6px', alignItems: 'flex-end' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : '1.5fr 1fr 1fr auto', gap: '6px', alignItems: 'flex-end' }}>
                   <div>
                     <label style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Item Name</label>
                     <input type="text" value={newItemName} onChange={e => setNewItemName(e.target.value)} placeholder="Service description" />
@@ -1167,7 +1185,7 @@ export default function BillingPage() {
               </div>
 
               {/* Items Table */}
-              <div>
+              <div className="table-responsive">
                 <table className="cms-table">
                   <thead>
                     <tr>
@@ -1228,8 +1246,8 @@ export default function BillingPage() {
       {/* MODAL: PRINT OFFICIAL ERCA FISCAL TAX RECEIPT                             */}
       {/* ========================================================================= */}
       {showReceiptModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(28,25,23,0.75)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '20px' }}>
-          <div className="glass-panel" style={{ width: '660px', maxHeight: '92vh', overflowY: 'auto', padding: '32px', background: '#ffffff', border: '1px solid var(--border-color)', borderRadius: '12px' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(28,25,23,0.75)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: isMobile ? '8px' : '20px' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '660px', maxHeight: '92vh', overflowY: 'auto', padding: isMobile ? '16px' : '32px', background: '#ffffff', border: '1px solid var(--border-color)', borderRadius: '12px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #e5dfd5', paddingBottom: '10px' }}>
               <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0369a1' }}>Official ERCA Cashier Tax Receipt</div>
               <div style={{ display: 'flex', gap: '8px' }}>
@@ -1238,7 +1256,7 @@ export default function BillingPage() {
               </div>
             </div>
 
-            <div style={{ padding: '24px', border: '1px solid #e5dfd5', borderRadius: '8px', background: '#fff', color: '#1c1917' }}>
+            <div style={{ padding: isMobile ? '12px' : '24px', border: '1px solid #e5dfd5', borderRadius: '8px', background: '#fff', color: '#1c1917' }}>
               <div style={{ textAlign: 'center', marginBottom: '18px' }}>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>{clinicProfile.name}</h3>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{clinicProfile.address} | Tel: {clinicProfile.phone}</div>
@@ -1246,7 +1264,7 @@ export default function BillingPage() {
                 <div style={{ fontSize: '0.85rem', fontWeight: 800, marginTop: '8px', letterSpacing: '0.5px', textDecoration: 'underline' }}>OFFICIAL FISCAL CASH RECEIPT &amp; TAX INVOICE</div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.78rem', marginBottom: '16px', background: '#f8fafc', padding: '10px', borderRadius: '6px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '8px', fontSize: '0.78rem', marginBottom: '16px', background: '#f8fafc', padding: '10px', borderRadius: '6px' }}>
                 <div><strong>Invoice No:</strong> {showReceiptModal.invoiceNo}</div>
                 <div><strong>Fiscal Rec #:</strong> <span style={{ fontFamily: 'monospace', fontWeight: 700 }}>{showReceiptModal.fiscalReceiptNo || 'PENDING-FISCAL'}</span></div>
                 <div><strong>Date &amp; Time:</strong> {showReceiptModal.issueDate}</div>
@@ -1258,32 +1276,34 @@ export default function BillingPage() {
                 )}
               </div>
 
-              <table className="cms-table" style={{ marginBottom: '16px' }}>
-                <thead>
-                  <tr>
-                    <th>Description</th>
-                    <th>Qty</th>
-                    <th>Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(showReceiptModal.items && showReceiptModal.items.length > 0) ? (
-                    showReceiptModal.items.map((it: any, i: number) => (
-                      <tr key={i}>
-                        <td>{it.description}</td>
-                        <td>{it.quantity}</td>
-                        <td>Br {it.totalPrice.toFixed(2)}</td>
-                      </tr>
-                    ))
-                  ) : (
+              <div className="table-responsive" style={{ marginBottom: '16px' }}>
+                <table className="cms-table">
+                  <thead>
                     <tr>
-                      <td>General Clinical Services</td>
-                      <td>1</td>
-                      <td>Br {showReceiptModal.subtotal.toFixed(2)}</td>
+                      <th>Description</th>
+                      <th>Qty</th>
+                      <th>Amount</th>
                     </tr>
-                  )}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {(showReceiptModal.items && showReceiptModal.items.length > 0) ? (
+                      showReceiptModal.items.map((it: any, i: number) => (
+                        <tr key={i}>
+                          <td>{it.description}</td>
+                          <td>{it.quantity}</td>
+                          <td>Br {it.totalPrice.toFixed(2)}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td>General Clinical Services</td>
+                        <td>1</td>
+                        <td>Br {showReceiptModal.subtotal.toFixed(2)}</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-end', fontSize: '0.82rem' }}>
                 <div>Subtotal: <strong>Br {showReceiptModal.subtotal.toFixed(2)}</strong></div>
@@ -1296,7 +1316,7 @@ export default function BillingPage() {
               </div>
 
               {/* ERCA Digital Tax Signature & QR Section */}
-              <div style={{ marginTop: '20px', padding: '12px', border: '1px dashed #cbd5e1', borderRadius: '8px', background: '#fafafa', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ marginTop: '20px', padding: '12px', border: '1px dashed #cbd5e1', borderRadius: '8px', background: '#fafafa', display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', justifyContent: 'space-between', gap: isMobile ? '12px' : '0' }}>
                 <div>
                   <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#047857', display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <ShieldCheck size={14} /> ERCA e-Tax Certified &amp; Cryptographically Signed
@@ -1309,7 +1329,7 @@ export default function BillingPage() {
                   </div>
                 </div>
 
-                <div style={{ width: '64px', height: '64px', background: '#fff', border: '1px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px' }}>
+                <div style={{ width: '64px', height: '64px', background: '#fff', border: '1px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px', alignSelf: isMobile ? 'center' : 'auto' }}>
                   <QrCode size={52} color="#000" />
                 </div>
               </div>
@@ -1326,8 +1346,8 @@ export default function BillingPage() {
       {/* MODAL: TELEBIRR / CBE BIRR DYNAMIC QR PAYMENT                             */}
       {/* ========================================================================= */}
       {showTelebirrModal && selectedInvoice && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(10,15,30,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, padding: '20px' }}>
-          <div className="glass-panel" style={{ width: '520px', maxHeight: '90vh', overflowY: 'auto', padding: '28px', background: '#0d1a2e', border: '1px solid rgba(0,113,227,0.4)', borderRadius: '16px', color: '#fff' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(10,15,30,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, padding: isMobile ? '8px' : '20px' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '520px', maxHeight: '90vh', overflowY: 'auto', padding: isMobile ? '16px' : '28px', background: '#0d1a2e', border: '1px solid rgba(0,113,227,0.4)', borderRadius: '16px', color: '#fff' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <div>
                 <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#5eabff', letterSpacing: '0.12em' }}>TELEBIRR / CBE BIRR MOBILE PAYMENT</div>

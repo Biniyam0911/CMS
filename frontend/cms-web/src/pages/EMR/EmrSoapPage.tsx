@@ -72,6 +72,15 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
   const [activeSubTab, setActiveSubTab] = useState<'consultation' | 'cert' | 'history' | 'results'>('consultation');
   const [loading, setLoading] = useState(true);
 
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
+  const [showMobileQueue, setShowMobileQueue] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Doctor Selector State for Multi-Doctor EMR
   const initialDoctorId = currentUser?.doctorId ||
     (currentUser?.username?.toLowerCase().includes('tigist') ? 2 :
@@ -1304,106 +1313,142 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
       {/* 1. CONSULTATION VIEW (Chief Complaint, History, Exam, Diagnosis, Plan, Rx) */}
       {/* ========================================================================= */}
       {activeSubTab === 'consultation' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '290px 1fr', gap: '18px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: (!isMobile) ? '290px 1fr' : '1fr', gap: '18px' }}>
           
           {/* LEFT: DOCTOR'S ASSIGNED PATIENT QUEUE WITH DATE SELECTOR */}
-          <div className="glass-panel" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '82vh', overflowY: 'auto' }}>
+          <div className="glass-panel" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: (isMobile && !showMobileQueue) ? 'auto' : '82vh', overflowY: 'auto' }}>
             
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Doctor Consultation Queue
-            </div>
-
-            {/* Attending Doctor Badge / Status (Dropdown removed per user request) */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '10px', background: '#fdfcf9', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>Attending Doctor:</span>
-                <span style={{ fontSize: '0.7rem', color: '#0284c7', fontWeight: 700 }}>{patients.length} Patient{patients.length === 1 ? '' : 's'}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Doctor Consultation Queue
               </div>
-              <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }}></span>
-                {availableDoctors.find(d => d.id === selectedDoctorId)?.name || (selectedDoctorId === 2 ? 'Dr. Tigist Haile' : 'Dr. Abebe Bekele')}
-                {availableDoctors.find(d => d.id === selectedDoctorId)?.specialization && (
-                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 500 }}>
-                    ({availableDoctors.find(d => d.id === selectedDoctorId)?.specialization})
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Consultation Date Selector (for note entry, not for patient filter) */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '10px', background: '#fdfcf9', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>Consultation Date:</span>
+              {isMobile && (
                 <button
                   type="button"
-                  onClick={() => setConsultDate(new Date().toISOString().split('T')[0])}
+                  onClick={() => setShowMobileQueue(!showMobileQueue)}
                   className="btn-secondary"
-                  style={{ padding: '2px 6px', fontSize: '0.68rem' }}
+                  style={{ padding: '2px 8px', fontSize: '0.72rem' }}
                 >
-                  Today
+                  {showMobileQueue ? 'Hide Queue' : `View Queue (${patients.length})`}
                 </button>
-              </div>
-
-              <input
-                type="date"
-                value={consultDate}
-                onChange={e => setConsultDate(e.target.value)}
-                style={{ padding: '5px 8px', fontSize: '0.78rem', textAlign: 'center', width: '100%', borderRadius: '6px', border: '1px solid var(--border-color)' }}
-              />
-            </div>
-
-            {/* Assigned Patients List for Doctor */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {patients.length === 0 ? (
-                <div style={{ padding: '18px 10px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.78rem', background: '#fdfcf9', borderRadius: '8px', border: '1px dashed var(--border-color)' }}>
-                  No patients assigned to {certDoctorName} on {consultDate}.
-                </div>
-              ) : (
-                patients.map(p => {
-                  const isSelected = activePatient?.id === p.id;
-                  const isPaid = patientPaymentMap[p.id] === true;
-                  // Selected takes blue, otherwise green/red based on payment
-                  const bgColor = isSelected ? '#e0f2fe' : (isPaid ? '#f0fdf4' : '#fef2f2');
-                  const borderColor = isSelected ? '#0284c7' : (isPaid ? '#86efac' : '#fca5a5');
-                  const borderWidth = isSelected ? '1.5px' : '1px';
-                  return (
-                    <div
-                      key={p.id}
-                      onClick={() => setActivePatient(p)}
-                      style={{
-                        padding: '10px 12px',
-                        borderRadius: '8px',
-                        background: bgColor,
-                        border: `${borderWidth} solid ${borderColor}`,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        fontSize: '0.78rem',
-                        transition: 'all 0.1s'
-                      }}
-                    >
-                      <div>
-                        <div style={{ fontWeight: 700, color: isSelected ? '#0369a1' : 'var(--text-main)' }}>
-                          {p.name}
-                        </div>
-                        <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
-                          {p.mrn} • {p.age}y {p.gender}
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '3px' }}>
-                        <span className={isSelected ? 'badge badge-info' : 'badge badge-normal'} style={{ fontSize: '0.65rem' }}>
-                          {isSelected ? 'Active' : 'Queued'}
-                        </span>
-                        <span style={{ fontSize: '0.62rem', fontWeight: 700, padding: '1px 5px', borderRadius: '4px', background: isPaid ? '#dcfce7' : '#fee2e2', color: isPaid ? '#166534' : '#991b1b' }}>
-                          {isPaid ? '✓ PAID' : '✗ UNPAID'}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })
               )}
             </div>
+
+            {(!isMobile || showMobileQueue) && (
+              <>
+                {/* Attending Doctor Badge / Status (Dropdown removed per user request) */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '10px', background: '#fdfcf9', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>Attending Doctor:</span>
+                    <span style={{ fontSize: '0.7rem', color: '#0284c7', fontWeight: 700 }}>{patients.length} Patient{patients.length === 1 ? '' : 's'}</span>
+                  </div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }}></span>
+                    {availableDoctors.find(d => d.id === selectedDoctorId)?.name || (selectedDoctorId === 2 ? 'Dr. Tigist Haile' : 'Dr. Abebe Bekele')}
+                    {availableDoctors.find(d => d.id === selectedDoctorId)?.specialization && (
+                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+                        ({availableDoctors.find(d => d.id === selectedDoctorId)?.specialization})
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Consultation Date Selector (for note entry, not for patient filter) */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '10px', background: '#fdfcf9', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>Consultation Date:</span>
+                    <button
+                      type="button"
+                      onClick={() => setConsultDate(new Date().toISOString().split('T')[0])}
+                      className="btn-secondary"
+                      style={{ padding: '2px 6px', fontSize: '0.68rem' }}
+                    >
+                      Today
+                    </button>
+                  </div>
+
+                  <input
+                    type="date"
+                    value={consultDate}
+                    onChange={e => setConsultDate(e.target.value)}
+                    style={{ padding: '5px 8px', fontSize: '0.78rem', textAlign: 'center', width: '100%', borderRadius: '6px', border: '1px solid var(--border-color)' }}
+                  />
+                </div>
+
+                {/* Assigned Patients List for Doctor */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {patients.length === 0 ? (
+                    <div style={{ padding: '18px 10px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.78rem', background: '#fdfcf9', borderRadius: '8px', border: '1px dashed var(--border-color)' }}>
+                      No patients assigned to {certDoctorName} on {consultDate}.
+                    </div>
+                  ) : (
+                    patients.map(p => {
+                      const isSelected = activePatient?.id === p.id;
+                      const isPaid = patientPaymentMap[p.id] === true;
+                      // Selected takes blue, otherwise green/red based on payment
+                      const bgColor = isSelected ? '#e0f2fe' : (isPaid ? '#f0fdf4' : '#fef2f2');
+                      const borderColor = isSelected ? '#0284c7' : (isPaid ? '#86efac' : '#fca5a5');
+                      const borderWidth = isSelected ? '1.5px' : '1px';
+                      return (
+                        <div
+                          key={p.id}
+                          onClick={() => {
+                            setActivePatient(p);
+                            if (isMobile) setShowMobileQueue(false);
+                          }}
+                          style={{
+                            padding: '10px 12px',
+                            borderRadius: '8px',
+                            background: bgColor,
+                            border: `${borderWidth} solid ${borderColor}`,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            fontSize: '0.78rem',
+                            transition: 'all 0.1s'
+                          }}
+                        >
+                          <div>
+                            <div style={{ fontWeight: 700, color: isSelected ? '#0369a1' : 'var(--text-main)' }}>
+                              {p.name}
+                            </div>
+                            <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                              {p.mrn} • {p.age}y {p.gender}
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '3px' }}>
+                            <span className={isSelected ? 'badge badge-info' : 'badge badge-normal'} style={{ fontSize: '0.65rem' }}>
+                              {isSelected ? 'Active' : 'Queued'}
+                            </span>
+                            <span style={{ fontSize: '0.62rem', fontWeight: 700, padding: '1px 5px', borderRadius: '4px', background: isPaid ? '#dcfce7' : '#fee2e2', color: isPaid ? '#166534' : '#991b1b' }}>
+                              {isPaid ? '✓ PAID' : '✗ UNPAID'}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </>
+            )}
+
+            {isMobile && !showMobileQueue && activePatient && (
+              <div style={{ padding: '10px 12px', background: '#e0f2fe', borderRadius: '8px', border: '1.5px solid #0284c7', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontWeight: 700, color: '#0369a1', fontSize: '0.85rem' }}>Active: {activePatient.name}</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{activePatient.mrn} • {activePatient.age}y {activePatient.gender}</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowMobileQueue(true)}
+                  className="btn-secondary"
+                  style={{ padding: '4px 10px', fontSize: '0.72rem' }}
+                >
+                  Switch Patient
+                </button>
+              </div>
+            )}
           </div>
 
           {/* RIGHT: EXACT ORDERED CLINICAL FIELDS */}

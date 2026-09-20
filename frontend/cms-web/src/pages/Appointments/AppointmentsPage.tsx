@@ -3,6 +3,13 @@ import { Calendar as CalendarIcon, Clock, User, Plus, CheckCircle, X, Check, Fil
 import { api } from '../../api/apiClient';
 
 export default function AppointmentsPage() {
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const [doctors, setDoctors] = useState<any[]>([]);
   const [selectedDoctor, setSelectedDoctor] = useState('1');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -172,9 +179,9 @@ export default function AppointmentsPage() {
   return (
     <div>
       {/* Top Filter & Actions */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-          <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+        <div style={{ display: 'flex', gap: '14px', alignItems: 'center', flexWrap: 'wrap', flex: 1 }}>
+          <div style={{ flex: '1 1 220px' }}>
             <label style={{ fontSize: '0.75rem', color: '#06b6d4', fontWeight: 700, display: 'block', marginBottom: '4px' }}>Filter by Attending Doctor</label>
             <select
               value={selectedDoctor}
@@ -182,7 +189,7 @@ export default function AppointmentsPage() {
                 setSelectedDoctor(e.target.value);
                 setSelectedRoom(doctors.find(d => d.id === e.target.value)?.room || 'Consultation Room 101');
               }}
-              style={{ width: '280px', padding: '8px 12px', fontWeight: 600 }}
+              style={{ width: '100%', padding: '8px 12px', fontWeight: 600 }}
             >
               {doctors.map(d => (
                 <option key={d.id} value={d.id}>{d.name} ({d.spec})</option>
@@ -190,19 +197,19 @@ export default function AppointmentsPage() {
             </select>
           </div>
 
-          <div>
+          <div style={{ flex: '1 1 140px' }}>
             <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Select Date</label>
-            <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} style={{ width: '180px' }} />
+            <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} style={{ width: '100%' }} />
           </div>
         </div>
 
-        <button onClick={() => setShowBookingModal(true)} className="btn-primary">
+        <button onClick={() => setShowBookingModal(true)} className="btn-primary" style={{ whiteSpace: 'nowrap' }}>
           <Plus size={16} /> Book Appointment
         </button>
       </div>
 
       {/* Selected Doctor & Room Reservation Card */}
-      <div className="glass-panel" style={{ padding: '20px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'linear-gradient(135deg, rgba(6,182,212,0.1), rgba(59,130,246,0.1))' }}>
+      <div className="glass-panel" style={{ padding: '20px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', background: 'linear-gradient(135deg, rgba(6,182,212,0.1), rgba(59,130,246,0.1))' }}>
         <div>
           <span className="badge badge-info" style={{ marginBottom: '4px' }}>{currentDoctorObj.spec}</span>
           <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }}>{currentDoctorObj.name}'s Schedule</h3>
@@ -232,7 +239,7 @@ export default function AppointmentsPage() {
           {loading && <Loader2 size={16} className="animate-spin" color="#06b6d4" />}
         </div>
 
-        <div className="grid-4">
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: '16px' }}>
           {activeSlots.map((slot) => (
             <div
               key={slot.id}
@@ -288,8 +295,8 @@ export default function AppointmentsPage() {
 
       {/* Booking Modal */}
       {showBookingModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div className="glass-panel" style={{ width: '480px', padding: '28px' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '16px' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '480px', padding: '24px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
               <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }}>Book Appointment for {currentDoctorObj.name}</h3>
               <button onClick={() => setShowBookingModal(false)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}><X size={18} /></button>

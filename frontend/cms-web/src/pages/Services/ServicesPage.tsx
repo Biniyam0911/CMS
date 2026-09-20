@@ -72,6 +72,13 @@ const DEFAULT_SERVICES: ClinicalService[] = [
 ];
 
 export default function ServicesPage() {
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const [activeTab, setActiveTab] = useState<'services' | 'lab_catalog' | 'categories'>('services');
 
   // Categories State
@@ -519,22 +526,25 @@ export default function ServicesPage() {
       </div>
 
       {/* Tabs for Services, Lab Catalogue, Categories */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '4px' }}>
         <button
           onClick={() => setActiveTab('services')}
           className={activeTab === 'services' ? 'btn-primary' : 'btn-secondary'}
+          style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
         >
           <Layers size={15} /> Clinical Services ({services.length})
         </button>
         <button
           onClick={() => setActiveTab('lab_catalog')}
           className={activeTab === 'lab_catalog' ? 'btn-primary' : 'btn-secondary'}
+          style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
         >
           <FlaskConical size={15} /> Laboratory Test Catalogue & Sub-Tests ({labTests.length})
         </button>
         <button
           onClick={() => setActiveTab('categories')}
           className={activeTab === 'categories' ? 'btn-primary' : 'btn-secondary'}
+          style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
         >
           <Tag size={15} /> Service Categories ({categories.length})
         </button>
@@ -620,7 +630,7 @@ export default function ServicesPage() {
       {/* TAB 1: CLINICAL SERVICES CATALOGUE                                        */}
       {/* ========================================================================= */}
       {activeTab === 'services' && (
-        <div className="glass-panel" style={{ padding: '18px' }}>
+        <div className="glass-panel" style={{ padding: isMobile ? '12px' : '18px' }}>
           {filteredServices.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '36px 16px', color: 'var(--text-muted)' }}>
               <Search size={32} style={{ margin: '0 auto 8px', opacity: 0.35 }} />
@@ -643,39 +653,41 @@ export default function ServicesPage() {
               )}
             </div>
           ) : (
-            <table className="cms-table">
-              <thead>
-                <tr>
-                  <th>Service Code</th>
-                  <th>Service Name</th>
-                  <th>Category</th>
-                  <th>Department</th>
-                  <th>Standard Fee (Br)</th>
-                  <th>Tax</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredServices.map(s => (
-                  <tr key={s.id}>
-                    <td><span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0369a1' }}>{s.code}</span></td>
-                    <td><strong>{s.name}</strong></td>
-                    <td><span className="badge badge-info">{s.categoryName}</span></td>
-                    <td>{s.department}</td>
-                    <td><strong style={{ color: '#059669' }}>Br {s.standardFee.toFixed(2)}</strong></td>
-                    <td>{s.taxable ? 'VAT 15%' : 'Exempt'}</td>
-                    <td><span className="badge badge-normal">Active</span></td>
-                    <td>
-                      <div style={{ display: 'flex', gap: '5px' }}>
-                        <button onClick={() => openEditServiceModal(s)} title="Edit service parameters" className="btn-secondary" style={{ padding: '3px 6px' }}><Edit2 size={12} /></button>
-                        <button onClick={() => handleDeleteService(s.id)} title="Delete service" className="btn-secondary" style={{ padding: '3px 6px', color: '#b91c1c' }}><Trash2 size={12} /></button>
-                      </div>
-                    </td>
+            <div className="table-responsive">
+              <table className="cms-table">
+                <thead>
+                  <tr>
+                    <th>Service Code</th>
+                    <th>Service Name</th>
+                    <th>Category</th>
+                    <th>Department</th>
+                    <th>Standard Fee (Br)</th>
+                    <th>Tax</th>
+                    <th>Status</th>
+                    <th>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {filteredServices.map(s => (
+                    <tr key={s.id}>
+                      <td><span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0369a1' }}>{s.code}</span></td>
+                      <td><strong>{s.name}</strong></td>
+                      <td><span className="badge badge-info">{s.categoryName}</span></td>
+                      <td>{s.department}</td>
+                      <td><strong style={{ color: '#059669' }}>Br {s.standardFee.toFixed(2)}</strong></td>
+                      <td>{s.taxable ? 'VAT 15%' : 'Exempt'}</td>
+                      <td><span className="badge badge-normal">Active</span></td>
+                      <td>
+                        <div style={{ display: 'flex', gap: '5px' }}>
+                          <button onClick={() => openEditServiceModal(s)} title="Edit service parameters" className="btn-secondary" style={{ padding: '3px 6px' }}><Edit2 size={12} /></button>
+                          <button onClick={() => handleDeleteService(s.id)} title="Delete service" className="btn-secondary" style={{ padding: '3px 6px', color: '#b91c1c' }}><Trash2 size={12} /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       )}
@@ -721,18 +733,20 @@ export default function ServicesPage() {
                   <div
                     onClick={() => setExpandedLabId(isExpanded ? null : test.id)}
                     style={{
-                      padding: '12px 16px',
+                      padding: isMobile ? '10px 12px' : '12px 16px',
                       background: isExpanded ? '#e0f2fe' : '#ffffff',
                       cursor: 'pointer',
                       display: 'flex',
+                      flexDirection: isMobile ? 'column' : 'row',
                       justifyContent: 'space-between',
-                      alignItems: 'center'
+                      alignItems: isMobile ? 'flex-start' : 'center',
+                      gap: isMobile ? '10px' : '14px'
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <FlaskConical size={18} color="#0284c7" />
+                      <FlaskConical size={18} color="#0284c7" style={{ flexShrink: 0 }} />
                       <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                           <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0369a1', fontSize: '0.85rem' }}>
                             {test.code}
                           </span>
@@ -746,7 +760,7 @@ export default function ServicesPage() {
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'space-between' : 'flex-end', width: isMobile ? '100%' : 'auto', gap: '14px' }}>
                       <strong style={{ color: '#059669', fontSize: '0.95rem' }}>Br {test.price.toFixed(2)}</strong>
                       <div style={{ display: 'flex', gap: '5px' }}>
                         <button
@@ -770,33 +784,35 @@ export default function ServicesPage() {
 
                   {/* Sub-Parameters Table */}
                   {isExpanded && (
-                    <div style={{ padding: '14px 20px', background: '#fcfbf8', borderTop: '1px solid var(--border-color)' }}>
+                    <div style={{ padding: isMobile ? '10px 12px' : '14px 20px', background: '#fcfbf8', borderTop: '1px solid var(--border-color)' }}>
                       <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#0369a1', marginBottom: '8px', textTransform: 'uppercase' }}>
                         Sub-Tests / Analyte Parameters & Biological Reference Ranges:
                       </div>
 
-                      <table className="cms-table" style={{ background: '#ffffff' }}>
-                        <thead>
-                          <tr>
-                            <th>Parameter Code</th>
-                            <th>Analyte / Sub-Test Name</th>
-                            <th>Measurement Unit</th>
-                            <th>Normal Range Low</th>
-                            <th>Normal Range High</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {(test.parameters || []).map((p, idx) => (
-                            <tr key={idx}>
-                              <td><span style={{ fontFamily: 'monospace', fontWeight: 700 }}>{p.code}</span></td>
-                              <td><strong>{p.name}</strong></td>
-                              <td>{p.unit}</td>
-                              <td><span style={{ color: '#059669', fontWeight: 600 }}>{p.normalRangeLow}</span></td>
-                              <td><span style={{ color: '#059669', fontWeight: 600 }}>{p.normalRangeHigh}</span></td>
+                      <div className="table-responsive">
+                        <table className="cms-table" style={{ background: '#ffffff' }}>
+                          <thead>
+                            <tr>
+                              <th>Parameter Code</th>
+                              <th>Analyte / Sub-Test Name</th>
+                              <th>Measurement Unit</th>
+                              <th>Normal Range Low</th>
+                              <th>Normal Range High</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody>
+                            {(test.parameters || []).map((p, idx) => (
+                              <tr key={idx}>
+                                <td><span style={{ fontFamily: 'monospace', fontWeight: 700 }}>{p.code}</span></td>
+                                <td><strong>{p.name}</strong></td>
+                                <td>{p.unit}</td>
+                                <td><span style={{ color: '#059669', fontWeight: 600 }}>{p.normalRangeLow}</span></td>
+                                <td><span style={{ color: '#059669', fontWeight: 600 }}>{p.normalRangeHigh}</span></td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -836,8 +852,8 @@ export default function ServicesPage() {
       {/* MODAL: ADD / EDIT LABORATORY TEST & ANALYTE BUILDER                       */}
       {/* ========================================================================= */}
       {showLabModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(28,25,23,0.65)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}>
-          <div className="glass-panel" style={{ width: '680px', maxHeight: '92vh', overflowY: 'auto', padding: '24px', background: '#ffffff', border: '1px solid var(--border-color)', borderRadius: '12px' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(28,25,23,0.65)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: isMobile ? '8px' : '16px' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '680px', maxHeight: '92vh', overflowY: 'auto', padding: isMobile ? '16px' : '24px', background: '#ffffff', border: '1px solid var(--border-color)', borderRadius: '12px' }}>
             
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>
               <div>
@@ -850,7 +866,7 @@ export default function ServicesPage() {
             </div>
 
             <form onSubmit={handleSaveLabTest} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: '10px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '130px 1fr', gap: '10px' }}>
                 <div>
                   <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Test Code *</label>
                   <input type="text" value={labFormCode} onChange={e => setLabFormCode(e.target.value)} required style={{ fontFamily: 'monospace', fontWeight: 700 }} />
@@ -861,7 +877,7 @@ export default function ServicesPage() {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: '10px' }}>
                 <div>
                   <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Category</label>
                   <select value={labFormCat} onChange={e => setLabFormCat(e.target.value)}>
@@ -893,17 +909,19 @@ export default function ServicesPage() {
                   </button>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '180px', overflowY: 'auto' }}>
-                  {labFormParams.map((p, idx) => (
-                    <div key={idx} style={{ display: 'grid', gridTemplateColumns: '90px 1.4fr 70px 70px 70px auto', gap: '6px', alignItems: 'center' }}>
-                      <input type="text" placeholder="Code" value={p.code} onChange={e => { const u = [...labFormParams]; u[idx].code = e.target.value; setLabFormParams(u); }} style={{ fontSize: '0.72rem' }} />
-                      <input type="text" placeholder="Analyte Name" value={p.name} onChange={e => { const u = [...labFormParams]; u[idx].name = e.target.value; setLabFormParams(u); }} style={{ fontSize: '0.72rem' }} />
-                      <input type="text" placeholder="Unit" value={p.unit} onChange={e => { const u = [...labFormParams]; u[idx].unit = e.target.value; setLabFormParams(u); }} style={{ fontSize: '0.72rem' }} />
-                      <input type="number" placeholder="Min" value={p.normalRangeLow} onChange={e => { const u = [...labFormParams]; u[idx].normalRangeLow = parseFloat(e.target.value) || 0; setLabFormParams(u); }} style={{ fontSize: '0.72rem' }} />
-                      <input type="number" placeholder="Max" value={p.normalRangeHigh} onChange={e => { const u = [...labFormParams]; u[idx].normalRangeHigh = parseFloat(e.target.value) || 0; setLabFormParams(u); }} style={{ fontSize: '0.72rem' }} />
-                      <button type="button" onClick={() => handleRemoveParamRow(idx)} style={{ background: 'none', border: 'none', color: '#b91c1c', cursor: 'pointer' }}><Trash2 size={13} /></button>
-                    </div>
-                  ))}
+                <div style={{ overflowX: 'auto', maxHeight: '200px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: isMobile ? '520px' : 'auto' }}>
+                    {labFormParams.map((p, idx) => (
+                      <div key={idx} style={{ display: 'grid', gridTemplateColumns: '90px 1.4fr 70px 70px 70px auto', gap: '6px', alignItems: 'center' }}>
+                        <input type="text" placeholder="Code" value={p.code} onChange={e => { const u = [...labFormParams]; u[idx].code = e.target.value; setLabFormParams(u); }} style={{ fontSize: '0.72rem' }} />
+                        <input type="text" placeholder="Analyte Name" value={p.name} onChange={e => { const u = [...labFormParams]; u[idx].name = e.target.value; setLabFormParams(u); }} style={{ fontSize: '0.72rem' }} />
+                        <input type="text" placeholder="Unit" value={p.unit} onChange={e => { const u = [...labFormParams]; u[idx].unit = e.target.value; setLabFormParams(u); }} style={{ fontSize: '0.72rem' }} />
+                        <input type="number" placeholder="Min" value={p.normalRangeLow} onChange={e => { const u = [...labFormParams]; u[idx].normalRangeLow = parseFloat(e.target.value) || 0; setLabFormParams(u); }} style={{ fontSize: '0.72rem' }} />
+                        <input type="number" placeholder="Max" value={p.normalRangeHigh} onChange={e => { const u = [...labFormParams]; u[idx].normalRangeHigh = parseFloat(e.target.value) || 0; setLabFormParams(u); }} style={{ fontSize: '0.72rem' }} />
+                        <button type="button" onClick={() => handleRemoveParamRow(idx)} style={{ background: 'none', border: 'none', color: '#b91c1c', cursor: 'pointer' }}><Trash2 size={13} /></button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -922,8 +940,8 @@ export default function ServicesPage() {
       {/* MODAL: ADD / EDIT CLINICAL SERVICE (Every Parameter Editable)             */}
       {/* ========================================================================= */}
       {showServiceModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(28,25,23,0.65)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}>
-          <div className="glass-panel" style={{ width: '640px', maxHeight: '92vh', overflowY: 'auto', padding: '24px', background: '#ffffff', border: '1px solid var(--border-color)', borderRadius: '12px' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(28,25,23,0.65)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: isMobile ? '8px' : '16px' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '640px', maxHeight: '92vh', overflowY: 'auto', padding: isMobile ? '16px' : '24px', background: '#ffffff', border: '1px solid var(--border-color)', borderRadius: '12px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>
               <div>
                 <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-main)' }}>
@@ -938,7 +956,7 @@ export default function ServicesPage() {
 
             <form onSubmit={handleSaveService} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               {/* Row 1: Code & Name */}
-              <div style={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '150px 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Service Code *</label>
                   <input
@@ -964,7 +982,7 @@ export default function ServicesPage() {
               </div>
 
               {/* Row 2: Category & Department */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Category *</label>
                   <select
@@ -993,7 +1011,7 @@ export default function ServicesPage() {
               </div>
 
               {/* Row 3: Standard Fee & Taxation & Status */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.2fr 1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Standard Fee (Br) *</label>
                   <input
@@ -1058,8 +1076,8 @@ export default function ServicesPage() {
       {/* MODAL: ADD / EDIT CATEGORY                                                */}
       {/* ========================================================================= */}
       {showCategoryModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(28,25,23,0.65)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}>
-          <div className="glass-panel" style={{ width: '520px', padding: '24px', background: '#ffffff', border: '1px solid var(--border-color)', borderRadius: '12px' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(28,25,23,0.65)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: isMobile ? '8px' : '16px' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '520px', padding: isMobile ? '16px' : '24px', background: '#ffffff', border: '1px solid var(--border-color)', borderRadius: '12px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>
               <div>
                 <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-main)' }}>

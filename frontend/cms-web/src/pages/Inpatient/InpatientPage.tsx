@@ -289,12 +289,12 @@ export default function InpatientPage() {
       {activeTab === 'floorplan' && (
         <div className="glass-panel" style={{ padding: '24px' }}>
           {/* Ward filter selector */}
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>Filter by Ward:</span>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '4px', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600, whiteSpace: 'nowrap' }}>Filter by Ward:</span>
             <button
               onClick={() => setSelectedWardId('ALL')}
               className={selectedWardId === 'ALL' ? 'btn-primary' : 'btn-secondary'}
-              style={{ padding: '4px 12px', fontSize: '0.75rem' }}
+              style={{ padding: '4px 12px', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
             >
               All Wards ({beds.length})
             </button>
@@ -303,7 +303,7 @@ export default function InpatientPage() {
                 key={w.id}
                 onClick={() => setSelectedWardId(w.id)}
                 className={selectedWardId === w.id ? 'btn-primary' : 'btn-secondary'}
-                style={{ padding: '4px 12px', fontSize: '0.75rem' }}
+                style={{ padding: '4px 12px', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
               >
                 {w.name} ({w.occupiedBeds}/{w.totalBeds})
               </button>
@@ -422,8 +422,8 @@ export default function InpatientPage() {
               No active inpatient admissions. All hospital beds are currently vacant.
             </div>
           ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+            <div className="table-responsive">
+              <table className="cms-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left', color: 'var(--text-muted)' }}>
                     <th style={{ padding: '8px 10px' }}>Patient / MRN</th>
@@ -487,7 +487,7 @@ export default function InpatientPage() {
       {/* Drawer: Inpatient Clinical Chart & Nursing Rounds */}
       {selectedAdmission && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'flex-end', zIndex: 90 }}>
-          <div style={{ width: '680px', maxWidth: '100%', background: 'var(--bg-card)', height: '100%', padding: '28px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px', boxShadow: '-8px 0 24px rgba(0,0,0,0.1)' }}>
+          <div style={{ width: '680px', maxWidth: '100vw', background: 'var(--bg-card)', height: '100%', padding: '20px 16px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px', boxShadow: '-8px 0 24px rgba(0,0,0,0.1)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '14px' }}>
               <div>
                 <h3 style={{ fontSize: '1.15rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -503,7 +503,7 @@ export default function InpatientPage() {
             </div>
 
             {/* Inpatient details card */}
-            <div style={{ background: 'var(--bg-dark, #f8fafc)', padding: '16px', borderRadius: '10px', border: '1px solid var(--border-color)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '0.78rem' }}>
+            <div style={{ background: 'var(--bg-dark, #f8fafc)', padding: '16px', borderRadius: '10px', border: '1px solid var(--border-color)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', fontSize: '0.78rem' }}>
               <div><strong>Admitted Date:</strong> {new Date(selectedAdmission.admittedAt).toLocaleString()}</div>
               <div><strong>Attending Doctor:</strong> {selectedAdmission.doctorName || 'Dr. Staff'}</div>
               <div style={{ gridColumn: '1 / -1' }}><strong>Admission Reason:</strong> {selectedAdmission.admissionReason}</div>
@@ -573,8 +573,8 @@ export default function InpatientPage() {
 
       {/* Modal: New Admission */}
       {showAdmitModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div className="glass-panel" style={{ width: '520px', padding: '24px', background: 'var(--bg-card)' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '16px' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '520px', padding: '24px', background: 'var(--bg-card)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <h3 style={{ fontSize: '1.05rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Bed size={18} color="#0071e3" /> Inpatient Bed Admission
@@ -649,8 +649,8 @@ export default function InpatientPage() {
 
       {/* Modal: Record Nursing Round */}
       {showRoundModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div className="glass-panel" style={{ width: '480px', padding: '24px', background: 'var(--bg-card)' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '16px' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '480px', padding: '24px', background: 'var(--bg-card)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <h3 style={{ fontSize: '1.05rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Activity size={18} color="#0071e3" /> Record Inpatient Nursing Round
@@ -706,8 +706,8 @@ export default function InpatientPage() {
 
       {/* Modal: Discharge Inpatient */}
       {showDischargeModal && selectedAdmission && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div className="glass-panel" style={{ width: '500px', padding: '24px', background: 'var(--bg-card)' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '16px' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '500px', padding: '24px', background: 'var(--bg-card)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#ef4444', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <LogOut size={18} /> Discharge Inpatient Summary

@@ -10,6 +10,13 @@ import WaitingRoomTvScreen from './WaitingRoomTvScreen';
 type QueueTab = 'all' | 'triage' | 'lab' | 'procedure';
 
 export default function QueuePage() {
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const [activeTab, setActiveTab] = useState<QueueTab>('all');
   const [tvMode, setTvMode] = useState(false);
   const [tokens, setTokens] = useState<any[]>([]);
@@ -243,6 +250,8 @@ export default function QueuePage() {
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '16px',
           boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)'
         }}
       >
@@ -250,7 +259,7 @@ export default function QueuePage() {
           <span style={{ fontSize: '0.75rem', color: '#0071e3', fontWeight: 700, letterSpacing: '0.08em' }}>
             NOW CALLING TO CLINICAL STATION
           </span>
-          <div style={{ fontSize: '3.4rem', fontWeight: 800, color: 'var(--text-main)', fontFamily: 'monospace', lineHeight: 1.1 }}>
+          <div style={{ fontSize: 'clamp(2.2rem, 6vw, 3.4rem)', fontWeight: 800, color: 'var(--text-main)', fontFamily: 'monospace', lineHeight: 1.1 }}>
             {lastCalled.token}
           </div>
           <div style={{ fontSize: '1.05rem', fontWeight: 600, color: 'var(--text-secondary)', marginTop: '4px' }}>
@@ -258,41 +267,41 @@ export default function QueuePage() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
           <button
             onClick={() => setTvMode(true)}
             className="btn-secondary"
-            style={{ padding: '12px 20px', borderRadius: '12px', fontSize: '0.9rem', background: '#0071e3', color: '#fff', borderColor: '#0071e3' }}
+            style={{ padding: '10px 16px', borderRadius: '12px', fontSize: '0.85rem', background: '#0071e3', color: '#fff', borderColor: '#0071e3', whiteSpace: 'nowrap' }}
             title="Launch full-screen waiting room TV display"
           >
-            <Tv size={18} /> Launch TV Display
+            <Tv size={16} /> TV Display
           </button>
           <button
             onClick={() => playTicketChimeAndSpeech(lastCalled.token, lastCalled.counter)}
             className="btn-primary"
-            style={{ padding: '12px 20px', borderRadius: '12px', fontSize: '0.9rem' }}
+            style={{ padding: '10px 16px', borderRadius: '12px', fontSize: '0.85rem', whiteSpace: 'nowrap' }}
           >
-            <Volume2 size={20} /> Re-Announce Chime
+            <Volume2 size={18} /> Re-Announce
           </button>
           <button
             onClick={fetchAllQueues}
             className="btn-secondary"
-            style={{ padding: '12px 18px', borderRadius: '12px' }}
+            style={{ padding: '10px 14px', borderRadius: '12px' }}
             title="Refresh All Queues"
           >
-            <RefreshCw size={18} className={loading ? 'animate-spin' : ''} /> Refresh
+            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
           </button>
         </div>
       </div>
 
       {/* Counter Selection Bar */}
-      <div className="glass-panel" style={{ padding: '16px 20px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+      <div className="glass-panel" style={{ padding: '16px 20px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', flexWrap: 'wrap', gap: '12px', flexDirection: isMobile ? 'column' : 'row' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <label style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
               Active Staff Station:
             </label>
-            <select value={activeCounter} onChange={e => setActiveCounter(e.target.value)} style={{ width: '240px', padding: '8px 12px' }}>
+            <select value={activeCounter} onChange={e => setActiveCounter(e.target.value)} style={{ width: isMobile ? '100%' : '240px', padding: '8px 12px' }}>
               {counters.map(c => (
                 <option key={c.id} value={c.name}>{c.name} ({c.service})</option>
               ))}
@@ -317,28 +326,32 @@ export default function QueuePage() {
         </div>
 
         {/* Queue Switcher Navigation Tabs */}
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '4px', maxWidth: '100%' }}>
           <button
             onClick={() => setActiveTab('all')}
             className={activeTab === 'all' ? 'btn-primary' : 'btn-secondary'}
+            style={{ whiteSpace: 'nowrap' }}
           >
             <ListOrdered size={15} /> All Overview ({allWaitingTickets.length})
           </button>
           <button
             onClick={() => setActiveTab('triage')}
             className={activeTab === 'triage' ? 'btn-primary' : 'btn-secondary'}
+            style={{ whiteSpace: 'nowrap' }}
           >
             <Activity size={15} /> Triage Queue ({triageQueue.length})
           </button>
           <button
             onClick={() => setActiveTab('lab')}
             className={activeTab === 'lab' ? 'btn-primary' : 'btn-secondary'}
+            style={{ whiteSpace: 'nowrap' }}
           >
             <FlaskConical size={15} /> Laboratory Queue ({labQueue.length})
           </button>
           <button
             onClick={() => setActiveTab('procedure')}
             className={activeTab === 'procedure' ? 'btn-primary' : 'btn-secondary'}
+            style={{ whiteSpace: 'nowrap' }}
           >
             <Stethoscope size={15} /> Procedure Queue ({procedureQueue.length})
           </button>
@@ -347,7 +360,7 @@ export default function QueuePage() {
 
       {/* TAB 1: ALL OVERVIEW & CROSS-DEPARTMENT UNIFIED QUEUE */}
       {activeTab === 'all' && (
-        <div className="grid-2">
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '24px' }}>
           {/* Waiting Cross-Department Tickets */}
           <div className="glass-panel" style={{ padding: '24px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -362,50 +375,52 @@ export default function QueuePage() {
               {loading && <Loader2 size={16} className="animate-spin" color="#0071e3" />}
             </div>
 
-            <table className="cms-table">
-              <thead>
-                <tr>
-                  <th>Token</th>
-                  <th>Patient</th>
-                  <th>Department Station</th>
-                  <th>Service / Reason</th>
-                  <th>Priority</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {allWaitingTickets.length === 0 ? (
+            <div className="table-responsive">
+              <table className="cms-table">
+                <thead>
                   <tr>
-                    <td colSpan={6} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
-                      No patients currently waiting across any clinical stations today. Check In patients at reception, triage, or EMR to summon them.
-                    </td>
+                    <th>Token</th>
+                    <th>Patient</th>
+                    <th>Department Station</th>
+                    <th>Service / Reason</th>
+                    <th>Priority</th>
+                    <th>Action</th>
                   </tr>
-                ) : (
-                  allWaitingTickets.map(t => (
-                    <tr key={t.id}>
-                      <td style={{ fontWeight: 700, fontSize: '1rem', color: t.deptColor, fontFamily: 'monospace' }}>{t.token}</td>
-                      <td style={{ fontWeight: 600 }}>{t.patientName}</td>
-                      <td>
-                        <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700, background: `${t.deptColor}15`, color: t.deptColor, border: `1px solid ${t.deptColor}30` }}>
-                          {t.department}
-                        </span>
-                      </td>
-                      <td style={{ fontSize: '0.82rem' }}>{t.service}</td>
-                      <td>
-                        <span className={t.priority === 'Emergency' ? 'badge badge-critical' : (t.priority === 'VIP' || t.priority === 'Urgent' ? 'badge badge-warning' : 'badge badge-normal')}>
-                          {t.priority}
-                        </span>
-                      </td>
-                      <td>
-                        <button onClick={() => handleCallPatient(t.token, t.patientName, t.callStation)} className="btn-primary" style={{ padding: '5px 12px', fontSize: '0.75rem' }}>
-                          <Play size={12} /> Call Ticket
-                        </button>
+                </thead>
+                <tbody>
+                  {allWaitingTickets.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
+                        No patients currently waiting across any clinical stations today. Check In patients at reception, triage, or EMR to summon them.
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    allWaitingTickets.map(t => (
+                      <tr key={t.id}>
+                        <td style={{ fontWeight: 700, fontSize: '1rem', color: t.deptColor, fontFamily: 'monospace' }}>{t.token}</td>
+                        <td style={{ fontWeight: 600 }}>{t.patientName}</td>
+                        <td>
+                          <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700, background: `${t.deptColor}15`, color: t.deptColor, border: `1px solid ${t.deptColor}30` }}>
+                            {t.department}
+                          </span>
+                        </td>
+                        <td style={{ fontSize: '0.82rem' }}>{t.service}</td>
+                        <td>
+                          <span className={t.priority === 'Emergency' ? 'badge badge-critical' : (t.priority === 'VIP' || t.priority === 'Urgent' ? 'badge badge-warning' : 'badge badge-normal')}>
+                            {t.priority}
+                          </span>
+                        </td>
+                        <td>
+                          <button onClick={() => handleCallPatient(t.token, t.patientName, t.callStation)} className="btn-primary" style={{ padding: '5px 12px', fontSize: '0.75rem' }}>
+                            <Play size={12} /> Call Ticket
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           {/* Currently Called / Serving */}
@@ -452,58 +467,60 @@ export default function QueuePage() {
             {loading && <Loader2 size={16} className="animate-spin" color="#0071e3" />}
           </div>
 
-          <table className="cms-table">
-            <thead>
-              <tr>
-                <th>Triage Token</th>
-                <th>Patient Name</th>
-                <th>MRN</th>
-                <th>Chief Complaint</th>
-                <th>Recorded Vitals</th>
-                <th>Priority</th>
-                <th>Assigned Doctor</th>
-                <th>Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {triageQueue.length === 0 ? (
+          <div className="table-responsive">
+            <table className="cms-table">
+              <thead>
                 <tr>
-                  <td colSpan={9} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
-                    No patients currently waiting in Triage Queue.
-                  </td>
+                  <th>Triage Token</th>
+                  <th>Patient Name</th>
+                  <th>MRN</th>
+                  <th>Chief Complaint</th>
+                  <th>Recorded Vitals</th>
+                  <th>Priority</th>
+                  <th>Assigned Doctor</th>
+                  <th>Status</th>
+                  <th>Action</th>
                 </tr>
-              ) : (
-                triageQueue.map(p => (
-                  <tr key={p.id}>
-                    <td style={{ fontWeight: 700, fontFamily: 'monospace', color: '#0071e3' }}>{p.token}</td>
-                    <td style={{ fontWeight: 600 }}>{p.patientName}</td>
-                    <td style={{ fontFamily: 'monospace', color: 'var(--text-muted)' }}>{p.mrn}</td>
-                    <td>{p.chiefComplaint}</td>
-                    <td style={{ fontSize: '0.75rem' }}>{p.vitals}</td>
-                    <td>
-                      <span className={p.priority === 'Emergency' ? 'badge badge-critical' : (p.priority === 'Urgent' ? 'badge badge-warning' : 'badge badge-normal')}>
-                        {p.priority}
-                      </span>
-                    </td>
-                    <td>{p.doctor}</td>
-                    <td>
-                      <span className="badge badge-warning">{p.status}</span>
-                    </td>
-                    <td>
-                      <button
-                        onClick={() => handleCallPatient(p.token, p.patientName, 'Triage Station 1')}
-                        className="btn-primary"
-                        style={{ padding: '5px 12px', fontSize: '0.75rem' }}
-                      >
-                        <Play size={12} /> Call to Triage
-                      </button>
+              </thead>
+              <tbody>
+                {triageQueue.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
+                      No patients currently waiting in Triage Queue.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  triageQueue.map(p => (
+                    <tr key={p.id}>
+                      <td style={{ fontWeight: 700, fontFamily: 'monospace', color: '#0071e3' }}>{p.token}</td>
+                      <td style={{ fontWeight: 600 }}>{p.patientName}</td>
+                      <td style={{ fontFamily: 'monospace', color: 'var(--text-muted)' }}>{p.mrn}</td>
+                      <td>{p.chiefComplaint}</td>
+                      <td style={{ fontSize: '0.75rem' }}>{p.vitals}</td>
+                      <td>
+                        <span className={p.priority === 'Emergency' ? 'badge badge-critical' : (p.priority === 'Urgent' ? 'badge badge-warning' : 'badge badge-normal')}>
+                          {p.priority}
+                        </span>
+                      </td>
+                      <td>{p.doctor}</td>
+                      <td>
+                        <span className="badge badge-warning">{p.status}</span>
+                      </td>
+                      <td>
+                        <button
+                          onClick={() => handleCallPatient(p.token, p.patientName, 'Triage Station 1')}
+                          className="btn-primary"
+                          style={{ padding: '5px 12px', fontSize: '0.75rem' }}
+                        >
+                          <Play size={12} /> Call to Triage
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -522,56 +539,58 @@ export default function QueuePage() {
             {loading && <Loader2 size={16} className="animate-spin" color="#0071e3" />}
           </div>
 
-          <table className="cms-table">
-            <thead>
-              <tr>
-                <th>Order Number</th>
-                <th>Patient Name</th>
-                <th>MRN</th>
-                <th>Diagnostic Test</th>
-                <th>Sample Type</th>
-                <th>Priority</th>
-                <th>Queue Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {labQueue.length === 0 ? (
+          <div className="table-responsive">
+            <table className="cms-table">
+              <thead>
                 <tr>
-                  <td colSpan={8} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
-                    No patients currently waiting in Laboratory Queue.
-                  </td>
+                  <th>Order Number</th>
+                  <th>Patient Name</th>
+                  <th>MRN</th>
+                  <th>Diagnostic Test</th>
+                  <th>Sample Type</th>
+                  <th>Priority</th>
+                  <th>Queue Status</th>
+                  <th>Action</th>
                 </tr>
-              ) : (
-                labQueue.map(p => (
-                  <tr key={p.id}>
-                    <td style={{ fontWeight: 700, fontFamily: 'monospace', color: '#af52de' }}>{p.token}</td>
-                    <td style={{ fontWeight: 600 }}>{p.patientName}</td>
-                    <td style={{ fontFamily: 'monospace', color: 'var(--text-muted)' }}>{p.mrn}</td>
-                    <td><strong style={{ color: 'var(--text-main)' }}>{p.testName}</strong></td>
-                    <td>{p.sampleType}</td>
-                    <td>
-                      <span className={p.priority.includes('Emergency') ? 'badge badge-critical' : 'badge badge-normal'}>
-                        {p.priority}
-                      </span>
-                    </td>
-                    <td>
-                      <span className="badge badge-info">{p.status}</span>
-                    </td>
-                    <td>
-                      <button
-                        onClick={() => handleCallPatient(p.token, p.patientName, 'Lab Phlebotomy Counter 1')}
-                        className="btn-primary"
-                        style={{ padding: '5px 12px', fontSize: '0.75rem', background: '#af52de', borderColor: '#af52de' }}
-                      >
-                        <Play size={12} /> Call to Lab
-                      </button>
+              </thead>
+              <tbody>
+                {labQueue.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
+                      No patients currently waiting in Laboratory Queue.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  labQueue.map(p => (
+                    <tr key={p.id}>
+                      <td style={{ fontWeight: 700, fontFamily: 'monospace', color: '#af52de' }}>{p.token}</td>
+                      <td style={{ fontWeight: 600 }}>{p.patientName}</td>
+                      <td style={{ fontFamily: 'monospace', color: 'var(--text-muted)' }}>{p.mrn}</td>
+                      <td><strong style={{ color: 'var(--text-main)' }}>{p.testName}</strong></td>
+                      <td>{p.sampleType}</td>
+                      <td>
+                        <span className={p.priority.includes('Emergency') ? 'badge badge-critical' : 'badge badge-normal'}>
+                          {p.priority}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="badge badge-info">{p.status}</span>
+                      </td>
+                      <td>
+                        <button
+                          onClick={() => handleCallPatient(p.token, p.patientName, 'Lab Phlebotomy Counter 1')}
+                          className="btn-primary"
+                          style={{ padding: '5px 12px', fontSize: '0.75rem', background: '#af52de', borderColor: '#af52de' }}
+                        >
+                          <Play size={12} /> Call to Lab
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -590,52 +609,54 @@ export default function QueuePage() {
             {loading && <Loader2 size={16} className="animate-spin" color="#0071e3" />}
           </div>
 
-          <table className="cms-table">
-            <thead>
-              <tr>
-                <th>Procedure ID</th>
-                <th>Patient Name</th>
-                <th>MRN</th>
-                <th>Ordered Procedure</th>
-                <th>Clinical Notes</th>
-                <th>Ordering Physician</th>
-                <th>Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {procedureQueue.length === 0 ? (
+          <div className="table-responsive">
+            <table className="cms-table">
+              <thead>
                 <tr>
-                  <td colSpan={8} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
-                    No patients currently waiting in Procedure Queue.
-                  </td>
+                  <th>Procedure ID</th>
+                  <th>Patient Name</th>
+                  <th>MRN</th>
+                  <th>Ordered Procedure</th>
+                  <th>Clinical Notes</th>
+                  <th>Ordering Physician</th>
+                  <th>Status</th>
+                  <th>Action</th>
                 </tr>
-              ) : (
-                procedureQueue.map(p => (
-                  <tr key={p.id}>
-                    <td style={{ fontWeight: 700, fontFamily: 'monospace', color: '#ff9500' }}>{p.token}</td>
-                    <td style={{ fontWeight: 600 }}>{p.patientName}</td>
-                    <td style={{ fontFamily: 'monospace', color: 'var(--text-muted)' }}>{p.mrn}</td>
-                    <td><strong style={{ color: 'var(--text-main)' }}>{p.procedureName}</strong> ({p.procedureCode})</td>
-                    <td style={{ fontSize: '0.78rem' }}>{p.notes}</td>
-                    <td>{p.doctor}</td>
-                    <td>
-                      <span className="badge badge-warning">{p.status}</span>
-                    </td>
-                    <td>
-                      <button
-                        onClick={() => handleCallPatient(p.token, p.patientName, 'Minor Procedure Room')}
-                        className="btn-primary"
-                        style={{ padding: '5px 12px', fontSize: '0.75rem', background: '#ff9500', borderColor: '#ff9500' }}
-                      >
-                        <Play size={12} /> Call to Procedure
-                      </button>
+              </thead>
+              <tbody>
+                {procedureQueue.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
+                      No patients currently waiting in Procedure Queue.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  procedureQueue.map(p => (
+                    <tr key={p.id}>
+                      <td style={{ fontWeight: 700, fontFamily: 'monospace', color: '#ff9500' }}>{p.token}</td>
+                      <td style={{ fontWeight: 600 }}>{p.patientName}</td>
+                      <td style={{ fontFamily: 'monospace', color: 'var(--text-muted)' }}>{p.mrn}</td>
+                      <td><strong style={{ color: 'var(--text-main)' }}>{p.procedureName}</strong> ({p.procedureCode})</td>
+                      <td style={{ fontSize: '0.78rem' }}>{p.notes}</td>
+                      <td>{p.doctor}</td>
+                      <td>
+                        <span className="badge badge-warning">{p.status}</span>
+                      </td>
+                      <td>
+                        <button
+                          onClick={() => handleCallPatient(p.token, p.patientName, 'Minor Procedure Room')}
+                          className="btn-primary"
+                          style={{ padding: '5px 12px', fontSize: '0.75rem', background: '#ff9500', borderColor: '#ff9500' }}
+                        >
+                          <Play size={12} /> Call to Procedure
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

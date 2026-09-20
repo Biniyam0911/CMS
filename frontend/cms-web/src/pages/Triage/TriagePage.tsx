@@ -28,6 +28,13 @@ export default function TriagePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Selected Patient for Vitals Measurement
   const [selectedItem, setSelectedItem] = useState<any>(null);
@@ -606,13 +613,13 @@ export default function TriagePage() {
       </div>
 
       {/* Main Split Layout: Triage Queue & Vitals Measurement Station */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 430px', gap: '18px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: (!isMobile) ? '1fr 430px' : '1fr', gap: '18px' }}>
         {/* Left: Triage Queue Table */}
         <div className="glass-panel" style={{ padding: '18px' }}>
           
           {/* Search Bar & Status Filters */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', gap: '10px', flexWrap: 'wrap' }}>
-            <div style={{ position: 'relative', width: '260px' }}>
+            <div style={{ position: 'relative', width: isMobile ? '100%' : '260px' }}>
               <Search size={15} color="var(--text-muted)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
               <input
                 type="text"
@@ -623,7 +630,7 @@ export default function TriagePage() {
               />
             </div>
 
-            <div style={{ display: 'flex', gap: '4px' }}>
+            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
               {['ALL', 'WaitingTriage', 'Triaged', 'OnHold', 'AssignedToDoctor'].map(st => (
                 <button
                   key={st}
@@ -643,7 +650,8 @@ export default function TriagePage() {
             </div>
           </div>
 
-          <table className="cms-table">
+          <div className="table-responsive">
+            <table className="cms-table">
             <thead>
               <tr>
                 <th>Patient</th>
@@ -724,6 +732,7 @@ export default function TriagePage() {
               )}
             </tbody>
           </table>
+          </div>
 
           {/* Pagination Controls */}
           {totalCount > 0 && (

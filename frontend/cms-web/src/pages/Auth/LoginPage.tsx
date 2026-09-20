@@ -42,52 +42,75 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
     }
   };
 
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'radial-gradient(circle at top right, #0f172a, #090d16)' }}>
-      {/* Left Banner */}
-      <div style={{ flex: 1, padding: '60px', display: 'flex', flexDirection: 'column', justifyContent: 'between', borderRight: '1px solid var(--border-color)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'linear-gradient(135deg, #06b6d4, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Activity color="#fff" size={26} />
-          </div>
-          <div>
-            <h1 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Aethel Clinic Management</h1>
-            <span style={{ fontSize: '0.8rem', color: '#06b6d4', fontWeight: 600 }}>16-Module Multi-Tenant Enterprise System</span>
-          </div>
-        </div>
-
-        <div style={{ margin: 'auto 0' }}>
-          <h2 style={{ fontSize: '2.5rem', fontWeight: 700, lineHeight: 1.2, marginBottom: '16px' }}>
-            Next-Generation Healthcare Information Platform
-          </h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '1rem', maxWidth: '540px', lineHeight: 1.6 }}>
-            Integrated Electronic Medical Records (EMR), Laboratory LIS (HL7/ASTM), Automated Invoicing, Real-Time Triage Queue, and Dynamic Report Builder.
-          </p>
-
-          <div style={{ display: 'flex', gap: '16px', marginTop: '32px' }}>
-            <div style={{ padding: '16px', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-color)' }}>
-              <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#34d399' }}>16/16</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Modules Active</div>
+    <div style={{ display: 'flex', minHeight: '100vh', flexDirection: isMobile ? 'column' : 'row', background: 'radial-gradient(circle at top right, #0f172a, #090d16)' }}>
+      {/* Left Banner (Desktop only) */}
+      {!isMobile && (
+        <div style={{ flex: 1, padding: '60px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderRight: '1px solid var(--border-color)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'linear-gradient(135deg, #06b6d4, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Activity color="#fff" size={26} />
             </div>
-            <div style={{ padding: '16px', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-color)' }}>
-              <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#38bdf8' }}>TCP 2575</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>HL7 Socket Server</div>
-            </div>
-            <div style={{ padding: '16px', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-color)' }}>
-              <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#fbbf24' }}>Redis 7</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Cache-Aside Active</div>
+            <div>
+              <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#ffffff' }}>Aethel Clinic Management</h1>
+              <span style={{ fontSize: '0.8rem', color: '#06b6d4', fontWeight: 600 }}>Multi-Tenant Healthcare Platform</span>
             </div>
           </div>
-        </div>
 
-        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-          © 2026 Aethel Health Systems. On-Premise MSSQL Deployment.
+          <div style={{ margin: 'auto 0' }}>
+            <h2 style={{ fontSize: '2.5rem', fontWeight: 700, lineHeight: 1.2, marginBottom: '16px', color: '#ffffff' }}>
+              Next-Generation Healthcare Information Platform
+            </h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '1rem', maxWidth: '540px', lineHeight: 1.6 }}>
+              Integrated Electronic Medical Records (EMR), Laboratory LIS (HL7/ASTM), Automated Invoicing, Real-Time Triage Queue, and Telemedicine.
+            </p>
+
+            <div style={{ display: 'flex', gap: '16px', marginTop: '32px' }}>
+              <div style={{ padding: '16px', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-color)' }}>
+                <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#34d399' }}>20+</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Modules Active</div>
+              </div>
+              <div style={{ padding: '16px', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-color)' }}>
+                <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#38bdf8' }}>PWA</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Mobile Ready</div>
+              </div>
+              <div style={{ padding: '16px', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-color)' }}>
+                <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#fbbf24' }}>Redis 7</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Cache-Aside Active</div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+            © 2026 Aethel Health Systems. On-Premise MSSQL Deployment.
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Right Login Form */}
-      <div style={{ width: '480px', padding: '60px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-        <div className="glass-panel" style={{ padding: '36px' }}>
+      <div style={{ width: isMobile ? '100%' : '480px', maxWidth: '100%', padding: isMobile ? '24px 16px' : '60px', display: 'flex', flexDirection: 'column', justifyContent: 'center', margin: isMobile ? 'auto 0' : undefined }}>
+        {/* Mobile Header Branding */}
+        {isMobile && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '24px' }}>
+            <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'linear-gradient(135deg, #0071e3, #005bb5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Activity color="#fff" size={22} />
+            </div>
+            <div>
+              <div style={{ fontSize: '1.15rem', fontWeight: 700, color: '#ffffff' }}>Aethel Clinic Management</div>
+              <span style={{ fontSize: '0.72rem', color: '#38bdf8', fontWeight: 600 }}>Mobile Healthcare Portal</span>
+            </div>
+          </div>
+        )}
+
+        <div className="glass-panel" style={{ padding: isMobile ? '24px 20px' : '36px' }}>
           <h2 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '6px' }}>
             {showMfa ? 'Two-Factor Authentication' : 'Sign In to Portal'}
           </h2>

@@ -95,6 +95,13 @@ type SettingsTab = 'clinic' | 'theme' | 'backup';
 type ThemeSection = 'background' | 'typography' | 'colors' | 'cards' | 'controls' | 'header' | 'sidebar';
 
 export default function SettingsPage() {
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const [activeTab, setActiveTab] = useState<SettingsTab>('clinic');
   const [clinicName, setClinicName] = useState('General Health Clinic');
   const [address, setAddress] = useState('Bole Road, Addis Ababa, Ethiopia');
@@ -277,23 +284,23 @@ export default function SettingsPage() {
 
   return (
     <div style={{ maxWidth: '880px' }}>
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
-        <button onClick={() => setActiveTab('clinic')} className={activeTab === 'clinic' ? 'btn-primary' : 'btn-secondary'}>
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '4px' }}>
+        <button onClick={() => setActiveTab('clinic')} className={activeTab === 'clinic' ? 'btn-primary' : 'btn-secondary'} style={{ whiteSpace: 'nowrap' }}>
           <Settings size={15} /> Clinic Settings
         </button>
-        <button onClick={() => setActiveTab('theme')} className={activeTab === 'theme' ? 'btn-primary' : 'btn-secondary'}>
-          <Palette size={15} /> Theme & Appearance
+        <button onClick={() => setActiveTab('theme')} className={activeTab === 'theme' ? 'btn-primary' : 'btn-secondary'} style={{ whiteSpace: 'nowrap' }}>
+          <Palette size={15} /> Theme &amp; Appearance
         </button>
-        <button onClick={() => { setActiveTab('backup'); loadBackups(); }} className={activeTab === 'backup' ? 'btn-primary' : 'btn-secondary'}>
-          <Database size={15} /> Database Backup & Maintenance
+        <button onClick={() => { setActiveTab('backup'); loadBackups(); }} className={activeTab === 'backup' ? 'btn-primary' : 'btn-secondary'} style={{ whiteSpace: 'nowrap' }}>
+          <Database size={15} /> Database Backup &amp; Maintenance
         </button>
       </div>
 
       {activeTab === 'clinic' && (
-        <div className="glass-panel" style={{ padding: '28px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <div className="glass-panel" style={{ padding: isMobile ? '16px' : '28px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
             <h3 style={{ fontSize: '1.1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Settings color="#06b6d4" size={20} /> Clinic Profile & System Configuration
+              <Settings color="#06b6d4" size={20} /> Clinic Profile &amp; System Configuration
             </h3>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               {loading && <Loader2 size={16} className="animate-spin" color="#06b6d4" />}
@@ -306,7 +313,7 @@ export default function SettingsPage() {
               <input type="text" value={clinicName} onChange={e => setClinicName(e.target.value)} required /></div>
             <div><label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Facility Physical Address</label>
               <input type="text" value={address} onChange={e => setAddress(e.target.value)} required /></div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '14px' }}>
               <div><label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Contact Phone Number</label>
                 <input type="text" value={phone} onChange={e => setPhone(e.target.value)} required /></div>
               <div><label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Standard VAT Percentage (%)</label>
@@ -337,7 +344,7 @@ export default function SettingsPage() {
 
       {activeTab === 'theme' && (
         <div>
-          <div className="glass-panel" style={{ padding: '20px 24px', marginBottom: '18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="glass-panel" style={{ padding: '20px 24px', marginBottom: '18px', display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', flexWrap: 'wrap', gap: '12px', flexDirection: isMobile ? 'column' : 'row' }}>
             <div>
               <h3 style={{ fontSize: '1.05rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Palette color="#af52de" size={18} /> Personal Theme & Appearance Customization
@@ -630,7 +637,7 @@ export default function SettingsPage() {
                 </label>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
                 <div>
                   <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>Frequency</label>
                   <select

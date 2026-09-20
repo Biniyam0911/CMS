@@ -3,6 +3,13 @@ import { Pill, CheckCircle, Package, AlertTriangle, Plus, RefreshCw, X, Search, 
 import { api } from '../../api/apiClient';
 
 export default function PharmacyPage() {
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const [activeSubTab, setActiveSubTab] = useState<'prescriptions' | 'sold' | 'inventory' | 'narcotics' | 'restock'>('prescriptions');
   const [loading, setLoading] = useState(true);
   const [selectedSoldReceipt, setSelectedSoldReceipt] = useState<any | null>(null);
@@ -354,31 +361,31 @@ export default function PharmacyPage() {
   return (
     <div>
       {/* Top Banner & Sub Tabs */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button onClick={() => setActiveSubTab('prescriptions')} className={activeSubTab === 'prescriptions' ? 'btn-primary' : 'btn-secondary'}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px', flexDirection: isMobile ? 'column' : 'row' }}>
+        <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '4px', maxWidth: '100%' }}>
+          <button onClick={() => setActiveSubTab('prescriptions')} className={activeSubTab === 'prescriptions' ? 'btn-primary' : 'btn-secondary'} style={{ whiteSpace: 'nowrap' }}>
             <Pill size={16} /> Dispensary Queue ({prescriptions.filter(p => p.status === 'Pending').length})
           </button>
-          <button onClick={() => setActiveSubTab('sold')} className={activeSubTab === 'sold' ? 'btn-primary' : 'btn-secondary'}>
+          <button onClick={() => setActiveSubTab('sold')} className={activeSubTab === 'sold' ? 'btn-primary' : 'btn-secondary'} style={{ whiteSpace: 'nowrap' }}>
             <CheckCircle size={16} /> Sold Prescriptions ({prescriptions.filter(p => p.status === 'Dispensed' || p.isPaid).length})
           </button>
-          <button onClick={() => setActiveSubTab('inventory')} className={activeSubTab === 'inventory' ? 'btn-primary' : 'btn-secondary'}>
+          <button onClick={() => setActiveSubTab('inventory')} className={activeSubTab === 'inventory' ? 'btn-primary' : 'btn-secondary'} style={{ whiteSpace: 'nowrap' }}>
             <Package size={16} /> Inventory & FEFO Expiry ({drugs.length})
             {lowStockCount > 0 && <span className="badge badge-critical" style={{ marginLeft: '6px' }}>{lowStockCount} Low</span>}
           </button>
-          <button onClick={() => setActiveSubTab('narcotics')} className={activeSubTab === 'narcotics' ? 'btn-primary' : 'btn-secondary'}>
+          <button onClick={() => setActiveSubTab('narcotics')} className={activeSubTab === 'narcotics' ? 'btn-primary' : 'btn-secondary'} style={{ whiteSpace: 'nowrap' }}>
             <ShieldAlert size={16} /> Narcotics Logbook ({narcoticLogs.length})
           </button>
         </div>
 
         <div style={{ display: 'flex', gap: '8px' }}>
           {activeSubTab === 'inventory' && (
-            <button onClick={() => setShowAddModal(true)} className="btn-primary">
+            <button onClick={() => setShowAddModal(true)} className="btn-primary" style={{ whiteSpace: 'nowrap' }}>
               <Plus size={16} /> Add New Drug Item
             </button>
           )}
           {(activeSubTab === 'prescriptions' || activeSubTab === 'sold') && (
-            <button onClick={() => setShowDirectOrderModal(true)} className="btn-primary" style={{ background: '#34c759', borderColor: '#34c759' }}>
+            <button onClick={() => setShowDirectOrderModal(true)} className="btn-primary" style={{ background: '#34c759', borderColor: '#34c759', whiteSpace: 'nowrap' }}>
               <Plus size={16} /> New Direct Order (OTC)
             </button>
           )}
@@ -437,74 +444,76 @@ export default function PharmacyPage() {
               </div>
             </div>
 
-            <table className="cms-table">
-              <thead>
-                <tr>
-                  <th>Patient Name</th>
-                  <th>MRN</th>
-                  <th>Prescribing Doctor</th>
-                  <th>Medication</th>
-                  <th>Quantity</th>
-                  <th>Date</th>
-                  <th>Payment</th>
-                  <th>Substance Class</th>
-                  <th>Status</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredDispensary.length === 0 ? (
+            <div className="table-responsive">
+              <table className="cms-table">
+                <thead>
                   <tr>
-                    <td colSpan={10} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
-                      No prescriptions found for {dispensaryDate ? `date ${dispensaryDate}` : 'the selected filter'}.
-                    </td>
+                    <th>Patient Name</th>
+                    <th>MRN</th>
+                    <th>Prescribing Doctor</th>
+                    <th>Medication</th>
+                    <th>Quantity</th>
+                    <th>Date</th>
+                    <th>Payment</th>
+                    <th>Substance Class</th>
+                    <th>Status</th>
+                    <th>Action</th>
                   </tr>
-                ) : (
-                  filteredDispensary.map(p => (
-                    <tr key={p.id}>
-                      <td style={{ fontWeight: 600 }}>{p.patientName}</td>
-                      <td style={{ fontFamily: 'monospace', color: '#06b6d4' }}>{p.mrn}</td>
-                      <td>{p.doctorName}</td>
-                      <td>{p.drug}</td>
-                      <td style={{ fontWeight: 700 }}>{p.qty}</td>
-                      <td style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{p.date}</td>
-                      <td>
-                        {p.isPaid ? (
-                          <span style={{ padding: '3px 8px', borderRadius: '4px', background: '#d1fae5', color: '#065f46', fontSize: '0.72rem', fontWeight: 700 }}>✓ Paid — Ready</span>
-                        ) : (
-                          <span style={{ padding: '3px 8px', borderRadius: '4px', background: '#fef9c3', color: '#92400e', fontSize: '0.72rem', fontWeight: 700 }}>⏳ Awaiting Payment</span>
-                        )}
-                      </td>
-                      <td>
-                        {p.isControlled ? (
-                          <span className="badge badge-critical">Controlled (Rx Only)</span>
-                        ) : (
-                          <span className="badge badge-normal">Standard</span>
-                        )}
-                      </td>
-                      <td>
-                        <span className={p.status === 'Dispensed' ? 'badge badge-normal' : 'badge badge-warning'}>
-                          {p.status}
-                        </span>
-                      </td>
-                      <td>
-                        {p.status === 'Pending' ? (
-                          p.isPaid ? (
-                            <button onClick={() => handleDispense(p)} className="btn-primary" style={{ padding: '4px 10px', fontSize: '0.75rem' }}>
-                              Dispense Drug
-                            </button>
-                          ) : (
-                            <span style={{ fontSize: '0.72rem', color: '#92400e', fontStyle: 'italic' }}>Awaiting payment at cashier</span>
-                          )
-                        ) : (
-                          <span style={{ fontSize: '0.75rem', color: '#34d399' }}><CheckCircle size={14} /> Completed</span>
-                        )}
+                </thead>
+                <tbody>
+                  {filteredDispensary.length === 0 ? (
+                    <tr>
+                      <td colSpan={10} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
+                        No prescriptions found for {dispensaryDate ? `date ${dispensaryDate}` : 'the selected filter'}.
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    filteredDispensary.map(p => (
+                      <tr key={p.id}>
+                        <td style={{ fontWeight: 600 }}>{p.patientName}</td>
+                        <td style={{ fontFamily: 'monospace', color: '#06b6d4' }}>{p.mrn}</td>
+                        <td>{p.doctorName}</td>
+                        <td>{p.drug}</td>
+                        <td style={{ fontWeight: 700 }}>{p.qty}</td>
+                        <td style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{p.date}</td>
+                        <td>
+                          {p.isPaid ? (
+                            <span style={{ padding: '3px 8px', borderRadius: '4px', background: '#d1fae5', color: '#065f46', fontSize: '0.72rem', fontWeight: 700 }}>✓ Paid — Ready</span>
+                          ) : (
+                            <span style={{ padding: '3px 8px', borderRadius: '4px', background: '#fef9c3', color: '#92400e', fontSize: '0.72rem', fontWeight: 700 }}>⏳ Awaiting Payment</span>
+                          )}
+                        </td>
+                        <td>
+                          {p.isControlled ? (
+                            <span className="badge badge-critical">Controlled (Rx Only)</span>
+                          ) : (
+                            <span className="badge badge-normal">Standard</span>
+                          )}
+                        </td>
+                        <td>
+                          <span className={p.status === 'Dispensed' ? 'badge badge-normal' : 'badge badge-warning'}>
+                            {p.status}
+                          </span>
+                        </td>
+                        <td>
+                          {p.status === 'Pending' ? (
+                            p.isPaid ? (
+                              <button onClick={() => handleDispense(p)} className="btn-primary" style={{ padding: '4px 10px', fontSize: '0.75rem' }}>
+                                Dispense Drug
+                              </button>
+                            ) : (
+                              <span style={{ fontSize: '0.72rem', color: '#92400e', fontStyle: 'italic' }}>Awaiting payment at cashier</span>
+                            )
+                          ) : (
+                            <span style={{ fontSize: '0.75rem', color: '#34d399' }}><CheckCircle size={14} /> Completed</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         );
       })()}
@@ -560,70 +569,72 @@ export default function PharmacyPage() {
               </div>
             </div>
 
-            <table className="cms-table">
-              <thead>
-                <tr>
-                  <th>Receipt / RX #</th>
-                  <th>Patient Details</th>
-                  <th>Prescribed Medication</th>
-                  <th>Quantity</th>
-                  <th>Doctor / Channel</th>
-                  <th>Dispensed Date</th>
-                  <th>Payment Status</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredSold.length === 0 ? (
+            <div className="table-responsive">
+              <table className="cms-table">
+                <thead>
                   <tr>
-                    <td colSpan={8} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
-                      No sold prescriptions found for {soldDate ? `date ${soldDate}` : 'the selected filter'}.
-                    </td>
+                    <th>Receipt / RX #</th>
+                    <th>Patient Details</th>
+                    <th>Prescribed Medication</th>
+                    <th>Quantity</th>
+                    <th>Doctor / Channel</th>
+                    <th>Dispensed Date</th>
+                    <th>Payment Status</th>
+                    <th>Action</th>
                   </tr>
-                ) : (
-                  filteredSold.map(p => (
-                    <tr key={p.id}>
-                      <td style={{ fontFamily: 'monospace', fontWeight: 600, color: '#0071e3' }}>
-                        RX-{p.id}
-                      </td>
-                      <td>
-                        <div style={{ fontWeight: 600 }}>{p.patientName}</div>
-                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{p.mrn}</div>
-                      </td>
-                      <td>
-                        <strong style={{ color: 'var(--text-main)' }}>{p.drug}</strong>
-                        {p.isControlled && <span className="badge badge-critical" style={{ marginLeft: '6px' }}>Controlled</span>}
-                      </td>
-                      <td><strong>{p.qty}</strong> units</td>
-                      <td>{p.doctorName || 'Attending Physician'}</td>
-                      <td>{p.date}</td>
-                      <td>
-                        <span className="badge badge-normal">
-                          <CheckCircle size={11} /> Paid & Dispensed
-                        </span>
-                      </td>
-                      <td>
-                        <button
-                          onClick={() => setSelectedSoldReceipt(p)}
-                          className="btn-secondary"
-                          style={{ padding: '4px 10px', fontSize: '0.75rem' }}
-                        >
-                          <FileText size={13} /> View Receipt
-                        </button>
+                </thead>
+                <tbody>
+                  {filteredSold.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
+                        No sold prescriptions found for {soldDate ? `date ${soldDate}` : 'the selected filter'}.
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    filteredSold.map(p => (
+                      <tr key={p.id}>
+                        <td style={{ fontFamily: 'monospace', fontWeight: 600, color: '#0071e3' }}>
+                          RX-{p.id}
+                        </td>
+                        <td>
+                          <div style={{ fontWeight: 600 }}>{p.patientName}</div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{p.mrn}</div>
+                        </td>
+                        <td>
+                          <strong style={{ color: 'var(--text-main)' }}>{p.drug}</strong>
+                          {p.isControlled && <span className="badge badge-critical" style={{ marginLeft: '6px' }}>Controlled</span>}
+                        </td>
+                        <td><strong>{p.qty}</strong> units</td>
+                        <td>{p.doctorName || 'Attending Physician'}</td>
+                        <td>{p.date}</td>
+                        <td>
+                          <span className="badge badge-normal">
+                            <CheckCircle size={11} /> Paid & Dispensed
+                          </span>
+                        </td>
+                        <td>
+                          <button
+                            onClick={() => setSelectedSoldReceipt(p)}
+                            className="btn-secondary"
+                            style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                          >
+                            <FileText size={13} /> View Receipt
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         );
       })()}
 
       {/* Modal: Sold Prescription Receipt */}
       {selectedSoldReceipt && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div className="glass-panel" style={{ width: '480px', padding: '28px', background: 'var(--bg-card)', borderRadius: '16px', boxShadow: '0 20px 40px rgba(0,0,0,0.15)' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '16px' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '480px', padding: '24px 20px', background: 'var(--bg-card)', borderRadius: '16px', boxShadow: '0 20px 40px rgba(0,0,0,0.15)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', marginBottom: '16px' }}>
               <div>
                 <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#0071e3', letterSpacing: '0.05em' }}>OFFICIAL DISPENSARY RECEIPT</span>
@@ -710,52 +721,54 @@ export default function PharmacyPage() {
             {loading && <Loader2 size={16} className="animate-spin" color="#06b6d4" />}
           </div>
 
-          <table className="cms-table">
-            <thead>
-              <tr>
-                <th>Code</th>
-                <th>Generic Name (Brand)</th>
-                <th>Batch #</th>
-                <th>Expiry Date (FEFO)</th>
-                <th>Current Stock</th>
-                <th>Unit Cost</th>
-                <th>Selling Price</th>
-                <th>Control</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {drugs.map(d => (
-                <tr key={d.id}>
-                  <td style={{ fontFamily: 'monospace', color: '#06b6d4', fontWeight: 700 }}>{d.code}</td>
-                  <td style={{ fontWeight: 600 }}>
-                    {d.generic} <small style={{ color: 'var(--text-muted)' }}>({d.brand})</small>
-                  </td>
-                  <td style={{ fontFamily: 'monospace' }}>{d.batchNo}</td>
-                  <td style={{ fontWeight: 600, color: '#fbbf24' }}>{d.expiryDate}</td>
-                  <td>
-                    <span style={{ fontWeight: 700, color: d.stock <= d.minStock ? '#f87171' : '#34d399' }}>
-                      {d.stock} units
-                    </span>
-                  </td>
-                  <td style={{ color: 'var(--text-muted)' }}>Br {Number(d.costPrice).toFixed(2)}</td>
-                  <td style={{ fontWeight: 700, color: '#38bdf8' }}>Br {Number(d.sellingPrice).toFixed(2)}</td>
-                  <td>
-                    {d.isControlled ? (
-                      <span className="badge badge-critical">Controlled</span>
-                    ) : (
-                      <span className="badge badge-normal">Standard</span>
-                    )}
-                  </td>
-                  <td>
-                    <button onClick={() => handleOpenRestockModal(d)} className="btn-secondary" style={{ padding: '4px 10px', fontSize: '0.75rem' }}>
-                      + Restock & FEFO
-                    </button>
-                  </td>
+          <div className="table-responsive">
+            <table className="cms-table">
+              <thead>
+                <tr>
+                  <th>Code</th>
+                  <th>Generic Name (Brand)</th>
+                  <th>Batch #</th>
+                  <th>Expiry Date (FEFO)</th>
+                  <th>Current Stock</th>
+                  <th>Unit Cost</th>
+                  <th>Selling Price</th>
+                  <th>Control</th>
+                  <th>Action</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {drugs.map(d => (
+                  <tr key={d.id}>
+                    <td style={{ fontFamily: 'monospace', color: '#06b6d4', fontWeight: 700 }}>{d.code}</td>
+                    <td style={{ fontWeight: 600 }}>
+                      {d.generic} <small style={{ color: 'var(--text-muted)' }}>({d.brand})</small>
+                    </td>
+                    <td style={{ fontFamily: 'monospace' }}>{d.batchNo}</td>
+                    <td style={{ fontWeight: 600, color: '#fbbf24' }}>{d.expiryDate}</td>
+                    <td>
+                      <span style={{ fontWeight: 700, color: d.stock <= d.minStock ? '#f87171' : '#34d399' }}>
+                        {d.stock} units
+                      </span>
+                    </td>
+                    <td style={{ color: 'var(--text-muted)' }}>Br {Number(d.costPrice).toFixed(2)}</td>
+                    <td style={{ fontWeight: 700, color: '#38bdf8' }}>Br {Number(d.sellingPrice).toFixed(2)}</td>
+                    <td>
+                      {d.isControlled ? (
+                        <span className="badge badge-critical">Controlled</span>
+                      ) : (
+                        <span className="badge badge-normal">Standard</span>
+                      )}
+                    </td>
+                    <td>
+                      <button onClick={() => handleOpenRestockModal(d)} className="btn-secondary" style={{ padding: '4px 10px', fontSize: '0.75rem' }}>
+                        + Restock & FEFO
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -765,46 +778,48 @@ export default function PharmacyPage() {
           <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f87171', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <ShieldAlert size={20} /> Serialized Controlled Substances & Narcotics Register
           </h3>
-          <table className="cms-table">
-            <thead>
-              <tr>
-                <th>Serial Log #</th>
-                <th>Controlled Substance</th>
-                <th>Patient Name</th>
-                <th>Prescribing Doctor</th>
-                <th>Dispensing Pharmacist</th>
-                <th>Quantity</th>
-                <th>Timestamp</th>
-              </tr>
-            </thead>
-            <tbody>
-              {narcoticLogs.map(l => (
-                <tr key={l.id}>
-                  <td style={{ fontFamily: 'monospace', color: '#f87171', fontWeight: 700 }}>{l.serialNo}</td>
-                  <td style={{ fontWeight: 600 }}>{l.drug}</td>
-                  <td>{l.patient}</td>
-                  <td>{l.doctor}</td>
-                  <td>{l.pharmacist}</td>
-                  <td style={{ fontWeight: 700 }}>{l.qty}</td>
-                  <td style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{l.date}</td>
+          <div className="table-responsive">
+            <table className="cms-table">
+              <thead>
+                <tr>
+                  <th>Serial Log #</th>
+                  <th>Controlled Substance</th>
+                  <th>Patient Name</th>
+                  <th>Prescribing Doctor</th>
+                  <th>Dispensing Pharmacist</th>
+                  <th>Quantity</th>
+                  <th>Timestamp</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {narcoticLogs.map(l => (
+                  <tr key={l.id}>
+                    <td style={{ fontFamily: 'monospace', color: '#f87171', fontWeight: 700 }}>{l.serialNo}</td>
+                    <td style={{ fontWeight: 600 }}>{l.drug}</td>
+                    <td>{l.patient}</td>
+                    <td>{l.doctor}</td>
+                    <td>{l.pharmacist}</td>
+                    <td style={{ fontWeight: 700 }}>{l.qty}</td>
+                    <td style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{l.date}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
       {/* Modal: Add New Drug Item */}
       {showAddModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div className="glass-panel" style={{ width: '520px', padding: '28px' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '16px' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '520px', padding: '24px 20px', maxHeight: '92vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
               <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }}>Add Medication to Formulary</h3>
               <button onClick={() => setShowAddModal(false)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}><X size={18} /></button>
             </div>
 
             <form onSubmit={handleAddDrugSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Generic Name</label>
                   <input type="text" value={genericName} onChange={e => setGenericName(e.target.value)} required />
@@ -815,7 +830,7 @@ export default function PharmacyPage() {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Dosage Form</label>
                   <select value={form} onChange={e => setForm(e.target.value)}>
@@ -832,7 +847,7 @@ export default function PharmacyPage() {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Unit Cost Price (Br)</label>
                   <input type="number" step="0.1" value={costPrice} onChange={e => setCostPrice(e.target.value)} required />
@@ -859,8 +874,8 @@ export default function PharmacyPage() {
 
       {/* Modal: Restock & FEFO Expiry Update */}
       {showRestockModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div className="glass-panel" style={{ width: '480px', padding: '28px' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '16px' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '480px', padding: '24px 20px', maxHeight: '92vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
               <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }}>Restock & FEFO Batch Pricing</h3>
               <button onClick={() => setShowRestockModal(null)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}><X size={18} /></button>
@@ -876,7 +891,7 @@ export default function PharmacyPage() {
                 <input type="number" value={restockQty} onChange={e => setRestockQty(e.target.value)} required />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Updated Cost Price</label>
                   <input type="number" step="0.1" value={restockCost} onChange={e => setRestockCost(e.target.value)} required />
@@ -887,7 +902,7 @@ export default function PharmacyPage() {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Batch / Lot Number</label>
                   <input type="text" value={restockBatch} onChange={e => setRestockBatch(e.target.value)} required />
@@ -909,8 +924,8 @@ export default function PharmacyPage() {
 
       {/* Modal: Direct Order (OTC Medication Sale) */}
       {showDirectOrderModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div className="glass-panel" style={{ width: '540px', padding: '28px', background: 'var(--bg-card)', color: 'var(--text-main)', borderRadius: '16px', boxShadow: '0 20px 40px rgba(0,0,0,0.15)' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '16px' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '540px', padding: '24px 20px', background: 'var(--bg-card)', color: 'var(--text-main)', borderRadius: '16px', maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 20px 40px rgba(0,0,0,0.15)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px' }}>
               <h3 style={{ fontSize: '1.15rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-main)' }}>
                 <Plus size={18} color="#0071e3" /> New Direct Dispensary Order (OTC)
@@ -1021,7 +1036,7 @@ export default function PharmacyPage() {
                 </select>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Dispense Quantity</label>
                   <input
