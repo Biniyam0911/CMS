@@ -4,3 +4,9 @@
 2026-09-22 13:45:42.289 +03:00 [INF] Hosting environment: Development
 2026-09-22 13:45:42.291 +03:00 [INF] Content root path: C:\Users\ASUS\source\repos\CMS\src\CMS.API
 2026-09-22 20:48:24.112 +03:00 [INF] Application is shutting down...
+2026-09-22 22:56:16.644 +03:00 [INF] User profile is available. Using 'C:\Users\ASUS\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
+2026-09-22 22:56:18.070 +03:00 [INF] Now listening on: http://localhost:5010
+2026-09-22 22:56:18.092 +03:00 [INF] Application started. Press Ctrl+C to shut down.
+2026-09-22 22:56:18.111 +03:00 [INF] Hosting environment: Development
+2026-09-22 22:56:18.150 +03:00 [INF] Content root path: C:\Users\ASUS\source\repos\CMS\src\CMS.API
+2026-09-22 22:56:40.077 +03:00 [INF] Application is shutting down...

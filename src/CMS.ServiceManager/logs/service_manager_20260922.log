@@ -275,3 +275,12 @@
 2026-09-22 20:48:22.193 +03:00 [ERR] LabInstrumentListenerWorker error
 System.Threading.Tasks.TaskCanceledException: A task was canceled.
    at CMS.ServiceManager.Workers.LabInstrumentListenerWorker.ExecuteAsync(CancellationToken stoppingToken) in C:\Users\ASUS\source\repos\CMS\src\CMS.ServiceManager\Workers\Workers.cs:line 81
+2026-09-22 22:55:27.178 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-22T22:55:26.7531029+03:00"
+2026-09-22 22:55:29.201 +03:00 [INF] Starting LabInstrumentListenerWorker TCP listener on Port 2575 (HL7)...
+2026-09-22 22:55:29.899 +03:00 [INF] Application started. Press Ctrl+C to shut down.
+2026-09-22 22:55:30.005 +03:00 [INF] Hosting environment: Development
+2026-09-22 22:55:30.596 +03:00 [INF] Content root path: C:\Users\ASUS\source\repos\CMS\src\CMS.ServiceManager
+2026-09-22 22:55:43.203 +03:00 [INF] Application is shutting down...
+2026-09-22 22:55:43.222 +03:00 [ERR] LabInstrumentListenerWorker error
+System.Threading.Tasks.TaskCanceledException: A task was canceled.
+   at CMS.ServiceManager.Workers.LabInstrumentListenerWorker.ExecuteAsync(CancellationToken stoppingToken) in C:\Users\ASUS\source\repos\CMS\src\CMS.ServiceManager\Workers\Workers.cs:line 81
