@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ShieldCheck, Lock, User, Key, Activity, ArrowRight } from 'lucide-react';
 
 interface LoginPageProps {

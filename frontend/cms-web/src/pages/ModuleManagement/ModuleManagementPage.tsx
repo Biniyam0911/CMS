@@ -294,7 +294,7 @@ export default function ModuleManagementPage() {
       </div>
 
       {/* Summary KPI Cards */}
-      <div className="grid-3" style={{ marginBottom: '20px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '16px', marginBottom: '20px' }}>
         <div className="glass-panel" style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)' }}>TOTAL SYSTEM MODULES</div>
@@ -328,7 +328,7 @@ export default function ModuleManagementPage() {
 
       {/* Filter & Search Bar */}
       <div className="glass-panel" style={{ padding: '14px 18px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-        <div style={{ position: 'relative', width: '320px' }}>
+        <div style={{ position: 'relative', width: isMobile ? '100%' : '320px' }}>
           <Search size={15} color="var(--text-muted)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
           <input
             type="text"
@@ -354,7 +354,7 @@ export default function ModuleManagementPage() {
       </div>
 
       {/* Module Grid */}
-      <div className="grid-3">
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '16px' }}>
         {filteredModules.map(m => (
           <div
             key={m.id}
