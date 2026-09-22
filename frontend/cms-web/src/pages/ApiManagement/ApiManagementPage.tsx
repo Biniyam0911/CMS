@@ -3,6 +3,13 @@ import { Key, Plus, Copy, Shield, Webhook, X, Check, Loader2 } from 'lucide-reac
 import { api } from '../../api/apiClient';
 
 export default function ApiManagementPage() {
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const [keys, setKeys] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -76,8 +83,8 @@ export default function ApiManagementPage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>API Keys & Webhook Subscriptions</h3>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+        <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>API Keys &amp; Webhook Subscriptions</h3>
         <button onClick={() => setShowIssueModal(true)} className="btn-primary">
           <Plus size={16} /> Issue New API Key
         </button>
@@ -88,46 +95,48 @@ export default function ApiManagementPage() {
           <h4 style={{ fontWeight: 700 }}>Active API Credentials</h4>
           {loading && <Loader2 size={16} className="animate-spin" color="#06b6d4" />}
         </div>
-        <table className="cms-table">
-          <thead>
-            <tr>
-              <th>Key Identifier</th>
-              <th>Prefix</th>
-              <th>Rate Limit (RPM)</th>
-              <th>Expires At</th>
-              <th>Status</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {keys.map(k => (
-              <tr key={k.id}>
-                <td style={{ fontWeight: 600 }}>{k.name}</td>
-                <td style={{ fontFamily: 'monospace', color: '#06b6d4' }}>{k.prefix}••••••••</td>
-                <td>{k.rateLimit} req/min</td>
-                <td>{k.expiresAt}</td>
-                <td>
-                  <span className={k.status === 'Active' ? 'badge badge-normal' : 'badge badge-critical'}>
-                    {k.status}
-                  </span>
-                </td>
-                <td>
-                  {k.status === 'Active' && (
-                    <button onClick={() => handleRevoke(k.id)} className="btn-secondary" style={{ padding: '4px 10px', fontSize: '0.75rem', color: '#f87171' }}>
-                      Revoke Key
-                    </button>
-                  )}
-                </td>
+        <div className="table-responsive">
+          <table className="cms-table">
+            <thead>
+              <tr>
+                <th>Key Identifier</th>
+                <th>Prefix</th>
+                <th>Rate Limit (RPM)</th>
+                <th>Expires At</th>
+                <th>Status</th>
+                <th>Action</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {keys.map(k => (
+                <tr key={k.id}>
+                  <td style={{ fontWeight: 600 }}>{k.name}</td>
+                  <td style={{ fontFamily: 'monospace', color: '#06b6d4' }}>{k.prefix}••••••••</td>
+                  <td>{k.rateLimit} req/min</td>
+                  <td>{k.expiresAt}</td>
+                  <td>
+                    <span className={k.status === 'Active' ? 'badge badge-normal' : 'badge badge-critical'}>
+                      {k.status}
+                    </span>
+                  </td>
+                  <td>
+                    {k.status === 'Active' && (
+                      <button onClick={() => handleRevoke(k.id)} className="btn-secondary" style={{ padding: '4px 10px', fontSize: '0.75rem', color: '#f87171' }}>
+                        Revoke Key
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Modal: Issue API Key */}
       {showIssueModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div className="glass-panel" style={{ width: '480px', padding: '28px' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: isMobile ? '8px' : '16px' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '480px', padding: '28px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Issue API Token</h3>
               <button onClick={() => { setShowIssueModal(false); setCreatedSecret(null); }} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}><X size={18} /></button>

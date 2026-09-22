@@ -207,6 +207,13 @@ export default function ModuleManagementPage() {
     }
   ];
 
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const [modules, setModules] = useState<AppModuleItem[]>(defaultModules);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');

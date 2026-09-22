@@ -497,7 +497,7 @@ export default function BillingPage() {
       </div>
 
       {/* Financial Metrics Bar (Excluding Free / Waived Services) */}
-      <div className="grid-4" style={{ marginBottom: '18px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: '12px', marginBottom: '18px' }}>
         <div className="glass-panel" style={{ padding: '12px 14px' }}>
           <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700 }}>BILLABLE INVOICES</div>
           <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-main)', marginTop: '2px' }}>
@@ -535,7 +535,7 @@ export default function BillingPage() {
             
             {/* Search & Status Filter */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', gap: '10px', flexWrap: 'wrap' }}>
-              <div style={{ position: 'relative', width: '280px' }}>
+              <div style={{ position: 'relative', width: isMobile ? '100%' : '280px' }}>
                 <Search size={15} color="var(--text-muted)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
                 <input
                   type="text"

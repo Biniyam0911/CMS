@@ -1,8 +1,15 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plug, CheckCircle2, AlertCircle, RefreshCw, X, Save, Loader2, Send, MessageSquare, Phone } from 'lucide-react';
 import { api } from '../../api/apiClient';
 
 export default function IntegrationsPage() {
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const defaultIntegrations = [
     { code: 'SMTP', name: 'Standard SMTP Mailer', type: 'Email', status: 'Healthy', active: true, config: 'Host: localhost, Port: 25' },
     { code: 'AFRICASTALKING', name: "Africa's Talking SMS Gateway", type: 'SMS', status: 'Healthy', active: true, config: 'ApiKey: at_live_89421' },
@@ -147,7 +154,7 @@ export default function IntegrationsPage() {
         {loading && <Loader2 size={16} className="animate-spin" color="#06b6d4" />}
       </div>
 
-      <div className="grid-3">
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '16px' }}>
         {integrations.map((item, idx) => (
           <div key={idx} className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '14px' }}>
             <div>
@@ -197,7 +204,8 @@ export default function IntegrationsPage() {
           </div>
         )}
 
-        <table className="cms-table" style={{ marginBottom: 0 }}>
+        <div className="table-responsive">
+          <table className="cms-table" style={{ marginBottom: 0 }}>
           <thead>
             <tr>
               <th>Date / Time</th>
@@ -244,11 +252,12 @@ export default function IntegrationsPage() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
-      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+      {/* ═══════════════════════════════════════════════════════════════════ */}
       {/* SEND TEST SMS FORM                                             */}
-      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+      {/* ═══════════════════════════════════════════════════════════════════ */}
       <div className="glass-panel" style={{ padding: '22px', marginTop: '16px' }}>
         <h3 style={{ fontSize: '1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
           <Send color="#34c759" size={16} /> Send Test SMS Message
@@ -267,7 +276,7 @@ export default function IntegrationsPage() {
           </div>
         )}
 
-        <form onSubmit={handleSendTestSms} style={{ display: 'grid', gridTemplateColumns: '200px 1fr auto', gap: 10, alignItems: 'flex-end' }}>
+        <form onSubmit={handleSendTestSms} style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '200px 1fr auto', gap: 10, alignItems: 'flex-end' }}>
           <div>
             <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>
               <Phone size={11} style={{ display: 'inline', marginRight: 4 }} />
@@ -305,8 +314,8 @@ export default function IntegrationsPage() {
 
       {/* Modal: Configure Integration */}
       {showConfigModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div className="glass-panel" style={{ width: '480px', padding: '28px' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: isMobile ? '8px' : '16px' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '480px', padding: '28px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Configure {showConfigModal.name}</h3>
               <button onClick={() => setShowConfigModal(null)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}><X size={18} /></button>

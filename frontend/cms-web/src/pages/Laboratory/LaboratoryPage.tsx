@@ -235,6 +235,13 @@ export const DEFAULT_LAB_MACHINES: LabMachine[] = [
 ];
 
 export default function LaboratoryPage() {
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const [activeTab, setActiveTab] = useState<'worklist' | 'custody' | 'catalog' | 'instruments'>('worklist');
   const [loading, setLoading] = useState(true);
 
