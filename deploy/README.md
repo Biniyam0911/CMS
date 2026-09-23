@@ -9,6 +9,15 @@
 
 ---
 
+## Quick Update Workflow (Production Server)
+For updating an existing production server from GitHub, right-click and run as Administrator:
+```cmd
+deploy\update_production.bat
+```
+For complete details and troubleshooting, see: [`docs/PRODUCTION_UPDATE_MANUAL.md`](../docs/PRODUCTION_UPDATE_MANUAL.md).
+
+---
+
 ## 1. Database Setup
 1. Open SQL Server Management Studio (SSMS) connecting to `localhost\sqlexpress`.
 2. Login with `sa` / `say@123`.
