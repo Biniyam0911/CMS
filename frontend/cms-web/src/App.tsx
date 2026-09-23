@@ -27,10 +27,16 @@ import PwaInstallBanner from './components/PwaInstallBanner';
 import { initRolePermissions } from './utils/permissions';
 
 export default function App() {
-  const [user, setUser] = useState<{ id?: number; username: string; roles: string[]; tenantId: number; doctorId?: number; staffId?: number; name?: string } | null>(() => {
+  const [user, setUser] = useState<{ id?: number; username: string; roles: string[]; tenantId: number; doctorId?: number; staffId?: number; name?: string; firstName?: string; lastName?: string } | null>(() => {
     try {
       const saved = localStorage.getItem('current_user');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && !parsed.name && (parsed.firstName || parsed.username)) {
+          parsed.name = parsed.firstName ? `${parsed.firstName} ${parsed.lastName || ''}`.trim() : parsed.username;
+        }
+        return parsed;
+      }
     } catch {}
     return null;
   });
@@ -166,13 +172,17 @@ export default function App() {
     return (
       <LoginPage
         onLoginSuccess={(u, t) => {
-          setUser(u);
+          const normalizedUser = {
+            ...u,
+            name: u.name || (u.firstName ? `${u.firstName} ${u.lastName || ''}`.trim() : u.username)
+          };
+          setUser(normalizedUser);
           setToken(t);
           localStorage.setItem('auth_token', t);
-          localStorage.setItem('current_user', JSON.stringify(u));
+          localStorage.setItem('current_user', JSON.stringify(normalizedUser));
           initRolePermissions();
           loadBranding();
-          applyUserTheme(u.username);
+          applyUserTheme(normalizedUser.username);
         }}
       />
     );

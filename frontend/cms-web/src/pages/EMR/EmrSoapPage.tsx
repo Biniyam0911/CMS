@@ -1397,8 +1397,10 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                     {(() => {
                       const doc = availableDoctors.find(d => d.id === selectedDoctorId);
                       if (doc) return doc.name;
+                      if (currentUser?.firstName) return `Dr. ${currentUser.firstName} ${currentUser.lastName || ''}`.trim();
                       if (currentUser?.name) return currentUser.name.startsWith('Dr.') ? currentUser.name : `Dr. ${currentUser.name}`;
-                      return 'Attending Doctor';
+                      if (currentUser?.username && currentUser.username.toLowerCase() !== 'admin') return `Dr. ${currentUser.username}`;
+                      return availableDoctors[0]?.name || 'Attending Physician';
                     })()}
                     {availableDoctors.find(d => d.id === selectedDoctorId)?.specialization && (
                       <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 500 }}>

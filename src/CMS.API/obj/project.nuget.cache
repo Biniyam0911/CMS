@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "pSYu7xW7O7k=",
+  "dgSpecHash": "RYLuBmUyI7Y=",
   "success": true,
-  "projectFilePath": "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.API\\CMS.API.csproj",
+  "projectFilePath": "C:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.API\\CMS.API.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\ASUS\\.nuget\\packages\\azure.core\\1.35.0\\azure.core.1.35.0.nupkg.sha512",
     "C:\\Users\\ASUS\\.nuget\\packages\\azure.identity\\1.10.3\\azure.identity.1.10.3.nupkg.sha512",
