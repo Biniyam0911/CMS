@@ -56,8 +56,15 @@ try
     redisOptions.ConnectTimeout = 2000;
     redisOptions.SyncTimeout = 2000;
     var mux = ConnectionMultiplexer.Connect(redisOptions);
-    builder.Services.AddSingleton<IConnectionMultiplexer>(mux);
-    builder.Services.AddSingleton<ICacheService, RedisCacheService>();
+    if (mux.IsConnected)
+    {
+        builder.Services.AddSingleton<IConnectionMultiplexer>(mux);
+        builder.Services.AddSingleton<ICacheService, RedisCacheService>();
+    }
+    else
+    {
+        builder.Services.AddSingleton<ICacheService, NoOpCacheService>();
+    }
 }
 catch
 {

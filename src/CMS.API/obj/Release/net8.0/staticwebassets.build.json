@@ -1,12 +1,125 @@
 {
   "Version": 1,
-  "Hash": "KertwGYpu3gCvLhFrh99T9qg2lcfScbL2lJVTUd7zQs=",
+  "Hash": "sqhiX7FDWDYbJNtTKnWPd0zTMu77MqhNZzOZWKvC48I=",
   "Source": "CMS.API",
   "BasePath": "_content/CMS.API",
   "Mode": "Default",
   "ManifestType": "Build",
   "ReferencedProjectsConfiguration": [],
-  "DiscoveryPatterns": [],
-  "Assets": [],
-  "Endpoints": []
+  "DiscoveryPatterns": [
+    {
+      "Name": "CMS.API\\wwwroot",
+      "Source": "CMS.API",
+      "ContentRoot": "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.API\\wwwroot\\",
+      "BasePath": "_content/CMS.API",
+      "Pattern": "**"
+    }
+  ],
+  "Assets": [
+    {
+      "Identity": "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.API\\wwwroot\\uploads\\receipts\\receipt_330642940_20260916132309.jpg",
+      "SourceId": "CMS.API",
+      "SourceType": "Discovered",
+      "ContentRoot": "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.API\\wwwroot\\",
+      "BasePath": "_content/CMS.API",
+      "RelativePath": "uploads/receipts/receipt_330642940_20260916132309#[.{fingerprint}]?.jpg",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "Fingerprint": "dx6fz4wlzx",
+      "Integrity": "0aNqtHXEBOky136Gga9uZxRcEmsgHzX5C1u5/iby6EE=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\uploads\\receipts\\receipt_330642940_20260916132309.jpg"
+    }
+  ],
+  "Endpoints": [
+    {
+      "Route": "uploads/receipts/receipt_330642940_20260916132309.dx6fz4wlzx.jpg",
+      "AssetFile": "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.API\\wwwroot\\uploads\\receipts\\receipt_330642940_20260916132309.jpg",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "76227"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/jpeg"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"0aNqtHXEBOky136Gga9uZxRcEmsgHzX5C1u5/iby6EE=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Wed, 16 Sep 2026 13:23:09 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "dx6fz4wlzx"
+        },
+        {
+          "Name": "label",
+          "Value": "uploads/receipts/receipt_330642940_20260916132309.jpg"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-0aNqtHXEBOky136Gga9uZxRcEmsgHzX5C1u5/iby6EE="
+        }
+      ]
+    },
+    {
+      "Route": "uploads/receipts/receipt_330642940_20260916132309.jpg",
+      "AssetFile": "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.API\\wwwroot\\uploads\\receipts\\receipt_330642940_20260916132309.jpg",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "76227"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/jpeg"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"0aNqtHXEBOky136Gga9uZxRcEmsgHzX5C1u5/iby6EE=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Wed, 16 Sep 2026 13:23:09 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=3600, must-revalidate"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-0aNqtHXEBOky136Gga9uZxRcEmsgHzX5C1u5/iby6EE="
+        }
+      ]
+    }
+  ]
 }

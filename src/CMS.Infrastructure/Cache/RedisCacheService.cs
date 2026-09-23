@@ -17,33 +17,63 @@ public class RedisCacheService : ICacheService
 
     public async Task<T?> GetAsync<T>(string key)
     {
-        var value = await _db.StringGetAsync(key);
-        if (value.IsNullOrEmpty) return default;
-        return JsonSerializer.Deserialize<T>(value!);
+        try
+        {
+            if (!_redis.IsConnected) return default;
+            var value = await _db.StringGetAsync(key);
+            if (value.IsNullOrEmpty) return default;
+            return JsonSerializer.Deserialize<T>(value!);
+        }
+        catch
+        {
+            return default;
+        }
     }
 
     public async Task SetAsync<T>(string key, T value, TimeSpan? expiration = null)
     {
-        var json = JsonSerializer.Serialize(value);
-        await _db.StringSetAsync(key, json, expiration ?? TimeSpan.FromMinutes(10));
+        try
+        {
+            if (!_redis.IsConnected) return;
+            var json = JsonSerializer.Serialize(value);
+            await _db.StringSetAsync(key, json, expiration ?? TimeSpan.FromMinutes(10));
+        }
+        catch
+        {
+        }
     }
 
     public async Task RemoveAsync(string key)
     {
-        await _db.KeyDeleteAsync(key);
+        try
+        {
+            if (!_redis.IsConnected) return;
+            await _db.KeyDeleteAsync(key);
+        }
+        catch
+        {
+        }
     }
 
     public async Task RemoveByPrefixAsync(string prefix)
     {
-        var endpoints = _redis.GetEndPoints();
-        foreach (var endpoint in endpoints)
+        try
         {
-            var server = _redis.GetServer(endpoint);
-            var keys = server.Keys(pattern: $"{prefix}*").ToArray();
-            foreach (var key in keys)
+            if (!_redis.IsConnected) return;
+            var endpoints = _redis.GetEndPoints();
+            foreach (var endpoint in endpoints)
             {
-                await _db.KeyDeleteAsync(key);
+                var server = _redis.GetServer(endpoint);
+                if (!server.IsConnected) continue;
+                var keys = server.Keys(pattern: $"{prefix}*").ToArray();
+                foreach (var key in keys)
+                {
+                    await _db.KeyDeleteAsync(key);
+                }
             }
+        }
+        catch
+        {
         }
     }
 }

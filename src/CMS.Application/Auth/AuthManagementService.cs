@@ -50,6 +50,22 @@ public class AuthManagementService
             return null;
 
         var roles = ((string)(user.Roles ?? "Staff")).Split(',');
+
+        // Resolve DoctorId and StaffId so the frontend correctly identifies the logged-in doctor
+        var sqlIds = @"
+            SELECT s.Id AS StaffId, d.Id AS DoctorId
+            FROM Staff s
+            LEFT JOIN Doctors d ON d.StaffId = s.Id
+            WHERE s.UserId = @UserId";
+        var ids = await conn.QueryFirstOrDefaultAsync<dynamic>(sqlIds, new { UserId = (int)user.Id });
+        int? resolvedDoctorId = null;
+        int? resolvedStaffId = null;
+        if (ids != null)
+        {
+            try { resolvedDoctorId = (ids.DoctorId == null || ids.DoctorId is DBNull) ? null : (int?)Convert.ToInt32(ids.DoctorId); } catch { }
+            try { resolvedStaffId = (ids.StaffId == null || ids.StaffId is DBNull) ? null : (int?)Convert.ToInt32(ids.StaffId); } catch { }
+        }
+
         var userDto = new UserDto(
             (int)user.Id,
             (byte)user.TenantId,
@@ -58,7 +74,9 @@ public class AuthManagementService
             (string)user.FirstName,
             (string)user.LastName,
             roles,
-            (bool)user.MfaEnabled
+            (bool)user.MfaEnabled,
+            DoctorId: resolvedDoctorId,
+            StaffId: resolvedStaffId
         );
 
         var token = GenerateJwtToken(userDto);

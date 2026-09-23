@@ -82,15 +82,11 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
   }, []);
 
   // Doctor Selector State for Multi-Doctor EMR
-  const initialDoctorId = currentUser?.doctorId ||
-    (currentUser?.username?.toLowerCase().includes('tigist') ? 2 :
-    (currentUser?.username?.toLowerCase().includes('abebe') ? 1 : 2));
+  // Use the doctorId from the logged-in user (set by backend at login) — no hardcoded username checks
+  const initialDoctorId = currentUser?.doctorId ?? 0;
 
   const [selectedDoctorId, setSelectedDoctorId] = useState<number>(initialDoctorId);
-  const [availableDoctors, setAvailableDoctors] = useState<{ id: number; name: string; specialization?: string }[]>([
-    { id: 2, name: 'Dr. Tigist Haile', specialization: 'Dermatology' },
-    { id: 1, name: 'Dr. Abebe Bekele', specialization: 'Senior Consultant Dermatology' }
-  ]);
+  const [availableDoctors, setAvailableDoctors] = useState<{ id: number; name: string; specialization?: string }[]>([]);
 
   // Date Selector State for Logged-In Doctor Queue
   const [consultDate, setConsultDate] = useState<string>(new Date().toISOString().split('T')[0]);
@@ -154,8 +150,21 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
   const [daysExcused, setDaysExcused] = useState(5);
   const [recommendation, setRecommendation] = useState('Strict rest, avoid sun & heat exposure, and apply prescribed topical medication.');
   const [certExamDate, setCertExamDate] = useState(new Date().toISOString().split('T')[0]);
-  const [certDoctorName, setCertDoctorName] = useState('Dr. Tigist Haile');
-  const [certDoctorTitle, setCertDoctorTitle] = useState('Dermatology Specialist');
+  const getInitialDoctorName = () => {
+    if (currentUser?.firstName) {
+      return `Dr. ${currentUser.firstName} ${currentUser.lastName || ''}`.trim();
+    }
+    if (currentUser?.name) {
+      return currentUser.name.startsWith('Dr.') ? currentUser.name : `Dr. ${currentUser.name}`;
+    }
+    if (currentUser?.username && currentUser.username.toLowerCase() !== 'admin') {
+      return `Dr. ${currentUser.username}`;
+    }
+    return 'Attending Physician';
+  };
+
+  const [certDoctorName, setCertDoctorName] = useState<string>(getInitialDoctorName);
+  const [certDoctorTitle, setCertDoctorTitle] = useState<string>('General Practitioner');
 
   const getDoctorInitials = (name: string) => {
     if (!name) return 'DR';
@@ -174,25 +183,56 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
           const docs = res.map((d: any) => ({
             id: d.id || d.Id,
             name: d.doctorName || d.DoctorName || `Doctor ${d.id}`,
-            specialization: d.specializationName || d.SpecializationName || 'Dermatology'
+            specialization: d.specializationName || d.SpecializationName || 'General Practice'
           }));
           setAvailableDoctors(docs);
+
+          // 1. If currentUser has doctorId, match it
+          if (currentUser?.doctorId) {
+            const match = docs.find((d: any) => d.id === currentUser.doctorId);
+            if (match) {
+              setSelectedDoctorId(match.id);
+              setCertDoctorName(match.name);
+              setCertDoctorTitle(match.specialization ? `${match.specialization} Specialist` : 'Physician');
+              return;
+            }
+          }
+
+          // 2. Match by username / first name / last name
+          const uname = (currentUser?.username || '').toLowerCase();
+          const fname = (currentUser?.firstName || '').toLowerCase();
+          const lname = (currentUser?.lastName || '').toLowerCase();
+          const nameMatch = docs.find((d: any) => {
+            const dName = d.name.toLowerCase();
+            return (uname && uname !== 'admin' && dName.includes(uname)) ||
+                   (fname && dName.includes(fname)) ||
+                   (lname && dName.includes(lname));
+          });
+          if (nameMatch) {
+            setSelectedDoctorId(nameMatch.id);
+            setCertDoctorName(nameMatch.name);
+            setCertDoctorTitle(nameMatch.specialization ? `${nameMatch.specialization} Specialist` : 'Physician');
+            return;
+          }
+
+          // 3. Fallback: select first doctor in clinic (for admin / staff)
+          if (docs.length > 0) {
+            setSelectedDoctorId(docs[0].id);
+            setCertDoctorName(docs[0].name);
+            setCertDoctorTitle(docs[0].specialization ? `${docs[0].specialization} Specialist` : 'Physician');
+          }
         }
       } catch (e) {
-        console.warn('Using default doctor list:', e);
+        console.warn('Could not load doctor list:', e);
       }
     };
     fetchDoctors();
-  }, []);
+  }, [currentUser]);
 
   // Update selectedDoctorId when currentUser changes
   useEffect(() => {
     if (currentUser?.doctorId) {
       setSelectedDoctorId(currentUser.doctorId);
-    } else if (currentUser?.username?.toLowerCase().includes('tigist')) {
-      setSelectedDoctorId(2);
-    } else if (currentUser?.username?.toLowerCase().includes('abebe')) {
-      setSelectedDoctorId(1);
     }
   }, [currentUser]);
 
@@ -201,15 +241,25 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
     const doc = availableDoctors.find(d => d.id === selectedDoctorId);
     if (doc) {
       setCertDoctorName(doc.name);
-      setCertDoctorTitle(doc.specialization ? `${doc.specialization} Specialist` : 'Dermatologist');
-    } else if (selectedDoctorId === 2) {
-      setCertDoctorName('Dr. Tigist Haile');
-      setCertDoctorTitle('Dermatology Specialist');
-    } else if (selectedDoctorId === 1) {
-      setCertDoctorName('Dr. Abebe Bekele');
-      setCertDoctorTitle('Senior Consultant Dermatologist');
+      setCertDoctorTitle(doc.specialization ? `${doc.specialization} Specialist` : 'Physician');
+    } else if (currentUser?.firstName) {
+      setCertDoctorName(`Dr. ${currentUser.firstName} ${currentUser.lastName || ''}`.trim());
+      setCertDoctorTitle('Physician');
+    } else if (currentUser?.name) {
+      const name = currentUser.name.startsWith('Dr.') ? currentUser.name : `Dr. ${currentUser.name}`;
+      setCertDoctorName(name);
+      setCertDoctorTitle('Physician');
+    } else if (currentUser?.username && currentUser.username.toLowerCase() !== 'admin') {
+      setCertDoctorName(`Dr. ${currentUser.username}`);
+      setCertDoctorTitle('Physician');
+    } else if (availableDoctors.length > 0) {
+      setCertDoctorName(availableDoctors[0].name);
+      setCertDoctorTitle(availableDoctors[0].specialization ? `${availableDoctors[0].specialization} Specialist` : 'Physician');
+    } else {
+      setCertDoctorName('Attending Physician');
+      setCertDoctorTitle('General Practice');
     }
-  }, [selectedDoctorId, availableDoctors]);
+  }, [selectedDoctorId, availableDoctors, currentUser]);
 
   const [issuedCerts, setIssuedCerts] = useState<any[]>([]);
   const [expandedCertId, setExpandedCertId] = useState<number | null>(null);
@@ -1344,7 +1394,12 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                   </div>
                   <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }}></span>
-                    {availableDoctors.find(d => d.id === selectedDoctorId)?.name || (selectedDoctorId === 2 ? 'Dr. Tigist Haile' : 'Dr. Abebe Bekele')}
+                    {(() => {
+                      const doc = availableDoctors.find(d => d.id === selectedDoctorId);
+                      if (doc) return doc.name;
+                      if (currentUser?.name) return currentUser.name.startsWith('Dr.') ? currentUser.name : `Dr. ${currentUser.name}`;
+                      return 'Attending Doctor';
+                    })()}
                     {availableDoctors.find(d => d.id === selectedDoctorId)?.specialization && (
                       <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 500 }}>
                         ({availableDoctors.find(d => d.id === selectedDoctorId)?.specialization})

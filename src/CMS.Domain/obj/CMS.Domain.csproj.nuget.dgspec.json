@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Domain\\CMS.Domain.csproj": {}
+    "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Domain\\CMS.Domain.csproj": {}
   },
   "projects": {
-    "C:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Domain\\CMS.Domain.csproj": {
+    "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Domain\\CMS.Domain.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Domain\\CMS.Domain.csproj",
+        "projectUniqueName": "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Domain\\CMS.Domain.csproj",
         "projectName": "CMS.Domain",
-        "projectPath": "C:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Domain\\CMS.Domain.csproj",
+        "projectPath": "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Domain\\CMS.Domain.csproj",
         "packagesPath": "C:\\Users\\ASUS\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Domain\\obj\\",
+        "outputPath": "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Domain\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files\\DevExpress 24.1\\Components\\Offline Packages",
