@@ -17234,3 +17234,13 @@ token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hid
 2026-09-23 19:38:41.586 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
 2026-09-23 19:38:41.589 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
 2026-09-23 19:38:42.416 +03:00 [INF] Application is shutting down...
+2026-09-23 20:49:23.352 +03:00 [INF] User profile is available. Using 'C:\Users\ASUS\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
+2026-09-23 20:49:23.509 +03:00 [INF] [2026-09-23 20:49:23.496] LISTENER STARTED: Passively waiting for analyzer connections on 0.0.0.0:5100...
+2026-09-23 20:49:23.519 +03:00 [INF] [2026-09-23 20:49:23.519] LISTENER STARTED: Passively waiting for analyzer connections on 0.0.0.0:2575...
+2026-09-23 20:49:23.730 +03:00 [INF] Now listening on: http://localhost:5010
+2026-09-23 20:49:23.734 +03:00 [INF] Application started. Press Ctrl+C to shut down.
+2026-09-23 20:49:23.739 +03:00 [INF] Hosting environment: Development
+2026-09-23 20:49:23.742 +03:00 [INF] Content root path: C:\Users\ASUS\source\repos\CMS\src\CMS.API
+2026-09-23 20:50:04.748 +03:00 [INF] Application is shutting down...
+2026-09-23 20:50:04.766 +03:00 [INF] [2026-09-23 20:50:04.766] LISTENER STOPPED: Port 2575
+2026-09-23 20:50:04.766 +03:00 [INF] [2026-09-23 20:50:04.766] LISTENER STOPPED: Port 5100
