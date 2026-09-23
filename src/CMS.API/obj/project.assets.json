@@ -2293,6 +2293,8 @@
           "CMS.Shared": "1.0.0",
           "Dapper": "2.1.35",
           "Microsoft.EntityFrameworkCore.SqlServer": "8.0.8",
+          "Microsoft.Extensions.Configuration.Binder": "8.0.0",
+          "Microsoft.Extensions.Hosting.Abstractions": "8.0.0",
           "Serilog": "4.1.0",
           "Serilog.Sinks.Console": "6.0.0",
           "Serilog.Sinks.File": "6.0.0",
@@ -5822,11 +5824,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.API\\CMS.API.csproj",
+      "projectUniqueName": "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.API\\CMS.API.csproj",
       "projectName": "CMS.API",
-      "projectPath": "C:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.API\\CMS.API.csproj",
+      "projectPath": "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.API\\CMS.API.csproj",
       "packagesPath": "C:\\Users\\ASUS\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.API\\obj\\",
+      "outputPath": "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.API\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files\\DevExpress 24.1\\Components\\Offline Packages",
@@ -5853,14 +5855,14 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "projectReferences": {
-            "C:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Application\\CMS.Application.csproj": {
-              "projectPath": "C:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Application\\CMS.Application.csproj"
+            "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Application\\CMS.Application.csproj": {
+              "projectPath": "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Application\\CMS.Application.csproj"
             },
-            "C:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Infrastructure\\CMS.Infrastructure.csproj": {
-              "projectPath": "C:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Infrastructure\\CMS.Infrastructure.csproj"
+            "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Infrastructure\\CMS.Infrastructure.csproj": {
+              "projectPath": "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Infrastructure\\CMS.Infrastructure.csproj"
             },
-            "C:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Shared\\CMS.Shared.csproj": {
-              "projectPath": "C:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Shared\\CMS.Shared.csproj"
+            "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Shared\\CMS.Shared.csproj": {
+              "projectPath": "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Shared\\CMS.Shared.csproj"
             }
           }
         }

@@ -76,6 +76,13 @@ catch
 builder.Services.AddTransient<INotificationProvider, SmtpEmailProvider>();
 builder.Services.AddTransient<IHl7Adapter, Hl7Adapter>();
 builder.Services.AddTransient<IAstmAdapter, AstmAdapter>();
+builder.Services.AddTransient<ILabResultIngestionService, LabResultIngestionService>();
+
+// Passive TCP Server for LIS Analyzers (e.g. ZYBIO Z3 on port 5100 / 2575)
+builder.Services.AddSingleton<LisTcpListenerService>();
+builder.Services.AddSingleton<ILisTcpListenerService>(sp => sp.GetRequiredService<LisTcpListenerService>());
+builder.Services.AddHostedService<LisTcpListenerService>(sp => sp.GetRequiredService<LisTcpListenerService>());
+
 
 builder.Services.AddScoped<AuthManagementService>();
 builder.Services.AddScoped<StaffAndDoctorService>();

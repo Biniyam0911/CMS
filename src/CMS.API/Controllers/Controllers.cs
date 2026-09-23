@@ -166,13 +166,23 @@ public class LaboratoryController : ControllerBase
     private readonly ICacheService _cache;
     private readonly IHl7Adapter _hl7Adapter;
     private readonly IAstmAdapter _astmAdapter;
+    private readonly ILisTcpListenerService _lisListener;
+    private readonly ILabResultIngestionService _ingestionService;
 
-    public LaboratoryController(IDbConnectionFactory dbFactory, ICacheService cache, IHl7Adapter hl7Adapter, IAstmAdapter astmAdapter)
+    public LaboratoryController(
+        IDbConnectionFactory dbFactory,
+        ICacheService cache,
+        IHl7Adapter hl7Adapter,
+        IAstmAdapter astmAdapter,
+        ILisTcpListenerService lisListener,
+        ILabResultIngestionService ingestionService)
     {
         _dbFactory = dbFactory;
         _cache = cache;
         _hl7Adapter = hl7Adapter;
         _astmAdapter = astmAdapter;
+        _lisListener = lisListener;
+        _ingestionService = ingestionService;
     }
 
     [HttpGet("catalog")]
@@ -190,13 +200,58 @@ public class LaboratoryController : ControllerBase
         return Ok(ApiResponse<List<LabTestCatalogDto>>.Ok(catalog));
     }
 
-    public record PingMachineRequest(string IpAddress, int Port, int TimeoutMs = 1500);
+    [HttpGet("instruments/listener-status")]
+    public IActionResult GetListenerStatus()
+    {
+        var status = new LisListenerStatusDto(
+            _lisListener.IsListening,
+            _lisListener.ListeningPorts.ToList(),
+            _lisListener.ActiveClients.ToList(),
+            _lisListener.RecentLogs.ToList()
+        );
+        return Ok(ApiResponse<LisListenerStatusDto>.Ok(status));
+    }
+
+    public record PingMachineRequest(string IpAddress, int Port, int TimeoutMs = 1500, string? Mode = null);
 
     [HttpPost("instruments/ping")]
     public async Task<IActionResult> PingInstrument([FromBody] PingMachineRequest req)
     {
         if (string.IsNullOrWhiteSpace(req.IpAddress) || req.Port <= 0)
             return BadRequest(ApiResponse<object>.Fail("Invalid IP address or port."));
+
+        // If the machine is in Passive / Unidirectional mode, check the server's listener status
+        bool isPassiveMode = (req.Mode?.Contains("Unidirectional", StringComparison.OrdinalIgnoreCase) == true) ||
+                             (req.Mode?.Contains("Results Only", StringComparison.OrdinalIgnoreCase) == true) ||
+                             req.Port == 5100;
+
+        if (isPassiveMode)
+        {
+            var isPortListening = _lisListener.ListeningPorts.Contains(req.Port) || _lisListener.IsListening;
+            var connectedClient = _lisListener.ActiveClients.FirstOrDefault(c => c.RemoteEndPoint.Contains(req.IpAddress));
+
+            if (connectedClient != null)
+            {
+                return Ok(ApiResponse<object>.Ok(new {
+                    Success = true,
+                    IsOnline = true,
+                    IsListening = true,
+                    LatencyMs = 1,
+                    Message = $"✓ Connected: {req.IpAddress} is actively connected to LIS server on port {req.Port}."
+                }));
+            }
+
+            if (isPortListening)
+            {
+                return Ok(ApiResponse<object>.Ok(new {
+                    Success = true,
+                    IsOnline = true,
+                    IsListening = true,
+                    LatencyMs = 0,
+                    Message = $"✓ LIS Server is passively listening on port {req.Port}. Waiting for incoming TCP connection from {req.IpAddress}."
+                }));
+            }
+        }
 
         var sw = System.Diagnostics.Stopwatch.StartNew();
         try
@@ -778,117 +833,40 @@ public class LaboratoryController : ControllerBase
         if (string.IsNullOrWhiteSpace(req.RawPayload))
             return BadRequest(ApiResponse<object>.Fail("Raw payload cannot be empty."));
 
-        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
-        using var conn = _dbFactory.CreateConnection();
-
-        CMS.Domain.Entities.LabResult? parsed = null;
         string protocol = (req.Protocol ?? "HL7").ToUpper().Trim();
+        string machine = req.MachineIdentifier ?? "AnalyzerFeedSimulator";
 
-        if (protocol == "ASTM")
+        if (protocol == "HL7")
         {
-            parsed = await _astmAdapter.ParseAstmMessageAsync(req.RawPayload);
+            var parsed = _hl7Adapter.ParseFullOruMessage(req.RawPayload);
+            bool inserted = await _ingestionService.IngestHl7ResultAsync(req.RawPayload, machine);
+
+            return Ok(ApiResponse<object>.Ok(new {
+                Success = true,
+                Protocol = protocol,
+                SampleId = parsed.SampleId,
+                NumericValue = parsed.PrimaryNumeric,
+                TextValue = parsed.SummaryText,
+                ParametersCount = parsed.Parameters.Count,
+                OverallFlag = parsed.OverallFlag,
+                Machine = machine,
+                Message = inserted
+                    ? $"Successfully ingested {protocol} feed from {machine}. Results saved to database."
+                    : $"Parsed {protocol} feed successfully ({parsed.Parameters.Count} parameters)."
+            }));
         }
         else
         {
-            parsed = await _hl7Adapter.ParseOruMessageAsync(req.RawPayload);
-        }
-
-        if (parsed == null)
-        {
-            decimal? fallbackNum = null;
-            string fallbackTxt = req.RawPayload;
-            var segments = req.RawPayload.Split(new[] { '|', '^', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-            foreach (var s in segments)
-            {
-                if (decimal.TryParse(s, out var num))
-                {
-                    fallbackNum = num;
-                    break;
-                }
-            }
-            parsed = new CMS.Domain.Entities.LabResult
-            {
-                SourceType = (byte)(protocol == "ASTM" ? 3 : 2),
-                NumericValue = fallbackNum,
-                TextValue = fallbackNum == null ? fallbackTxt : null,
+            var parsed = await _astmAdapter.ParseAstmMessageAsync(req.RawPayload);
+            return Ok(ApiResponse<object>.Ok(new {
+                Success = true,
+                Protocol = protocol,
+                NumericValue = parsed?.NumericValue,
+                TextValue = parsed?.TextValue,
                 RawMessage = req.RawPayload,
-                EnteredAt = DateTime.UtcNow
-            };
+                Message = $"Parsed {protocol} message successfully."
+            }));
         }
-
-        int targetOrderId = req.OrderId ?? 0;
-        if (targetOrderId == 0)
-        {
-            targetOrderId = await conn.ExecuteScalarAsync<int>(
-                "SELECT TOP 1 Id FROM LabOrders WHERE TenantId = @TenantId AND StatusId IN (1, 2, 3) ORDER BY OrderedAt DESC",
-                new { TenantId = tenantId });
-        }
-
-        if (targetOrderId > 0)
-        {
-            var item = await conn.QueryFirstOrDefaultAsync<dynamic>(
-                @"SELECT TOP 1 oi.Id AS OrderItemId, oi.TestId, oi.OrderId, o.PatientId, t.Unit, t.NormalRangeLow, t.NormalRangeHigh
-                  FROM LabOrderItems oi
-                  JOIN LabOrders o ON o.Id = oi.OrderId
-                  JOIN LabTestCatalog t ON t.Id = oi.TestId
-                  WHERE oi.OrderId = @OrderId",
-                new { OrderId = targetOrderId });
-
-            if (item != null)
-            {
-                int orderItemId = (int)item.OrderItemId;
-                int testId = (int)item.TestId;
-                int patientId = (int)item.PatientId;
-                string unit = (string)item.Unit ?? "";
-                string refRange = $"{item.NormalRangeLow} - {item.NormalRangeHigh} {unit}".Trim();
-
-                await conn.ExecuteAsync(@"
-                    INSERT INTO LabResults (
-                        OrderItemId, OrderId, TestId, PatientId, NumericValue, TextValue,
-                        Unit, Flag, ReferenceRange, IsCritical, EnteredBy, EnteredAt,
-                        IsVerified, SourceType, RawMessage
-                    ) VALUES (
-                        @OrderItemId, @OrderId, @TestId, @PatientId, @NumericValue, @TextValue,
-                        @Unit, 'OK', @ReferenceRange, 0, 1, GETDATE(),
-                        0, @SourceType, @RawMessage
-                    )",
-                    new {
-                        OrderItemId = orderItemId,
-                        OrderId = targetOrderId,
-                        TestId = testId,
-                        PatientId = patientId,
-                        parsed.NumericValue,
-                        TextValue = parsed.TextValue ?? parsed.NumericValue?.ToString(),
-                        Unit = unit,
-                        ReferenceRange = refRange,
-                        parsed.SourceType,
-                        RawMessage = req.RawPayload
-                    });
-
-                await conn.ExecuteAsync("UPDATE LabOrderItems SET StatusId = 3 WHERE Id = @OrderItemId", new { OrderItemId = orderItemId });
-                await conn.ExecuteAsync("UPDATE LabOrders SET StatusId = 3, UpdatedAt = GETDATE() WHERE Id = @OrderId", new { OrderId = targetOrderId });
-
-                return Ok(ApiResponse<object>.Ok(new {
-                    Success = true,
-                    Protocol = protocol,
-                    OrderId = targetOrderId,
-                    OrderItemId = orderItemId,
-                    NumericValue = parsed.NumericValue,
-                    TextValue = parsed.TextValue,
-                    Machine = req.MachineIdentifier ?? "External LIS Analyzer",
-                    Message = $"Successfully ingested {protocol} feed from {req.MachineIdentifier ?? "Analyzer"} into Order #{targetOrderId}."
-                }));
-            }
-        }
-
-        return Ok(ApiResponse<object>.Ok(new {
-            Success = true,
-            Protocol = protocol,
-            NumericValue = parsed.NumericValue,
-            TextValue = parsed.TextValue,
-            RawMessage = parsed.RawMessage,
-            Message = $"Parsed {protocol} message successfully."
-        }));
     }
 }
 

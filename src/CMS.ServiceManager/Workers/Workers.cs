@@ -48,43 +48,130 @@ public class LabInstrumentListenerWorker : BackgroundService
 {
     private readonly ILogger<LabInstrumentListenerWorker> _logger;
     private readonly IHl7Adapter _hl7Adapter;
+    private readonly ILabResultIngestionService _ingestionService;
 
-    public LabInstrumentListenerWorker(ILogger<LabInstrumentListenerWorker> logger, IHl7Adapter hl7Adapter)
+    public LabInstrumentListenerWorker(
+        ILogger<LabInstrumentListenerWorker> logger,
+        IHl7Adapter hl7Adapter,
+        ILabResultIngestionService ingestionService)
     {
         _logger = logger;
         _hl7Adapter = hl7Adapter;
+        _ingestionService = ingestionService;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("Starting LabInstrumentListenerWorker TCP listener on Port 2575 (HL7)...");
+        int port = 5100;
+        _logger.LogInformation("Starting LabInstrumentListenerWorker TCP listener on Port {Port}...", port);
+
+        TcpListener? listener = null;
         try
         {
-            var listener = new TcpListener(System.Net.IPAddress.Any, 2575);
+            listener = new TcpListener(System.Net.IPAddress.Any, port);
             listener.Start();
+            _logger.LogInformation("LIS TCP Server listening on 0.0.0.0:{Port} (Waiting for incoming analyzer connections)", port);
 
             while (!stoppingToken.IsCancellationRequested)
             {
-                if (listener.Pending())
+                try
                 {
-                    using var client = await listener.AcceptTcpClientAsync(stoppingToken);
-                    using var stream = client.GetStream();
-                    var buffer = new byte[4096];
-                    int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, stoppingToken);
-                    if (bytesRead > 0)
+                    var client = await listener.AcceptTcpClientAsync(stoppingToken);
+                    _ = Task.Run(() => HandleClientAsync(client, stoppingToken), stoppingToken);
+                }
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                {
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    if (!stoppingToken.IsCancellationRequested)
                     {
-                        var rawHl7 = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-                        _logger.LogInformation("Received raw HL7 message from lab analyzer!");
-                        await _hl7Adapter.ParseOruMessageAsync(rawHl7);
+                        _logger.LogError(ex, "Error accepting LIS client connection");
+                        await Task.Delay(1000, stoppingToken);
                     }
                 }
-                await Task.Delay(500, stoppingToken);
             }
-            listener.Stop();
+        }
+        catch (SocketException ex)
+        {
+            _logger.LogWarning("Port {Port} could not be bound ({Error}). It may be active in the API process.", port, ex.SocketErrorCode);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "LabInstrumentListenerWorker error");
+            _logger.LogError(ex, "LabInstrumentListenerWorker fatal error");
+        }
+        finally
+        {
+            listener?.Stop();
+        }
+    }
+
+    private async Task HandleClientAsync(TcpClient client, CancellationToken ct)
+    {
+        string endpoint = client.Client.RemoteEndPoint?.ToString() ?? "Unknown";
+        string connTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
+        _logger.LogInformation("[{Time}] CONNECTED: {Endpoint}", connTime, endpoint);
+
+        try
+        {
+            using var stream = client.GetStream();
+            var buffer = new byte[8192];
+            var messageBuffer = new List<byte>();
+
+            while (!ct.IsCancellationRequested && client.Connected)
+            {
+                int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, ct);
+                if (bytesRead <= 0) break;
+
+                for (int i = 0; i < bytesRead; i++) messageBuffer.Add(buffer[i]);
+
+                bool hasMllpEnd = messageBuffer.Count >= 2 && messageBuffer[^2] == 0x1C && messageBuffer[^1] == 0x0D;
+                bool isStreamEmpty = !stream.DataAvailable;
+
+                if (hasMllpEnd || (isStreamEmpty && messageBuffer.Count > 0))
+                {
+                    byte[] msgBytes = messageBuffer.ToArray();
+                    messageBuffer.Clear();
+
+                    string rawHl7 = Encoding.UTF8.GetString(msgBytes);
+                    string msgTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
+                    _logger.LogInformation("[{Time}] FROM {Endpoint} | {Bytes} bytes | UTF-8", msgTime, endpoint, msgBytes.Length);
+
+                    await _ingestionService.IngestHl7ResultAsync(rawHl7, endpoint);
+
+                    string ack = _hl7Adapter.CreateAckMessage(rawHl7, success: true);
+                    bool usedMllp = msgBytes.Length > 0 && msgBytes[0] == 0x0B;
+
+                    byte[] ackBytes;
+                    if (usedMllp)
+                    {
+                        var list = new List<byte> { 0x0B };
+                        list.AddRange(Encoding.UTF8.GetBytes(ack));
+                        list.Add(0x1C);
+                        list.Add(0x0D);
+                        ackBytes = list.ToArray();
+                    }
+                    else
+                    {
+                        ackBytes = Encoding.UTF8.GetBytes(ack + "\r");
+                    }
+
+                    await stream.WriteAsync(ackBytes, 0, ackBytes.Length, ct);
+                    await stream.FlushAsync(ct);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Client exception for {Endpoint}", endpoint);
+        }
+        finally
+        {
+            try { client.Close(); } catch { }
+            string discTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
+            _logger.LogInformation("[{Time}] DISCONNECTED: {Endpoint}", discTime, endpoint);
         }
     }
 }
+

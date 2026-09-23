@@ -139,14 +139,14 @@ export const DEFAULT_LAB_MACHINES: LabMachine[] = [
     name: 'ZYBIO Z3 Hematology Analyzer',
     department: 'Hematology',
     model: 'ZYBIO Hematology Analyzer model z3',
-    protocol: 'HL7 v2.5.1 MLLP',
-    ipAddress: '192.168.1.110',
+    protocol: 'HL7 v2.3.1 MLLP',
+    ipAddress: '192.168.1.41',
     port: 5100,
-    mode: 'Bidirectional (Query + Results)',
+    mode: 'Unidirectional (Results Only)',
     stationId: 'HEM-ZYBIO-Z3',
-    status: 'OFFLINE',
-    lastPing: 'Not connected',
-    description: 'ZYBIO Z3 3-part / 5-part automated differential hematology analyzer with integrated barcode reader'
+    status: 'LISTENING',
+    lastPing: 'Server passively listening on port 5100',
+    description: 'ZYBIO Z3 automated 3-part / 5-part hematology analyzer. Machine initiates TCP connection to server port 5100 and sends HL7 ORU^R01 CBC panels with sample ID.'
   },
   {
     id: 'MCH-02',
@@ -272,10 +272,63 @@ export default function LaboratoryPage() {
   const [machines, setMachines] = useState<LabMachine[]>(() => {
     try {
       const saved = localStorage.getItem('lab_integrated_machines_v2');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed: LabMachine[] = JSON.parse(saved);
+        return parsed.map(m => {
+          if (m.id === 'MCH-01' || m.model.toLowerCase().includes('zybio')) {
+            return {
+              ...m,
+              protocol: 'HL7 v2.3.1 MLLP',
+              port: m.port || 5100,
+              mode: 'Unidirectional (Results Only)',
+              status: m.status === 'OFFLINE' ? 'LISTENING' : m.status,
+              description: 'ZYBIO Z3 automated 3-part / 5-part hematology analyzer. Machine initiates TCP connection to server port 5100 and sends HL7 ORU^R01 CBC panels with sample ID.'
+            };
+          }
+          return m;
+        });
+      }
     } catch {}
     return DEFAULT_LAB_MACHINES;
   });
+
+  const [lisServerStatus, setLisServerStatus] = useState<{
+    isListening: boolean;
+    ports: number[];
+    activeClients: { remoteEndPoint: string; connectedAt: string; lastActivityAt: string; bytesReceived: number }[];
+    recentLogs: string[];
+  } | null>(null);
+
+  const fetchLisListenerStatus = async () => {
+    try {
+      const res = await api.get<any>('/laboratory/instruments/listener-status');
+      if (res) {
+        setLisServerStatus(res);
+        setMachines(prev => prev.map(m => {
+          if (m.mode.includes('Unidirectional') || m.port === 5100) {
+            const isClientConnected = res.activeClients?.some((c: any) => c.remoteEndPoint?.includes(m.ipAddress));
+            if (isClientConnected) {
+              return { ...m, status: 'CONNECTED', lastPing: 'Active TCP connection' };
+            }
+            if (res.isListening && (res.ports?.includes(m.port) || m.status === 'OFFLINE')) {
+              return { ...m, status: 'LISTENING', lastPing: `Passively listening on port ${m.port}` };
+            }
+          }
+          return m;
+        }));
+      }
+    } catch (e) {
+      console.warn('Could not fetch LIS listener status:', e);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'instruments') {
+      fetchLisListenerStatus();
+      const interval = setInterval(fetchLisListenerStatus, 4000);
+      return () => clearInterval(interval);
+    }
+  }, [activeTab]);
 
   const [machineDeptFilter, setMachineDeptFilter] = useState<string>('ALL');
   const [machineSearch, setMachineSearch] = useState<string>('');
@@ -653,16 +706,26 @@ export default function LaboratoryPage() {
   // LAB MACHINE HANDLERS
   // ==========================================
   const handlePingMachine = async (mId: string, ip: string, port: number, protocol: string) => {
+    const machine = machines.find(m => m.id === mId);
+    const isPassive = machine?.mode?.includes('Unidirectional') || port === 5100;
+
     setPingStatus(prev => ({
       ...prev,
-      [mId]: { testing: true, message: `Probing TCP socket connection to ${ip}:${port} (${protocol})...`, success: false }
+      [mId]: {
+        testing: true,
+        message: isPassive
+          ? `Checking LIS Server passive listener on port ${port} for ${ip}...`
+          : `Probing TCP socket connection to ${ip}:${port} (${protocol})...`,
+        success: false
+      }
     }));
 
     try {
       const res = await api.post<any>('/laboratory/instruments/ping', {
         ipAddress: ip,
         port: Number(port),
-        timeoutMs: 1500
+        timeoutMs: 1500,
+        mode: machine?.mode
       });
 
       const isOnline = res?.isOnline === true || res?.success === true;
@@ -681,9 +744,13 @@ export default function LaboratoryPage() {
       setMachines(prev => {
         const updated = prev.map(m => m.id === mId ? {
           ...m,
-          status: isOnline ? ('CONNECTED' as const) : ('OFFLINE' as const),
-          latencyMs: isOnline ? latency : undefined,
-          lastPing: isOnline ? 'Connected just now' : `Offline (Checked ${new Date().toLocaleTimeString()})`
+          status: isOnline
+            ? (res?.isListening && latency === 0 ? ('LISTENING' as const) : ('CONNECTED' as const))
+            : ('OFFLINE' as const),
+          latencyMs: latency > 0 ? latency : undefined,
+          lastPing: isOnline
+            ? (res?.isListening && latency === 0 ? `Passive listener active on port ${port}` : 'Connected just now')
+            : `Offline (Checked ${new Date().toLocaleTimeString()})`
         } : m);
         localStorage.setItem('lab_integrated_machines_v2', JSON.stringify(updated));
         return updated;
@@ -1415,6 +1482,74 @@ export default function LaboratoryPage() {
             </div>
           </div>
 
+          {/* LIS Passive TCP Server Live Status & Real-Time Analyzer Log Console */}
+          <div className="glass-panel" style={{ padding: '18px 22px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: lisServerStatus?.isListening ? '#10b981' : '#f59e0b', boxShadow: lisServerStatus?.isListening ? '0 0 8px #10b981' : 'none' }} />
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-main)' }}>
+                      LIS Passive TCP Server ({lisServerStatus?.isListening ? 'RUNNING & LISTENING' : 'STARTING'})
+                    </span>
+                    <span style={{ fontSize: '0.72rem', background: '#ede9fe', color: '#6d28d9', padding: '2px 8px', borderRadius: '12px', fontWeight: 700 }}>
+                      Passive Server Mode
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                    Listening on Ports: <strong style={{ color: '#0284c7', fontFamily: 'monospace' }}>{(lisServerStatus?.ports || [5100, 2575]).map(p => `0.0.0.0:${p}`).join(', ')}</strong> • Waiting for machines to initiate connection
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '4px 10px', borderRadius: '6px', background: (lisServerStatus?.activeClients?.length || 0) > 0 ? '#ecfdf5' : '#f8fafc', color: (lisServerStatus?.activeClients?.length || 0) > 0 ? '#059669' : '#64748b', border: '1px solid #cbd5e1' }}>
+                  {(lisServerStatus?.activeClients?.length || 0)} Connected Analyzer(s)
+                </span>
+                <button
+                  type="button"
+                  onClick={fetchLisListenerStatus}
+                  className="btn-secondary"
+                  style={{ padding: '6px 12px', fontSize: '0.74rem', display: 'flex', alignItems: 'center', gap: '5px' }}
+                >
+                  <RefreshCw size={13} /> Refresh Console
+                </button>
+              </div>
+            </div>
+
+            {/* Active Clients Pills */}
+            {(lisServerStatus?.activeClients && lisServerStatus.activeClients.length > 0) && (
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                {lisServerStatus.activeClients.map((client, cIdx) => (
+                  <div key={cIdx} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 10px', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '6px', fontSize: '0.74rem', color: '#047857' }}>
+                    <Activity size={12} color="#10b981" />
+                    <strong>{client.remoteEndPoint}</strong>
+                    <span style={{ color: '#059669', opacity: 0.8 }}>({client.bytesReceived} bytes received)</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Real-Time Terminal Log Box */}
+            <div style={{ background: '#0f172a', borderRadius: '8px', padding: '12px 14px', fontFamily: 'monospace', fontSize: '0.75rem', color: '#e2e8f0', maxHeight: '180px', overflowY: 'auto' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #334155', paddingBottom: '6px', marginBottom: '8px', color: '#94a3b8', fontSize: '0.7rem' }}>
+                <span>ANALYZER TCP SOCKET EVENT LOG (HL7 / MLLP)</span>
+                <span>Auto-refreshing every 4s</span>
+              </div>
+              {lisServerStatus?.recentLogs && lisServerStatus.recentLogs.length > 0 ? (
+                lisServerStatus.recentLogs.slice(-10).map((log, lIdx) => (
+                  <div key={lIdx} style={{ padding: '2px 0', color: log.includes('CONNECTED') ? '#4ade80' : log.includes('FROM') ? '#38bdf8' : log.includes('INSERTED') ? '#facc15' : log.includes('ACK') ? '#a78bfa' : '#cbd5e1' }}>
+                    {log}
+                  </div>
+                ))
+              ) : (
+                <div style={{ color: '#64748b', fontStyle: 'italic' }}>
+                  [System] LIS Server listening on port 5100 and 2575. Waiting for incoming analyzer connections (e.g. ZYBIO Z3 at 192.168.1.41)...
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Department Filter Pills & Search Bar */}
           <div className="glass-panel" style={{ padding: '14px 18px', background: '#ffffff', borderRadius: '10px', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px', boxShadow: '0 1px 4px rgba(0,0,0,0.02)' }}>
             {/* Department Chips */}
@@ -1470,6 +1605,8 @@ export default function LaboratoryPage() {
                 const isPingTesting = pingStatus[m.id]?.testing;
                 const pingResult = pingStatus[m.id];
                 const isConnected = m.status === 'CONNECTED';
+                const isListening = m.status === 'LISTENING';
+                const isPassive = m.mode.includes('Unidirectional') || m.port === 5100;
 
                 return (
                   <div
@@ -1485,7 +1622,7 @@ export default function LaboratoryPage() {
                       flexDirection: 'column',
                       justifyContent: 'space-between',
                       gap: '16px',
-                      borderLeft: `4px solid ${isConnected ? '#10b981' : '#94a3b8'}`
+                      borderLeft: `4px solid ${isConnected ? '#10b981' : (isListening ? '#8b5cf6' : '#94a3b8')}`
                     }}
                   >
                     {/* Card Top: Name & Badges */}
@@ -1502,11 +1639,19 @@ export default function LaboratoryPage() {
 
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
                           <span
-                            className={isConnected ? 'badge badge-normal' : 'badge badge-warning'}
-                            style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.72rem' }}
+                            className={isConnected ? 'badge badge-normal' : (isListening ? 'badge badge-info' : 'badge badge-warning')}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              fontSize: '0.72rem',
+                              background: isConnected ? '#ecfdf5' : (isListening ? '#f5f3ff' : undefined),
+                              color: isConnected ? '#059669' : (isListening ? '#6d28d9' : undefined),
+                              borderColor: isConnected ? '#a7f3d0' : (isListening ? '#ddd6fe' : undefined)
+                            }}
                           >
-                            <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: isConnected ? '#10b981' : '#f59e0b', display: 'inline-block' }}></span>
-                            {m.status}
+                            <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: isConnected ? '#10b981' : (isListening ? '#8b5cf6' : '#f59e0b'), display: 'inline-block' }}></span>
+                            {isConnected ? 'CONNECTED' : (isListening ? 'LISTENING (PASSIVE)' : m.status)}
                           </span>
                           {m.latencyMs && (
                             <span style={{ fontSize: '0.7rem', color: '#059669', fontWeight: 700 }}>
@@ -1578,10 +1723,10 @@ export default function LaboratoryPage() {
                           disabled={isPingTesting}
                           className="btn-secondary"
                           style={{ padding: '4px 10px', fontSize: '0.74rem', display: 'flex', alignItems: 'center', gap: '5px', background: '#ffffff' }}
-                          title="Ping Analyzer and verify MLLP/ASTM socket handshake"
+                          title={isPassive ? "Verify LIS server passive listener status for this analyzer" : "Ping Analyzer and verify MLLP/ASTM socket handshake"}
                         >
                           <Activity size={13} className={isPingTesting ? 'animate-spin' : ''} color="#0284c7" />
-                          {isPingTesting ? 'Testing...' : 'Test Connection'}
+                          {isPingTesting ? 'Checking...' : (isPassive ? 'Check Listener' : 'Test Connection')}
                         </button>
 
                         <button

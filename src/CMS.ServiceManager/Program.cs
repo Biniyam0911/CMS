@@ -20,6 +20,7 @@ var host = Host.CreateDefaultBuilder(args)
         services.AddSingleton<IDbConnectionFactory, DbConnectionFactory>();
         services.AddTransient<INotificationProvider, SmtpEmailProvider>();
         services.AddTransient<IHl7Adapter, Hl7Adapter>();
+        services.AddTransient<ILabResultIngestionService, LabResultIngestionService>();
 
         services.AddHostedService<HealthCheckWorker>();
         services.AddHostedService<NotificationDispatchWorker>();
