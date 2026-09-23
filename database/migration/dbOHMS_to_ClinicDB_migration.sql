@@ -55,7 +55,7 @@ PRINT '----------------------------------------------------------------------';
 PRINT 'Step 0/12: Initializing Migration Tracking & ID Mapping Tables...';
 RAISERROR('Step 0/12: Initializing Mapping Tables...', 0, 1) WITH NOWAIT;
 
-IF OBJECT_ID('dbo.MigrationLog') IS NULL
+DROP TABLE IF EXISTS dbo.[MigrationLog];
 CREATE TABLE dbo.[MigrationLog] (
     [Id]          INT IDENTITY(1,1) PRIMARY KEY,
     [StepName]    NVARCHAR(100),
@@ -107,7 +107,7 @@ CREATE UNIQUE INDEX [UQ_Map_DrugId_Name] ON dbo.[Map_DrugId] ([OldDrugName]);
 
 DROP TABLE IF EXISTS dbo.[Map_LabTestId];
 CREATE TABLE dbo.[Map_LabTestId] (
-    [OldTestCode] NVARCHAR(50) PRIMARY KEY,
+    [OldTestName] NVARCHAR(300) PRIMARY KEY,
     [NewTestId]   INT NOT NULL
 );
 
@@ -119,6 +119,12 @@ CREATE TABLE dbo.[Map_EncounterId] (
 
 PRINT '--> [COMPLETED] Step 0/12: Mapping tables ready.';
 RAISERROR('--> Step 0/12: Mapping tables initialized.', 0, 1) WITH NOWAIT;
+
+-- Add OldConsultId to Encounters HERE in Step 0 so it is already in the schema
+-- when Step 6's batch is compiled. If ALTER TABLE and INSERT [OldConsultId] are
+-- in the same GO batch, SQL Server compile-time check fails with 'Invalid column name'.
+IF COL_LENGTH('ClinicDB.dbo.Encounters', 'OldConsultId') IS NULL
+    ALTER TABLE ClinicDB.dbo.[Encounters] ADD [OldConsultId] INT NULL;
 GO
 
 -- ============================================================
@@ -541,20 +547,23 @@ IF @fbDocId IS NULL SET @fbDocId = (SELECT TOP 1 [Id] FROM ClinicDB.dbo.[Doctors
 DECLARE @fbUsrId INT = (SELECT TOP 1 [NewUserId] FROM dbo.[Map_DoctorName]);
 IF @fbUsrId IS NULL SET @fbUsrId = (SELECT TOP 1 [Id] FROM ClinicDB.dbo.[Users]);
 
-DROP TABLE IF EXISTS #InsertedEncounters;
-CREATE TABLE #InsertedEncounters (
-    [NewId]         INT,
-    [PatientId]     INT,
-    [EncounterDate] DATE
+PRINT '  [Step 6 Action 1/4] OldConsultId column ready (added in Step 0). Building Map_EncounterId...';
+RAISERROR('  [Step 6 Action 1/4] OldConsultId ready. Building mapping table...', 0, 1) WITH NOWAIT;
+
+DROP TABLE IF EXISTS dbo.[Map_EncounterId];
+CREATE TABLE dbo.[Map_EncounterId] (
+    [OldConsultId]   INT PRIMARY KEY,
+    [NewEncounterId] INT NOT NULL
 );
+
+PRINT '  [Step 6 Action 2/4] Bulk inserting 20,124 consultation records into Encounters...';
+RAISERROR('  [Step 6 Action 2/4] Bulk inserting consultation records into Encounters...', 0, 1) WITH NOWAIT;
 
 INSERT INTO ClinicDB.dbo.[Encounters] (
     [TenantId], [PatientId], [DoctorId], [EncounterDate], [EncounterTime],
     [ChiefComplaint], [HistoryOfIllness], [PhysicalExam], [Assessment], [Plan],
-    [VitalSigns], [IsFinalized], [FinalizedAt], [CreatedAt], [CreatedBy]
+    [VitalSigns], [IsFinalized], [FinalizedAt], [CreatedAt], [CreatedBy], [OldConsultId]
 )
-OUTPUT INSERTED.[Id], INSERTED.[PatientId], INSERTED.[EncounterDate]
-INTO #InsertedEncounters ([NewId], [PatientId], [EncounterDate])
 SELECT
     1,
     mp.[NewId],
@@ -574,30 +583,31 @@ SELECT
     1,
     ISNULL(CAST(c.[consultDate] AS DATETIME2), GETDATE()),
     ISNULL(CAST(c.[consultDate] AS DATETIME2), GETDATE()),
-    COALESCE(md.[NewUserId], @fbUsrId, 1)
+    COALESCE(md.[NewUserId], @fbUsrId, 1),
+    c.[id]
 FROM dbOHMS.dbo.[tblConsultation] c
 JOIN dbo.[Map_PatientId] mp ON LTRIM(RTRIM(c.[patID])) = mp.[OldMRN]
 LEFT JOIN dbo.[Map_DoctorName] md ON LOWER(LTRIM(RTRIM(c.[DocCode]))) = md.[DoctorNameVariant];
 
--- Map old consult id to new encounter id
-;WITH RankedOld AS (
-    SELECT [id], LTRIM(RTRIM([patID])) AS [mrn], ISNULL([consultDate], CAST(GETDATE() AS DATE)) AS [dt],
-        ROW_NUMBER() OVER (PARTITION BY LTRIM(RTRIM([patID])), ISNULL([consultDate], CAST(GETDATE() AS DATE)) ORDER BY [id]) AS [rn]
-    FROM dbOHMS.dbo.[tblConsultation]
-),
-RankedNew AS (
-    SELECT ie.[NewId], ie.[PatientId], ie.[EncounterDate],
-        ROW_NUMBER() OVER (PARTITION BY ie.[PatientId], ie.[EncounterDate] ORDER BY ie.[NewId]) AS [rn]
-    FROM #InsertedEncounters ie
-)
-INSERT INTO dbo.[Map_EncounterId] ([OldConsultId], [NewEncounterId])
-SELECT ro.[id], rn.[NewId]
-FROM RankedOld ro
-JOIN dbo.[Map_PatientId] mp ON ro.[mrn] = mp.[OldMRN]
-JOIN RankedNew rn ON rn.[PatientId] = mp.[NewId] AND rn.[EncounterDate] = ro.[dt] AND rn.[rn] = ro.[rn]
-WHERE NOT EXISTS (SELECT 1 FROM dbo.[Map_EncounterId] WHERE [OldConsultId] = ro.[id]);
+DECLARE @encRows INT = @@ROWCOUNT;
+PRINT '  --> Encounters inserted: ' + CAST(@encRows AS VARCHAR) + ' rows.';
+RAISERROR('  --> Encounters inserted: %d rows.', 0, 1, @encRows) WITH NOWAIT;
 
--- Insert Diagnoses
+PRINT '  [Step 6 Action 3/4] Populating Map_EncounterId cross-reference table...';
+RAISERROR('  [Step 6 Action 3/4] Populating Map_EncounterId cross-reference table...', 0, 1) WITH NOWAIT;
+
+INSERT INTO dbo.[Map_EncounterId] ([OldConsultId], [NewEncounterId])
+SELECT [OldConsultId], [Id]
+FROM ClinicDB.dbo.[Encounters]
+WHERE [OldConsultId] IS NOT NULL;
+
+DECLARE @mapRows INT = @@ROWCOUNT;
+PRINT '  --> Map_EncounterId populated: ' + CAST(@mapRows AS VARCHAR) + ' mappings.';
+RAISERROR('  --> Map_EncounterId populated: %d mappings.', 0, 1, @mapRows) WITH NOWAIT;
+
+PRINT '  [Step 6 Action 4/4] Inserting diagnosis records into Diagnoses table...';
+RAISERROR('  [Step 6 Action 4/4] Inserting diagnosis records into Diagnoses table...', 0, 1) WITH NOWAIT;
+
 INSERT INTO ClinicDB.dbo.[Diagnoses] ([EncounterId], [DiagnosisCode], [DiagnosisText], [DiagnosisType])
 SELECT
     me.[NewEncounterId],
@@ -609,11 +619,14 @@ JOIN dbo.[Map_EncounterId] me ON c.[id] = me.[OldConsultId]
 WHERE NULLIF(LTRIM(RTRIM(c.[diagnosis])),'') IS NOT NULL
    OR NULLIF(LTRIM(RTRIM(c.[assessment])),'') IS NOT NULL;
 
-DROP TABLE IF EXISTS #InsertedEncounters;
+DECLARE @diagRows INT = @@ROWCOUNT;
+PRINT '  --> Diagnoses inserted: ' + CAST(@diagRows AS VARCHAR) + ' rows.';
+RAISERROR('  --> Diagnoses inserted: %d rows.', 0, 1, @diagRows) WITH NOWAIT;
+
 
 DECLARE @encCount INT = (SELECT COUNT(*) FROM dbo.[Map_EncounterId]);
-INSERT INTO dbo.[MigrationLog] VALUES ('Step 6', 'tblConsultation', 'Encounters & Diagnoses', @srcCount, @encCount, 'OK', 'SOAP data mapped; diagnosis code set to LEGACY', GETDATE());
-PRINT '--> [COMPLETED] Step 6/12: [dbOHMS.dbo.tblConsultation] -> [ClinicDB.dbo.Encounters] & [ClinicDB.dbo.Diagnoses] | Processed: ' + CAST(@encCount AS VARCHAR) + ' of ' + CAST(@srcCount AS VARCHAR) + ' records.';
+INSERT INTO dbo.[MigrationLog] VALUES ('Step 6', 'tblConsultation', 'Encounters & Diagnoses', @srcCount, @encCount, 'OK', 'SOAP data mapped; Diagnoses created: ' + CAST(@diagRows AS VARCHAR), GETDATE());
+PRINT '--> [COMPLETED] Step 6/12: [dbOHMS.dbo.tblConsultation] -> [ClinicDB.dbo.Encounters] & [ClinicDB.dbo.Diagnoses] | Encounters: ' + CAST(@encCount AS VARCHAR) + ', Diagnoses: ' + CAST(@diagRows AS VARCHAR) + '.';
 RAISERROR('--> [COMPLETED] Step 6/12: Encounters done (%d records).', 0, 1, @encCount) WITH NOWAIT;
 GO
 
@@ -633,28 +646,58 @@ IF @fbDocId IS NULL SET @fbDocId = (SELECT TOP 1 [Id] FROM ClinicDB.dbo.[Doctors
 DECLARE @fbUsrId INT = (SELECT TOP 1 [NewUserId] FROM dbo.[Map_DoctorName]);
 IF @fbUsrId IS NULL SET @fbUsrId = (SELECT TOP 1 [Id] FROM ClinicDB.dbo.[Users]);
 
+-- UQ_Appointments_DoctorSlot = (TenantId, DoctorId, SlotDateTime).
+-- Legacy tblSchedule stores date-only (createOndate), so many patients share the
+-- same (doctor, date). Fix: offset duplicate slots by (row_number - 1) minutes
+-- so every record gets a unique SlotDateTime while preserving all data.
+;WITH [CTE_Sched] AS (
+    SELECT
+        s.[id],
+        s.[patid],
+        s.[doctor],
+        s.[createOndate],
+        s.[regdate],
+        s.[ispaid],
+        s.[visittype],
+        s.[appNote],
+        s.[diagnosistype],
+        mp.[NewId]                                            AS [NewPatientId],
+        COALESCE(md.[NewDoctorId], @fbDocId, 1)              AS [NewDoctorId],
+        COALESCE(md.[NewUserId],   @fbUsrId, 1)              AS [NewUserId],
+        -- Offset each duplicate (doctor, date) by row-number minutes
+        DATEADD(MINUTE,
+            ROW_NUMBER() OVER (
+                PARTITION BY COALESCE(md.[NewDoctorId], @fbDocId, 1),
+                             CAST(s.[createOndate] AS DATETIME2)
+                ORDER BY s.[id]
+            ) - 1,
+            CAST(s.[createOndate] AS DATETIME2)
+        ) AS [UniqueSlot]
+    FROM dbOHMS.dbo.[tblSchedule] s
+    JOIN  dbo.[Map_PatientId]  mp ON LTRIM(RTRIM(s.[patid]))          = mp.[OldMRN]
+    LEFT JOIN dbo.[Map_DoctorName] md ON LOWER(LTRIM(RTRIM(s.[doctor]))) = md.[DoctorNameVariant]
+)
 INSERT INTO ClinicDB.dbo.[Appointments] (
     [TenantId], [PatientId], [DoctorId], [SlotDateTime], [DurationMinutes],
     [StatusId], [ReasonForVisit], [Notes], [BookedBy], [BookedAt], [CreatedAt]
 )
 SELECT
     1,
-    mp.[NewId],
-    COALESCE(md.[NewDoctorId], @fbDocId, 1),
-    CAST(s.[createOndate] AS DATETIME2),
+    [NewPatientId],
+    [NewDoctorId],
+    [UniqueSlot],
     15,
-    CASE WHEN s.[ispaid] = 1 THEN 5 ELSE 1 END,
-    NULLIF(LTRIM(RTRIM(s.[visittype])),''),
+    CASE WHEN [ispaid] = 1 THEN 5 ELSE 1 END,
+    NULLIF(LTRIM(RTRIM([visittype])),''),
     NULLIF(LTRIM(RTRIM(
-        ISNULL(s.[appNote],'') +
-        CASE WHEN NULLIF(LTRIM(RTRIM(s.[diagnosistype])),'') IS NOT NULL THEN ' | ' + s.[diagnosistype] ELSE '' END
+        ISNULL([appNote],'') +
+        CASE WHEN NULLIF(LTRIM(RTRIM([diagnosistype])),'') IS NOT NULL THEN ' | ' + [diagnosistype] ELSE '' END
     )),''),
-    COALESCE(md.[NewUserId], @fbUsrId, 1),
-    ISNULL(s.[regdate], s.[createOndate]),
-    ISNULL(s.[regdate], s.[createOndate])
-FROM dbOHMS.dbo.[tblSchedule] s
-JOIN dbo.[Map_PatientId] mp ON LTRIM(RTRIM(s.[patid])) = mp.[OldMRN]
-LEFT JOIN dbo.[Map_DoctorName] md ON LOWER(LTRIM(RTRIM(s.[doctor]))) = md.[DoctorNameVariant];
+    [NewUserId],
+    ISNULL([regdate], [createOndate]),
+    ISNULL([regdate], [createOndate])
+FROM [CTE_Sched]
+OPTION (MAXDOP 1);
 
 DECLARE @apptCount INT = @@ROWCOUNT;
 INSERT INTO dbo.[MigrationLog] VALUES ('Step 7', 'tblSchedule', 'Appointments', @srcCount, @apptCount, 'OK', 'ispaid=1 -> Completed (5), else Scheduled (1)', GETDATE());
@@ -723,37 +766,58 @@ PRINT 'Total source records to migrate: ' + CAST(@srcCount AS VARCHAR);
 RAISERROR('Step 9/12: Migrating [dbOHMS.dbo.tblLaboratory] -> [ClinicDB.dbo.LabOrders] (%d records)...', 0, 1, @srcCount) WITH NOWAIT;
 
 -- 9a. Pre-populate LabTestCatalog
+PRINT '  [Step 9 Action 1/4] Populating LabTestCatalog from distinct test names...';
+RAISERROR('  [Step 9 Action 1/4] Populating LabTestCatalog...', 0, 1) WITH NOWAIT;
+
+;WITH DistinctTests AS (
+    SELECT 
+        LTRIM(RTRIM(ISNULL(NULLIF(l.[testname], ''), 'General Lab Test'))) AS [CleanName],
+        MAX(LTRIM(RTRIM(l.[testcode]))) AS [RawCategory]
+    FROM dbOHMS.dbo.[tblLaboratory] l
+    GROUP BY LTRIM(RTRIM(ISNULL(NULLIF(l.[testname], ''), 'General Lab Test')))
+)
 INSERT INTO ClinicDB.dbo.[LabTestCatalog] (
     [TenantId], [TestCode], [TestName], [Category], [ResultType], [IsActive]
 )
-SELECT DISTINCT
+SELECT
     1,
-    ISNULL(NULLIF(LTRIM(RTRIM(l.[testcode])),''), 'LGC-' + CAST(l.[labid] AS VARCHAR)),
-    LEFT(LTRIM(RTRIM(l.[testname])), 200),
-    'General', 2, 1
-FROM dbOHMS.dbo.[tblLaboratory] l
-WHERE NULLIF(LTRIM(RTRIM(l.[testname])),'') IS NOT NULL
-  AND NOT EXISTS (
-      SELECT 1 FROM ClinicDB.dbo.[LabTestCatalog] tc
-      WHERE tc.[TenantId] = 1
-        AND tc.[TestCode] = ISNULL(NULLIF(LTRIM(RTRIM(l.[testcode])),''), 'LGC-' + CAST(l.[labid] AS VARCHAR))
-  );
+    'LAB-' + RIGHT('0000' + CAST(ROW_NUMBER() OVER (ORDER BY dt.[CleanName]) AS VARCHAR), 4),
+    LEFT(dt.[CleanName], 200),
+    LEFT(COALESCE(NULLIF(dt.[RawCategory], ''), 'General'), 100),
+    2, 1
+FROM DistinctTests dt
+WHERE NOT EXISTS (
+    SELECT 1 FROM ClinicDB.dbo.[LabTestCatalog] tc
+    WHERE tc.[TenantId] = 1 AND tc.[TestName] = LEFT(dt.[CleanName], 200)
+)
+OPTION (MAXDOP 1);
+DECLARE @catRows INT = @@ROWCOUNT;
+PRINT '  --> LabTestCatalog populated: ' + CAST(@catRows AS VARCHAR) + ' test types.';
+RAISERROR('  --> LabTestCatalog: %d test types added.', 0, 1, @catRows) WITH NOWAIT;
 
 -- 9b. Map LabTestId
-INSERT INTO dbo.[Map_LabTestId] ([OldTestCode], [NewTestId])
+PRINT '  [Step 9 Action 2/4] Building Map_LabTestId cross-reference...';
+RAISERROR('  [Step 9 Action 2/4] Building Map_LabTestId...', 0, 1) WITH NOWAIT;
+INSERT INTO dbo.[Map_LabTestId] ([OldTestName], [NewTestId])
 SELECT DISTINCT
-    ISNULL(NULLIF(LTRIM(RTRIM(l.[testcode])),''), 'LGC-' + CAST(l.[labid] AS VARCHAR)),
+    LEFT(LTRIM(RTRIM(ISNULL(NULLIF(l.[testname], ''), 'General Lab Test'))), 300),
     tc.[Id]
 FROM dbOHMS.dbo.[tblLaboratory] l
 JOIN ClinicDB.dbo.[LabTestCatalog] tc
-    ON tc.[TestCode] = ISNULL(NULLIF(LTRIM(RTRIM(l.[testcode])),''), 'LGC-' + CAST(l.[labid] AS VARCHAR))
+    ON tc.[TestName] = LEFT(LTRIM(RTRIM(ISNULL(NULLIF(l.[testname], ''), 'General Lab Test'))), 200)
     AND tc.[TenantId] = 1
 WHERE NOT EXISTS (
     SELECT 1 FROM dbo.[Map_LabTestId] m
-    WHERE m.[OldTestCode] = ISNULL(NULLIF(LTRIM(RTRIM(l.[testcode])),''), 'LGC-' + CAST(l.[labid] AS VARCHAR))
-);
+    WHERE m.[OldTestName] = LEFT(LTRIM(RTRIM(ISNULL(NULLIF(l.[testname], ''), 'General Lab Test'))), 300)
+)
+OPTION (MAXDOP 1);
+DECLARE @mapLabRows INT = @@ROWCOUNT;
+PRINT '  --> Map_LabTestId populated: ' + CAST(@mapLabRows AS VARCHAR) + ' mappings.';
+RAISERROR('  --> Map_LabTestId: %d mappings.', 0, 1, @mapLabRows) WITH NOWAIT;
 
 -- 9c. Insert LabOrders
+PRINT '  [Step 9 Action 3/4] Inserting LabOrders...';
+RAISERROR('  [Step 9 Action 3/4] Inserting LabOrders...', 0, 1) WITH NOWAIT;
 DECLARE @fbDocId INT = (SELECT TOP 1 [NewDoctorId] FROM dbo.[Map_DoctorName]);
 IF @fbDocId IS NULL SET @fbDocId = (SELECT TOP 1 [Id] FROM ClinicDB.dbo.[Doctors]);
 
@@ -776,9 +840,15 @@ JOIN dbo.[Map_PatientId] mp ON LTRIM(RTRIM(l.[patid])) = mp.[OldMRN]
 WHERE NOT EXISTS (
     SELECT 1 FROM ClinicDB.dbo.[LabOrders] lo
     WHERE lo.[TenantId] = 1 AND lo.[OrderNumber] = 'LAB-' + RIGHT('000000' + CAST(l.[labid] AS VARCHAR), 6)
-);
+)
+OPTION (MAXDOP 1);
+DECLARE @ordRows INT = @@ROWCOUNT;
+PRINT '  --> LabOrders inserted: ' + CAST(@ordRows AS VARCHAR) + ' orders.';
+RAISERROR('  --> LabOrders: %d orders inserted.', 0, 1, @ordRows) WITH NOWAIT;
 
 -- 9d. Insert LabOrderItems
+PRINT '  [Step 9 Action 4/4] Inserting LabOrderItems...';
+RAISERROR('  [Step 9 Action 4/4] Inserting LabOrderItems...', 0, 1) WITH NOWAIT;
 INSERT INTO ClinicDB.dbo.[LabOrderItems] ([OrderId], [TestId], [StatusId])
 SELECT lo.[Id], mt.[NewTestId], 4
 FROM dbOHMS.dbo.[tblLaboratory] l
@@ -787,11 +857,15 @@ JOIN ClinicDB.dbo.[LabOrders] lo
     ON lo.[OrderNumber] = 'LAB-' + RIGHT('000000' + CAST(l.[labid] AS VARCHAR), 6)
     AND lo.[TenantId] = 1
 JOIN dbo.[Map_LabTestId] mt
-    ON mt.[OldTestCode] = ISNULL(NULLIF(LTRIM(RTRIM(l.[testcode])),''), 'LGC-' + CAST(l.[labid] AS VARCHAR))
+    ON mt.[OldTestName] = LEFT(LTRIM(RTRIM(ISNULL(NULLIF(l.[testname], ''), 'General Lab Test'))), 300)
 WHERE NOT EXISTS (
     SELECT 1 FROM ClinicDB.dbo.[LabOrderItems] loi
     WHERE loi.[OrderId] = lo.[Id] AND loi.[TestId] = mt.[NewTestId]
-);
+)
+OPTION (MAXDOP 1);
+DECLARE @itemRows INT = @@ROWCOUNT;
+PRINT '  --> LabOrderItems inserted: ' + CAST(@itemRows AS VARCHAR) + ' items.';
+RAISERROR('  --> LabOrderItems: %d items inserted.', 0, 1, @itemRows) WITH NOWAIT;
 
 DECLARE @labCount INT = (SELECT COUNT(*) FROM ClinicDB.dbo.[LabOrders] WHERE [TenantId] = 1);
 INSERT INTO dbo.[MigrationLog] VALUES ('Step 9', 'tblLaboratory', 'LabOrders & Items', @srcCount, @labCount, 'OK', 'Tests registered in LabTestCatalog, marked Resulted', GETDATE());
@@ -811,6 +885,9 @@ PRINT 'Total source records to migrate: ' + CAST(@srcCount AS VARCHAR);
 RAISERROR('Step 10/12: Migrating [dbOHMS.dbo.tblPrescription] -> [ClinicDB.dbo.Prescriptions] (%d records)...', 0, 1, @srcCount) WITH NOWAIT;
 
 -- 10a. Populate DrugFormulary
+PRINT '  [Step 10 Action 1/6] Populating DrugFormulary from distinct medication names...';
+RAISERROR('  [Step 10 Action 1/6] Populating DrugFormulary...', 0, 1) WITH NOWAIT;
+
 INSERT INTO ClinicDB.dbo.[DrugFormulary] ([TenantId], [GenericName], [IsActive])
 SELECT DISTINCT 1, LEFT(LTRIM(RTRIM(p.[medname])), 200), 1
 FROM dbOHMS.dbo.[tblPrescription] p
@@ -818,9 +895,17 @@ WHERE NULLIF(LTRIM(RTRIM(p.[medname])),'') IS NOT NULL
   AND NOT EXISTS (
       SELECT 1 FROM ClinicDB.dbo.[DrugFormulary] df
       WHERE df.[TenantId] = 1 AND df.[GenericName] = LEFT(LTRIM(RTRIM(p.[medname])), 200)
-  );
+  )
+OPTION (MAXDOP 1);
+
+DECLARE @drugCount INT = @@ROWCOUNT;
+PRINT '  --> DrugFormulary populated: ' + CAST(@drugCount AS VARCHAR) + ' medicines added.';
+RAISERROR('  --> DrugFormulary: %d medicines added.', 0, 1, @drugCount) WITH NOWAIT;
 
 -- 10b. Map DrugId
+PRINT '  [Step 10 Action 2/6] Building Map_DrugId cross-reference...';
+RAISERROR('  [Step 10 Action 2/6] Building Map_DrugId...', 0, 1) WITH NOWAIT;
+
 INSERT INTO dbo.[Map_DrugId] ([OldDrugName], [NewDrugId])
 SELECT DISTINCT LEFT(LTRIM(RTRIM(p.[medname])), 450), df.[Id]
 FROM dbOHMS.dbo.[tblPrescription] p
@@ -830,14 +915,69 @@ JOIN ClinicDB.dbo.[DrugFormulary] df
 WHERE NULLIF(LTRIM(RTRIM(p.[medname])),'') IS NOT NULL
   AND NOT EXISTS (
       SELECT 1 FROM dbo.[Map_DrugId] WHERE [OldDrugName] = LEFT(LTRIM(RTRIM(p.[medname])), 450)
-  );
+  )
+OPTION (MAXDOP 1);
 
--- 10c. Insert Prescriptions Headers
+DECLARE @mapDrugRows INT = @@ROWCOUNT;
+PRINT '  --> Map_DrugId populated: ' + CAST(@mapDrugRows AS VARCHAR) + ' mappings.';
+RAISERROR('  --> Map_DrugId: %d mappings.', 0, 1, @mapDrugRows) WITH NOWAIT;
+
+-- 10c. Ensure every prescription patient has an Encounter
+PRINT '  [Step 10 Action 3/6] Ensuring prescription patients have an Encounter...';
+RAISERROR('  [Step 10 Action 3/6] Ensuring prescription patients have an Encounter...', 0, 1) WITH NOWAIT;
+
 DECLARE @fbDocId INT = (SELECT TOP 1 [NewDoctorId] FROM dbo.[Map_DoctorName]);
 IF @fbDocId IS NULL SET @fbDocId = (SELECT TOP 1 [Id] FROM ClinicDB.dbo.[Doctors]);
+DECLARE @fbUsrId INT = (SELECT TOP 1 [NewUserId] FROM dbo.[Map_DoctorName]);
+IF @fbUsrId IS NULL SET @fbUsrId = (SELECT TOP 1 [Id] FROM ClinicDB.dbo.[Users]);
+
+INSERT INTO ClinicDB.dbo.[Encounters] (
+    [TenantId], [PatientId], [DoctorId], [EncounterDate], [EncounterTime],
+    [ChiefComplaint], [IsFinalized], [FinalizedAt], [CreatedAt], [CreatedBy]
+)
+SELECT DISTINCT
+    1,
+    mp.[NewId],
+    COALESCE(md.[NewDoctorId], @fbDocId, 1),
+    CAST(ISNULL(p.[prescriptiondate], GETDATE()) AS DATE),
+    CAST(GETDATE() AS TIME),
+    'Prescription Dispensing (Legacy)',
+    1,
+    ISNULL(CAST(p.[prescriptiondate] AS DATETIME2), GETDATE()),
+    ISNULL(CAST(p.[prescriptiondate] AS DATETIME2), GETDATE()),
+    COALESCE(md.[NewUserId], @fbUsrId, 1)
+FROM dbOHMS.dbo.[tblPrescription] p
+JOIN dbo.[Map_PatientId] mp ON LTRIM(RTRIM(p.[patid])) = mp.[OldMRN]
+LEFT JOIN dbo.[Map_DoctorName] md ON LOWER(LTRIM(RTRIM(p.[docname]))) = md.[DoctorNameVariant]
+WHERE NOT EXISTS (
+    SELECT 1 FROM ClinicDB.dbo.[Encounters] e WHERE e.[PatientId] = mp.[NewId]
+)
+OPTION (MAXDOP 1);
+
+DECLARE @encAdded INT = @@ROWCOUNT;
+PRINT '  --> Default Encounters created for patients without prior visits: ' + CAST(@encAdded AS VARCHAR);
+RAISERROR('  --> Default Encounters created: %d', 0, 1, @encAdded) WITH NOWAIT;
+
+-- 10d. Fast pre-indexed Encounter lookup per patient
+PRINT '  [Step 10 Action 4/6] Pre-indexing Encounter IDs per patient...';
+RAISERROR('  [Step 10 Action 4/6] Pre-indexing Encounter IDs per patient...', 0, 1) WITH NOWAIT;
+
+DROP TABLE IF EXISTS #PatEncounter;
+SELECT 
+    [PatientId], 
+    MIN([Id]) AS [EncounterId]
+INTO #PatEncounter
+FROM ClinicDB.dbo.[Encounters]
+GROUP BY [PatientId];
+
+CREATE CLUSTERED INDEX [IX_PatEncounter] ON #PatEncounter ([PatientId]);
+
+-- 10e. Insert Prescriptions Headers
+PRINT '  [Step 10 Action 5/6] Inserting Prescription headers...';
+RAISERROR('  [Step 10 Action 5/6] Inserting Prescription headers...', 0, 1) WITH NOWAIT;
 
 ;WITH PrescGroups AS (
-    SELECT DISTINCT
+    SELECT 
         p.[prescriptionid],
         LTRIM(RTRIM(p.[patid])) AS [patid],
         MIN(p.[prescriptiondate]) AS [PrescDate],
@@ -851,36 +991,44 @@ INSERT INTO ClinicDB.dbo.[Prescriptions] (
     [TenantId], [EncounterId], [PatientId], [PrescribedBy], [PrescribedAt], [IsDispensed], [Notes]
 )
 SELECT
-    1, NULL, mp.[NewId],
+    1,
+    pe.[EncounterId],
+    mp.[NewId],
     COALESCE(md.[NewDoctorId], @fbDocId, 1),
     ISNULL(pg.[PrescDate], GETDATE()),
     1,
     'Legacy PrescID: ' + CAST(pg.[prescriptionid] AS VARCHAR)
 FROM PrescGroups pg
 JOIN dbo.[Map_PatientId] mp ON pg.[patid] = mp.[OldMRN]
+JOIN #PatEncounter pe ON pe.[PatientId] = mp.[NewId]
 LEFT JOIN dbo.[Map_DoctorName] md ON LOWER(LTRIM(RTRIM(pg.[docname]))) = md.[DoctorNameVariant]
 WHERE NOT EXISTS (
     SELECT 1 FROM ClinicDB.dbo.[Prescriptions] cp
     WHERE cp.[TenantId] = 1
       AND cp.[PatientId] = mp.[NewId]
       AND cp.[Notes] = 'Legacy PrescID: ' + CAST(pg.[prescriptionid] AS VARCHAR)
-);
+)
+OPTION (MAXDOP 1);
 
--- 10d. Temporary map for Prescriptions.Id
+DECLARE @prescHeadersCount INT = @@ROWCOUNT;
+PRINT '  --> Prescriptions headers inserted: ' + CAST(@prescHeadersCount AS VARCHAR) + ' records.';
+RAISERROR('  --> Prescriptions headers: %d records.', 0, 1, @prescHeadersCount) WITH NOWAIT;
+
+-- 10f. Build index mapping for PrescriptionItems
+PRINT '  [Step 10 Action 6/6] Mapping and inserting PrescriptionItems...';
+RAISERROR('  [Step 10 Action 6/6] Mapping and inserting PrescriptionItems...', 0, 1) WITH NOWAIT;
+
 DROP TABLE IF EXISTS #PrescMap;
-SELECT p_old.[prescriptionid], p_old.[patid], cp.[Id] AS [NewPrescId]
+SELECT 
+    cp.[Id] AS [NewPrescId], 
+    cp.[PatientId], 
+    TRY_CAST(REPLACE(cp.[Notes], 'Legacy PrescID: ', '') AS INT) AS [OldPrescId]
 INTO #PrescMap
-FROM (
-    SELECT DISTINCT [prescriptionid], LTRIM(RTRIM([patid])) AS [patid]
-    FROM dbOHMS.dbo.[tblPrescription]
-    WHERE [prescriptionid] IS NOT NULL
-) p_old
-JOIN dbo.[Map_PatientId] mp ON p_old.[patid] = mp.[OldMRN]
-JOIN ClinicDB.dbo.[Prescriptions] cp
-    ON cp.[PatientId] = mp.[NewId]
-    AND cp.[Notes] = 'Legacy PrescID: ' + CAST(p_old.[prescriptionid] AS VARCHAR);
+FROM ClinicDB.dbo.[Prescriptions] cp
+WHERE cp.[TenantId] = 1 AND cp.[Notes] LIKE 'Legacy PrescID: %';
 
--- 10e. Insert PrescriptionItems
+CREATE CLUSTERED INDEX [IX_PrescMap] ON #PrescMap ([OldPrescId], [PatientId]);
+
 INSERT INTO ClinicDB.dbo.[PrescriptionItems] (
     [PrescriptionId], [DrugId], [Dosage], [Frequency], [Route], [DurationDays], [Quantity], [Instructions]
 )
@@ -894,11 +1042,22 @@ SELECT
     1,
     NULLIF(LTRIM(RTRIM(p.[diagnosis])),'')
 FROM dbOHMS.dbo.[tblPrescription] p
-JOIN #PrescMap pm ON p.[prescriptionid] = pm.[prescriptionid] AND LTRIM(RTRIM(p.[patid])) = pm.[patid]
+JOIN dbo.[Map_PatientId] mp ON LTRIM(RTRIM(p.[patid])) = mp.[OldMRN]
+JOIN #PrescMap pm ON p.[prescriptionid] = pm.[OldPrescId] AND mp.[NewId] = pm.[PatientId]
 JOIN dbo.[Map_DrugId] md2 ON LEFT(LTRIM(RTRIM(p.[medname])), 450) = md2.[OldDrugName]
-WHERE NULLIF(LTRIM(RTRIM(p.[medname])),'') IS NOT NULL;
+WHERE NULLIF(LTRIM(RTRIM(p.[medname])),'') IS NOT NULL
+  AND NOT EXISTS (
+      SELECT 1 FROM ClinicDB.dbo.[PrescriptionItems] pi2
+      WHERE pi2.[PrescriptionId] = pm.[NewPrescId] AND pi2.[DrugId] = md2.[NewDrugId]
+  )
+OPTION (MAXDOP 1);
+
+DECLARE @itemCount INT = @@ROWCOUNT;
+PRINT '  --> PrescriptionItems inserted: ' + CAST(@itemCount AS VARCHAR) + ' items.';
+RAISERROR('  --> PrescriptionItems: %d items.', 0, 1, @itemCount) WITH NOWAIT;
 
 DROP TABLE IF EXISTS #PrescMap;
+DROP TABLE IF EXISTS #PatEncounter;
 
 DECLARE @rxCount INT = (SELECT COUNT(*) FROM ClinicDB.dbo.[Prescriptions] WHERE [TenantId] = 1);
 INSERT INTO dbo.[MigrationLog] VALUES ('Step 10', 'tblPrescription', 'Prescriptions & Items', @srcCount, @rxCount, 'OK', 'DrugFormulary populated, line items attached', GETDATE());
@@ -961,7 +1120,8 @@ JOIN dbo.[Map_PatientId] mp ON ih.[patid] = mp.[OldMRN]
 WHERE NOT EXISTS (
     SELECT 1 FROM ClinicDB.dbo.[Invoices] inv
     WHERE inv.[TenantId] = 1 AND inv.[InvoiceNumber] = ih.[InvoiceNumber]
-);
+)
+OPTION (MAXDOP 1);
 
 ;WITH OrderNumbered AS (
     SELECT
@@ -1000,7 +1160,8 @@ SELECT
 FROM OrderNumbered onum
 JOIN ClinicDB.dbo.[Invoices] inv
     ON inv.[InvoiceNumber] = onum.[InvoiceNumber]
-    AND inv.[TenantId] = 1;
+    AND inv.[TenantId] = 1
+OPTION (MAXDOP 1);
 
 DECLARE @invCount INT = (SELECT COUNT(*) FROM ClinicDB.dbo.[Invoices] WHERE [TenantId] = 1);
 INSERT INTO dbo.[MigrationLog] VALUES ('Step 11', 'tblOrder', 'Invoices & InvoiceItems', @srcCount, @invCount, 'OK', 'All invoices generated with unique InvoiceNumber', GETDATE());
@@ -1019,68 +1180,53 @@ PRINT 'Step 12/12: Migrating [dbOHMS.dbo.tblMedicalCertificate] -> [ClinicDB.dbo
 PRINT 'Total source records to migrate: ' + CAST(@srcCount AS VARCHAR);
 RAISERROR('Step 12/12: Migrating [dbOHMS.dbo.tblMedicalCertificate] -> [ClinicDB.dbo.MedicalCertificates] (%d records)...', 0, 1, @srcCount) WITH NOWAIT;
 
-IF OBJECT_ID('ClinicDB.dbo.MedicalCertificates') IS NULL
-BEGIN
-    CREATE TABLE ClinicDB.dbo.[MedicalCertificates] (
-        [Id]              INT IDENTITY(1,1) PRIMARY KEY,
-        [TenantId]        TINYINT NOT NULL DEFAULT 1,
-        [PatientId]       INT NULL,
-        [PatientMRN]      NVARCHAR(50) NULL,
-        [FullName]        NVARCHAR(200) NULL,
-        [Age]             INT NULL,
-        [Address]         NVARCHAR(400) NULL,
-        [ExaminedOn]      DATE NULL,
-        [Diagnosis]       NVARCHAR(1000) NULL,
-        [Recommendation]  NVARCHAR(1000) NULL,
-        [RestDays]        NVARCHAR(50) NULL,
-        [DoctorName]      NVARCHAR(400) NULL,
-        [DoctorId]        INT NULL,
-        [Specialty]       NVARCHAR(400) NULL,
-        [CertificateHash] UNIQUEIDENTIFIER NULL,
-        [IssuedAt]        DATETIME2 NULL,
-        [CreatedAt]       DATETIME2 NOT NULL DEFAULT GETDATE(),
-        CONSTRAINT [FK_MedCert_Patients] FOREIGN KEY ([PatientId]) REFERENCES ClinicDB.dbo.[Patients]([Id]),
-        CONSTRAINT [FK_MedCert_Tenants]  FOREIGN KEY ([TenantId])  REFERENCES ClinicDB.dbo.[Tenants]([Id])
-    );
-    CREATE INDEX [IX_MedCert_PatientId]  ON ClinicDB.dbo.[MedicalCertificates] ([PatientId]);
-    CREATE INDEX [IX_MedCert_ExaminedOn] ON ClinicDB.dbo.[MedicalCertificates] ([ExaminedOn]);
-END
-
 DECLARE @fbDocId INT = (SELECT TOP 1 [NewDoctorId] FROM dbo.[Map_DoctorName]);
 IF @fbDocId IS NULL SET @fbDocId = (SELECT TOP 1 [Id] FROM ClinicDB.dbo.[Doctors]);
 
 INSERT INTO ClinicDB.dbo.[MedicalCertificates] (
-    [TenantId], [PatientId], [PatientMRN], [FullName], [Age], [Address],
-    [ExaminedOn], [Diagnosis], [Recommendation], [RestDays],
-    [DoctorName], [DoctorId], [Specialty], [CertificateHash], [IssuedAt]
+    [TenantId], [CertificateNo], [PatientId], [DoctorId], [EncounterId],
+    [CertificateType], [DiagnosisSummary], [Recommendation],
+    [StartDate], [EndDate], [DaysExcused], [QrVerificationCode],
+    [IsIssued], [IssuedAt], [CreatedAt]
 )
 SELECT
     1,
+    'MC-' + RIGHT('000000' + CAST(mc.[id] AS VARCHAR), 6),
     mp.[NewId],
-    LTRIM(RTRIM(mc.[patid])),
-    mc.[fullname],
-    mc.[age],
-    mc.[address],
-    mc.[examinedon],
-    mc.[diagnosis],
-    mc.[recommendation],
-    mc.[rest],
-    mc.[doctor],
     COALESCE(md.[NewDoctorId], @fbDocId, 1),
-    mc.[specialty],
-    mc.[hash],
+    NULL,
+    'SickLeave',
+    LEFT(ISNULL(NULLIF(LTRIM(RTRIM(mc.[diagnosis])),''), 'Medical assessment completed'), 500),
+    LEFT(ISNULL(NULLIF(LTRIM(RTRIM(mc.[recommendation])),''), 'Rest as recommended'), 1000),
+    ISNULL(mc.[examinedon], CAST(ISNULL(mc.[regdate], GETDATE()) AS DATE)),
+    DATEADD(day, 
+        CASE 
+            WHEN ISNULL(TRY_CAST(REPLACE(REPLACE(REPLACE(LTRIM(RTRIM(ISNULL(mc.[rest],'1'))), ' days', ''), ' day', ''), 'days', '') AS INT), 1) <= 0 
+                THEN 1 
+            ELSE ISNULL(TRY_CAST(REPLACE(REPLACE(REPLACE(LTRIM(RTRIM(ISNULL(mc.[rest],'1'))), ' days', ''), ' day', ''), 'days', '') AS INT), 1) 
+        END, 
+        ISNULL(mc.[examinedon], CAST(ISNULL(mc.[regdate], GETDATE()) AS DATE))
+    ),
+    CASE 
+        WHEN ISNULL(TRY_CAST(REPLACE(REPLACE(REPLACE(LTRIM(RTRIM(ISNULL(mc.[rest],'1'))), ' days', ''), ' day', ''), 'days', '') AS INT), 1) <= 0 
+            THEN 1 
+        ELSE ISNULL(TRY_CAST(REPLACE(REPLACE(REPLACE(LTRIM(RTRIM(ISNULL(mc.[rest],'1'))), ' days', ''), ' day', ''), 'days', '') AS INT), 1) 
+    END,
+    ISNULL(CAST(mc.[hash] AS VARCHAR(64)), 'MC-VERIFY-' + RIGHT('000000' + CAST(mc.[id] AS VARCHAR), 6)),
+    1,
+    ISNULL(mc.[regdate], GETDATE()),
     ISNULL(mc.[regdate], GETDATE())
 FROM dbOHMS.dbo.[tblMedicalCertificate] mc
-LEFT JOIN dbo.[Map_PatientId] mp ON LTRIM(RTRIM(mc.[patid])) = mp.[OldMRN]
+JOIN dbo.[Map_PatientId] mp ON LTRIM(RTRIM(mc.[patid])) = mp.[OldMRN]
 LEFT JOIN dbo.[Map_DoctorName] md ON LOWER(LTRIM(RTRIM(
     REPLACE(REPLACE(LTRIM(RTRIM(ISNULL(mc.[doctor],''))),'Dr. ',''),'Dr.','')
 ))) = md.[DoctorNameVariant]
 WHERE NOT EXISTS (
     SELECT 1 FROM ClinicDB.dbo.[MedicalCertificates] med
     WHERE med.[TenantId] = 1
-      AND med.[PatientMRN] = LTRIM(RTRIM(mc.[patid]))
-      AND med.[ExaminedOn] = mc.[examinedon]
-);
+      AND med.[CertificateNo] = 'MC-' + RIGHT('000000' + CAST(mc.[id] AS VARCHAR), 6)
+)
+OPTION (MAXDOP 1);
 
 DECLARE @mcCount INT = (SELECT COUNT(*) FROM ClinicDB.dbo.[MedicalCertificates] WHERE [TenantId] = 1);
 INSERT INTO dbo.[MigrationLog] VALUES ('Step 12', 'tblMedicalCertificate', 'MedicalCertificates', @srcCount, @mcCount, 'OK', 'MedicalCertificates table populated', GETDATE());
@@ -1094,6 +1240,11 @@ GO
 PRINT '----------------------------------------------------------------------';
 PRINT 'Restoring system: Re-enabling audit triggers & temporal versioning...';
 
+-- 1. Drop temporary linkage column FIRST so Encounters column count matches EncountersHistory (20 columns)
+IF COL_LENGTH('ClinicDB.dbo.Encounters', 'OldConsultId') IS NOT NULL
+    ALTER TABLE ClinicDB.dbo.[Encounters] DROP COLUMN [OldConsultId];
+
+-- 2. Re-enable audit triggers
 IF OBJECT_ID('dbo.trg_Patients_Audit', 'TR') IS NOT NULL
     ALTER TABLE ClinicDB.dbo.[Patients] ENABLE TRIGGER [trg_Patients_Audit];
 IF OBJECT_ID('dbo.trg_Encounters_Audit', 'TR') IS NOT NULL
@@ -1101,6 +1252,7 @@ IF OBJECT_ID('dbo.trg_Encounters_Audit', 'TR') IS NOT NULL
 IF OBJECT_ID('dbo.trg_LabResults_Audit', 'TR') IS NOT NULL
     ALTER TABLE ClinicDB.dbo.[LabResults] ENABLE TRIGGER [trg_LabResults_Audit];
 
+-- 3. Re-enable temporal system-versioning
 IF (SELECT temporal_type FROM sys.tables WHERE [name] = 'Patients' AND schema_id = SCHEMA_ID('dbo')) = 0
     ALTER TABLE ClinicDB.dbo.[Patients] SET (SYSTEM_VERSIONING = ON (HISTORY_TABLE = dbo.[PatientsHistory]));
 IF (SELECT temporal_type FROM sys.tables WHERE [name] = 'Encounters' AND schema_id = SCHEMA_ID('dbo')) = 0
