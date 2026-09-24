@@ -1,3 +1,4 @@
+using CMS.Application.Auth;
 using CMS.Application.ReportBuilder;
 using CMS.Domain.Interfaces;
 using CMS.Shared.DTOs;
@@ -12,10 +13,12 @@ namespace CMS.API.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IDbConnectionFactory _dbFactory;
+    private readonly AuthManagementService _authService;
 
-    public AuthController(IDbConnectionFactory dbFactory)
+    public AuthController(IDbConnectionFactory dbFactory, AuthManagementService authService)
     {
         _dbFactory = dbFactory;
+        _authService = authService;
     }
 
     [HttpPost("login")]
@@ -57,10 +60,10 @@ public class AuthController : ControllerBase
             staffId
         );
 
-        var token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwidW5hbWUiOiJhZG1pbiJ9.dummy_signature_sig";
+        var token = _authService.GenerateJwtToken(userDto);
         var refreshToken = Guid.NewGuid().ToString("N");
 
-        return Ok(ApiResponse<LoginResponse>.Ok(new LoginResponse(token, refreshToken, 15, userDto)));
+        return Ok(ApiResponse<LoginResponse>.Ok(new LoginResponse(token, refreshToken, 120, userDto)));
     }
 }
 

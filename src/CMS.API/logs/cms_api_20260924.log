@@ -1861,3 +1861,92 @@ token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hid
 2026-09-24 23:29:09.831 +03:00 [INF] Application started. Press Ctrl+C to shut down.
 2026-09-24 23:29:09.831 +03:00 [INF] Hosting environment: Development
 2026-09-24 23:29:09.831 +03:00 [INF] Content root path: C:\Users\ASUS\source\repos\CMS\src\CMS.API
+2026-09-24 23:30:26.319 +03:00 [INF] Request starting HTTP/1.1 POST http://localhost:5010/api/v1/auth/login - application/json 56
+2026-09-24 23:30:26.562 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.AuthController.Login (CMS.API)'
+2026-09-24 23:30:26.632 +03:00 [INF] Route matched with {action = "Login", controller = "Auth"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] Login(CMS.Shared.DTOs.LoginRequest) on controller CMS.API.Controllers.AuthController (CMS.API).
+2026-09-24 23:30:27.994 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[CMS.Shared.DTOs.LoginResponse, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]'.
+2026-09-24 23:30:28.066 +03:00 [INF] Executed action CMS.API.Controllers.AuthController.Login (CMS.API) in 1424.301ms
+2026-09-24 23:30:28.072 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.AuthController.Login (CMS.API)'
+2026-09-24 23:30:28.089 +03:00 [INF] Request finished HTTP/1.1 POST http://localhost:5010/api/v1/auth/login - 200 null application/json; charset=utf-8 1772.3365ms
+2026-09-24 23:30:37.769 +03:00 [INF] Request starting HTTP/1.1 POST http://localhost:5010/api/v1/auth/login - application/json 56
+2026-09-24 23:30:37.784 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.AuthController.Login (CMS.API)'
+2026-09-24 23:30:37.785 +03:00 [INF] Route matched with {action = "Login", controller = "Auth"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] Login(CMS.Shared.DTOs.LoginRequest) on controller CMS.API.Controllers.AuthController (CMS.API).
+2026-09-24 23:30:37.824 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[CMS.Shared.DTOs.LoginResponse, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]'.
+2026-09-24 23:30:37.825 +03:00 [INF] Executed action CMS.API.Controllers.AuthController.Login (CMS.API) in 39.508ms
+2026-09-24 23:30:37.826 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.AuthController.Login (CMS.API)'
+2026-09-24 23:30:37.826 +03:00 [INF] Request finished HTTP/1.1 POST http://localhost:5010/api/v1/auth/login - 200 null application/json; charset=utf-8 57.1666ms
+2026-09-24 23:32:58.644 +03:00 [INF] User profile is available. Using 'C:\Users\ASUS\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
+2026-09-24 23:32:58.822 +03:00 [INF] [2026-09-24 23:32:58.802] LISTENER STARTED: Passively waiting for analyzer connections on 0.0.0.0:5100...
+2026-09-24 23:32:58.832 +03:00 [INF] [2026-09-24 23:32:58.832] LISTENER STARTED: Passively waiting for analyzer connections on 0.0.0.0:2575...
+2026-09-24 23:32:59.068 +03:00 [INF] Now listening on: http://0.0.0.0:5010
+2026-09-24 23:32:59.068 +03:00 [INF] Now listening on: http://localhost:5010
+2026-09-24 23:32:59.068 +03:00 [INF] Application started. Press Ctrl+C to shut down.
+2026-09-24 23:32:59.068 +03:00 [INF] Hosting environment: Development
+2026-09-24 23:32:59.068 +03:00 [INF] Content root path: C:\Users\ASUS\source\repos\CMS\src\CMS.API
+2026-09-24 23:36:39.868 +03:00 [INF] User profile is available. Using 'C:\Users\ASUS\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
+2026-09-24 23:36:40.059 +03:00 [INF] [2026-09-24 23:36:40.050] LISTENER STARTED: Passively waiting for analyzer connections on 0.0.0.0:5100...
+2026-09-24 23:36:40.069 +03:00 [INF] [2026-09-24 23:36:40.069] LISTENER STARTED: Passively waiting for analyzer connections on 0.0.0.0:2575...
+2026-09-24 23:36:40.223 +03:00 [INF] Now listening on: http://0.0.0.0:5010
+2026-09-24 23:36:40.223 +03:00 [INF] Now listening on: http://localhost:5010
+2026-09-24 23:36:40.224 +03:00 [INF] Application started. Press Ctrl+C to shut down.
+2026-09-24 23:36:40.224 +03:00 [INF] Hosting environment: Development
+2026-09-24 23:36:40.224 +03:00 [INF] Content root path: C:\Users\ASUS\source\repos\CMS\src\CMS.API
+2026-09-24 23:37:02.952 +03:00 [INF] Request starting HTTP/1.1 POST http://localhost:5010/api/v1/auth/login - application/json 56
+2026-09-24 23:37:03.178 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.AuthController.Login (CMS.API)'
+2026-09-24 23:37:03.241 +03:00 [INF] Route matched with {action = "Login", controller = "Auth"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] Login(CMS.Shared.DTOs.LoginRequest) on controller CMS.API.Controllers.AuthController (CMS.API).
+2026-09-24 23:37:04.734 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[CMS.Shared.DTOs.LoginResponse, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]'.
+2026-09-24 23:37:04.825 +03:00 [INF] Executed action CMS.API.Controllers.AuthController.Login (CMS.API) in 1572.049ms
+2026-09-24 23:37:04.834 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.AuthController.Login (CMS.API)'
+2026-09-24 23:37:04.845 +03:00 [INF] Request finished HTTP/1.1 POST http://localhost:5010/api/v1/auth/login - 200 null application/json; charset=utf-8 1897.4828ms
+2026-09-24 23:37:05.189 +03:00 [INF] Request starting HTTP/1.1 GET http://localhost:5010/api/v1/notifications - null null
+2026-09-24 23:37:05.296 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: 'cms-hmac-key-v1', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: cms-hmac-key-v1
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 23:37:05.322 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: 'cms-hmac-key-v1', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: cms-hmac-key-v1
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 23:37:05.323 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 23:37:05.340 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-09-24 23:37:05.419 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 23:37:05.459 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 117.9896ms
+2026-09-24 23:37:05.459 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 23:37:05.460 +03:00 [INF] Request finished HTTP/1.1 GET http://localhost:5010/api/v1/notifications - 200 null application/json; charset=utf-8 270.397ms
+2026-09-24 23:39:23.357 +03:00 [INF] User profile is available. Using 'C:\Users\ASUS\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
+2026-09-24 23:39:23.509 +03:00 [INF] [2026-09-24 23:39:23.493] LISTENER STARTED: Passively waiting for analyzer connections on 0.0.0.0:5100...
+2026-09-24 23:39:23.526 +03:00 [INF] [2026-09-24 23:39:23.526] LISTENER STARTED: Passively waiting for analyzer connections on 0.0.0.0:2575...
+2026-09-24 23:39:23.713 +03:00 [INF] Now listening on: http://0.0.0.0:5010
+2026-09-24 23:39:23.713 +03:00 [INF] Now listening on: http://localhost:5010
+2026-09-24 23:39:23.713 +03:00 [INF] Application started. Press Ctrl+C to shut down.
+2026-09-24 23:39:23.715 +03:00 [INF] Hosting environment: Development
+2026-09-24 23:39:23.716 +03:00 [INF] Content root path: C:\Users\ASUS\source\repos\CMS\src\CMS.API
+2026-09-24 23:39:55.326 +03:00 [INF] Request starting HTTP/1.1 POST http://localhost:5010/api/v1/auth/login - application/json 56
+2026-09-24 23:39:55.573 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.AuthController.Login (CMS.API)'
+2026-09-24 23:39:55.629 +03:00 [INF] Route matched with {action = "Login", controller = "Auth"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] Login(CMS.Shared.DTOs.LoginRequest) on controller CMS.API.Controllers.AuthController (CMS.API).
+2026-09-24 23:39:56.892 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[CMS.Shared.DTOs.LoginResponse, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]'.
+2026-09-24 23:39:56.967 +03:00 [INF] Executed action CMS.API.Controllers.AuthController.Login (CMS.API) in 1326.8397ms
+2026-09-24 23:39:56.976 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.AuthController.Login (CMS.API)'
+2026-09-24 23:39:56.984 +03:00 [INF] Request finished HTTP/1.1 POST http://localhost:5010/api/v1/auth/login - 200 null application/json; charset=utf-8 1660.0147ms
+2026-09-24 23:39:57.223 +03:00 [INF] Request starting HTTP/1.1 GET http://localhost:5010/api/v1/notifications - null null
+2026-09-24 23:39:57.313 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 23:39:57.324 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-09-24 23:39:57.404 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 23:39:57.454 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 129.8998ms
+2026-09-24 23:39:57.455 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 23:39:57.455 +03:00 [INF] Request finished HTTP/1.1 GET http://localhost:5010/api/v1/notifications - 200 null application/json; charset=utf-8 232.1256ms
+2026-09-24 23:39:57.607 +03:00 [INF] Request starting HTTP/1.1 GET http://localhost:5010/api/v1/notifications - null null
+2026-09-24 23:39:57.617 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 23:39:57.618 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-09-24 23:39:57.628 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 23:39:57.630 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 11.1661ms
+2026-09-24 23:39:57.630 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 23:39:57.630 +03:00 [INF] Request finished HTTP/1.1 GET http://localhost:5010/api/v1/notifications - 200 null application/json; charset=utf-8 23.3261ms

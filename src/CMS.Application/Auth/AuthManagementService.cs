@@ -186,6 +186,9 @@ public class AuthManagementService
             expires: DateTime.UtcNow.AddHours(2),
             signingCredentials: credentials);
 
+        // Explicitly embed kid in the header so validators can resolve the key
+        token.Header[JwtHeaderParameterNames.Kid] = "cms-hmac-key-v1";
+
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
