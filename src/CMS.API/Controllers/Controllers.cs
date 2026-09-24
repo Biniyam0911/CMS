@@ -223,6 +223,98 @@ public class LaboratoryController : ControllerBase
         return Ok(ApiResponse<List<LabTestCatalogDto>>.Ok(catalog));
     }
 
+    public record CreateLabCatalogRequest(
+        string TestCode,
+        string TestName,
+        string? Category,
+        string? SampleType,
+        int TurnaroundMinutes = 60,
+        decimal? NormalRangeLow = null,
+        decimal? NormalRangeHigh = null,
+        string? Unit = null,
+        decimal? Price = 0);
+
+    public record UpdateLabCatalogRequest(
+        string TestCode,
+        string TestName,
+        string? Category,
+        string? SampleType,
+        int TurnaroundMinutes = 60,
+        decimal? NormalRangeLow = null,
+        decimal? NormalRangeHigh = null,
+        string? Unit = null,
+        decimal? Price = 0);
+
+    [HttpPost("catalog")]
+    public async Task<IActionResult> CreateCatalogItem([FromBody] CreateLabCatalogRequest req)
+    {
+        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+        using var conn = _dbFactory.CreateConnection();
+        var sql = @"
+            INSERT INTO LabTestCatalog (TenantId, TestCode, TestName, Category, SampleType, TurnaroundMinutes, NormalRangeLow, NormalRangeHigh, Unit, Price, IsActive, CreatedAt)
+            VALUES (@TenantId, @TestCode, @TestName, @Category, @SampleType, @TurnaroundMinutes, @NormalRangeLow, @NormalRangeHigh, @Unit, @Price, 1, SYSUTCDATETIME());
+            SELECT CAST(SCOPE_IDENTITY() as int);";
+        int id = await conn.ExecuteScalarAsync<int>(sql, new {
+            TenantId = tenantId,
+            req.TestCode,
+            req.TestName,
+            req.Category,
+            req.SampleType,
+            req.TurnaroundMinutes,
+            req.NormalRangeLow,
+            req.NormalRangeHigh,
+            req.Unit,
+            req.Price
+        });
+        await _cache.RemoveAsync($"lab_catalog_{tenantId}");
+        return Ok(ApiResponse<int>.Ok(id, "Lab test created successfully."));
+    }
+
+    [HttpPut("catalog/{id:int}")]
+    public async Task<IActionResult> UpdateCatalogItem(int id, [FromBody] UpdateLabCatalogRequest req)
+    {
+        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+        using var conn = _dbFactory.CreateConnection();
+        var sql = @"
+            UPDATE LabTestCatalog
+            SET TestCode = @TestCode,
+                TestName = @TestName,
+                Category = @Category,
+                SampleType = @SampleType,
+                TurnaroundMinutes = @TurnaroundMinutes,
+                NormalRangeLow = @NormalRangeLow,
+                NormalRangeHigh = @NormalRangeHigh,
+                Unit = @Unit,
+                Price = @Price
+            WHERE Id = @Id AND TenantId = @TenantId";
+        int rows = await conn.ExecuteAsync(sql, new {
+            Id = id,
+            TenantId = tenantId,
+            req.TestCode,
+            req.TestName,
+            req.Category,
+            req.SampleType,
+            req.TurnaroundMinutes,
+            req.NormalRangeLow,
+            req.NormalRangeHigh,
+            req.Unit,
+            req.Price
+        });
+        await _cache.RemoveAsync($"lab_catalog_{tenantId}");
+        return Ok(ApiResponse<bool>.Ok(rows > 0, "Lab test updated successfully."));
+    }
+
+    [HttpDelete("catalog/{id:int}")]
+    public async Task<IActionResult> DeleteCatalogItem(int id)
+    {
+        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+        using var conn = _dbFactory.CreateConnection();
+        var sql = @"UPDATE LabTestCatalog SET IsActive = 0 WHERE Id = @Id AND TenantId = @TenantId";
+        int rows = await conn.ExecuteAsync(sql, new { Id = id, TenantId = tenantId });
+        await _cache.RemoveAsync($"lab_catalog_{tenantId}");
+        return Ok(ApiResponse<bool>.Ok(rows > 0, "Lab test deleted successfully."));
+    }
+
     [HttpGet("instruments/listener-status")]
     public IActionResult GetListenerStatus()
     {

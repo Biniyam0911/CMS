@@ -344,28 +344,69 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
   const [orderRxQty, setOrderRxQty] = useState(14);
   const [orderRxTiming, setOrderRxTiming] = useState('Take after meals');
 
-  // DYNAMIC SERVICES CATALOG FROM DATABASE (Services Table)
+  // DYNAMIC SERVICES CATALOG FROM DATABASE (Services Table — excludes Lab categories)
   const [servicesCatalog, setServicesCatalog] = useState<ServiceCatalogItem[]>([]);
   const [loadingServices, setLoadingServices] = useState(false);
   const [serviceSearchQuery, setServiceSearchQuery] = useState('');
   const [expandedCategories, setExpandedCategories] = useState<{ [cat: string]: boolean }>({});
 
-  // Fetch all active services from backend Services table
+  // LAB TEST CATALOG from LabTestCatalog table (separate from Services table)
+  const [labCatalogItems, setLabCatalogItems] = useState<ServiceCatalogItem[]>([]);
+  const [loadingLabCatalog, setLoadingLabCatalog] = useState(false);
+  const [labCatalogExpanded, setLabCatalogExpanded] = useState(true);
+
+  // Helper: is a category a "lab" category (these come from LabTestCatalog, not Services table)
+  const isLabCategory = (cat: string) => {
+    const c = (cat || '').toLowerCase();
+    return c.includes('lab') || c === 'old lab category' || c.includes('old lab');
+  };
+
+  // Fetch lab tests from LabTestCatalog table via /lab/catalog
+  useEffect(() => {
+    const fetchLabCatalog = async () => {
+      setLoadingLabCatalog(true);
+      try {
+        const raw = await api.get<any>('/lab/catalog');
+        // Handle both wrapped { data: [...] } and plain array
+        const data: any[] = Array.isArray(raw) ? raw : (raw?.data ?? raw?.Data ?? []);
+        if (data.length > 0) {
+          setLabCatalogItems(data.map((t: any) => ({
+            id: t.id || t.Id,
+            code: t.testCode || t.TestCode || t.code || t.Code || '',
+            name: t.testName || t.TestName || t.name || t.Name || 'Lab Test',
+            category: t.category || t.Category || 'Laboratory',
+            department: t.sampleType || t.SampleType || 'Laboratory',
+            price: parseFloat(t.price ?? t.Price ?? 0) || 0,
+            description: `Specimen: ${t.sampleType || t.SampleType || 'Blood'} · TAT: ${t.turnaroundMinutes ?? t.TurnaroundMinutes ?? 60} min`
+          })));
+        }
+      } catch (err) {
+        console.warn('Failed to load lab catalog:', err);
+      } finally {
+        setLoadingLabCatalog(false);
+      }
+    };
+    fetchLabCatalog();
+  }, []);
+
+  // Fetch all active services from backend Services table (lab categories excluded — served by LabTestCatalog)
   useEffect(() => {
     const fetchServices = async () => {
       setLoadingServices(true);
       try {
         const data = await api.get<any[]>('/services?limit=1500');
         if (Array.isArray(data) && data.length > 0) {
-          const mapped: ServiceCatalogItem[] = data.map((s: any) => ({
-            id: s.id || s.Id,
-            code: s.code || s.Code || '',
-            name: s.name || s.Name || 'Medical Service',
-            category: s.category || s.Category || 'General',
-            department: s.department || s.Department || '',
-            price: parseFloat(s.price ?? s.Price ?? s.standardFee ?? s.StandardFee ?? 0) || 0,
-            description: s.description || s.Description || ''
-          }));
+          const mapped: ServiceCatalogItem[] = data
+            .filter((s: any) => !isLabCategory(s.category || s.Category || ''))
+            .map((s: any) => ({
+              id: s.id || s.Id,
+              code: s.code || s.Code || '',
+              name: s.name || s.Name || 'Medical Service',
+              category: s.category || s.Category || 'General',
+              department: s.department || s.Department || '',
+              price: parseFloat(s.price ?? s.Price ?? s.standardFee ?? s.StandardFee ?? 0) || 0,
+              description: s.description || s.Description || ''
+            }));
           setServicesCatalog(mapped);
 
           // By default expand common clinical procedure categories
@@ -405,6 +446,18 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
 
     return groups;
   }, [servicesCatalog, serviceSearchQuery]);
+
+  // Filtered lab tests from LabTestCatalog by search query
+  const filteredLabCatalogItems = React.useMemo(() => {
+    const query = serviceSearchQuery.trim().toLowerCase();
+    if (!query) return labCatalogItems;
+    return labCatalogItems.filter(item =>
+      (item.name || '').toLowerCase().includes(query) ||
+      (item.code || '').toLowerCase().includes(query) ||
+      (item.category || '').toLowerCase().includes(query) ||
+      (item.department || '').toLowerCase().includes(query)
+    );
+  }, [labCatalogItems, serviceSearchQuery]);
 
   const getCategoryMeta = (cat: string) => {
     const c = (cat || '').toLowerCase();
@@ -939,7 +992,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
         code: item.code,
         price: item.price,
         paramsSummary: `Priority: ${orderLabPriority} | Specimen: ${item.specimen} ${orderLabFasting ? '| Fasting' : ''}`,
-        details: { priority: orderLabPriority, indication: orderLabIndication, fasting: orderLabFasting, subParams: item.subParams }
+        details: { testId: Number(item.id) || 1, priority: orderLabPriority, indication: orderLabIndication, fasting: orderLabFasting, subParams: item.subParams }
       };
     } else if (type === 'PROCEDURE') {
       newBasketItem = {
@@ -1046,7 +1099,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
           code: item.code,
           price: item.price,
           paramsSummary: `Priority: Routine | Specimen: ${item.specimen}`,
-          details: { priority: 'Routine', indication: 'Clinical evaluation', fasting: item.fasting || false, subParams: item.subParams }
+          details: { testId: Number(item.id) || 1, priority: 'Routine', indication: 'Clinical evaluation', fasting: item.fasting || false, subParams: item.subParams }
         };
       } else if (type === 'PROCEDURE') {
         return {
@@ -1093,7 +1146,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
           code: item.code,
           price: item.price,
           paramsSummary: `Priority: ${orderLabPriority} | Specimen: ${item.specimen}`,
-          details: { priority: orderLabPriority, indication: orderLabIndication, fasting: orderLabFasting, subParams: item.subParams }
+          details: { testId: Number(item.id) || 1, priority: orderLabPriority, indication: orderLabIndication, fasting: orderLabFasting, subParams: item.subParams }
         };
       } else if (type === 'PROCEDURE') {
         newBasketItem = {
@@ -1161,6 +1214,13 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
           'ESR': 10
         };
         const testIds = labItems.map(item => {
+          if (item.details?.testId && Number(item.details.testId) > 0) {
+            return Number(item.details.testId);
+          }
+          const rawId = item.id ? String(item.id).split('-')[1] : null;
+          const numId = rawId ? parseInt(rawId, 10) : NaN;
+          if (!isNaN(numId) && numId > 0) return numId;
+
           const match = Object.keys(testIdMap).find(k => item.code?.toUpperCase().includes(k) || item.title?.toUpperCase().includes(k));
           return match ? testIdMap[match] : 1;
         });
@@ -2849,6 +2909,70 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', gap: '8px', color: '#64748b', fontSize: '0.78rem' }}>
                       <div style={{ width: '16px', height: '16px', border: '2px solid #cbd5e1', borderTopColor: '#0284c7', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
                       Loading services…
+                    </div>
+                  )}
+
+                  {/* Dedicated Laboratory Tests Category from LabTestCatalog table */}
+                  {(loadingLabCatalog || filteredLabCatalogItems.length > 0) && (
+                    <div style={{ borderRadius: '8px', background: '#fff', border: '1px solid #bae6fd', overflow: 'hidden' }}>
+                      <button
+                        onClick={() => setLabCatalogExpanded(prev => !prev)}
+                        style={{ width: '100%', padding: '10px 12px', background: labCatalogExpanded ? '#eff6ff' : '#fff', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '7px', color: '#0284c7', fontWeight: 700, fontSize: '0.8rem' }}>
+                          <FlaskConical size={14} color="#0284c7" />
+                          Laboratory Tests ({filteredLabCatalogItems.length})
+                          {filteredLabCatalogItems.filter(s => !!checkedCatalogItems[`LAB:${s.id}`]).length > 0 && (
+                            <span style={{ background: '#0284c7', color: '#fff', borderRadius: '10px', padding: '1px 6px', fontSize: '0.62rem', fontWeight: 700 }}>
+                              {filteredLabCatalogItems.filter(s => !!checkedCatalogItems[`LAB:${s.id}`]).length} ✓
+                            </span>
+                          )}
+                        </div>
+                        {labCatalogExpanded ? <ChevronDown size={13} color="#64748b" /> : <ChevronRight size={13} color="#64748b" />}
+                      </button>
+                      {labCatalogExpanded && (
+                        <div style={{ borderTop: '1px solid #bae6fd', maxHeight: '260px', overflowY: 'auto' }}>
+                          <div style={{ padding: '3px 10px', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 1 }}>
+                            <span style={{ fontSize: '0.62rem', color: '#94a3b8' }}>✓ check to multi-select</span>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleSelectCategory('Laboratory', filteredLabCatalogItems)}
+                              style={{ background: 'none', border: 'none', color: '#0284c7', fontSize: '0.65rem', fontWeight: 700, cursor: 'pointer' }}
+                            >
+                              {filteredLabCatalogItems.length > 0 && filteredLabCatalogItems.every(s => !!checkedCatalogItems[`LAB:${s.id}`]) ? 'Deselect All' : 'Select All'}
+                            </button>
+                          </div>
+                          {loadingLabCatalog ? (
+                            <div style={{ padding: '16px', textAlign: 'center', fontSize: '0.75rem', color: '#64748b' }}>
+                              Loading laboratory catalog…
+                            </div>
+                          ) : (
+                            filteredLabCatalogItems.map(svc => {
+                              const isChecked = !!checkedCatalogItems[`LAB:${svc.id}`];
+                              const isSelected = selectedOrderItem?.item?.id === String(svc.id) && selectedOrderItem?.type === 'LAB';
+                              return (
+                                <div
+                                  key={`lab-${svc.id}`}
+                                  onClick={() => handleSelectService(svc)}
+                                  style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 10px', background: isSelected ? '#dbeafe' : isChecked ? '#eff6ff' : '#fff', borderTop: '1px solid #f1f5f9', cursor: 'pointer' }}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={e => { e.stopPropagation(); toggleCheckService(svc); }}
+                                    style={{ flexShrink: 0, width: '14px', height: '14px', cursor: 'pointer' }}
+                                  />
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontSize: '0.77rem', fontWeight: 600, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{svc.name}</div>
+                                    <div style={{ fontSize: '0.63rem', color: '#94a3b8' }}>{svc.code} · Br {svc.price.toFixed(2)}</div>
+                                  </div>
+                                  {isSelected && <ChevronRight size={12} color="#0284c7" />}
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
 

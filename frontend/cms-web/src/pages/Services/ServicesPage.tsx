@@ -99,52 +99,8 @@ export default function ServicesPage() {
     return DEFAULT_SERVICES;
   });
 
-  // Comprehensive Laboratory Tests & Sub-Tests State
-  const [labTests, setLabTests] = useState<LabTestMaster[]>([
-    {
-      id: 1, code: 'CBC-01', name: 'Complete Blood Count (CBC Profile)', category: 'Hematology', sampleType: 'Whole Blood / EDTA', turnaroundMinutes: 60, price: 280.0, fastingRequired: false, isActive: true,
-      parameters: [
-        { code: 'WBC', name: 'White Blood Cell Count', unit: '10^3/uL', normalRangeLow: 4.5, normalRangeHigh: 11.0 },
-        { code: 'RBC', name: 'Red Blood Cell Count', unit: '10^6/uL', normalRangeLow: 4.2, normalRangeHigh: 5.8 },
-        { code: 'HGB', name: 'Hemoglobin', unit: 'g/dL', normalRangeLow: 12.0, normalRangeHigh: 17.5 },
-        { code: 'HCT', name: 'Hematocrit', unit: '%', normalRangeLow: 37.0, normalRangeHigh: 51.0 },
-        { code: 'PLT', name: 'Platelet Count', unit: '10^3/uL', normalRangeLow: 150.0, normalRangeHigh: 450.0 }
-      ]
-    },
-    {
-      id: 2, code: 'LFT-01', name: 'Liver Function Tests (LFT Panel)', category: 'Biochemistry', sampleType: 'Serum', turnaroundMinutes: 120, price: 380.0, fastingRequired: true, isActive: true,
-      parameters: [
-        { code: 'ALT', name: 'Alanine Aminotransferase (ALT/SGPT)', unit: 'U/L', normalRangeLow: 7.0, normalRangeHigh: 56.0 },
-        { code: 'AST', name: 'Aspartate Aminotransferase (AST/SGOT)', unit: 'U/L', normalRangeLow: 10.0, normalRangeHigh: 40.0 },
-        { code: 'ALP', name: 'Alkaline Phosphatase (ALP)', unit: 'U/L', normalRangeLow: 44.0, normalRangeHigh: 147.0 },
-        { code: 'TBIL', name: 'Total Bilirubin', unit: 'mg/dL', normalRangeLow: 0.2, normalRangeHigh: 1.2 },
-        { code: 'ALB', name: 'Albumin', unit: 'g/dL', normalRangeLow: 3.4, normalRangeHigh: 5.4 }
-      ]
-    },
-    {
-      id: 3, code: 'RFT-01', name: 'Renal Function Tests (RFT / Urea & Creatinine)', category: 'Biochemistry', sampleType: 'Serum', turnaroundMinutes: 120, price: 320.0, fastingRequired: false, isActive: true,
-      parameters: [
-        { code: 'CREAT', name: 'Serum Creatinine', unit: 'mg/dL', normalRangeLow: 0.6, normalRangeHigh: 1.2 },
-        { code: 'BUN', name: 'Blood Urea Nitrogen (BUN)', unit: 'mg/dL', normalRangeLow: 7.0, normalRangeHigh: 20.0 },
-        { code: 'EGFR', name: 'Estimated GFR (eGFR)', unit: 'mL/min/1.73m²', normalRangeLow: 90.0, normalRangeHigh: 120.0 }
-      ]
-    },
-    {
-      id: 4, code: 'LIPID-01', name: 'Lipid Profile Panel', category: 'Biochemistry', sampleType: 'Serum', turnaroundMinutes: 120, price: 420.0, fastingRequired: true, isActive: true,
-      parameters: [
-        { code: 'CHOL', name: 'Total Cholesterol', unit: 'mg/dL', normalRangeLow: 125.0, normalRangeHigh: 200.0 },
-        { code: 'HDL', name: 'HDL Cholesterol (Good)', unit: 'mg/dL', normalRangeLow: 40.0, normalRangeHigh: 60.0 },
-        { code: 'LDL', name: 'LDL Cholesterol (Bad)', unit: 'mg/dL', normalRangeLow: 50.0, normalRangeHigh: 100.0 },
-        { code: 'TRIG', name: 'Triglycerides', unit: 'mg/dL', normalRangeLow: 50.0, normalRangeHigh: 150.0 }
-      ]
-    },
-    {
-      id: 5, code: 'FBS-01', name: 'Fasting Blood Sugar (FBS)', category: 'Biochemistry', sampleType: 'Fluoride Plasma', turnaroundMinutes: 30, price: 120.0, fastingRequired: true, isActive: true,
-      parameters: [
-        { code: 'GLU', name: 'Fasting Blood Glucose', unit: 'mg/dL', normalRangeLow: 70.0, normalRangeHigh: 99.0 }
-      ]
-    }
-  ]);
+  // Comprehensive Laboratory Tests & Sub-Tests State (loaded from /lab/catalog)
+  const [labTests, setLabTests] = useState<LabTestMaster[]>([]);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<number | 'ALL'>('ALL');
@@ -239,9 +195,10 @@ export default function ServicesPage() {
   // Load backend catalog if available
   const loadBackendServicesAndCategories = async () => {
     try {
-      const [srvData, catData] = await Promise.all([
-        api.get<any[]>('/services', { limit: 500 }).catch(() => []),
-        api.get<any[]>('/services/categories').catch(() => [])
+      const [srvData, catData, labData] = await Promise.all([
+        api.get<any[]>('/services', { limit: 1500 }).catch(() => []),
+        api.get<any[]>('/services/categories').catch(() => []),
+        api.get<any>('/lab/catalog').catch(() => [])
       ]);
 
       if (srvData && Array.isArray(srvData) && srvData.length > 0) {
@@ -266,6 +223,30 @@ export default function ServicesPage() {
           code: c.code || c.Code,
           description: c.description || c.Description || '',
           itemCount: c.itemCount || c.ItemCount || 0
+        })));
+      }
+
+      const rawLab: any[] = Array.isArray(labData) ? labData : (labData?.data ?? labData?.Data ?? []);
+      if (rawLab.length > 0) {
+        setLabTests(rawLab.map((t: any) => ({
+          id: t.id || t.Id,
+          code: t.testCode || t.TestCode || '',
+          name: t.testName || t.TestName || '',
+          category: t.category || t.Category || 'General Diagnostics',
+          sampleType: t.sampleType || t.SampleType || 'Blood / Serum',
+          turnaroundMinutes: t.turnaroundMinutes ?? t.TurnaroundMinutes ?? 60,
+          price: parseFloat(t.price ?? t.Price ?? 0) || 0,
+          fastingRequired: false,
+          isActive: true,
+          parameters: (t.unit || t.Unit || t.normalRangeLow != null || t.normalRangeHigh != null) ? [
+            {
+              code: t.testCode || t.TestCode || 'ANALYTE',
+              name: t.testName || t.TestName || 'Primary Analyte',
+              unit: t.unit || t.Unit || '',
+              normalRangeLow: t.normalRangeLow ?? t.NormalRangeLow ?? 0,
+              normalRangeHigh: t.normalRangeHigh ?? t.NormalRangeHigh ?? 0
+            }
+          ] : []
         })));
       }
     } catch (err) {
@@ -394,47 +375,58 @@ export default function ServicesPage() {
     setLabFormParams(labFormParams.filter((_, i) => i !== idx));
   };
 
-  const handleSaveLabTest = (e: React.FormEvent) => {
+  const handleSaveLabTest = async (e: React.FormEvent) => {
     e.preventDefault();
     const priceNum = parseFloat(labFormPrice) || 0;
     const tatNum = parseInt(labFormTat) || 60;
+    const firstParam = labFormParams[0];
 
-    if (editingLab) {
-      setLabTests(labTests.map(t => t.id === editingLab.id ? {
-        ...t,
-        code: labFormCode,
-        name: labFormName,
-        category: labFormCat,
-        sampleType: labFormSample,
-        turnaroundMinutes: tatNum,
-        price: priceNum,
-        fastingRequired: labFormFasting,
-        parameters: labFormParams
-      } : t));
-      showToast(`Updated Lab Test: "${labFormName}" with ${labFormParams.length} sub-tests`);
-    } else {
-      const newTest: LabTestMaster = {
-        id: Date.now(),
-        code: labFormCode,
-        name: labFormName,
-        category: labFormCat,
-        sampleType: labFormSample,
-        turnaroundMinutes: tatNum,
-        price: priceNum,
-        fastingRequired: labFormFasting,
-        isActive: true,
-        parameters: labFormParams
-      };
-      setLabTests([newTest, ...labTests]);
-      showToast(`Created Lab Test: "${labFormName}" with ${labFormParams.length} sub-parameters`);
+    try {
+      if (editingLab) {
+        await api.put(`/lab/catalog/${editingLab.id}`, {
+          testCode: labFormCode,
+          testName: labFormName,
+          category: labFormCat,
+          sampleType: labFormSample,
+          turnaroundMinutes: tatNum,
+          price: priceNum,
+          unit: firstParam?.unit || '',
+          normalRangeLow: firstParam?.normalRangeLow != null ? Number(firstParam.normalRangeLow) : null,
+          normalRangeHigh: firstParam?.normalRangeHigh != null ? Number(firstParam.normalRangeHigh) : null
+        });
+        showToast(`Updated Lab Test: "${labFormName}"`);
+      } else {
+        await api.post('/lab/catalog', {
+          testCode: labFormCode,
+          testName: labFormName,
+          category: labFormCat,
+          sampleType: labFormSample,
+          turnaroundMinutes: tatNum,
+          price: priceNum,
+          unit: firstParam?.unit || '',
+          normalRangeLow: firstParam?.normalRangeLow != null ? Number(firstParam.normalRangeLow) : null,
+          normalRangeHigh: firstParam?.normalRangeHigh != null ? Number(firstParam.normalRangeHigh) : null
+        });
+        showToast(`Created Lab Test: "${labFormName}"`);
+      }
+      await loadBackendServicesAndCategories();
+    } catch (err) {
+      console.error('Failed to save lab test to database:', err);
+      showToast('Error saving lab test to database.');
     }
     setShowLabModal(false);
   };
 
-  const handleDeleteLabTest = (id: number) => {
-    if (window.confirm('Are you sure you want to delete this Laboratory Test & Sub-tests?')) {
-      setLabTests(labTests.filter(t => t.id !== id));
-      showToast('Lab Test deleted from catalogue.');
+  const handleDeleteLabTest = async (id: number) => {
+    if (window.confirm('Are you sure you want to delete this Laboratory Test?')) {
+      try {
+        await api.delete(`/lab/catalog/${id}`);
+        showToast('Lab Test deactivated in catalogue.');
+        await loadBackendServicesAndCategories();
+      } catch (err) {
+        console.error('Failed to delete lab test:', err);
+        showToast('Error deleting lab test from catalogue.');
+      }
     }
   };
 
