@@ -98,6 +98,15 @@ public class PatientsController : ControllerBase
         byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
         var queryStr = q?.Trim() ?? "";
         int maxRows = limit is > 0 and <= 500 ? limit : 100;
+
+        string? cacheKey = string.IsNullOrWhiteSpace(queryStr) ? $"tenant:{tenantId}:patients:top:{maxRows}" : null;
+        if (cacheKey != null)
+        {
+            var cached = await _cache.GetAsync<List<PatientDto>>(cacheKey);
+            if (cached != null)
+                return Ok(ApiResponse<List<PatientDto>>.Ok(cached));
+        }
+
         using var conn = _dbFactory.CreateConnection();
         
         string sql;
@@ -109,7 +118,7 @@ public class PatientsController : ControllerBase
                 SELECT TOP (@Limit) Id, TenantId, MRN, FirstName, MiddleName, LastName, DateOfBirth, Gender,
                        PrimaryPhone, Email, Address, InsuranceProvider, InsuranceCopayPercent,
                        Allergies, ChronicConditions, NationalId, BloodGroup, PhotoUrl, IsActive
-                FROM Patients
+                FROM Patients WITH (NOLOCK)
                 WHERE TenantId = @TenantId AND IsActive = 1
                 ORDER BY Id DESC";
             param = new { TenantId = tenantId, Limit = maxRows };
@@ -122,7 +131,7 @@ public class PatientsController : ControllerBase
                 SELECT TOP (@Limit) Id, TenantId, MRN, FirstName, MiddleName, LastName, DateOfBirth, Gender,
                        PrimaryPhone, Email, Address, InsuranceProvider, InsuranceCopayPercent,
                        Allergies, ChronicConditions, NationalId, BloodGroup, PhotoUrl, IsActive
-                FROM Patients
+                FROM Patients WITH (NOLOCK)
                 WHERE TenantId = @TenantId AND IsActive = 1
                   AND (MRN LIKE @Prefix OR PrimaryPhone LIKE @Prefix OR FirstName LIKE @Prefix OR LastName LIKE @Prefix 
                        OR FirstName LIKE @Contains OR LastName LIKE @Contains OR MiddleName LIKE @Contains)
@@ -131,6 +140,12 @@ public class PatientsController : ControllerBase
         }
 
         var patients = (await conn.QueryAsync<PatientDto>(sql, param)).ToList();
+
+        if (cacheKey != null)
+        {
+            await _cache.SetAsync(cacheKey, patients, TimeSpan.FromSeconds(30));
+        }
+
         return Ok(ApiResponse<List<PatientDto>>.Ok(patients));
     }
 
