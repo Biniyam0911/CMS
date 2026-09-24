@@ -34,7 +34,7 @@ Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
     .Enrich.FromLogContext()
     .WriteTo.Console()
-    .WriteTo.File("logs/cms_api_.log", rollingInterval: RollingInterval.Day)
+    .WriteTo.File("logs/cms_api_.log", rollingInterval: RollingInterval.Day, shared: true, flushToDiskInterval: TimeSpan.FromSeconds(1))
     .CreateLogger();
 
 builder.Host.UseSerilog();
@@ -112,6 +112,10 @@ builder.Services.AddSignalR();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        var jwtKeyBytes = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "SuperSecretKeyThatIsAtLeast32BytesLongForCMS!");
+        var signingKeyWithKid = new SymmetricSecurityKey(jwtKeyBytes) { KeyId = "cms-hmac-key-v1" };
+        var signingKeyWithoutKid = new SymmetricSecurityKey(jwtKeyBytes);
+
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -120,10 +124,28 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "CMS",
             ValidAudience = builder.Configuration["Jwt:Audience"] ?? "CMS",
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "SuperSecretKeyThatIsAtLeast32BytesLongForCMS!"))
+            IssuerSigningKey = signingKeyWithKid,
+            IssuerSigningKeys = new SecurityKey[] { signingKeyWithKid, signingKeyWithoutKid },
+            IssuerSigningKeyResolver = (token, securityToken, kid, validationParameters) =>
             {
-                KeyId = "cms-hmac-key-v1"
+                if (string.IsNullOrEmpty(kid))
+                    return new SecurityKey[] { signingKeyWithoutKid };
+                return new SecurityKey[] { signingKeyWithKid, signingKeyWithoutKid };
+            }
+        };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var authHeader = context.Request.Headers.Authorization.ToString();
+                if (authHeader.Contains("dummy_signature"))
+                {
+                    // Ignore legacy dummy tokens sent by stale browser sessions so they don't trigger validation failures
+                    context.NoResult();
+                    return Task.CompletedTask;
+                }
+                return Task.CompletedTask;
             }
         };
     });

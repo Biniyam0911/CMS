@@ -25,9 +25,24 @@ class ApiClient {
       'x-tenant-id': tenantId
     };
 
-    // Only send Authorization header if there is a well-formed 3-segment JWT token
-    if (token && token.split('.').length === 3) {
-      headers['Authorization'] = `Bearer ${token}`;
+    if (token) {
+      // If client has legacy dummy token, purge it so it's never transmitted
+      if (token.includes('dummy_signature')) {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('current_user');
+      } else if (token.split('.').length === 3) {
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          if (payload.exp && payload.exp * 1000 < Date.now()) {
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('current_user');
+          } else {
+            headers['Authorization'] = `Bearer ${token}`;
+          }
+        } catch {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+      }
     }
 
     return headers;
