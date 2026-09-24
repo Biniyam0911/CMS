@@ -83,7 +83,14 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
 
   // Doctor Selector State for Multi-Doctor EMR
   // Use the doctorId from the logged-in user (set by backend at login) — no hardcoded username checks
-  const initialDoctorId = currentUser?.doctorId ?? 0;
+  const initialDoctorId = (() => {
+    if (currentUser?.doctorId) return Number(currentUser.doctorId);
+    try {
+      const saved = localStorage.getItem('emr_selected_doctor_id');
+      if (saved) return Number(saved);
+    } catch {}
+    return 0;
+  })();
 
   const [selectedDoctorId, setSelectedDoctorId] = useState<number>(initialDoctorId);
   const [availableDoctors, setAvailableDoctors] = useState<{ id: number; name: string; specialization?: string }[]>([]);
@@ -181,17 +188,19 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
         const res = await api.get<any[]>('/staff/doctors');
         if (res && Array.isArray(res) && res.length > 0) {
           const docs = res.map((d: any) => ({
-            id: d.id || d.Id,
+            id: Number(d.id || d.Id),
             name: d.doctorName || d.DoctorName || `Doctor ${d.id}`,
             specialization: d.specializationName || d.SpecializationName || 'General Practice'
           }));
           setAvailableDoctors(docs);
 
-          // 1. If currentUser has doctorId, match it
-          if (currentUser?.doctorId) {
-            const match = docs.find((d: any) => d.id === currentUser.doctorId);
+          // 1. If currentUser has doctorId, match it (with type coercion)
+          const loggedDocId = Number(currentUser?.doctorId);
+          if (loggedDocId > 0) {
+            const match = docs.find((d: any) => d.id === loggedDocId);
             if (match) {
               setSelectedDoctorId(match.id);
+              try { localStorage.setItem('emr_selected_doctor_id', String(match.id)); } catch {}
               setCertDoctorName(match.name);
               setCertDoctorTitle(match.specialization ? `${match.specialization} Specialist` : 'Physician');
               return;
@@ -203,23 +212,30 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
           const fname = (currentUser?.firstName || '').toLowerCase();
           const lname = (currentUser?.lastName || '').toLowerCase();
           const nameMatch = docs.find((d: any) => {
-            const dName = d.name.toLowerCase();
-            return (uname && uname !== 'admin' && dName.includes(uname)) ||
-                   (fname && dName.includes(fname)) ||
-                   (lname && dName.includes(lname));
+            const dName = (d.name || '').toLowerCase();
+            const cleanDName = dName.replace(/^dr\.?\s+/i, '');
+            return (uname && uname !== 'admin' && (dName.includes(uname) || uname.includes(cleanDName))) ||
+                   (fname && fname !== 'admin' && dName.includes(fname)) ||
+                   (lname && lname !== 'admin' && dName.includes(lname));
           });
           if (nameMatch) {
             setSelectedDoctorId(nameMatch.id);
+            try { localStorage.setItem('emr_selected_doctor_id', String(nameMatch.id)); } catch {}
             setCertDoctorName(nameMatch.name);
             setCertDoctorTitle(nameMatch.specialization ? `${nameMatch.specialization} Specialist` : 'Physician');
             return;
           }
 
-          // 3. Fallback: select first doctor in clinic (for admin / staff)
-          if (docs.length > 0) {
-            setSelectedDoctorId(docs[0].id);
-            setCertDoctorName(docs[0].name);
-            setCertDoctorTitle(docs[0].specialization ? `${docs[0].specialization} Specialist` : 'Physician');
+          // 3. Fallback for Admin / Staff: keep saved selection or choose first doctor
+          let savedDocId = 0;
+          try { savedDocId = Number(localStorage.getItem('emr_selected_doctor_id')); } catch {}
+          const savedMatch = docs.find(d => d.id === savedDocId);
+          const chosen = savedMatch || docs[0];
+          if (chosen) {
+            setSelectedDoctorId(chosen.id);
+            try { localStorage.setItem('emr_selected_doctor_id', String(chosen.id)); } catch {}
+            setCertDoctorName(chosen.name);
+            setCertDoctorTitle(chosen.specialization ? `${chosen.specialization} Specialist` : 'Physician');
           }
         }
       } catch (e) {
@@ -231,8 +247,10 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
 
   // Update selectedDoctorId when currentUser changes
   useEffect(() => {
-    if (currentUser?.doctorId) {
-      setSelectedDoctorId(currentUser.doctorId);
+    const loggedDocId = Number(currentUser?.doctorId);
+    if (loggedDocId > 0) {
+      setSelectedDoctorId(loggedDocId);
+      try { localStorage.setItem('emr_selected_doctor_id', String(loggedDocId)); } catch {}
     }
   }, [currentUser]);
 
@@ -423,6 +441,15 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
   // Load patients assigned to the logged-in doctor on the selected date (defaults to today)
   useEffect(() => {
     const loadEmrPatients = async () => {
+      // Guard: do not query if selectedDoctorId is not yet resolved!
+      if (!selectedDoctorId || selectedDoctorId <= 0) {
+        setPatients([]);
+        setActivePatient(null);
+        setPatientPaymentMap({});
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         // Fetch assignments for this doctor on the selected date + all invoices for payment badge

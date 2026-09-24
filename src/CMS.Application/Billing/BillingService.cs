@@ -173,6 +173,7 @@ public class BillingService
                 UnitPrice = itemUnitPrice,
                 Discount = isFree ? 0 : item.Discount,
                 Total = itemTotal,
+                RefId = refId
             });
         }
 

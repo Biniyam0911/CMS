@@ -63,6 +63,11 @@ public class TriageController : ControllerBase
     [HttpGet("doctor/{doctorId:int}")]
     public async Task<IActionResult> GetDoctorQueue(int doctorId, [FromQuery] DateTime? date = null)
     {
+        if (doctorId <= 0)
+        {
+            return Ok(ApiResponse<List<dynamic>>.Ok(new List<dynamic>()));
+        }
+
         byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
         using var conn = _dbFactory.CreateConnection();
 
@@ -90,11 +95,12 @@ public class TriageController : ControllerBase
             LEFT JOIN Staff s ON s.Id = d.StaffId
             LEFT JOIN ConsultationRooms r ON r.Id = t.AssignedRoomId
             WHERE t.TenantId = @TenantId
-              AND (t.AssignedDoctorId = @DoctorId OR @DoctorId = 0)
+              AND t.AssignedDoctorId = @DoctorId
               AND (
                   @Date IS NULL
                   OR CAST(t.TriagedAt AS DATE) = CAST(@Date AS DATE)
                   OR CAST(t.UpdatedAt AS DATE) = CAST(@Date AS DATE)
+                  OR t.Status = 'AssignedToDoctor'
               )
             ORDER BY t.PriorityLevel ASC, t.UpdatedAt DESC, t.TriagedAt DESC";
 

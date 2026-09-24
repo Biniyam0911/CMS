@@ -400,3 +400,31 @@ System.Threading.Tasks.TaskCanceledException: A task was canceled.
 2026-09-23 20:49:53.064 +03:00 [INF] Hosting environment: Development
 2026-09-23 20:49:53.079 +03:00 [INF] Content root path: C:\Users\ASUS\source\repos\CMS\src\CMS.ServiceManager
 2026-09-23 20:50:02.844 +03:00 [INF] Application is shutting down...
+2026-09-23 21:50:51.110 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-23T21:50:51.0433147+03:00"
+2026-09-23 21:50:51.339 +03:00 [INF] Starting LabInstrumentListenerWorker TCP listener on Port 5100...
+2026-09-23 21:50:51.356 +03:00 [INF] LIS TCP Server listening on 0.0.0.0:5100 (Waiting for incoming analyzer connections)
+2026-09-23 21:50:51.379 +03:00 [INF] Application started. Press Ctrl+C to shut down.
+2026-09-23 21:50:51.381 +03:00 [INF] Hosting environment: Development
+2026-09-23 21:50:51.383 +03:00 [INF] Content root path: C:\Users\ASUS\source\repos\CMS\src\CMS.ServiceManager
+2026-09-23 21:51:51.330 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-23T21:51:51.3303341+03:00"
+2026-09-23 21:52:51.353 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-23T21:52:51.3530857+03:00"
+2026-09-23 21:53:51.370 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-23T21:53:51.3708446+03:00"
+2026-09-23 21:54:51.393 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-23T21:54:51.3933808+03:00"
+2026-09-23 21:55:51.399 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-23T21:55:51.3992117+03:00"
+2026-09-23 21:56:51.414 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-23T21:56:51.4139160+03:00"
+2026-09-23 21:57:51.424 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-23T21:57:51.4241870+03:00"
+2026-09-23 21:58:51.444 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-23T21:58:51.4447183+03:00"
+2026-09-23 21:59:51.459 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-23T21:59:51.4596542+03:00"
+2026-09-23 22:00:51.472 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-23T22:00:51.4724306+03:00"
+2026-09-23 22:01:51.486 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-23T22:01:51.4867701+03:00"
+2026-09-23 22:02:51.500 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-23T22:02:51.5001282+03:00"
+2026-09-23 22:03:51.510 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-23T22:03:51.5109134+03:00"
+2026-09-23 22:04:51.528 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-23T22:04:51.5280471+03:00"
+2026-09-23 22:05:51.548 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-23T22:05:51.5480079+03:00"
+2026-09-23 22:06:51.567 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-23T22:06:51.5674964+03:00"
+2026-09-23 22:07:51.575 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-23T22:07:51.5756547+03:00"
+2026-09-23 22:08:51.582 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-23T22:08:51.5828437+03:00"
+2026-09-23 22:09:51.593 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-23T22:09:51.5936731+03:00"
+2026-09-23 22:10:51.650 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-23T22:10:51.6502299+03:00"
+2026-09-23 22:11:51.856 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-23T22:11:51.8567693+03:00"
+2026-09-23 22:12:29.067 +03:00 [INF] Application is shutting down...

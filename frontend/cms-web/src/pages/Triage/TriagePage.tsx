@@ -410,12 +410,21 @@ export default function TriagePage() {
 
       // 2. Real Database Billing Invoice Creation for Paid Visits
       if (finalFee > 0) {
+        let currentUserId = 1;
+        try {
+          const savedUser = localStorage.getItem('current_user');
+          if (savedUser) {
+            const u = JSON.parse(savedUser);
+            if (u?.id) currentUserId = Number(u.id);
+          }
+        } catch {}
+
         try {
           await api.post('/billing/invoices', {
             tenantId: 1,
             patientId: patId,
             encounterId: null, // At triage assign stage, no encounter exists yet
-            createdBy: 1,
+            createdBy: currentUserId,
             items: [
               {
                 itemType: 'Consultation',
@@ -426,8 +435,10 @@ export default function TriagePage() {
               }
             ]
           });
-        } catch (bErr) {
+        } catch (bErr: any) {
           console.error('Failed to create billing invoice for triage consultation:', bErr);
+          setToastMessage(`Patient routed, but invoice warning: ${bErr?.response?.data?.message || bErr?.message || 'Check billing'}`);
+          setTimeout(() => setToastMessage(null), 5000);
         }
       }
 

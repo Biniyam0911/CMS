@@ -9223,11 +9223,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "c:\\Users\\ASUS\\source\\repos\\CMS\\tests\\CMS.UnitTests\\CMS.UnitTests.csproj",
+      "projectUniqueName": "C:\\Users\\ASUS\\source\\repos\\CMS\\tests\\CMS.UnitTests\\CMS.UnitTests.csproj",
       "projectName": "CMS.UnitTests",
-      "projectPath": "c:\\Users\\ASUS\\source\\repos\\CMS\\tests\\CMS.UnitTests\\CMS.UnitTests.csproj",
+      "projectPath": "C:\\Users\\ASUS\\source\\repos\\CMS\\tests\\CMS.UnitTests\\CMS.UnitTests.csproj",
       "packagesPath": "C:\\Users\\ASUS\\.nuget\\packages\\",
-      "outputPath": "c:\\Users\\ASUS\\source\\repos\\CMS\\tests\\CMS.UnitTests\\obj\\",
+      "outputPath": "C:\\Users\\ASUS\\source\\repos\\CMS\\tests\\CMS.UnitTests\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files\\DevExpress 24.1\\Components\\Offline Packages",
@@ -9254,14 +9254,14 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "projectReferences": {
-            "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Application\\CMS.Application.csproj": {
-              "projectPath": "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Application\\CMS.Application.csproj"
+            "C:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Application\\CMS.Application.csproj": {
+              "projectPath": "C:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Application\\CMS.Application.csproj"
             },
-            "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Domain\\CMS.Domain.csproj": {
-              "projectPath": "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Domain\\CMS.Domain.csproj"
+            "C:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Domain\\CMS.Domain.csproj": {
+              "projectPath": "C:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Domain\\CMS.Domain.csproj"
             },
-            "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Infrastructure\\CMS.Infrastructure.csproj": {
-              "projectPath": "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Infrastructure\\CMS.Infrastructure.csproj"
+            "C:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Infrastructure\\CMS.Infrastructure.csproj": {
+              "projectPath": "C:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Infrastructure\\CMS.Infrastructure.csproj"
             }
           }
         }
@@ -9336,5 +9336,13 @@
         "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.202/PortableRuntimeIdentifierGraph.json"
       }
     }
-  }
+  },
+  "logs": [
+    {
+      "code": "NU1900",
+      "level": "Warning",
+      "warningLevel": 1,
+      "message": "Error occurred while getting package vulnerability data: Unable to load the service index for source https://api.nuget.org/v3/index.json."
+    }
+  ]
 }

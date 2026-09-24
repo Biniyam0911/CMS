@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "L6TcI7c8y+E=",
+  "dgSpecHash": "jwd4wGLcBW4=",
   "success": true,
-  "projectFilePath": "c:\\Users\\ASUS\\source\\repos\\CMS\\tests\\CMS.UnitTests\\CMS.UnitTests.csproj",
+  "projectFilePath": "C:\\Users\\ASUS\\source\\repos\\CMS\\tests\\CMS.UnitTests\\CMS.UnitTests.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\ASUS\\.nuget\\packages\\azure.core\\1.35.0\\azure.core.1.35.0.nupkg.sha512",
     "C:\\Users\\ASUS\\.nuget\\packages\\azure.identity\\1.10.3\\azure.identity.1.10.3.nupkg.sha512",
@@ -169,5 +169,12 @@
     "C:\\Users\\ASUS\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\8.0.14\\microsoft.windowsdesktop.app.ref.8.0.14.nupkg.sha512",
     "C:\\Users\\ASUS\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\8.0.14\\microsoft.aspnetcore.app.ref.8.0.14.nupkg.sha512"
   ],
-  "logs": []
+  "logs": [
+    {
+      "code": "NU1900",
+      "level": "Warning",
+      "warningLevel": 1,
+      "message": "Error occurred while getting package vulnerability data: Unable to load the service index for source https://api.nuget.org/v3/index.json."
+    }
+  ]
 }
