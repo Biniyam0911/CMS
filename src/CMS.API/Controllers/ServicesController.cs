@@ -21,7 +21,7 @@ public class ServicesController : ControllerBase
     public async Task<IActionResult> GetAllServices(
         [FromQuery] string? search = null,
         [FromQuery] string? category = null,
-        [FromQuery] int limit = 300)
+        [FromQuery] int limit = 1500)
     {
         byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
         using var conn = _dbFactory.CreateConnection();
@@ -33,12 +33,14 @@ public class ServicesController : ControllerBase
                 Name,
                 Category,
                 Department,
+                Price,
                 Price AS StandardFee,
                 Taxable,
                 IsActive,
                 Description
             FROM dbo.Services WITH (NOLOCK)
             WHERE TenantId = @TenantId
+              AND IsActive = 1
               AND (@Category IS NULL OR Category = @Category)
               AND (
                   @Search IS NULL

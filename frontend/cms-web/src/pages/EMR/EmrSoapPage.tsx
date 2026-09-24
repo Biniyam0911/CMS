@@ -18,6 +18,16 @@ interface EmrSoapPageProps {
 }
 
 // Order Catalogue Types
+export interface ServiceCatalogItem {
+  id: number;
+  code: string;
+  name: string;
+  category: string;
+  department?: string;
+  price: number;
+  description?: string;
+}
+
 interface LabTestItem {
   id: string;
   code: string;
@@ -334,54 +344,175 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
   const [orderRxQty, setOrderRxQty] = useState(14);
   const [orderRxTiming, setOrderRxTiming] = useState('Take after meals');
 
-  // CATALOG DATA DEFINITIONS WITH PRICING
-  const labCatalogue: LabTestItem[] = [
-    { id: 'CBC', code: 'CBC-01', name: 'Complete Blood Count (CBC Profile)', category: 'Hematology', specimen: 'Whole Blood / EDTA', fasting: false, tat: '1 Hour', price: 280.0, subParams: ['WBC Count', 'Hemoglobin (HGB)', 'Hematocrit (HCT)', 'Platelet Count (PLT)', 'RBC Indices'] },
-    { id: 'LFT', code: 'LFT-01', name: 'Liver Function Tests (LFT Panel)', category: 'Biochemistry', specimen: 'Serum', fasting: true, tat: '2 Hours', price: 380.0, subParams: ['ALT (SGPT)', 'AST (SGOT)', 'Alkaline Phosphatase', 'Total Bilirubin', 'Direct Bilirubin', 'Total Protein', 'Albumin'] },
-    { id: 'RFT', code: 'RFT-01', name: 'Renal Function Tests (RFT / Urea & Creatinine)', category: 'Biochemistry', specimen: 'Serum', fasting: false, tat: '2 Hours', price: 320.0, subParams: ['Serum Creatinine', 'Blood Urea Nitrogen (BUN)', 'eGFR', 'Uric Acid'] },
-    { id: 'FBS', code: 'FBS-01', name: 'Fasting Blood Sugar (FBS)', category: 'Biochemistry', specimen: 'Fluoride Plasma', fasting: true, tat: '30 Mins', price: 120.0, subParams: ['Glucose Fasting'] },
-    { id: 'LIPID', code: 'LIPID-01', name: 'Lipid Profile Panel', category: 'Biochemistry', specimen: 'Serum', fasting: true, tat: '2 Hours', price: 420.0, subParams: ['Total Cholesterol', 'HDL Cholesterol', 'LDL Cholesterol', 'Triglycerides'] },
-    { id: 'UA', code: 'UA-01', name: 'Urinalysis Complete', category: 'Clinical Pathology', specimen: 'Midstream Urine', fasting: false, tat: '45 Mins', price: 150.0, subParams: ['Urine pH', 'Specific Gravity', 'Protein', 'Glucose', 'Microscopic RBC/WBC'] },
-    { id: 'THYROID', code: 'THY-01', name: 'Thyroid Panel (TSH, Free T3, Free T4)', category: 'Immunoassay', specimen: 'Serum', fasting: false, tat: '4 Hours', price: 560.0, subParams: ['TSH', 'Free T3', 'Free T4'] },
-    { id: 'CRP', code: 'CRP-01', name: 'C-Reactive Protein (CRP Quantitative)', category: 'Immunology', specimen: 'Serum', fasting: false, tat: '1 Hour', price: 240.0, subParams: ['CRP Level'] }
-  ];
+  // DYNAMIC SERVICES CATALOG FROM DATABASE (Services Table)
+  const [servicesCatalog, setServicesCatalog] = useState<ServiceCatalogItem[]>([]);
+  const [loadingServices, setLoadingServices] = useState(false);
+  const [serviceSearchQuery, setServiceSearchQuery] = useState('');
+  const [expandedCategories, setExpandedCategories] = useState<{ [cat: string]: boolean }>({});
 
-  const procedureCatalogue: ProcedureItem[] = React.useMemo(() => {
-    try {
-      const raw = localStorage.getItem('clinic_services');
-      if (raw) {
-        const svcList: any[] = JSON.parse(raw);
-        const procSvcs = svcList.filter((s: any) => {
-          const cat = (s.category || s.Category || '').toLowerCase();
-          const type = (s.type || s.serviceType || '').toLowerCase();
-          return cat.includes('procedure') || cat.includes('surgery') || cat.includes('minor') ||
-                 cat.includes('laser') || cat.includes('aesthetic') || cat.includes('dermato') ||
-                 type === 'procedure' || type === 'clinical';
-        });
-        if (procSvcs.length > 0) {
-          return procSvcs.map((s: any, i: number) => ({
-            id: String(s.id || s.code || `PROC-${i}`),
-            code: String(s.code || s.serviceCode || `CPT-${10000 + i}`),
-            name: s.name || s.serviceName || 'Clinical Procedure',
-            category: s.category || s.Category || 'Clinical Procedure',
-            duration: s.duration || '30 Mins',
-            anesthesia: s.anesthesia || 'As Required',
-            defaultSite: s.defaultSite || 'Treatment Area',
-            price: parseFloat(s.price || s.unitPrice || s.Price || 0)
+  // Fetch all active services from backend Services table
+  useEffect(() => {
+    const fetchServices = async () => {
+      setLoadingServices(true);
+      try {
+        const data = await api.get<any[]>('/services?limit=1500');
+        if (Array.isArray(data) && data.length > 0) {
+          const mapped: ServiceCatalogItem[] = data.map((s: any) => ({
+            id: s.id || s.Id,
+            code: s.code || s.Code || '',
+            name: s.name || s.Name || 'Medical Service',
+            category: s.category || s.Category || 'General',
+            department: s.department || s.Department || '',
+            price: parseFloat(s.price ?? s.Price ?? s.standardFee ?? s.StandardFee ?? 0) || 0,
+            description: s.description || s.Description || ''
           }));
+          setServicesCatalog(mapped);
+
+          // By default expand common clinical procedure categories
+          const initialExpanded: { [cat: string]: boolean } = {};
+          const uniqueCats = Array.from(new Set(mapped.map(m => m.category)));
+          uniqueCats.forEach((c, idx) => {
+            const low = c.toLowerCase();
+            initialExpanded[c] = idx === 0 || low.includes('proc') || low.includes('facial') || low.includes('consult');
+          });
+          setExpandedCategories(initialExpanded);
         }
+      } catch (err) {
+        console.warn('Failed to load services from Services table:', err);
+      } finally {
+        setLoadingServices(false);
       }
-    } catch { /* use defaults */ }
-    // Default fallback catalogue
-    return [
-      { id: 'BIOPSY', code: 'CPT-11100', name: 'Skin Punch / Shave Biopsy (3-4mm)', category: 'Minor Surgery', duration: '20 Mins', anesthesia: 'Local Anesthesia (Lidocaine 2%)', defaultSite: 'Lesion Site', price: 750.0 },
-      { id: 'CRYO', code: 'CPT-17000', name: 'Liquid Nitrogen Cryotherapy (1-3 Lesions)', category: 'Aesthetics / Surgery', duration: '15 Mins', anesthesia: 'None Required', defaultSite: 'Target Lesions', price: 450.0 },
-      { id: 'PEEL', code: 'CPT-15788', name: 'Chemical Peel Rejuvenation (Salicylic/Glycolic)', category: 'Dermatology Aesthetics', duration: '30 Mins', anesthesia: 'None Required', defaultSite: 'Facial', price: 1200.0 },
-      { id: 'LASER', code: 'CPT-17106', name: 'Laser Hair & Pigment Therapy (Per Session)', category: 'Laser Center', duration: '40 Mins', anesthesia: 'Topical EMLA Cream', defaultSite: 'Treatment Area', price: 1800.0 },
-      { id: 'WOUND', code: 'CPT-12001', name: 'Minor Wound Debridement & Suturing', category: 'Minor Surgery', duration: '30 Mins', anesthesia: 'Local Anesthesia (Lidocaine 2%)', defaultSite: 'Affected Area', price: 500.0 },
-      { id: 'ID', code: 'CPT-10060', name: 'Abscess Incision & Drainage (I&D)', category: 'Minor Surgery', duration: '25 Mins', anesthesia: 'Local Anesthesia (Lidocaine 2%)', defaultSite: 'Abscess Site', price: 450.0 }
-    ];
+    };
+    fetchServices();
   }, []);
+
+  // Group services by category, filtered by search query
+  const groupedServices = React.useMemo(() => {
+    const query = serviceSearchQuery.trim().toLowerCase();
+    const groups: { [cat: string]: ServiceCatalogItem[] } = {};
+
+    for (const svc of servicesCatalog) {
+      if (query) {
+        const matchesName = (svc.name || '').toLowerCase().includes(query);
+        const matchesCode = (svc.code || '').toLowerCase().includes(query);
+        const matchesCat = (svc.category || '').toLowerCase().includes(query);
+        if (!matchesName && !matchesCode && !matchesCat) continue;
+      }
+      const cat = svc.category || 'General';
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(svc);
+    }
+
+    return groups;
+  }, [servicesCatalog, serviceSearchQuery]);
+
+  const getCategoryMeta = (cat: string) => {
+    const c = (cat || '').toLowerCase();
+    if (c.includes('lab')) {
+      return { icon: FlaskConical, color: '#0284c7', bg: '#eff6ff', border: '#bae6fd', badge: '#0284c7', type: 'LAB' as const };
+    }
+    if (c.includes('proc') || c.includes('surg') || c.includes('minor')) {
+      return { icon: Scissors, color: '#7c3aed', bg: '#faf5ff', border: '#e9d5ff', badge: '#7c3aed', type: 'PROCEDURE' as const };
+    }
+    if (c.includes('facial') || c.includes('aesthet') || c.includes('skin') || c.includes('laser')) {
+      return { icon: Sparkles, color: '#d946ef', bg: '#fdf4ff', border: '#f5d0fe', badge: '#d946ef', type: 'PROCEDURE' as const };
+    }
+    if (c.includes('pharm') || c.includes('drug') || c.includes('med')) {
+      return { icon: Pill, color: '#059669', bg: '#f0fdf4', border: '#bbf7d0', badge: '#059669', type: 'RX' as const };
+    }
+    if (c.includes('consult')) {
+      return { icon: Stethoscope, color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe', badge: '#2563eb', type: 'PROCEDURE' as const };
+    }
+    return { icon: Activity, color: '#475569', bg: '#f8fafc', border: '#e2e8f0', badge: '#475569', type: 'PROCEDURE' as const };
+  };
+
+  const handleSelectService = (svc: ServiceCatalogItem) => {
+    const meta = getCategoryMeta(svc.category);
+    const item = {
+      id: String(svc.id),
+      code: svc.code,
+      name: svc.name,
+      category: svc.category,
+      price: svc.price,
+      specimen: 'Specimen / Blood',
+      fasting: false,
+      tat: 'Routine',
+      subParams: [],
+      defaultSite: 'Target Area',
+      anesthesia: 'Local Anesthesia / As Required',
+      notes: `Perform ${svc.name} as indicated.`,
+      defaultDosage: '1 Unit',
+      defaultRoute: 'Oral / Topical',
+      defaultFreq: 'Once Daily (OD)',
+      defaultDuration: '7 Days',
+      defaultQty: 1,
+      instructions: svc.description || 'Take as directed'
+    };
+    handleSelectCatalogItem(meta.type, item);
+  };
+
+  const toggleCheckService = (svc: ServiceCatalogItem) => {
+    const meta = getCategoryMeta(svc.category);
+    const item = {
+      id: String(svc.id),
+      code: svc.code,
+      name: svc.name,
+      category: svc.category,
+      price: svc.price,
+      specimen: 'Specimen / Blood',
+      defaultSite: 'Target Area',
+      anesthesia: 'Local Anesthesia',
+      notes: `Perform ${svc.name} as indicated.`,
+      defaultDosage: '1 Unit',
+      defaultRoute: 'Oral',
+      defaultFreq: 'Once Daily (OD)',
+      defaultDuration: '7 Days',
+      defaultQty: 1,
+      instructions: svc.description || 'Take as directed'
+    };
+    toggleCheckItem(meta.type, item);
+  };
+
+  const handleToggleSelectCategory = (catName: string, itemsList: ServiceCatalogItem[]) => {
+    const meta = getCategoryMeta(catName);
+    const allChecked = itemsList.every(s => !!checkedCatalogItems[`${meta.type}:${s.id}`]);
+    setCheckedCatalogItems(prev => {
+      const next = { ...prev };
+      if (allChecked) {
+        itemsList.forEach(s => delete next[`${meta.type}:${s.id}`]);
+      } else {
+        itemsList.forEach(s => {
+          next[`${meta.type}:${s.id}`] = {
+            type: meta.type,
+            item: {
+              id: String(s.id),
+              code: s.code,
+              name: s.name,
+              category: s.category,
+              price: s.price,
+              specimen: 'Specimen / Blood',
+              defaultSite: 'Target Area',
+              anesthesia: 'Local Anesthesia',
+              notes: `Perform ${s.name} as indicated.`,
+              defaultDosage: '1 Unit',
+              defaultRoute: 'Oral',
+              defaultFreq: 'OD',
+              defaultQty: 1,
+              instructions: s.description || 'Take as directed'
+            }
+          };
+        });
+      }
+      return next;
+    });
+  };
+
+  const toggleCategoryExpand = (catName: string) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [catName]: !prev[catName]
+    }));
+  };
 
   const [medicationCatalogue, setMedicationCatalogue] = useState<MedicationItem[]>([
     { id: 'HYDRO', name: 'Hydrocortisone 1% Cream (15g Tube)', class: 'Topical Corticosteroid', defaultDosage: 'Apply thin layer', defaultRoute: 'Topical', defaultFreq: 'Twice Daily (BID)', defaultDuration: '7 Days', defaultDurationDays: 7, defaultQty: 1, unitPrice: 85.0, instructions: 'Apply to affected skin. Avoid eye area.' },
@@ -2702,92 +2833,85 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
 
               {/* LEFT: Catalog */}
               <div style={{ width: '380px', flexShrink: 0, borderRight: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0, height: '100%' }}>
-                <div style={{ padding: '8px 14px', borderBottom: '1px solid #e2e8f0', background: '#f1f5f9', fontSize: '0.68rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Service Catalog
+                <div style={{ padding: '8px 14px', borderBottom: '1px solid #e2e8f0', background: '#f1f5f9', fontSize: '0.68rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <span>Service Catalog</span>
+                  <input
+                    value={serviceSearchQuery}
+                    onChange={e => setServiceSearchQuery(e.target.value)}
+                    placeholder="Search services…"
+                    style={{ padding: '5px 9px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.75rem', fontWeight: 400, color: '#1e293b', background: '#fff', outline: 'none' }}
+                  />
                 </div>
                 <div style={{ flex: '1 1 0%', overflowY: 'auto', padding: '8px', display: 'flex', flexDirection: 'column', gap: '6px', minHeight: 0 }}>
 
-                  {/* Lab */}
-                  <div style={{ borderRadius: '8px', background: '#fff', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-                    <button onClick={() => toggleNode('lab')} style={{ width: '100%', padding: '10px 12px', background: expandedNodes.lab ? '#eff6ff' : '#fff', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '7px', color: '#0369a1', fontWeight: 700, fontSize: '0.8rem' }}>
-                        <FlaskConical size={14} color="#0284c7" />
-                        Lab Tests ({labCatalogue.length})
-                        {Object.keys(checkedCatalogItems).filter(k => k.startsWith('LAB:')).length > 0 && (
-                          <span style={{ background: '#0284c7', color: '#fff', borderRadius: '10px', padding: '1px 6px', fontSize: '0.62rem', fontWeight: 700 }}>
-                            {Object.keys(checkedCatalogItems).filter(k => k.startsWith('LAB:')).length} ✓
-                          </span>
-                        )}
-                      </div>
-                      {expandedNodes.lab ? <ChevronDown size={13} color="#64748b" /> : <ChevronRight size={13} color="#64748b" />}
-                    </button>
-                    {expandedNodes.lab && (
-                      <div style={{ borderTop: '1px solid #e2e8f0', maxHeight: '260px', overflowY: 'auto' }}>
-                        <div style={{ padding: '3px 10px', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 1 }}>
-                          <span style={{ fontSize: '0.62rem', color: '#94a3b8' }}>✓ check to multi-select</span>
-                          <button type="button" onClick={() => handleToggleSelectAll('LAB', labCatalogue)} style={{ background: 'none', border: 'none', color: '#0284c7', fontSize: '0.65rem', fontWeight: 700, cursor: 'pointer' }}>
-                            {labCatalogue.every(t => !!checkedCatalogItems[`LAB:${t.id}`]) ? 'Deselect All' : 'Select All'}
-                          </button>
-                        </div>
-                        {labCatalogue.map(test => {
-                          const isChecked = !!checkedCatalogItems[`LAB:${test.id}`];
-                          const isSelected = selectedOrderItem?.type === 'LAB' && selectedOrderItem.item.id === test.id;
-                          return (
-                            <div key={test.id} onClick={() => handleSelectCatalogItem('LAB', test)}
-                              style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 10px', background: isSelected ? '#dbeafe' : isChecked ? '#eff6ff' : '#fff', borderTop: '1px solid #f1f5f9', cursor: 'pointer' }}>
-                              <input type="checkbox" checked={isChecked} onChange={e => { e.stopPropagation(); toggleCheckItem('LAB', test); }} style={{ flexShrink: 0, width: '14px', height: '14px', cursor: 'pointer' }} />
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ fontSize: '0.77rem', fontWeight: 600, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{test.name}</div>
-                                <div style={{ fontSize: '0.63rem', color: '#94a3b8' }}>{test.specimen} · Br {test.price.toFixed(2)}</div>
-                              </div>
-                              {isSelected && <ChevronRight size={12} color="#0284c7" />}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
+                  {/* Loading spinner */}
+                  {loadingServices && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', gap: '8px', color: '#64748b', fontSize: '0.78rem' }}>
+                      <div style={{ width: '16px', height: '16px', border: '2px solid #cbd5e1', borderTopColor: '#0284c7', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                      Loading services…
+                    </div>
+                  )}
 
-                  {/* Procedures */}
-                  <div style={{ borderRadius: '8px', background: '#fff', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-                    <button onClick={() => toggleNode('proc')} style={{ width: '100%', padding: '10px 12px', background: expandedNodes.proc ? '#faf5ff' : '#fff', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '7px', color: '#7c3aed', fontWeight: 700, fontSize: '0.8rem' }}>
-                        <Scissors size={14} color="#7c3aed" />
-                        Procedures ({procedureCatalogue.length})
-                        {Object.keys(checkedCatalogItems).filter(k => k.startsWith('PROCEDURE:')).length > 0 && (
-                          <span style={{ background: '#7c3aed', color: '#fff', borderRadius: '10px', padding: '1px 6px', fontSize: '0.62rem', fontWeight: 700 }}>
-                            {Object.keys(checkedCatalogItems).filter(k => k.startsWith('PROCEDURE:')).length} ✓
-                          </span>
+                  {/* Dynamic grouped services from Services table */}
+                  {!loadingServices && Object.entries(groupedServices).map(([catName, items]) => {
+                    const meta = getCategoryMeta(catName);
+                    const IconComp = meta.icon;
+                    const isExpanded = !!expandedCategories[catName];
+                    const checkedCount = items.filter(s => !!checkedCatalogItems[`${meta.type}:${s.id}`]).length;
+                    const allChecked = items.length > 0 && checkedCount === items.length;
+                    return (
+                      <div key={catName} style={{ borderRadius: '8px', background: '#fff', border: `1px solid ${meta.border}`, overflow: 'hidden' }}>
+                        <button
+                          onClick={() => toggleCategoryExpand(catName)}
+                          style={{ width: '100%', padding: '10px 12px', background: isExpanded ? meta.bg : '#fff', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '7px', color: meta.color, fontWeight: 700, fontSize: '0.8rem' }}>
+                            <IconComp size={14} color={meta.color} />
+                            {catName} ({items.length})
+                            {checkedCount > 0 && (
+                              <span style={{ background: meta.badge, color: '#fff', borderRadius: '10px', padding: '1px 6px', fontSize: '0.62rem', fontWeight: 700 }}>
+                                {checkedCount} ✓
+                              </span>
+                            )}
+                          </div>
+                          {isExpanded ? <ChevronDown size={13} color="#64748b" /> : <ChevronRight size={13} color="#64748b" />}
+                        </button>
+                        {isExpanded && (
+                          <div style={{ borderTop: `1px solid ${meta.border}`, maxHeight: '260px', overflowY: 'auto' }}>
+                            <div style={{ padding: '3px 10px', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 1 }}>
+                              <span style={{ fontSize: '0.62rem', color: '#94a3b8' }}>✓ check to multi-select</span>
+                              <button type="button" onClick={() => handleToggleSelectCategory(catName, items)} style={{ background: 'none', border: 'none', color: meta.color, fontSize: '0.65rem', fontWeight: 700, cursor: 'pointer' }}>
+                                {allChecked ? 'Deselect All' : 'Select All'}
+                              </button>
+                            </div>
+                            {items.map(svc => {
+                              const isChecked = !!checkedCatalogItems[`${meta.type}:${svc.id}`];
+                              const isSelected = selectedOrderItem?.item?.id === String(svc.id);
+                              return (
+                                <div
+                                  key={svc.id}
+                                  onClick={() => handleSelectService(svc)}
+                                  style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 10px', background: isSelected ? meta.bg : isChecked ? meta.bg + 'aa' : '#fff', borderTop: '1px solid #f1f5f9', cursor: 'pointer' }}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={e => { e.stopPropagation(); toggleCheckService(svc); }}
+                                    style={{ flexShrink: 0, width: '14px', height: '14px', cursor: 'pointer' }}
+                                  />
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontSize: '0.77rem', fontWeight: 600, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{svc.name}</div>
+                                    <div style={{ fontSize: '0.63rem', color: '#94a3b8' }}>{svc.code} · Br {svc.price.toFixed(2)}</div>
+                                  </div>
+                                  {isSelected && <ChevronRight size={12} color={meta.color} />}
+                                </div>
+                              );
+                            })}
+                          </div>
                         )}
                       </div>
-                      {expandedNodes.proc ? <ChevronDown size={13} color="#64748b" /> : <ChevronRight size={13} color="#64748b" />}
-                    </button>
-                    {expandedNodes.proc && (
-                      <div style={{ borderTop: '1px solid #e2e8f0', maxHeight: '260px', overflowY: 'auto' }}>
-                        <div style={{ padding: '3px 10px', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 1 }}>
-                          <span style={{ fontSize: '0.62rem', color: '#94a3b8' }}>✓ check to multi-select</span>
-                          <button type="button" onClick={() => handleToggleSelectAll('PROCEDURE', procedureCatalogue)} style={{ background: 'none', border: 'none', color: '#7c3aed', fontSize: '0.65rem', fontWeight: 700, cursor: 'pointer' }}>
-                            {procedureCatalogue.every(p => !!checkedCatalogItems[`PROCEDURE:${p.id}`]) ? 'Deselect All' : 'Select All'}
-                          </button>
-                        </div>
-                        {procedureCatalogue.map(proc => {
-                          const isChecked = !!checkedCatalogItems[`PROCEDURE:${proc.id}`];
-                          const isSelected = selectedOrderItem?.type === 'PROCEDURE' && selectedOrderItem.item.id === proc.id;
-                          return (
-                            <div key={proc.id} onClick={() => handleSelectCatalogItem('PROCEDURE', proc)}
-                              style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 10px', background: isSelected ? '#ede9fe' : isChecked ? '#faf5ff' : '#fff', borderTop: '1px solid #f1f5f9', cursor: 'pointer' }}>
-                              <input type="checkbox" checked={isChecked} onChange={e => { e.stopPropagation(); toggleCheckItem('PROCEDURE', proc); }} style={{ flexShrink: 0, width: '14px', height: '14px', cursor: 'pointer' }} />
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ fontSize: '0.77rem', fontWeight: 600, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{proc.name}</div>
-                                <div style={{ fontSize: '0.63rem', color: '#94a3b8' }}>{proc.category} · Br {proc.price.toFixed(2)}</div>
-                              </div>
-                              {isSelected && <ChevronRight size={12} color="#7c3aed" />}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
+                    );
+                  })}
 
                   {/* Prescriptions */}
                   <div style={{ borderRadius: '8px', background: '#fff', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
