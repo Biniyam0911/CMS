@@ -78,11 +78,26 @@ public class BillingController : ControllerBase
         _billingService = billingService;
     }
 
-    [HttpGet("invoices")]
-    public async Task<IActionResult> GetInvoices([FromQuery] int limit = 200, [FromQuery] int? patientId = null, [FromQuery] DateTime? date = null)
+    [HttpGet("stats")]
+    public async Task<IActionResult> GetBillingStats([FromQuery] DateTime? fromDate = null, [FromQuery] DateTime? toDate = null)
     {
         byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
-        var invoices = await _billingService.GetInvoicesAsync(tenantId, limit, patientId, date);
+        var stats = await _billingService.GetBillingStatsAsync(tenantId, fromDate, toDate);
+        return Ok(ApiResponse<BillingStatsDto>.Ok(stats));
+    }
+
+    [HttpGet("invoices")]
+    public async Task<IActionResult> GetInvoices(
+        [FromQuery] int limit = 200, 
+        [FromQuery] int? patientId = null, 
+        [FromQuery] DateTime? date = null,
+        [FromQuery] DateTime? fromDate = null,
+        [FromQuery] DateTime? toDate = null)
+    {
+        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+        var start = fromDate ?? date;
+        var end = toDate ?? date;
+        var invoices = await _billingService.GetInvoicesAsync(tenantId, limit, patientId, start, end);
         return Ok(ApiResponse<List<InvoiceDto>>.Ok(invoices));
     }
 

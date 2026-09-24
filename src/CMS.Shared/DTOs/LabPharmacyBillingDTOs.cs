@@ -497,3 +497,15 @@ public class CompleteTelemedConsultationRequestDto
     public string? PrescriptionText { get; set; }
 }
 
+public class BillingStatsDto
+{
+    public int TotalInvoices { get; set; }
+    public int BillableInvoices { get; set; }
+    public int WaivedInvoices { get; set; }
+    public decimal TotalBilled { get; set; }
+    public decimal PaidRevenue { get; set; }
+    public decimal PendingReceivables { get; set; }
+    public int PaidCount { get; set; }
+    public int CollectionRate => BillableInvoices > 0 ? (int)Math.Round((double)PaidCount / BillableInvoices * 100) : 100;
+}
+

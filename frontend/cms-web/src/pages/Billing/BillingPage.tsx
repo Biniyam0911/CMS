@@ -12,7 +12,23 @@ export default function BillingPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
-  const [filterDate, setFilterDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  const [filterDate, setFilterDate] = useState<string>('');
+
+  // Date Period Filter State
+  type DatePeriod = 'ALL' | 'TODAY' | 'WEEK' | 'MONTH' | 'CUSTOM';
+  const [datePeriod, setDatePeriod] = useState<DatePeriod>('ALL');
+  const [customStartDate, setCustomStartDate] = useState<string>('');
+  const [customEndDate, setCustomEndDate] = useState<string>('');
+  const [dbStats, setDbStats] = useState<{
+    totalInvoices: number;
+    billableInvoices: number;
+    waivedInvoices: number;
+    totalBilled: number;
+    paidRevenue: number;
+    pendingReceivables: number;
+    paidCount: number;
+    collectionRate: number;
+  } | null>(null);
 
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -73,16 +89,71 @@ export default function BillingPage() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const fetchInvoicesAndPatients = async () => {
+  const getDateRangeForPeriod = (period: DatePeriod, cStart?: string, cEnd?: string) => {
+    const today = new Date().toISOString().split('T')[0];
+    if (period === 'TODAY') {
+      return { fromDate: today, toDate: today };
+    }
+    if (period === 'WEEK') {
+      const d = new Date();
+      d.setDate(d.getDate() - 7);
+      return { fromDate: d.toISOString().split('T')[0], toDate: today };
+    }
+    if (period === 'MONTH') {
+      const now = new Date();
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+      return { fromDate: firstDay, toDate: today };
+    }
+    if (period === 'CUSTOM') {
+      return { fromDate: cStart || undefined, toDate: cEnd || undefined };
+    }
+    return { fromDate: undefined, toDate: undefined };
+  };
+
+  const fetchInvoicesAndPatients = async (
+    overridePeriod?: DatePeriod,
+    overrideStart?: string,
+    overrideEnd?: string
+  ) => {
     try {
       setLoading(true);
-      const [invData, patData, settingsData, provData, claimData] = await Promise.all([
-        api.get<any[]>('/billing/invoices').catch(() => []),
+      const activeP = overridePeriod !== undefined ? overridePeriod : datePeriod;
+      const activeStart = overrideStart !== undefined ? overrideStart : customStartDate;
+      const activeEnd = overrideEnd !== undefined ? overrideEnd : customEndDate;
+
+      const { fromDate, toDate } = getDateRangeForPeriod(activeP, activeStart, activeEnd);
+
+      const invQuery = new URLSearchParams();
+      invQuery.set('limit', activeP === 'ALL' ? '300' : '1000');
+      if (fromDate) invQuery.set('fromDate', fromDate);
+      if (toDate) invQuery.set('toDate', toDate);
+
+      const statsQuery = new URLSearchParams();
+      if (fromDate) statsQuery.set('fromDate', fromDate);
+      if (toDate) statsQuery.set('toDate', toDate);
+
+      const [invData, statsRes, patData, settingsData, provData, claimData] = await Promise.all([
+        api.get<any[]>(`/billing/invoices?${invQuery.toString()}`).catch(() => []),
+        api.get<any>(`/billing/stats?${statsQuery.toString()}`).catch(() => null),
         api.get<any[]>('/patients/search').catch(() => []),
         api.get<any[]>('/settings').catch(() => []),
         api.get<any[]>('/billing/insurance/providers').catch(() => []),
         api.get<any[]>('/billing/insurance/claims').catch(() => [])
       ]);
+
+      const statsData = statsRes?.data ?? statsRes;
+      if (statsData && typeof statsData === 'object') {
+        setDbStats({
+          totalInvoices: Number(statsData.totalInvoices ?? statsData.TotalInvoices ?? 0),
+          billableInvoices: Number(statsData.billableInvoices ?? statsData.BillableInvoices ?? 0),
+          waivedInvoices: Number(statsData.waivedInvoices ?? statsData.WaivedInvoices ?? 0),
+          totalBilled: Number(statsData.totalBilled ?? statsData.TotalBilled ?? 0),
+          paidRevenue: Number(statsData.paidRevenue ?? statsData.PaidRevenue ?? 0),
+          pendingReceivables: Number(statsData.pendingReceivables ?? statsData.PendingReceivables ?? 0),
+          paidCount: Number(statsData.paidCount ?? statsData.PaidCount ?? 0),
+          collectionRate: Number(statsData.collectionRate ?? statsData.CollectionRate ?? 100)
+        });
+      }
 
       if (Array.isArray(provData)) setInsuranceProviders(provData);
       if (Array.isArray(claimData)) setClaims(claimData);
@@ -397,6 +468,17 @@ export default function BillingPage() {
     }
   };
 
+  const handlePeriodChange = (newPeriod: DatePeriod) => {
+    setDatePeriod(newPeriod);
+    if (newPeriod !== 'CUSTOM') {
+      fetchInvoicesAndPatients(newPeriod);
+    }
+  };
+
+  const handleApplyCustomDates = () => {
+    fetchInvoicesAndPatients('CUSTOM', customStartDate, customEndDate);
+  };
+
   // Filter Invoices
   const filteredInvoices = invoices.filter(inv => {
     const matchesStatus = statusFilter === 'ALL' || inv.status === statusFilter;
@@ -434,7 +516,7 @@ export default function BillingPage() {
     }
   };
 
-  // Exclude waived/free invoices from sales revenue figures
+  // Exclude waived/free invoices from fallback sales revenue figures
   const nonWaivedInvoices = invoices.filter(i => !i.isWaived && i.status !== 'Waived');
   const paidRevenue = nonWaivedInvoices.reduce((sum, i) => sum + (i.paid || 0), 0);
   const pendingReceivables = Math.max(0, nonWaivedInvoices.reduce((sum, i) => sum + ((i.total || 0) - (i.paid || 0)), 0));
@@ -462,7 +544,7 @@ export default function BillingPage() {
         </div>
 
         <div style={{ display: 'flex', gap: '8px' }}>
-          <button onClick={fetchInvoicesAndPatients} className="btn-secondary" style={{ padding: '6px 10px' }}>
+          <button onClick={() => fetchInvoicesAndPatients()} className="btn-secondary" style={{ padding: '6px 10px' }}>
             <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
           </button>
           <button onClick={() => setShowCreateModal(true)} className="btn-primary">
@@ -472,13 +554,13 @@ export default function BillingPage() {
       </div>
 
       {/* Primary Module Tabs: Invoices vs Insurance Claims */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '4px', maxWidth: '100%' }}>
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '14px', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '4px', maxWidth: '100%' }}>
         <button
           onClick={() => setBillingTab('invoices')}
           className={billingTab === 'invoices' ? 'btn-primary' : 'btn-secondary'}
           style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', whiteSpace: 'nowrap' }}
         >
-          <Receipt size={15} /> Invoices &amp; Fiscal Receipts ({invoices.length})
+          <Receipt size={15} /> Invoices &amp; Fiscal Receipts ({dbStats ? dbStats.totalInvoices.toLocaleString() : invoices.length})
         </button>
         <button
           onClick={() => setBillingTab('claims')}
@@ -489,30 +571,118 @@ export default function BillingPage() {
         </button>
       </div>
 
-      {/* Financial Metrics Bar (Excluding Free / Waived Services) */}
+      {/* Date Period Filter Bar */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '10px',
+        marginBottom: '14px',
+        background: 'var(--panel-bg, #ffffff)',
+        padding: '10px 14px',
+        borderRadius: '8px',
+        border: '1px solid var(--border-color, #e2e8f0)',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '5px', marginRight: '6px' }}>
+            <Calendar size={14} color="#0284c7" /> Period:
+          </span>
+          {(['ALL', 'TODAY', 'WEEK', 'MONTH', 'CUSTOM'] as DatePeriod[]).map(p => {
+            const labels: Record<DatePeriod, string> = {
+              ALL: 'All Time (Full DB)',
+              TODAY: 'Today',
+              WEEK: 'Last 7 Days',
+              MONTH: 'This Month',
+              CUSTOM: 'Custom Range'
+            };
+            const isActive = datePeriod === p;
+            return (
+              <button
+                key={p}
+                type="button"
+                onClick={() => handlePeriodChange(p)}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: '6px',
+                  fontSize: '0.75rem',
+                  fontWeight: isActive ? 700 : 500,
+                  border: isActive ? '1px solid #0284c7' : '1px solid var(--border-color, #cbd5e1)',
+                  background: isActive ? '#0284c7' : '#ffffff',
+                  color: isActive ? '#ffffff' : 'var(--text-main, #334155)',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                {labels[p]}
+              </button>
+            );
+          })}
+        </div>
+
+        {datePeriod === 'CUSTOM' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+            <input
+              type="date"
+              value={customStartDate}
+              onChange={e => setCustomStartDate(e.target.value)}
+              style={{ padding: '4px 8px', fontSize: '0.75rem', borderRadius: '5px', border: '1px solid var(--border-color, #cbd5e1)' }}
+            />
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>to</span>
+            <input
+              type="date"
+              value={customEndDate}
+              onChange={e => setCustomEndDate(e.target.value)}
+              style={{ padding: '4px 8px', fontSize: '0.75rem', borderRadius: '5px', border: '1px solid var(--border-color, #cbd5e1)' }}
+            />
+            <button
+              type="button"
+              onClick={handleApplyCustomDates}
+              className="btn-primary"
+              style={{ padding: '4px 12px', fontSize: '0.75rem' }}
+            >
+              Apply Filter
+            </button>
+          </div>
+        )}
+
+        <div style={{ fontSize: '0.73rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+          {datePeriod === 'ALL' && '📊 All 32,547+ Invoices Across Entire Clinic History'}
+          {datePeriod === 'TODAY' && "📅 Today's Activity"}
+          {datePeriod === 'WEEK' && '📅 Last 7 Days Activity'}
+          {datePeriod === 'MONTH' && "📅 Current Month's Activity"}
+          {datePeriod === 'CUSTOM' && (customStartDate || customEndDate ? `📅 ${customStartDate || 'Beginning'} → ${customEndDate || 'Today'}` : 'Pick dates and click Apply Filter')}
+        </div>
+      </div>
+
+      {/* Financial Metrics Bar (Database Aggregates for Selected Period) */}
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: '12px', marginBottom: '18px' }}>
         <div className="glass-panel" style={{ padding: '12px 14px' }}>
           <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700 }}>BILLABLE INVOICES</div>
           <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-main)', marginTop: '2px' }}>
-            {nonWaivedInvoices.length} <span style={{ fontSize: '0.72rem', fontWeight: 500, color: 'var(--text-muted)' }}>({invoices.filter(i => i.isWaived || i.status === 'Waived').length} waived)</span>
+            {(dbStats ? dbStats.billableInvoices : nonWaivedInvoices.length).toLocaleString()}{' '}
+            <span style={{ fontSize: '0.72rem', fontWeight: 500, color: 'var(--text-muted)' }}>
+              ({(dbStats ? dbStats.waivedInvoices : invoices.filter(i => i.isWaived || i.status === 'Waived').length).toLocaleString()} waived)
+            </span>
           </div>
         </div>
         <div className="glass-panel" style={{ padding: '12px 14px', borderLeft: '3px solid #059669' }}>
           <div style={{ fontSize: '0.7rem', color: '#059669', fontWeight: 700 }}>PAID SALES REVENUE</div>
           <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#059669', marginTop: '2px' }}>
-            Br {paidRevenue.toFixed(2)}
+            Br {(dbStats ? dbStats.paidRevenue : paidRevenue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
         </div>
         <div className="glass-panel" style={{ padding: '12px 14px', borderLeft: '3px solid #d97706' }}>
           <div style={{ fontSize: '0.7rem', color: '#d97706', fontWeight: 700 }}>PENDING RECEIVABLES</div>
           <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#d97706', marginTop: '2px' }}>
-            Br {pendingReceivables.toFixed(2)}
+            Br {(dbStats ? dbStats.pendingReceivables : pendingReceivables).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
         </div>
         <div className="glass-panel" style={{ padding: '12px 14px', borderLeft: '3px solid #0284c7' }}>
           <div style={{ fontSize: '0.7rem', color: '#0369a1', fontWeight: 700 }}>COLLECTION RATE</div>
           <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0284c7', marginTop: '2px' }}>
-            {collectionRate}%
+            {dbStats ? dbStats.collectionRate : collectionRate}%
           </div>
         </div>
       </div>

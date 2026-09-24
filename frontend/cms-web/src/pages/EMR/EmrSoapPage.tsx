@@ -1196,49 +1196,50 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
 
     if (currentBasket.length === 0) return;
     const patId = Number(activePatient?.id || activePatient?.Id || activePatient?.patientId || 1);
+    // Use selectedDoctorId; availableDoctors[0].id is the safe fallback (never use 1 which doesn't exist in Doctors table)
+    const doctorId = selectedDoctorId || (availableDoctors.length > 0 ? availableDoctors[0].id : null);
 
     try {
-      // 1. Dispatch Laboratory Orders
+      // 1. Dispatch Laboratory Orders — POST individually so we get each OrderId for billing RefId linkage
       const labItems = currentBasket.filter(x => x.type === 'LAB');
-      if (labItems.length > 0) {
-        const testIdMap: Record<string, number> = {
-          'CBC': 1, 'CBC-01': 1,
-          'LFT': 2, 'LFT-01': 2,
-          'RFT': 3, 'RFT-01': 3,
-          'FBS': 4, 'FBS-01': 4,
-          'HBA1C': 5,
-          'LIPID': 6, 'LIPID-01': 6,
-          'UA': 7, 'UA-01': 7,
-          'MALARIA': 8,
-          'PREG': 9,
-          'ESR': 10
-        };
-        const testIds = labItems.map(item => {
-          if (item.details?.testId && Number(item.details.testId) > 0) {
-            return Number(item.details.testId);
-          }
-          const rawId = item.id ? String(item.id).split('-')[1] : null;
-          const numId = rawId ? parseInt(rawId, 10) : NaN;
-          if (!isNaN(numId) && numId > 0) return numId;
+      const labOrderIds: number[] = []; // Will be used as RefId in invoice items
 
-          const match = Object.keys(testIdMap).find(k => item.code?.toUpperCase().includes(k) || item.title?.toUpperCase().includes(k));
-          return match ? testIdMap[match] : 1;
-        });
+      for (const labItem of labItems) {
+        const testId = labItem.details?.testId && Number(labItem.details.testId) > 0
+          ? Number(labItem.details.testId)
+          : null;
+
+        if (!testId) {
+          console.warn('Skipping lab item with no valid testId:', labItem);
+          labOrderIds.push(0);
+          continue;
+        }
+
+        if (!doctorId) {
+          console.warn('No valid doctorId to create lab order for:', labItem.title);
+          labOrderIds.push(0);
+          continue;
+        }
 
         try {
-          await api.post('/laboratory/orders', {
+          const labRes: any = await api.post('/laboratory/orders', {
             tenantId: 1,
             patientId: patId,
             encounterId: null,
-            orderedBy: selectedDoctorId || 1,
+            orderedBy: doctorId,
             priority: 2,
-            clinicalInfo: labItems.map(l => `${l.title} (${l.paramsSummary})`).join('; '),
-            testIds: testIds.length > 0 ? testIds : [1]
+            clinicalInfo: `${labItem.title} (${labItem.paramsSummary})`,
+            testIds: [testId]
           });
+          const orderId = labRes?.orderId || labRes?.OrderId || labRes?.data?.orderId || 0;
+          labOrderIds.push(Number(orderId));
         } catch (labErr) {
           console.warn('Lab order backend dispatch error:', labErr);
+          labOrderIds.push(0);
         }
+      }
 
+      if (labItems.length > 0) {
         setHistoryLabOrders(prev => [
           ...labItems.map((l, i) => ({
             id: Date.now() + i,
@@ -1359,13 +1360,22 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
       }
 
       // 5. Database Billing Invoice Creation for Billable Items
-      const billableItems = currentBasket.filter(x => x.price > 0).map(item => ({
-        itemType: item.type === 'LAB' ? 'Laboratory' : (item.type === 'RX' ? 'Pharmacy' : ((item.type as string) === 'CONSULTATION' ? 'Consultation' : 'Procedure')),
-        description: `${item.title} (${item.code})`,
-        quantity: item.type === 'RX' ? Number(item.details.qty) || 1 : 1,
-        unitPrice: item.type === 'RX' ? Math.round((item.price / (Number(item.details.qty) || 1)) * 100) / 100 : item.price,
-        discount: 0
-      }));
+      let labIndex = 0;
+      const billableItems = currentBasket.filter(x => x.price > 0).map(item => {
+        let refId: number | null = null;
+        if (item.type === 'LAB') {
+          refId = labOrderIds[labIndex] > 0 ? labOrderIds[labIndex] : null;
+          labIndex++;
+        }
+        return {
+          itemType: item.type === 'LAB' ? 'Laboratory' : (item.type === 'RX' ? 'Pharmacy' : ((item.type as string) === 'CONSULTATION' ? 'Consultation' : 'Procedure')),
+          description: `${item.title} (${item.code})`,
+          quantity: item.type === 'RX' ? Number(item.details.qty) || 1 : 1,
+          unitPrice: item.type === 'RX' ? Math.round((item.price / (Number(item.details.qty) || 1)) * 100) / 100 : item.price,
+          discount: 0,
+          refId
+        };
+      });
 
       let createdInvoiceNo = `INV-${new Date().toISOString().split('T')[0]}-${Math.floor(1000 + Math.random() * 9000)}`;
       if (billableItems.length > 0) {

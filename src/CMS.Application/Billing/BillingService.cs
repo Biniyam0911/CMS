@@ -137,24 +137,40 @@ public class BillingService
                 }
                 else
                 {
+                    // Resolve a valid DoctorId — FK_LabOrders_Doctors requires a Doctors.Id
+                    int validDoctorId = dto.CreatedBy > 0
+                        ? (await conn.ExecuteScalarAsync<int?>(
+                              "SELECT TOP 1 Id FROM Doctors WHERE Id = @Id", new { Id = dto.CreatedBy }) ?? 0)
+                        : 0;
+                    if (validDoctorId <= 0)
+                        validDoctorId = await conn.ExecuteScalarAsync<int>(
+                            "SELECT TOP 1 Id FROM Doctors ORDER BY Id ASC");
+
                     var newOrderNo = $"LAB-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..4].ToUpper()}";
                     var orderId = await conn.ExecuteScalarAsync<int>(@"
                         INSERT INTO LabOrders (TenantId, OrderNumber, PatientId, EncounterId, OrderedBy, Priority, OrderedAt, ClinicalInfo, StatusId, CreatedAt)
                         OUTPUT INSERTED.Id
-                        VALUES (@TenantId, @OrderNumber, @PatientId, @EncounterId, @CreatedBy, 2, GETDATE(), @ClinicalInfo, 1, GETDATE())",
+                        VALUES (@TenantId, @OrderNumber, @PatientId, @EncounterId, @OrderedBy, 2, GETDATE(), @ClinicalInfo, 1, GETDATE())",
                         new {
                             dto.TenantId,
                             OrderNumber = newOrderNo,
                             dto.PatientId,
                             EncounterId = validEncounterId,
-                            CreatedBy = dto.CreatedBy > 0 ? dto.CreatedBy : 1,
+                            OrderedBy = validDoctorId,
                             ClinicalInfo = item.Description
                         });
 
+                    // Try to match an existing LabTestCatalog entry by name/code in the description
                     var testId = await conn.ExecuteScalarAsync<int?>(@"
                         SELECT TOP 1 Id FROM LabTestCatalog 
-                        WHERE TenantId = @TenantId AND (TestName LIKE '%' + @Keyword + '%' OR TestCode LIKE '%' + @Keyword + '%')",
-                        new { dto.TenantId, Keyword = item.Description.Split('(')[0].Trim() }) ?? 1;
+                        WHERE TenantId = @TenantId AND IsActive = 1
+                          AND (TestName LIKE '%' + @Keyword + '%' OR TestCode LIKE '%' + @Keyword + '%')",
+                        new { dto.TenantId, Keyword = item.Description.Split('(')[0].Trim() });
+
+                    if (!testId.HasValue || testId <= 0)
+                        testId = await conn.ExecuteScalarAsync<int>(
+                            "SELECT TOP 1 Id FROM LabTestCatalog WHERE TenantId = @TenantId AND IsActive = 1 ORDER BY Id ASC",
+                            new { dto.TenantId });
 
                     await conn.ExecuteAsync(@"
                         INSERT INTO LabOrderItems (OrderId, TestId, StatusId)
@@ -195,7 +211,28 @@ public class BillingService
         return invoiceId;
     }
 
-    public async Task<List<InvoiceDto>> GetInvoicesAsync(byte tenantId, int limit = 200, int? patientId = null, DateTime? date = null)
+    public async Task<BillingStatsDto> GetBillingStatsAsync(byte tenantId, DateTime? fromDate = null, DateTime? toDate = null)
+    {
+        using var conn = _dbFactory.CreateConnection();
+        var sql = @"
+            SELECT 
+                COUNT(1) AS TotalInvoices,
+                SUM(CASE WHEN TotalAmount > 0 THEN 1 ELSE 0 END) AS BillableInvoices,
+                SUM(CASE WHEN TotalAmount = 0 THEN 1 ELSE 0 END) AS WaivedInvoices,
+                ISNULL(SUM(CASE WHEN TotalAmount > 0 THEN TotalAmount ELSE 0 END), 0) AS TotalBilled,
+                ISNULL(SUM(CASE WHEN TotalAmount > 0 THEN PaidAmount ELSE 0 END), 0) AS PaidRevenue,
+                ISNULL(SUM(CASE WHEN TotalAmount > 0 AND TotalAmount > PaidAmount THEN TotalAmount - PaidAmount ELSE 0 END), 0) AS PendingReceivables,
+                SUM(CASE WHEN StatusId = 4 AND TotalAmount > 0 THEN 1 ELSE 0 END) AS PaidCount
+            FROM Invoices WITH (NOLOCK)
+            WHERE TenantId = @TenantId
+              AND (@FromDate IS NULL OR CAST(IssueDate AS DATE) >= CAST(@FromDate AS DATE))
+              AND (@ToDate IS NULL OR CAST(IssueDate AS DATE) <= CAST(@ToDate AS DATE))";
+
+        var stats = await conn.QueryFirstOrDefaultAsync<BillingStatsDto>(sql, new { TenantId = tenantId, FromDate = fromDate, ToDate = toDate });
+        return stats ?? new BillingStatsDto();
+    }
+
+    public async Task<List<InvoiceDto>> GetInvoicesAsync(byte tenantId, int limit = 200, int? patientId = null, DateTime? fromDate = null, DateTime? toDate = null)
     {
         using var conn = _dbFactory.CreateConnection();
         var sql = @"
@@ -234,15 +271,16 @@ public class BillingService
                    i.FiscalQrPayload,
                    i.ReceiptImageUrl,
                    i.Notes
-            FROM Invoices i
-            JOIN Patients p ON p.Id = i.PatientId
-            LEFT JOIN InsuranceProviders ip ON ip.Id = i.InsuranceProviderId
+            FROM Invoices i WITH (NOLOCK)
+            JOIN Patients p WITH (NOLOCK) ON p.Id = i.PatientId
+            LEFT JOIN InsuranceProviders ip WITH (NOLOCK) ON ip.Id = i.InsuranceProviderId
             WHERE i.TenantId = @TenantId
               AND (@PatientId IS NULL OR i.PatientId = @PatientId)
-              AND (@Date IS NULL OR CAST(i.IssueDate AS DATE) = CAST(@Date AS DATE))
+              AND (@FromDate IS NULL OR CAST(i.IssueDate AS DATE) >= CAST(@FromDate AS DATE))
+              AND (@ToDate IS NULL OR CAST(i.IssueDate AS DATE) <= CAST(@ToDate AS DATE))
             ORDER BY i.Id DESC";
 
-        var invoices = (await conn.QueryAsync<InvoiceDto>(sql, new { TenantId = tenantId, Limit = limit, PatientId = patientId, Date = date })).ToList();
+        var invoices = (await conn.QueryAsync<InvoiceDto>(sql, new { TenantId = tenantId, Limit = limit, PatientId = patientId, FromDate = fromDate, ToDate = toDate })).ToList();
 
         // Populate line items in O(N) using lookup dictionary
         var invoiceIds = invoices.Select(x => x.Id).ToList();
