@@ -14,9 +14,9 @@ export default function BillingPage() {
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [filterDate, setFilterDate] = useState<string>('');
 
-  // Date Period Filter State
+  // Date Period Filter State (defaults to TODAY)
   type DatePeriod = 'ALL' | 'TODAY' | 'WEEK' | 'MONTH' | 'CUSTOM';
-  const [datePeriod, setDatePeriod] = useState<DatePeriod>('ALL');
+  const [datePeriod, setDatePeriod] = useState<DatePeriod>('TODAY');
   const [customStartDate, setCustomStartDate] = useState<string>('');
   const [customEndDate, setCustomEndDate] = useState<string>('');
   const [dbStats, setDbStats] = useState<{
@@ -589,12 +589,12 @@ export default function BillingPage() {
           <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '5px', marginRight: '6px' }}>
             <Calendar size={14} color="#0284c7" /> Period:
           </span>
-          {(['ALL', 'TODAY', 'WEEK', 'MONTH', 'CUSTOM'] as DatePeriod[]).map(p => {
+          {(['TODAY', 'WEEK', 'MONTH', 'ALL', 'CUSTOM'] as DatePeriod[]).map(p => {
             const labels: Record<DatePeriod, string> = {
-              ALL: 'All Time (Full DB)',
               TODAY: 'Today',
               WEEK: 'Last 7 Days',
               MONTH: 'This Month',
+              ALL: 'All Time (Full DB)',
               CUSTOM: 'Custom Range'
             };
             const isActive = datePeriod === p;
