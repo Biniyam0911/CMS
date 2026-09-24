@@ -102,11 +102,11 @@ public class PharmacyService
         await _cache.RemoveAsync($"tenant:{tenantId}:pharmacy:formulary");
     }
 
-    public async Task<List<PrescriptionDto>> GetPrescriptionsAsync(byte tenantId)
+    public async Task<List<PrescriptionDto>> GetPrescriptionsAsync(byte tenantId, int? patientId = null, int limit = 100)
     {
         using var conn = _dbFactory.CreateConnection();
         var sql = @"
-            SELECT pr.Id, pr.TenantId, pr.EncounterId, pr.PatientId,
+            SELECT TOP (@Limit) pr.Id, pr.TenantId, pr.EncounterId, pr.PatientId,
                    p.FirstName + ' ' + ISNULL(p.MiddleName + ' ', '') + p.LastName AS PatientName,
                    p.MRN,
                    pr.PrescribedBy AS DoctorId,
@@ -115,40 +115,51 @@ public class PharmacyService
                    CAST(CASE WHEN pr.IsDispensed = 1 THEN 4 ELSE 1 END AS TINYINT) AS StatusId,
                    CASE 
                        WHEN EXISTS (
-                           SELECT 1 FROM InvoiceItems ii 
-                           JOIN Invoices inv ON inv.Id = ii.InvoiceId 
+                           SELECT 1 FROM InvoiceItems ii WITH (NOLOCK)
+                           JOIN Invoices inv WITH (NOLOCK) ON inv.Id = ii.InvoiceId 
                            WHERE (ii.RefId = pr.Id OR inv.EncounterId = pr.EncounterId)
                              AND inv.PaidAmount >= inv.TotalAmount AND inv.TotalAmount > 0
                        ) THEN 1 
                        WHEN EXISTS (
-                           SELECT 1 FROM Invoices inv
+                           SELECT 1 FROM Invoices inv WITH (NOLOCK)
                            WHERE inv.PatientId = pr.PatientId AND (inv.EncounterId = pr.EncounterId OR CAST(inv.IssueDate AS DATE) = CAST(pr.PrescribedAt AS DATE)) AND inv.PaidAmount >= inv.TotalAmount AND inv.TotalAmount > 0
                        ) THEN 1
                        ELSE 0 
                    END AS IsPaid
-            FROM Prescriptions pr
-            JOIN Patients p ON p.Id = pr.PatientId
-            LEFT JOIN Users u ON u.Id = pr.PrescribedBy
-            LEFT JOIN Staff s ON s.UserId = u.Id
+            FROM Prescriptions pr WITH (NOLOCK)
+            JOIN Patients p WITH (NOLOCK) ON p.Id = pr.PatientId
+            LEFT JOIN Users u WITH (NOLOCK) ON u.Id = pr.PrescribedBy
+            LEFT JOIN Staff s WITH (NOLOCK) ON s.UserId = u.Id
             WHERE pr.TenantId = @TenantId
+              AND (@PatientId IS NULL OR pr.PatientId = @PatientId)
             ORDER BY pr.PrescribedAt DESC";
 
-        var list = (await conn.QueryAsync<dynamic>(sql, new { TenantId = tenantId })).ToList();
+        var list = (await conn.QueryAsync<dynamic>(sql, new { TenantId = tenantId, PatientId = patientId, Limit = limit })).ToList();
         var result = new List<PrescriptionDto>();
 
-        foreach (var p in list)
+        var pIds = list.Select(p => (int)p.Id).ToList();
+        var itemsByPrescription = new Dictionary<int, List<PrescriptionItemDto>>();
+
+        if (pIds.Any())
         {
             var itemsSql = @"
                 SELECT pi.Id, pi.PrescriptionId, pi.DrugId, d.GenericName AS DrugName,
                        pi.Dosage, pi.Frequency, ISNULL(pi.Duration, '') AS Duration,
                        pi.Quantity, ISNULL(pi.Instructions, '') AS Instructions
-                FROM PrescriptionItems pi
-                JOIN DrugFormulary d ON d.Id = pi.DrugId
-                WHERE pi.PrescriptionId = @PrescriptionId";
-            var items = (await conn.QueryAsync<PrescriptionItemDto>(itemsSql, new { PrescriptionId = (int)p.Id })).ToList();
+                FROM PrescriptionItems pi WITH (NOLOCK)
+                JOIN DrugFormulary d WITH (NOLOCK) ON d.Id = pi.DrugId
+                WHERE pi.PrescriptionId IN @PrescriptionIds";
+            var allItems = await conn.QueryAsync<PrescriptionItemDto>(itemsSql, new { PrescriptionIds = pIds });
+            itemsByPrescription = allItems.GroupBy(x => x.PrescriptionId).ToDictionary(g => g.Key, g => g.ToList());
+        }
+
+        foreach (var p in list)
+        {
+            int presId = (int)p.Id;
+            var items = itemsByPrescription.TryGetValue(presId, out var itms) ? itms : new List<PrescriptionItemDto>();
 
             result.Add(new PrescriptionDto(
-                (int)p.Id, (byte)p.TenantId, (int)p.EncounterId, (int)p.PatientId,
+                presId, (byte)p.TenantId, (int)p.EncounterId, (int)p.PatientId,
                 (string)p.PatientName, (int)(p.DoctorId ?? 1), (string)(p.DoctorName ?? "Attending Doctor"),
                 (DateTime)p.PrescribedAt, (byte)p.StatusId, items,
                 (int)p.IsPaid == 1, (string?)p.MRN

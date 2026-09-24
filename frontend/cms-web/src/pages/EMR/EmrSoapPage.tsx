@@ -579,27 +579,22 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
     setLoadingHistory(true);
     const patId = Number(activePatient.id || activePatient.Id);
     try {
-      const [encs, labRes, rxs, invs, certs, procs] = await Promise.all([
+      const [encs, labRes, rxs, invs, certs, procs, results, vitalsRes, radRes] = await Promise.all([
         api.get<any[]>(`/encounters/patient/${patId}`).catch(() => []),
-        api.get<any[]>(`/laboratory/patient/${patId}`).catch(() => 
-          api.get<any[]>(`/laboratory/orders?patientId=${patId}`).catch(() =>
-            api.get<any[]>('/laboratory/worklist').catch(() => [])
-          )
-        ),
-        api.get<any[]>('/pharmacy/prescriptions').catch(() => []),
-        api.get<any[]>('/billing/invoices').catch(() => []),
+        api.get<any[]>(`/laboratory/patient/${patId}`).catch(() => []),
+        api.get<any[]>(`/pharmacy/prescriptions?patientId=${patId}&limit=100`).catch(() => []),
+        api.get<any[]>(`/billing/invoices?patientId=${patId}&limit=100`).catch(() => []),
         api.get<any[]>(`/medicalcertificates/patient/${patId}`).catch(() => []),
-        api.get<any[]>(`/procedures/patient/${patId}`).catch(() => [])
+        api.get<any[]>(`/procedures/patient/${patId}`).catch(() => []),
+        api.get<any[]>(`/laboratory/patient/${patId}/results`).catch(() => []),
+        api.get<any[]>(`/triage/patient/${patId}/history`).catch(() => []),
+        api.get<any[]>(`/radiology/patient/${patId}`).catch(() => [])
       ]);
 
       setHistoryEncounters(encs || []);
       setHistoryProcedures(procs || []);
 
-      let rawLabs = Array.isArray(labRes) ? labRes : [];
-      if (rawLabs.length === 0) {
-        const wl = await api.get<any[]>('/laboratory/worklist').catch(() => []);
-        rawLabs = (wl || []).filter((l: any) => Number(l.patientId || l.PatientId) === patId);
-      }
+      const rawLabs = Array.isArray(labRes) ? labRes : [];
       const mappedLabs = rawLabs
         .filter((l: any) => !l.patientId && !l.PatientId ? true : Number(l.patientId || l.PatientId) === patId)
         .map((l: any) => ({
@@ -612,15 +607,8 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
         }));
       setHistoryLabOrders(mappedLabs);
 
-      setHistoryPrescriptions((rxs || []).filter((r: any) => (r.patientId || r.PatientId) === patId));
-      setHistoryInvoices((invs || []).filter((i: any) => (i.patientId || i.PatientId) === patId));
-
-      // Also load results and radiology studies so the history tab can show results table per order
-      const [results, vitalsRes, radRes] = await Promise.all([
-        api.get<any[]>(`/laboratory/patient/${patId}/results`).catch(() => []),
-        api.get<any[]>(`/triage/patient/${patId}/history`).catch(() => []),
-        api.get<any[]>(`/radiology/patient/${patId}`).catch(() => [])
-      ]);
+      setHistoryPrescriptions(rxs || []);
+      setHistoryInvoices(invs || []);
 
       const radStudies = Array.isArray(radRes) ? radRes : ((radRes as any)?.data || []);
       setRadiologyStudies(radStudies);

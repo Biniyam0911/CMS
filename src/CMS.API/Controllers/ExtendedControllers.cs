@@ -1027,33 +1027,6 @@ public class RadiologyController : ControllerBase
             ORDER BY r.StudyDate DESC";
 
         var studies = (await conn.QueryAsync<RadiologyStudyDto>(sql, new { PatientId = patientId })).ToList();
-
-        // If no studies exist yet for this patient, return standard clinical diagnostic sample study
-        if (!studies.Any())
-        {
-            var p = await conn.QueryFirstOrDefaultAsync<dynamic>("SELECT FirstName, LastName, MRN FROM Patients WHERE Id = @Id", new { Id = patientId });
-            if (p != null)
-            {
-                studies.Add(new RadiologyStudyDto
-                {
-                    Id = 101,
-                    TenantId = 1,
-                    PatientId = patientId,
-                    PatientName = $"{p.FirstName} {p.LastName}",
-                    MRN = p.MRN,
-                    StudyType = "Chest PA Radiograph",
-                    BodyPart = "Thorax / Lungs",
-                    ModalityCode = "CR",
-                    ClinicalIndication = "Persistent cough, pleuritic chest discomfort, Rule out pneumonia/consolidation.",
-                    RadiologistFindings = "Normal cardiac silhouette and cardiothoracic ratio. Mediastinal contours unremarkable. Lung fields clear bilaterally without focal consolidation, pneumothorax, or pleural effusion. Osseous structures intact.",
-                    Impression = "Clear chest radiograph. No acute cardiopulmonary disease.",
-                    ImagePath = "sample_chest_xray",
-                    StudyDate = DateTime.UtcNow.AddDays(-2),
-                    StatusId = 2
-                });
-            }
-        }
-
         return Ok(ApiResponse<List<RadiologyStudyDto>>.Ok(studies));
     }
 

@@ -141,4 +141,24 @@ BEGIN
 END
 GO
 
+-- 15. PatientTriage: Index on TenantId, PatientId, TriagedAt
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_PatientTriage_PatientId' AND object_id = OBJECT_ID('PatientTriage'))
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_PatientTriage_PatientId
+    ON dbo.PatientTriage (TenantId, PatientId, TriagedAt DESC)
+    INCLUDE (AssignedDoctorId, ChiefComplaint, NurseNotes, TriageCategory, Status);
+    PRINT 'Created IX_PatientTriage_PatientId';
+END
+GO
+
+-- 16. RadiologyStudies: Index on PatientId, StudyDate
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_RadiologyStudies_PatientId' AND object_id = OBJECT_ID('RadiologyStudies'))
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_RadiologyStudies_PatientId
+    ON dbo.RadiologyStudies (PatientId, StudyDate DESC);
+    PRINT 'Created IX_RadiologyStudies_PatientId';
+END
+GO
+
 PRINT 'All performance indexes successfully verified/created.';
+
