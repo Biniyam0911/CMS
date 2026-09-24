@@ -15,17 +15,23 @@ public class DashboardService
 
     public async Task<DashboardMetricsDto> GetMetricsAsync(byte tenantId)
     {
+        var todayStart = DateTime.Today;
+        var tomorrowStart = todayStart.AddDays(1);
         using var conn = _dbFactory.CreateConnection();
         var sqlCounts = @"
             SELECT 
-                (SELECT COUNT(1) FROM Patients WHERE TenantId = @TenantId AND IsActive = 1) AS PatientCount,
-                (SELECT COUNT(1) FROM Appointments WHERE TenantId = @TenantId AND CAST(SlotDateTime AS DATE) = CAST(GETDATE() AS DATE)) AS ApptCount,
-                (SELECT COUNT(1) FROM LabOrders WHERE TenantId = @TenantId AND StatusId < 4) AS LabCount,
-                (SELECT COUNT(1) FROM PatientTriage WHERE TenantId = @TenantId AND (Status IN ('Waiting', 'Triaged', 'AssignedToDoctor') OR CAST(TriagedAt AS DATE) = CAST(GETDATE() AS DATE))) AS QueueCount,
-                (SELECT ISNULL(SUM(PaidAmount), 0) FROM Invoices WHERE TenantId = @TenantId AND CAST(IssueDate AS DATE) = CAST(GETDATE() AS DATE)) AS Revenue,
-                (SELECT COUNT(1) FROM Doctors d JOIN Staff s ON s.Id = d.StaffId WHERE s.TenantId = @TenantId AND d.IsAvailable = 1) AS DocCount";
+                (SELECT COUNT(1) FROM Patients WITH (NOLOCK) WHERE TenantId = @TenantId AND IsActive = 1) AS PatientCount,
+                (SELECT COUNT(1) FROM Appointments WITH (NOLOCK) WHERE TenantId = @TenantId AND SlotDateTime >= @TodayStart AND SlotDateTime < @TomorrowStart) AS ApptCount,
+                (SELECT COUNT(1) FROM LabOrders WITH (NOLOCK) WHERE TenantId = @TenantId AND StatusId < 4) AS LabCount,
+                (SELECT COUNT(1) FROM PatientTriage WITH (NOLOCK) WHERE TenantId = @TenantId AND (Status IN ('Waiting', 'Triaged', 'AssignedToDoctor') OR (TriagedAt >= @TodayStart AND TriagedAt < @TomorrowStart))) AS QueueCount,
+                (SELECT ISNULL(SUM(PaidAmount), 0) FROM Invoices WITH (NOLOCK) WHERE TenantId = @TenantId AND IssueDate >= @TodayStart AND IssueDate < @TomorrowStart) AS Revenue,
+                (SELECT COUNT(1) FROM Doctors d WITH (NOLOCK) JOIN Staff s WITH (NOLOCK) ON s.Id = d.StaffId WHERE s.TenantId = @TenantId AND d.IsAvailable = 1) AS DocCount";
 
-        var counts = await conn.QueryFirstOrDefaultAsync<dynamic>(sqlCounts, new { TenantId = tenantId });
+        var counts = await conn.QueryFirstOrDefaultAsync<dynamic>(sqlCounts, new { 
+            TenantId = tenantId,
+            TodayStart = todayStart,
+            TomorrowStart = tomorrowStart
+        });
         int patientCount = (int)(counts?.PatientCount ?? 0);
         int apptCount = (int)(counts?.ApptCount ?? 0);
         int labCount = (int)(counts?.LabCount ?? 0);
@@ -65,18 +71,22 @@ public class DashboardService
                 CAST(10 AS INT) AS EstimatedWaitMin,
                 t.TriagedAt AS CheckInTime,
                 CAST(t.UpdatedAt AS DATETIME) AS CallTime
-            FROM PatientTriage t
-            JOIN Patients p ON p.Id = t.PatientId
-            LEFT JOIN PatientQueues q ON q.Id = t.QueueId
-            LEFT JOIN Doctors d ON d.Id = t.AssignedDoctorId
-            LEFT JOIN Staff s ON s.Id = d.StaffId
-            LEFT JOIN ConsultationRooms r ON r.Id = t.AssignedRoomId
+            FROM PatientTriage t WITH (NOLOCK)
+            JOIN Patients p WITH (NOLOCK) ON p.Id = t.PatientId
+            LEFT JOIN PatientQueues q WITH (NOLOCK) ON q.Id = t.QueueId
+            LEFT JOIN Doctors d WITH (NOLOCK) ON d.Id = t.AssignedDoctorId
+            LEFT JOIN Staff s WITH (NOLOCK) ON s.Id = d.StaffId
+            LEFT JOIN ConsultationRooms r WITH (NOLOCK) ON r.Id = t.AssignedRoomId
             WHERE t.TenantId = @TenantId
               AND t.Status IN ('Waiting', 'Triaged', 'AssignedToDoctor')
-              AND CAST(t.TriagedAt AS DATE) = CAST(GETDATE() AS DATE)
+              AND t.TriagedAt >= @TodayStart AND t.TriagedAt < @TomorrowStart
             ORDER BY t.PriorityLevel ASC, t.TriagedAt DESC";
 
-        var queueList = (await conn.QueryAsync<PatientQueueDto>(sqlQueueList, new { TenantId = tenantId })).ToList();
+        var queueList = (await conn.QueryAsync<PatientQueueDto>(sqlQueueList, new { 
+            TenantId = tenantId,
+            TodayStart = todayStart,
+            TomorrowStart = tomorrowStart
+        })).ToList();
 
         // 14-day daily revenue trend
         var sqlRevenue = @"

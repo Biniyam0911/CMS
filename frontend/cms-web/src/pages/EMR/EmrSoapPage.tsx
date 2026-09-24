@@ -452,10 +452,10 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
 
       try {
         setLoading(true);
-        // Fetch assignments for this doctor on the selected date + all invoices for payment badge
+        // Fetch assignments for this doctor on the selected date + date-scoped invoices for payment badge
         const [assigned, allInvoices] = await Promise.all([
           api.get<any[]>(`/triage/doctor/${selectedDoctorId}`, { date: consultDate }).catch(() => []),
-          api.get<any[]>('/billing/invoices').catch(() => [])
+          api.get<any[]>('/billing/invoices', { date: consultDate, limit: 100 }).catch(() => [])
         ]);
         if (assigned && Array.isArray(assigned) && assigned.length > 0) {
           const mapped = assigned.map((p: any) => ({

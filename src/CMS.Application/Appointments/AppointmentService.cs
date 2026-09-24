@@ -37,44 +37,48 @@ public class AppointmentService
 
     public async Task<List<AppointmentDto>> GetDoctorAppointmentsAsync(byte tenantId, int doctorId, DateTime date)
     {
+        var dateStart = date.Date;
+        var dateEnd = dateStart.AddDays(1);
         using var conn = _dbFactory.CreateConnection();
         var sql = @"
             SELECT a.Id, a.PatientId, p.FirstName + ' ' + p.LastName AS PatientName,
                    a.DoctorId, s.FirstName + ' ' + s.LastName AS DoctorName,
                    a.SlotDateTime, a.DurationMinutes, a.StatusId, st.Name AS StatusName,
                    a.ReasonForVisit
-            FROM Appointments a
-            JOIN Patients p ON p.Id = a.PatientId
-            JOIN Doctors d ON d.Id = a.DoctorId
-            JOIN Staff s ON s.Id = d.StaffId
-            JOIN AppointmentStatuses st ON st.Id = a.StatusId
+            FROM Appointments a WITH (NOLOCK)
+            JOIN Patients p WITH (NOLOCK) ON p.Id = a.PatientId
+            JOIN Doctors d WITH (NOLOCK) ON d.Id = a.DoctorId
+            JOIN Staff s WITH (NOLOCK) ON s.Id = d.StaffId
+            JOIN AppointmentStatuses st WITH (NOLOCK) ON st.Id = a.StatusId
             WHERE a.TenantId = @TenantId AND a.DoctorId = @DoctorId
-              AND CAST(a.SlotDateTime AS DATE) = CAST(@Date AS DATE)
+              AND a.SlotDateTime >= @DateStart AND a.SlotDateTime < @DateEnd
             ORDER BY a.SlotDateTime";
 
-        return (await conn.QueryAsync<AppointmentDto>(sql, new { TenantId = tenantId, DoctorId = doctorId, Date = date })).ToList();
+        return (await conn.QueryAsync<AppointmentDto>(sql, new { TenantId = tenantId, DoctorId = doctorId, DateStart = dateStart, DateEnd = dateEnd })).ToList();
     }
 
-    public async Task<List<AppointmentDto>> GetAllAppointmentsAsync(byte tenantId, DateTime? startDate = null, DateTime? endDate = null, int? doctorId = null)
+    public async Task<List<AppointmentDto>> GetAllAppointmentsAsync(byte tenantId, DateTime? startDate = null, DateTime? endDate = null, int? doctorId = null, int limit = 200)
     {
         using var conn = _dbFactory.CreateConnection();
+        var start = startDate?.Date ?? DateTime.Today.AddDays(-7);
+        var end = endDate?.Date.AddDays(1) ?? DateTime.Today.AddDays(30);
+
         var sql = @"
-            SELECT a.Id, a.PatientId, p.FirstName + ' ' + p.LastName AS PatientName,
+            SELECT TOP (@Limit) a.Id, a.PatientId, p.FirstName + ' ' + p.LastName AS PatientName,
                    a.DoctorId, s.FirstName + ' ' + s.LastName AS DoctorName,
                    a.SlotDateTime, a.DurationMinutes, a.StatusId, st.Name AS StatusName,
                    a.ReasonForVisit, a.Notes
-            FROM Appointments a
-            JOIN Patients p ON p.Id = a.PatientId
-            JOIN Doctors d ON d.Id = a.DoctorId
-            JOIN Staff s ON s.Id = d.StaffId
-            JOIN AppointmentStatuses st ON st.Id = a.StatusId
+            FROM Appointments a WITH (NOLOCK)
+            JOIN Patients p WITH (NOLOCK) ON p.Id = a.PatientId
+            JOIN Doctors d WITH (NOLOCK) ON d.Id = a.DoctorId
+            JOIN Staff s WITH (NOLOCK) ON s.Id = d.StaffId
+            JOIN AppointmentStatuses st WITH (NOLOCK) ON st.Id = a.StatusId
             WHERE a.TenantId = @TenantId
               AND (@DoctorId IS NULL OR a.DoctorId = @DoctorId)
-              AND (@StartDate IS NULL OR CAST(a.SlotDateTime AS DATE) >= CAST(@StartDate AS DATE))
-              AND (@EndDate IS NULL OR CAST(a.SlotDateTime AS DATE) <= CAST(@EndDate AS DATE))
-            ORDER BY a.SlotDateTime";
+              AND a.SlotDateTime >= @Start AND a.SlotDateTime < @End
+            ORDER BY a.SlotDateTime DESC";
 
-        return (await conn.QueryAsync<AppointmentDto>(sql, new { TenantId = tenantId, DoctorId = doctorId, StartDate = startDate, EndDate = endDate })).ToList();
+        return (await conn.QueryAsync<AppointmentDto>(sql, new { TenantId = tenantId, DoctorId = doctorId, Start = start, End = end, Limit = limit })).ToList();
     }
 
     public async Task<bool> UpdateAppointmentStatusAsync(byte tenantId, int appointmentId, int statusId, string? cancelReason = null)

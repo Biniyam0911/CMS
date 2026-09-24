@@ -78,10 +78,10 @@ public class AppointmentsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAllAppointments([FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate, [FromQuery] int? doctorId)
+    public async Task<IActionResult> GetAllAppointments([FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate, [FromQuery] int? doctorId, [FromQuery] int limit = 200)
     {
         byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
-        var list = await _appointmentService.GetAllAppointmentsAsync(tenantId, startDate, endDate, doctorId);
+        var list = await _appointmentService.GetAllAppointmentsAsync(tenantId, startDate, endDate, doctorId, limit);
         return Ok(ApiResponse<List<AppointmentDto>>.Ok(list));
     }
 

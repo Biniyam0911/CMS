@@ -71,10 +71,10 @@ public class BillingController : ControllerBase
     }
 
     [HttpGet("invoices")]
-    public async Task<IActionResult> GetInvoices()
+    public async Task<IActionResult> GetInvoices([FromQuery] int limit = 200, [FromQuery] int? patientId = null, [FromQuery] DateTime? date = null)
     {
         byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
-        var invoices = await _billingService.GetInvoicesAsync(tenantId);
+        var invoices = await _billingService.GetInvoicesAsync(tenantId, limit, patientId, date);
         return Ok(ApiResponse<List<InvoiceDto>>.Ok(invoices));
     }
 
@@ -100,8 +100,7 @@ public class BillingController : ControllerBase
     public async Task<IActionResult> VerifyTelemedPayment(int id, [FromServices] CMS.Application.Telemedicine.TelemedService telemedService)
     {
         byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
-        var invoices = await _billingService.GetInvoicesAsync(tenantId);
-        var target = invoices.FirstOrDefault(x => x.Id == id);
+        var target = await _billingService.GetInvoiceByIdAsync(id, tenantId);
         if (target != null && target.StatusId != 4)
         {
             await _billingService.ProcessPaymentAsync(new ProcessPaymentDto(

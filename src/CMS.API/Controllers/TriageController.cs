@@ -41,21 +41,29 @@ public class TriageController : ControllerBase
                    ISNULL(r.RoomName, 'Not Assigned') AS AssignedRoomName,
                    t.Status, t.HoldReason, t.HoldDurationMin,
                    t.TriagedBy, t.TriagedAt, t.UpdatedAt
-            FROM PatientTriage t
-            JOIN Patients p ON p.Id = t.PatientId
-            LEFT JOIN PatientQueues q ON q.Id = t.QueueId
-            LEFT JOIN Doctors d ON d.Id = t.AssignedDoctorId
-            LEFT JOIN Staff s ON s.Id = d.StaffId
-            LEFT JOIN ConsultationRooms r ON r.Id = t.AssignedRoomId
+            FROM PatientTriage t WITH (NOLOCK)
+            JOIN Patients p WITH (NOLOCK) ON p.Id = t.PatientId
+            LEFT JOIN PatientQueues q WITH (NOLOCK) ON q.Id = t.QueueId
+            LEFT JOIN Doctors d WITH (NOLOCK) ON d.Id = t.AssignedDoctorId
+            LEFT JOIN Staff s WITH (NOLOCK) ON s.Id = d.StaffId
+            LEFT JOIN ConsultationRooms r WITH (NOLOCK) ON r.Id = t.AssignedRoomId
             WHERE t.TenantId = @TenantId
               AND (@Status IS NULL OR t.Status = @Status)
-              AND (@Date IS NULL OR CAST(t.TriagedAt AS DATE) = CAST(@Date AS DATE) OR CAST(t.UpdatedAt AS DATE) = CAST(@Date AS DATE))
+              AND (
+                  @DateStart IS NULL 
+                  OR (t.TriagedAt >= @DateStart AND t.TriagedAt < @DateEnd) 
+                  OR (t.UpdatedAt >= @DateStart AND t.UpdatedAt < @DateEnd)
+              )
             ORDER BY t.PriorityLevel ASC, t.UpdatedAt DESC, t.TriagedAt DESC";
+
+        DateTime? dateStart = date?.Date;
+        DateTime? dateEnd = dateStart?.AddDays(1);
 
         var list = (await conn.QueryAsync<TriageDto>(sql, new {
             TenantId = tenantId,
             Status = string.IsNullOrWhiteSpace(status) ? null : status,
-            Date = date
+            DateStart = dateStart,
+            DateEnd = dateEnd
         })).ToList();
         return Ok(ApiResponse<List<TriageDto>>.Ok(list));
     }
@@ -70,6 +78,9 @@ public class TriageController : ControllerBase
 
         byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
         using var conn = _dbFactory.CreateConnection();
+
+        DateTime? dateStart = date?.Date;
+        DateTime? dateEnd = dateStart?.AddDays(1);
 
         var sql = @"
             SELECT t.Id, t.TenantId, t.PatientId,
@@ -88,18 +99,18 @@ public class TriageController : ControllerBase
                    t.AssignedRoomId,
                    ISNULL(r.RoomName, 'Room 101') AS AssignedRoomName,
                    t.Status, t.TriagedAt, t.UpdatedAt
-            FROM PatientTriage t
-            JOIN Patients p ON p.Id = t.PatientId
-            LEFT JOIN PatientQueues q ON q.Id = t.QueueId
-            LEFT JOIN Doctors d ON d.Id = t.AssignedDoctorId
-            LEFT JOIN Staff s ON s.Id = d.StaffId
-            LEFT JOIN ConsultationRooms r ON r.Id = t.AssignedRoomId
+            FROM PatientTriage t WITH (NOLOCK)
+            JOIN Patients p WITH (NOLOCK) ON p.Id = t.PatientId
+            LEFT JOIN PatientQueues q WITH (NOLOCK) ON q.Id = t.QueueId
+            LEFT JOIN Doctors d WITH (NOLOCK) ON d.Id = t.AssignedDoctorId
+            LEFT JOIN Staff s WITH (NOLOCK) ON s.Id = d.StaffId
+            LEFT JOIN ConsultationRooms r WITH (NOLOCK) ON r.Id = t.AssignedRoomId
             WHERE t.TenantId = @TenantId
               AND t.AssignedDoctorId = @DoctorId
               AND (
-                  @Date IS NULL
-                  OR CAST(t.TriagedAt AS DATE) = CAST(@Date AS DATE)
-                  OR CAST(t.UpdatedAt AS DATE) = CAST(@Date AS DATE)
+                  @DateStart IS NULL
+                  OR (t.TriagedAt >= @DateStart AND t.TriagedAt < @DateEnd)
+                  OR (t.UpdatedAt >= @DateStart AND t.UpdatedAt < @DateEnd)
                   OR t.Status = 'AssignedToDoctor'
               )
             ORDER BY t.PriorityLevel ASC, t.UpdatedAt DESC, t.TriagedAt DESC";
@@ -107,7 +118,8 @@ public class TriageController : ControllerBase
         var list = (await conn.QueryAsync<dynamic>(sql, new {
             TenantId = tenantId,
             DoctorId = doctorId,
-            Date = date
+            DateStart = dateStart,
+            DateEnd = dateEnd
         })).ToList();
         return Ok(ApiResponse<dynamic>.Ok(list));
     }

@@ -90,21 +90,44 @@ public class PatientsController : ControllerBase
 
     [HttpGet]
     [HttpGet("search")]
-    public async Task<IActionResult> Search([FromQuery] string? q = "", [FromQuery] int page = 1)
+    public async Task<IActionResult> Search([FromQuery] string? q = "", [FromQuery] int page = 1, [FromQuery] int limit = 100)
     {
         byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
-        var queryStr = q ?? "";
+        var queryStr = q?.Trim() ?? "";
+        int maxRows = limit is > 0 and <= 500 ? limit : 100;
         using var conn = _dbFactory.CreateConnection();
-        var sql = @"
-            SELECT Id, TenantId, MRN, FirstName, MiddleName, LastName, DateOfBirth, Gender,
-                   PrimaryPhone, Email, Address, InsuranceProvider, InsuranceCopayPercent,
-                   Allergies, ChronicConditions, NationalId, BloodGroup, PhotoUrl, IsActive
-            FROM Patients
-            WHERE TenantId = @TenantId AND IsActive = 1
-              AND (@Query = '' OR FirstName LIKE '%' + @Query + '%' OR MiddleName LIKE '%' + @Query + '%' OR LastName LIKE '%' + @Query + '%' OR MRN LIKE '%' + @Query + '%' OR PrimaryPhone LIKE '%' + @Query + '%')
-            ORDER BY Id DESC";
+        
+        string sql;
+        object param;
 
-        var patients = (await conn.QueryAsync<PatientDto>(sql, new { TenantId = tenantId, Query = queryStr })).ToList();
+        if (string.IsNullOrWhiteSpace(queryStr))
+        {
+            sql = @"
+                SELECT TOP (@Limit) Id, TenantId, MRN, FirstName, MiddleName, LastName, DateOfBirth, Gender,
+                       PrimaryPhone, Email, Address, InsuranceProvider, InsuranceCopayPercent,
+                       Allergies, ChronicConditions, NationalId, BloodGroup, PhotoUrl, IsActive
+                FROM Patients
+                WHERE TenantId = @TenantId AND IsActive = 1
+                ORDER BY Id DESC";
+            param = new { TenantId = tenantId, Limit = maxRows };
+        }
+        else
+        {
+            var prefix = queryStr + "%";
+            var contains = "%" + queryStr + "%";
+            sql = @"
+                SELECT TOP (@Limit) Id, TenantId, MRN, FirstName, MiddleName, LastName, DateOfBirth, Gender,
+                       PrimaryPhone, Email, Address, InsuranceProvider, InsuranceCopayPercent,
+                       Allergies, ChronicConditions, NationalId, BloodGroup, PhotoUrl, IsActive
+                FROM Patients
+                WHERE TenantId = @TenantId AND IsActive = 1
+                  AND (MRN LIKE @Prefix OR PrimaryPhone LIKE @Prefix OR FirstName LIKE @Prefix OR LastName LIKE @Prefix 
+                       OR FirstName LIKE @Contains OR LastName LIKE @Contains OR MiddleName LIKE @Contains)
+                ORDER BY Id DESC";
+            param = new { TenantId = tenantId, Prefix = prefix, Contains = contains, Limit = maxRows };
+        }
+
+        var patients = (await conn.QueryAsync<PatientDto>(sql, param)).ToList();
         return Ok(ApiResponse<List<PatientDto>>.Ok(patients));
     }
 

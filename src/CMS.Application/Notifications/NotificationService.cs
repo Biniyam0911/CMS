@@ -27,11 +27,6 @@ public class NotificationService
     public async Task<List<NotificationItemDto>> GetNotificationsAsync(byte tenantId, int? userId = null, string? role = null)
     {
         using var conn = _dbFactory.CreateConnection();
-        // Ensure any legacy seed mock records are purged so only authentic operational notifications appear
-        await conn.ExecuteAsync(@"
-            DELETE FROM Notifications 
-            WHERE (Body LIKE '%160/100 and tachycardia%' OR Body LIKE '%flagged critical hemoglobin%' OR Body LIKE '%Prescription RX-201%' OR Body LIKE '%#10042 (Br 450.00)%' OR Body LIKE '%Paracetamol 500mg stock has reached%')");
-
         var sql = @"
             SELECT TOP 50
                 Id, TenantId, RecipientUserId,

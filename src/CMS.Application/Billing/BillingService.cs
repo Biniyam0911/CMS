@@ -195,7 +195,83 @@ public class BillingService
         return invoiceId;
     }
 
-    public async Task<List<InvoiceDto>> GetInvoicesAsync(byte tenantId)
+    public async Task<List<InvoiceDto>> GetInvoicesAsync(byte tenantId, int limit = 200, int? patientId = null, DateTime? date = null)
+    {
+        using var conn = _dbFactory.CreateConnection();
+        var sql = @"
+            SELECT TOP (@Limit) i.Id, i.TenantId, i.InvoiceNumber AS InvoiceNo,
+                   i.PatientId, p.FirstName + ' ' + ISNULL(p.MiddleName + ' ', '') + p.LastName AS PatientName,
+                   i.EncounterId, i.IssueDate, i.DueDate, i.SubTotal,
+                   ISNULL(i.TaxAmt, 0) AS TaxAmount,
+                   ISNULL(i.DiscountAmt, 0) AS DiscountAmount,
+                   i.TotalAmount, ISNULL(i.PaidAmount, 0) AS PaidAmount,
+                   i.StatusId,
+                   CASE i.StatusId
+                       WHEN 1 THEN 'Draft'
+                       WHEN 2 THEN 'Issued'
+                       WHEN 3 THEN 'PartiallyPaid'
+                       WHEN 4 THEN 'Paid'
+                       WHEN 5 THEN 'Void'
+                       ELSE 'Issued' END AS StatusName,
+                   CASE 
+                       WHEN i.TotalAmount = 0 THEN CAST(1 AS BIT)
+                       WHEN EXISTS (
+                           SELECT 1 FROM Payments pm 
+                           WHERE pm.InvoiceId = i.Id 
+                             AND (pm.PaymentMethod = 4 OR pm.Reference LIKE '%Waiv%' OR pm.Reference LIKE '%Free%')
+                       ) THEN CAST(1 AS BIT)
+                       ELSE CAST(0 AS BIT)
+                   END AS IsWaived,
+                   i.InsuranceProviderId,
+                   ip.Name AS InsuranceProviderName,
+                   ISNULL(i.InsuranceCoPayPercent, 0) AS InsuranceCoPayPercent,
+                   ISNULL(i.InsuranceClaimAmount, 0) AS InsuranceClaimAmount,
+                   ISNULL(i.PatientPayAmount, i.TotalAmount) AS PatientPayAmount,
+                   i.PreAuthCode,
+                   ISNULL(i.ClaimStatusId, 1) AS ClaimStatusId,
+                   i.FiscalReceiptNo,
+                   i.FiscalSignature,
+                   i.FiscalQrPayload,
+                   i.ReceiptImageUrl,
+                   i.Notes
+            FROM Invoices i
+            JOIN Patients p ON p.Id = i.PatientId
+            LEFT JOIN InsuranceProviders ip ON ip.Id = i.InsuranceProviderId
+            WHERE i.TenantId = @TenantId
+              AND (@PatientId IS NULL OR i.PatientId = @PatientId)
+              AND (@Date IS NULL OR CAST(i.IssueDate AS DATE) = CAST(@Date AS DATE))
+            ORDER BY i.Id DESC";
+
+        var invoices = (await conn.QueryAsync<InvoiceDto>(sql, new { TenantId = tenantId, Limit = limit, PatientId = patientId, Date = date })).ToList();
+
+        // Populate line items in O(N) using lookup dictionary
+        var invoiceIds = invoices.Select(x => x.Id).ToList();
+        if (invoiceIds.Any())
+        {
+            var itemSql = @"
+                SELECT Id, InvoiceId,
+                       CASE ItemType
+                           WHEN 1 THEN 'Consultation'
+                           WHEN 2 THEN 'Laboratory'
+                           WHEN 3 THEN 'Procedure'
+                           WHEN 4 THEN 'Pharmacy'
+                           ELSE 'Service' END AS ItemType,
+                       RefId AS ReferenceId, Description, CAST(Quantity AS INT) AS Quantity, UnitPrice, Total AS TotalPrice
+                FROM InvoiceItems
+                WHERE InvoiceId IN @InvoiceIds";
+
+            var allItems = (await conn.QueryAsync<InvoiceItemDto>(itemSql, new { InvoiceIds = invoiceIds })).ToList();
+            var itemLookup = allItems.ToLookup(it => it.InvoiceId);
+            foreach (var inv in invoices)
+            {
+                inv.Items.AddRange(itemLookup[inv.Id]);
+            }
+        }
+
+        return invoices;
+    }
+
+    public async Task<InvoiceDto?> GetInvoiceByIdAsync(int id, byte tenantId)
     {
         using var conn = _dbFactory.CreateConnection();
         var sql = @"
@@ -237,36 +313,26 @@ public class BillingService
             FROM Invoices i
             JOIN Patients p ON p.Id = i.PatientId
             LEFT JOIN InsuranceProviders ip ON ip.Id = i.InsuranceProviderId
-            WHERE i.TenantId = @TenantId
-            ORDER BY i.Id DESC";
+            WHERE i.Id = @Id AND i.TenantId = @TenantId";
 
-        var invoices = (await conn.QueryAsync<InvoiceDto>(sql, new { TenantId = tenantId })).ToList();
-
-        // Populate line items
-        var itemSql = @"
-            SELECT Id, InvoiceId,
-                   CASE ItemType
-                       WHEN 1 THEN 'Consultation'
-                       WHEN 2 THEN 'Laboratory'
-                       WHEN 3 THEN 'Procedure'
-                       WHEN 4 THEN 'Pharmacy'
-                       ELSE 'Service' END AS ItemType,
-                   RefId AS ReferenceId, Description, CAST(Quantity AS INT) AS Quantity, UnitPrice, Total AS TotalPrice
-            FROM InvoiceItems
-            WHERE InvoiceId IN @InvoiceIds";
-
-        var invoiceIds = invoices.Select(x => x.Id).ToList();
-        if (invoiceIds.Any())
+        var inv = await conn.QueryFirstOrDefaultAsync<InvoiceDto>(sql, new { Id = id, TenantId = tenantId });
+        if (inv != null)
         {
-            var allItems = (await conn.QueryAsync<InvoiceItemDto>(itemSql, new { InvoiceIds = invoiceIds })).ToList();
-            foreach (var inv in invoices)
-            {
-                var items = allItems.Where(it => it.InvoiceId == inv.Id).ToList();
-                inv.Items.AddRange(items);
-            }
+            var itemSql = @"
+                SELECT Id, InvoiceId,
+                       CASE ItemType
+                           WHEN 1 THEN 'Consultation'
+                           WHEN 2 THEN 'Laboratory'
+                           WHEN 3 THEN 'Procedure'
+                           WHEN 4 THEN 'Pharmacy'
+                           ELSE 'Service' END AS ItemType,
+                       RefId AS ReferenceId, Description, CAST(Quantity AS INT) AS Quantity, UnitPrice, Total AS TotalPrice
+                FROM InvoiceItems
+                WHERE InvoiceId = @InvoiceId";
+            var items = (await conn.QueryAsync<InvoiceItemDto>(itemSql, new { InvoiceId = id })).ToList();
+            inv.Items.AddRange(items);
         }
-
-        return invoices;
+        return inv;
     }
 
     public async Task ProcessPaymentAsync(ProcessPaymentDto dto)
