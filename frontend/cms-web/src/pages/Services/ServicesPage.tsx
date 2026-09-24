@@ -237,18 +237,44 @@ export default function ServicesPage() {
   };
 
   // Load backend catalog if available
-  useEffect(() => {
-    const loadBackendCatalog = async () => {
-      try {
-        const catData = await api.get<any[]>('/laboratory/catalog').catch(() => []);
-        if (catData && catData.length > 0) {
-          // Merge with master
-        }
-      } catch (err) {
-        console.error('Failed to load lab catalog:', err);
+  const loadBackendServicesAndCategories = async () => {
+    try {
+      const [srvData, catData] = await Promise.all([
+        api.get<any[]>('/services', { limit: 500 }).catch(() => []),
+        api.get<any[]>('/services/categories').catch(() => [])
+      ]);
+
+      if (srvData && Array.isArray(srvData) && srvData.length > 0) {
+        setServices(srvData.map((s: any) => ({
+          id: s.id || s.Id,
+          code: s.code || s.Code,
+          name: s.name || s.Name,
+          categoryId: s.categoryId || s.CategoryId || 1,
+          categoryName: s.category || s.Category || 'General Clinical',
+          department: s.department || s.Department || 'General Clinical',
+          standardFee: Number(s.standardFee ?? s.price ?? s.Price ?? 0),
+          taxable: Boolean(s.taxable ?? s.Taxable),
+          isActive: Boolean(s.isActive ?? s.IsActive ?? true),
+          description: s.description || s.Description || ''
+        })));
       }
-    };
-    loadBackendCatalog();
+
+      if (catData && Array.isArray(catData) && catData.length > 0) {
+        setCategories(catData.map((c: any) => ({
+          id: c.id || c.Id,
+          name: c.name || c.Name,
+          code: c.code || c.Code,
+          description: c.description || c.Description || '',
+          itemCount: c.itemCount || c.ItemCount || 0
+        })));
+      }
+    } catch (err) {
+      console.error('Failed to load services & categories:', err);
+    }
+  };
+
+  useEffect(() => {
+    loadBackendServicesAndCategories();
   }, []);
 
   const openAddServiceModal = () => {
@@ -277,57 +303,54 @@ export default function ServicesPage() {
     setShowServiceModal(true);
   };
 
-  const handleSaveService = (e: React.FormEvent) => {
+  const handleSaveService = async (e: React.FormEvent) => {
     e.preventDefault();
     const cat = categories.find(c => c.id === formCategoryId) || categories[0];
     const fee = parseFloat(formStandardFee) || 0;
 
-    let updated: ClinicalService[];
-    if (editingService) {
-      updated = services.map(s => s.id === editingService.id ? {
-        ...s,
-        code: formCode,
-        name: formName,
-        categoryId: formCategoryId,
-        categoryName: cat.name,
-        department: formDepartment,
-        standardFee: fee,
-        taxable: formTaxable,
-        isActive: formIsActive,
-        description: formDescription
-      } : s);
-      showToast(`Updated service: "${formName}"`);
-    } else {
-      const newSrv: ClinicalService = {
-        id: Date.now(),
-        code: formCode,
-        name: formName,
-        categoryId: formCategoryId,
-        categoryName: cat.name,
-        department: formDepartment,
-        standardFee: fee,
-        taxable: formTaxable,
-        isActive: formIsActive,
-        description: formDescription
-      };
-      updated = [newSrv, ...services];
-      showToast(`Created new clinical service: "${formName}"`);
-    }
-    setServices(updated);
     try {
-      localStorage.setItem('clinic_services', JSON.stringify(updated));
-    } catch {}
+      if (editingService) {
+        await api.put(`/services/${editingService.id}`, {
+          code: formCode,
+          name: formName,
+          category: cat.name,
+          department: formDepartment,
+          standardFee: fee,
+          taxable: formTaxable,
+          isActive: formIsActive,
+          description: formDescription
+        });
+        showToast(`Updated service: "${formName}"`);
+      } else {
+        await api.post('/services', {
+          code: formCode,
+          name: formName,
+          category: cat.name,
+          department: formDepartment,
+          standardFee: fee,
+          taxable: formTaxable,
+          description: formDescription
+        });
+        showToast(`Created new clinical service: "${formName}"`);
+      }
+      await loadBackendServicesAndCategories();
+    } catch (err) {
+      console.error('Failed to save service:', err);
+      showToast('Error saving service to database.');
+    }
     setShowServiceModal(false);
   };
 
-  const handleDeleteService = (id: number) => {
-    if (window.confirm('Are you sure you want to delete this clinical service?')) {
-      const updated = services.filter(x => x.id !== id);
-      setServices(updated);
+  const handleDeleteService = async (id: number) => {
+    if (window.confirm('Are you sure you want to deactivate this clinical service?')) {
       try {
-        localStorage.setItem('clinic_services', JSON.stringify(updated));
-      } catch {}
-      showToast('Clinical service deleted.');
+        await api.delete(`/services/${id}`);
+        showToast('Clinical service deactivated in database.');
+        await loadBackendServicesAndCategories();
+      } catch (err) {
+        console.error('Failed to deactivate service:', err);
+        showToast('Error deactivating service.');
+      }
     }
   };
 

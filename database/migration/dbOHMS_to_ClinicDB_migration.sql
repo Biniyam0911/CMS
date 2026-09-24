@@ -491,13 +491,13 @@ GO
 -- ============================================================
 -- STEP 5: SERVICES
 -- Source: [dbOHMS.dbo.tblServices]
--- Target: [ClinicDB.dbo.LegacyServices]
+-- Target: [ClinicDB.dbo.Services] & [ClinicDB.dbo.LegacyServices]
 -- ============================================================
 DECLARE @srcCount INT = (SELECT COUNT(*) FROM dbOHMS.dbo.[tblServices]);
 PRINT '------------------------------------------------------------';
-PRINT 'Step 5/12: Migrating [dbOHMS.dbo.tblServices] -> [ClinicDB.dbo.LegacyServices]';
+PRINT 'Step 5/12: Migrating [dbOHMS.dbo.tblServices] -> [ClinicDB.dbo.Services] & [LegacyServices]';
 PRINT 'Total source records to migrate: ' + CAST(@srcCount AS VARCHAR);
-RAISERROR('Step 5/12: Migrating [dbOHMS.dbo.tblServices] -> [ClinicDB.dbo.LegacyServices] (%d records)...', 0, 1, @srcCount) WITH NOWAIT;
+RAISERROR('Step 5/12: Migrating [dbOHMS.dbo.tblServices] -> [ClinicDB.dbo.Services] (%d records)...', 0, 1, @srcCount) WITH NOWAIT;
 
 IF OBJECT_ID('ClinicDB.dbo.LegacyServices') IS NULL
 CREATE TABLE ClinicDB.dbo.[LegacyServices] (
@@ -521,9 +521,54 @@ WHERE NOT EXISTS (
     SELECT 1 FROM ClinicDB.dbo.[LegacyServices] ls WHERE ls.[OldServiceId] = s.[serviceid]
 );
 
-DECLARE @svcCount INT = (SELECT COUNT(*) FROM ClinicDB.dbo.[LegacyServices]);
-INSERT INTO dbo.[MigrationLog] VALUES ('Step 5', 'tblServices', 'LegacyServices', @srcCount, @svcCount, 'OK', 'Staged in LegacyServices', GETDATE());
-PRINT '--> [COMPLETED] Step 5/12: [dbOHMS.dbo.tblServices] -> [ClinicDB.dbo.LegacyServices] | Processed: ' + CAST(@svcCount AS VARCHAR) + ' of ' + CAST(@srcCount AS VARCHAR) + ' records.';
+-- Primary Production Services Table
+IF OBJECT_ID('ClinicDB.dbo.Services') IS NULL
+BEGIN
+    CREATE TABLE ClinicDB.dbo.[Services] (
+        [Id]          INT IDENTITY(1,1) PRIMARY KEY,
+        [TenantId]    TINYINT NOT NULL DEFAULT 1,
+        [Code]        NVARCHAR(50) NOT NULL,
+        [Name]        NVARCHAR(300) NOT NULL,
+        [Category]    NVARCHAR(100) NOT NULL,
+        [Department]  NVARCHAR(100) NULL,
+        [Price]       DECIMAL(18,2) NOT NULL DEFAULT 0,
+        [Taxable]     BIT NOT NULL DEFAULT 0,
+        [IsActive]    BIT NOT NULL DEFAULT 1,
+        [Description] NVARCHAR(500) NULL,
+        [CreatedAt]   DATETIME2 NOT NULL DEFAULT GETDATE(),
+        [UpdatedAt]   DATETIME2 NOT NULL DEFAULT GETDATE()
+    );
+    CREATE NONCLUSTERED INDEX [IX_Services_Tenant_Active] ON ClinicDB.dbo.[Services] ([TenantId], [IsActive]) INCLUDE ([Code], [Name], [Category], [Price]);
+END
+
+INSERT INTO ClinicDB.dbo.[Services] ([TenantId], [Code], [Name], [Category], [Department], [Price], [Taxable], [IsActive], [Description], [CreatedAt], [UpdatedAt])
+SELECT 
+    ls.[TenantId],
+    ls.[ServiceCode],
+    ls.[ServiceName],
+    ls.[Category],
+    CASE 
+        WHEN ls.[Category] = 'Consultation' THEN 'Outpatient Consultation'
+        WHEN ls.[Category] = 'Laboratory' OR ls.[Category] = 'Old Lab Category' THEN 'Laboratory'
+        WHEN ls.[Category] = 'Pharmacy' THEN 'Pharmacy'
+        WHEN ls.[Category] = 'Procedure' THEN 'Minor Surgery & Procedures'
+        WHEN ls.[Category] = 'Facial' THEN 'Dermatology & Aesthetics'
+        ELSE 'General Clinical'
+    END,
+    ls.[Price],
+    0,
+    ls.[IsActive],
+    ls.[ServiceName],
+    ls.[MigratedAt],
+    ls.[MigratedAt]
+FROM ClinicDB.dbo.[LegacyServices] ls
+WHERE NOT EXISTS (
+    SELECT 1 FROM ClinicDB.dbo.[Services] s WHERE s.[Code] = ls.[ServiceCode] AND s.[Name] = ls.[ServiceName]
+);
+
+DECLARE @svcCount INT = (SELECT COUNT(*) FROM ClinicDB.dbo.[Services]);
+INSERT INTO dbo.[MigrationLog] VALUES ('Step 5', 'tblServices', 'Services', @srcCount, @svcCount, 'OK', 'Migrated to primary Services table', GETDATE());
+PRINT '--> [COMPLETED] Step 5/12: [dbOHMS.dbo.tblServices] -> [ClinicDB.dbo.Services] | Processed: ' + CAST(@svcCount AS VARCHAR) + ' of ' + CAST(@srcCount AS VARCHAR) + ' records.';
 RAISERROR('--> [COMPLETED] Step 5/12: Services done (%d records).', 0, 1, @svcCount) WITH NOWAIT;
 GO
 
@@ -1469,6 +1514,7 @@ FROM (VALUES
     ('Invoices',            (SELECT COUNT(*) FROM ClinicDB.dbo.[Invoices] WHERE [TenantId] = 1)),
     ('InvoiceItems',        (SELECT COUNT(*) FROM ClinicDB.dbo.[InvoiceItems])),
     ('MedicalCertificates', (SELECT COUNT(*) FROM ClinicDB.dbo.[MedicalCertificates] WHERE [TenantId] = 1)),
+    ('Services',            (SELECT COUNT(*) FROM ClinicDB.dbo.[Services] WHERE [TenantId] = 1)),
     ('LegacyServices',      (SELECT COUNT(*) FROM ClinicDB.dbo.[LegacyServices]))
 ) T([TargetTable], [TotalRowsInClinicDB])
 ORDER BY T.[TargetTable];

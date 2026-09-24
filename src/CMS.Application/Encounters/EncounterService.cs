@@ -63,17 +63,70 @@ public class EncounterService
     {
         using var conn = _dbFactory.CreateConnection();
         var sql = @"
-            SELECT e.Id, e.PatientId, p.FirstName + ' ' + ISNULL(p.MiddleName + ' ', '') + p.LastName AS PatientName,
-                   e.DoctorId, ISNULL(s.FirstName + ' ' + s.LastName, 'Dr. Kebede Biniyam') AS DoctorName,
-                   e.EncounterDate, e.ChiefComplaint, e.HistoryOfIllness,
-                   e.PhysicalExam, e.Assessment, e.[Plan], e.VitalSigns,
-                   e.IsFinalized, e.FinalizedAt
-            FROM Encounters e
-            JOIN Patients p ON p.Id = e.PatientId
-            LEFT JOIN Doctors d ON d.Id = e.DoctorId
-            LEFT JOIN Staff s ON s.Id = d.StaffId
-            WHERE e.TenantId = @TenantId AND e.PatientId = @PatientId
-            ORDER BY e.Id DESC";
+            SELECT 
+                u.Id,
+                u.PatientId,
+                p.FirstName + ' ' + ISNULL(p.MiddleName + ' ', '') + p.LastName AS PatientName,
+                u.DoctorId,
+                ISNULL(s.FirstName + ' ' + s.LastName, 'Attending Physician') AS DoctorName,
+                u.EncounterDate,
+                u.ChiefComplaint,
+                u.HistoryOfIllness,
+                u.PhysicalExam,
+                u.Assessment,
+                u.[Plan],
+                u.VitalSigns,
+                u.IsFinalized,
+                u.FinalizedAt
+            FROM (
+                -- 1. Clinical Encounters (SOAP notes)
+                SELECT 
+                    e.Id,
+                    e.TenantId,
+                    e.PatientId,
+                    e.DoctorId,
+                    e.EncounterDate,
+                    e.ChiefComplaint,
+                    e.HistoryOfIllness,
+                    e.PhysicalExam,
+                    e.Assessment,
+                    e.[Plan],
+                    e.VitalSigns,
+                    e.IsFinalized,
+                    e.FinalizedAt
+                FROM Encounters e WITH (NOLOCK)
+                WHERE e.TenantId = @TenantId AND e.PatientId = @PatientId
+
+                UNION ALL
+
+                -- 2. Triage & Scheduled Visits (that do not already have an encounter recorded on the same date)
+                SELECT 
+                    t.Id + 1000000 AS Id,
+                    t.TenantId,
+                    t.PatientId,
+                    t.AssignedDoctorId AS DoctorId,
+                    CAST(t.TriagedAt AS DATE) AS EncounterDate,
+                    COALESCE(t.ChiefComplaint, 'Outpatient Consultation') AS ChiefComplaint,
+                    NULL AS HistoryOfIllness,
+                    NULL AS PhysicalExam,
+                    COALESCE(t.NurseNotes, t.TriageCategory, 'Consultation') AS Assessment,
+                    t.Status AS [Plan],
+                    NULL AS VitalSigns,
+                    1 AS IsFinalized,
+                    t.TriagedAt AS FinalizedAt
+                FROM PatientTriage t WITH (NOLOCK)
+                WHERE t.TenantId = @TenantId AND t.PatientId = @PatientId
+                  AND NOT EXISTS (
+                      SELECT 1 FROM Encounters ex WITH (NOLOCK)
+                      WHERE ex.TenantId = @TenantId 
+                        AND ex.PatientId = @PatientId
+                        AND CAST(ex.EncounterDate AS DATE) = CAST(t.TriagedAt AS DATE)
+                  )
+            ) u
+            JOIN Patients p WITH (NOLOCK) ON p.Id = u.PatientId
+            LEFT JOIN Doctors d WITH (NOLOCK) ON d.Id = u.DoctorId
+            LEFT JOIN Staff s WITH (NOLOCK) ON s.Id = d.StaffId
+            ORDER BY u.EncounterDate DESC, u.Id DESC";
 
         var encounters = (await conn.QueryAsync<EncounterDto>(sql, new { TenantId = tenantId, PatientId = patientId })).ToList();
         return encounters;

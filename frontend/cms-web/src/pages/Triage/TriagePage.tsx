@@ -80,30 +80,13 @@ export default function TriagePage() {
   // Toast for routing and billing
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const consultationServices: ConsultationService[] = (() => {
-    try {
-      const saved = localStorage.getItem('clinic_services');
-      if (saved) {
-        const list = JSON.parse(saved);
-        const conList = list.filter((s: any) => s.categoryName?.toLowerCase().includes('consult') || s.code?.includes('CON') || s.categoryId === 1);
-        if (conList.length > 0) {
-          return conList.map((s: any) => ({
-            id: s.id,
-            name: s.name,
-            code: s.code,
-            fee: s.standardFee || 500.0
-          }));
-        }
-      }
-    } catch {}
-    return [
-      { id: 1, name: 'General Dermatology Consultation', code: 'SRV-CON-01', fee: 500.0 },
-      { id: 2, name: 'Specialist Dermatology Follow-up', code: 'SRV-CON-02', fee: 350.0 },
-      { id: 3, name: 'Urgent / STAT Dermatology Consultation', code: 'SRV-CON-03', fee: 650.0 },
-      { id: 4, name: 'Teledermatology Remote Review', code: 'SRV-CON-04', fee: 400.0 },
-      { id: 5, name: 'Minor Surgical / Biopsy Evaluation', code: 'SRV-CON-05', fee: 450.0 }
-    ];
-  })();
+  const [consultationServices, setConsultationServices] = useState<ConsultationService[]>([
+    { id: 6569, name: 'Consultation fee Specialist 1', code: 'CO01', fee: 1800.0 },
+    { id: 6570, name: 'Consultation fee Specialist 1 (VIP)', code: 'CO02', fee: 3000.0 },
+    { id: 6790, name: 'Consultation fee specialist 2 (VIP)', code: 'CO04', fee: 2500.0 },
+    { id: 6801, name: 'Consultation Fee Specialist 2 (Discount)', code: 'CO05', fee: 1350.0 },
+    { id: 6789, name: 'Consultation fee specialist 3 vip', code: 'CO03', fee: 5000.0 }
+  ]);
 
   const rooms = [
     { id: 1, name: 'Room 101 - Dermatology Consultation' },
@@ -122,11 +105,21 @@ export default function TriagePage() {
   const fetchTriageData = async () => {
     try {
       setLoading(true);
-      const [queueData, doctorsData, patientsData] = await Promise.all([
+      const [queueData, doctorsData, patientsData, consultServicesData] = await Promise.all([
         api.get<any[]>('/triage/queue', { date: triageDate }).catch(() => []),
         api.get<any[]>('/staff/doctors').catch(() => []),
-        api.get<any[]>('/patients/search').catch(() => [])
+        api.get<any[]>('/patients/search').catch(() => []),
+        api.get<any[]>('/services/consultation').catch(() => [])
       ]);
+
+      if (consultServicesData && Array.isArray(consultServicesData) && consultServicesData.length > 0) {
+        setConsultationServices(consultServicesData.map((s: any) => ({
+          id: s.id || s.Id,
+          name: s.name || s.Name,
+          code: s.code || s.Code,
+          fee: Number(s.fee ?? s.Fee ?? s.standardFee ?? s.StandardFee ?? 1800.0)
+        })));
+      }
 
       if (queueData && Array.isArray(queueData)) {
         setTriageQueue(queueData);
@@ -232,14 +225,35 @@ export default function TriagePage() {
   // Load Real Previous Visits when Assign Doctor modal opens
   const openAssignModalForPatient = async (item: any) => {
     setShowAssignModal(item);
-    setSelectedServiceId(1);
+    if (consultationServices.length > 0) {
+      setSelectedServiceId(consultationServices[0].id);
+    }
     setVisitType('New');
     setLoadingVisits(true);
     try {
-      const patientId = item.patientId || item.PatientId || item.id;
-      const encounters = await api.get<any[]>(`/encounters/patient/${patientId}`).catch(() => []);
-      if (encounters && Array.isArray(encounters)) {
-        setPatientPreviousVisits(encounters);
+      const patientId = Number(item.patientId ?? item.PatientId ?? (item.mrn ? item.id : 0));
+      if (patientId > 0) {
+        const encounters = await api.get<any[]>(`/encounters/patient/${patientId}`).catch(() => []);
+        if (encounters && Array.isArray(encounters)) {
+          setPatientPreviousVisits(encounters);
+          if (encounters.length > 0) {
+            const rawDate = encounters[0].encounterDate || encounters[0].EncounterDate;
+            if (rawDate) {
+              const visitTime = new Date(rawDate).getTime();
+              const now = new Date().getTime();
+              const diffDays = Math.floor((now - visitTime) / (1000 * 60 * 60 * 24));
+              if (diffDays <= 30) {
+                setVisitType('Repeat');
+              } else if (diffDays <= 90) {
+                setVisitType('New Repeat');
+              } else {
+                setVisitType('New');
+              }
+            }
+          }
+        } else {
+          setPatientPreviousVisits([]);
+        }
       } else {
         setPatientPreviousVisits([]);
       }
