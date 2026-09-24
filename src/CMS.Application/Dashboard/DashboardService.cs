@@ -23,7 +23,7 @@ public class DashboardService
                 (SELECT COUNT(1) FROM Patients WITH (NOLOCK) WHERE TenantId = @TenantId AND IsActive = 1) AS PatientCount,
                 (SELECT COUNT(1) FROM Appointments WITH (NOLOCK) WHERE TenantId = @TenantId AND SlotDateTime >= @TodayStart AND SlotDateTime < @TomorrowStart) AS ApptCount,
                 (SELECT COUNT(1) FROM LabOrders WITH (NOLOCK) WHERE TenantId = @TenantId AND StatusId < 4) AS LabCount,
-                (SELECT COUNT(1) FROM PatientTriage WITH (NOLOCK) WHERE TenantId = @TenantId AND (Status IN ('Waiting', 'Triaged', 'AssignedToDoctor') OR (TriagedAt >= @TodayStart AND TriagedAt < @TomorrowStart))) AS QueueCount,
+                (SELECT COUNT(1) FROM PatientTriage WITH (NOLOCK) WHERE TenantId = @TenantId AND Status IN ('Waiting', 'Triaged', 'AssignedToDoctor') AND TriagedAt >= @TodayStart AND TriagedAt < @TomorrowStart) AS QueueCount,
                 (SELECT ISNULL(SUM(PaidAmount), 0) FROM Invoices WITH (NOLOCK) WHERE TenantId = @TenantId AND IssueDate >= @TodayStart AND IssueDate < @TomorrowStart) AS Revenue,
                 (SELECT COUNT(1) FROM Doctors d WITH (NOLOCK) JOIN Staff s WITH (NOLOCK) ON s.Id = d.StaffId WHERE s.TenantId = @TenantId AND d.IsAvailable = 1) AS DocCount";
 

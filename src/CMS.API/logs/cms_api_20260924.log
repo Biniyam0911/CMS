@@ -53132,3 +53132,1131 @@ token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hid
 2026-09-24 22:29:13.701 +03:00 [INF] Application is shutting down...
 2026-09-24 22:29:13.717 +03:00 [INF] [2026-09-24 22:29:13.717] LISTENER STOPPED: Port 2575
 2026-09-24 22:29:13.718 +03:00 [INF] [2026-09-24 22:29:13.718] LISTENER STOPPED: Port 5100
+2026-09-24 22:32:29.491 +03:00 [INF] User profile is available. Using 'C:\Users\ASUS\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
+2026-09-24 22:32:29.600 +03:00 [INF] [2026-09-24 22:32:29.590] LISTENER STARTED: Passively waiting for analyzer connections on 0.0.0.0:5100...
+2026-09-24 22:32:29.608 +03:00 [INF] [2026-09-24 22:32:29.608] LISTENER STARTED: Passively waiting for analyzer connections on 0.0.0.0:2575...
+2026-09-24 22:32:29.706 +03:00 [INF] Now listening on: http://localhost:5010
+2026-09-24 22:32:29.710 +03:00 [INF] Application started. Press Ctrl+C to shut down.
+2026-09-24 22:32:29.714 +03:00 [INF] Hosting environment: Development
+2026-09-24 22:32:29.717 +03:00 [INF] Content root path: C:\Users\ASUS\source\repos\CMS\src\CMS.API
+2026-09-24 22:32:57.869 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-09-24 22:32:58.188 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:32:58.207 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:32:58.218 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 22:32:58.265 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-09-24 22:32:58.986 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 22:32:59.128 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 847.7717ms
+2026-09-24 22:32:59.142 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 22:32:59.154 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 1289.4633ms
+2026-09-24 22:33:02.791 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-09-24 22:33:02.791 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-09-24 22:33:02.855 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:33:02.907 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:33:02.945 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:33:02.956 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:33:02.961 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 22:33:02.965 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 22:33:02.969 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-09-24 22:33:02.977 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-09-24 22:33:03.000 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 22:33:03.001 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 22:33:03.008 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 12.3799ms
+2026-09-24 22:33:03.013 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 24.4181ms
+2026-09-24 22:33:03.019 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 22:33:03.024 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 22:33:03.029 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 237.9788ms
+2026-09-24 22:33:03.033 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 242.2196ms
+2026-09-24 22:33:03.796 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-09-24 22:33:03.797 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-09-24 22:33:03.797 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/dashboard/metrics - null null
+2026-09-24 22:33:03.807 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:33:03.821 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:33:03.837 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:33:03.851 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:33:03.863 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:33:03.874 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:33:03.879 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-09-24 22:33:03.882 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 22:33:03.887 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.DashboardController.GetMetrics (CMS.API)'
+2026-09-24 22:33:03.895 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-09-24 22:33:03.902 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-09-24 22:33:03.907 +03:00 [INF] Route matched with {action = "GetMetrics", controller = "Dashboard"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetMetrics() on controller CMS.API.Controllers.DashboardController (CMS.API).
+2026-09-24 22:33:03.911 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 22:33:03.958 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 51.3102ms
+2026-09-24 22:33:03.963 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.ClinicSettingDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 22:33:03.965 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 22:33:03.966 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-09-24 22:33:03.976 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 178.9949ms
+2026-09-24 22:33:03.992 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 76.2821ms
+2026-09-24 22:33:03.995 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:33:04.002 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-09-24 22:33:04.016 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-09-24 22:33:04.026 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:33:04.037 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-09-24 22:33:04.042 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 200 null application/json; charset=utf-8 245.7759ms
+2026-09-24 22:33:04.050 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 22:33:04.054 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-09-24 22:33:04.072 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-09-24 22:33:04.089 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.ClinicSettingDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 22:33:04.095 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 22:33:04.098 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 13.0086ms
+2026-09-24 22:33:04.103 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 10.6511ms
+2026-09-24 22:33:04.105 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-09-24 22:33:04.110 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-09-24 22:33:04.116 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 22:33:04.127 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:33:04.130 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 200 null application/json; charset=utf-8 127.9623ms
+2026-09-24 22:33:04.134 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 167.7996ms
+2026-09-24 22:33:04.146 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:33:04.168 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[CMS.Shared.DTOs.DashboardMetricsDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]'.
+2026-09-24 22:33:04.176 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-09-24 22:33:04.185 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-09-24 22:33:04.197 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.ClinicSettingDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 22:33:04.205 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 11.7787ms
+2026-09-24 22:33:04.211 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-09-24 22:33:04.214 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-09-24 22:33:04.216 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 200 null application/json; charset=utf-8 111.4468ms
+2026-09-24 22:33:04.229 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:33:04.252 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:33:04.257 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-09-24 22:33:04.262 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-09-24 22:33:04.271 +03:00 [INF] Executed action CMS.API.Controllers.DashboardController.GetMetrics (CMS.API) in 319.1504ms
+2026-09-24 22:33:04.272 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.ClinicSettingDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 22:33:04.277 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.DashboardController.GetMetrics (CMS.API)'
+2026-09-24 22:33:04.281 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/dashboard/metrics - null null
+2026-09-24 22:33:04.282 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 12.7814ms
+2026-09-24 22:33:04.286 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/dashboard/metrics - 200 null application/json; charset=utf-8 488.3707ms
+2026-09-24 22:33:04.291 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-09-24 22:33:04.297 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:33:04.300 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-09-24 22:33:04.327 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-09-24 22:33:04.337 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:33:04.344 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 200 null application/json; charset=utf-8 130.0746ms
+2026-09-24 22:33:04.349 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-09-24 22:33:04.354 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.DashboardController.GetMetrics (CMS.API)'
+2026-09-24 22:33:04.387 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.ClinicSettingDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 22:33:04.389 +03:00 [INF] Route matched with {action = "GetMetrics", controller = "Dashboard"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetMetrics() on controller CMS.API.Controllers.DashboardController (CMS.API).
+2026-09-24 22:33:04.395 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 12.2348ms
+2026-09-24 22:33:04.405 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-09-24 22:33:04.414 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-09-24 22:33:04.437 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 200 null application/json; charset=utf-8 145.9257ms
+2026-09-24 22:33:04.432 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:33:04.450 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[CMS.Shared.DTOs.DashboardMetricsDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]'.
+2026-09-24 22:33:04.470 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:33:04.473 +03:00 [INF] Executed action CMS.API.Controllers.DashboardController.GetMetrics (CMS.API) in 65.7785ms
+2026-09-24 22:33:04.477 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-09-24 22:33:04.483 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.DashboardController.GetMetrics (CMS.API)'
+2026-09-24 22:33:04.488 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-09-24 22:33:04.493 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/dashboard/metrics - 200 null application/json; charset=utf-8 212.6013ms
+2026-09-24 22:33:04.508 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.ClinicSettingDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 22:33:04.612 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 108.0166ms
+2026-09-24 22:33:04.618 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-09-24 22:33:04.623 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 200 null application/json; charset=utf-8 217.651ms
+2026-09-24 22:33:07.427 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/billing/invoices?limit=1000&fromDate=2026-09-24&toDate=2026-09-24 - application/json null
+2026-09-24 22:33:07.428 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/billing/stats?fromDate=2026-09-24&toDate=2026-09-24 - application/json null
+2026-09-24 22:33:07.428 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/patients/search - application/json null
+2026-09-24 22:33:07.429 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - application/json null
+2026-09-24 22:33:07.430 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/billing/insurance/providers - application/json null
+2026-09-24 22:33:07.433 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/billing/insurance/claims - application/json null
+2026-09-24 22:33:07.466 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:33:07.492 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:33:07.511 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:33:07.531 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:33:07.550 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:33:07.565 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:33:07.576 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:33:07.586 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:33:07.594 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:33:07.601 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:33:07.611 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:33:07.619 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:33:07.622 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.BillingController.GetInvoices (CMS.API)'
+2026-09-24 22:33:07.627 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.BillingController.GetBillingStats (CMS.API)'
+2026-09-24 22:33:07.631 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.PatientsController.Search (CMS.API)'
+2026-09-24 22:33:07.635 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-09-24 22:33:07.661 +03:00 [INF] Route matched with {action = "GetBillingStats", controller = "Billing"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetBillingStats(System.Nullable`1[System.DateTime], System.Nullable`1[System.DateTime]) on controller CMS.API.Controllers.BillingController (CMS.API).
+2026-09-24 22:33:07.644 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.BillingController.GetInsuranceClaims (CMS.API)'
+2026-09-24 22:33:07.658 +03:00 [INF] Route matched with {action = "GetInvoices", controller = "Billing"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetInvoices(Int32, System.Nullable`1[System.Int32], System.Nullable`1[System.DateTime], System.Nullable`1[System.DateTime], System.Nullable`1[System.DateTime]) on controller CMS.API.Controllers.BillingController (CMS.API).
+2026-09-24 22:33:07.640 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.BillingController.GetInsuranceProviders (CMS.API)'
+2026-09-24 22:33:07.661 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-09-24 22:33:07.665 +03:00 [INF] Route matched with {action = "Search", controller = "Patients"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] Search(System.String, Int32, Int32) on controller CMS.API.Controllers.PatientsController (CMS.API).
+2026-09-24 22:33:07.680 +03:00 [INF] Route matched with {action = "GetInsuranceClaims", controller = "Billing"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetInsuranceClaims() on controller CMS.API.Controllers.BillingController (CMS.API).
+2026-09-24 22:33:07.696 +03:00 [INF] Route matched with {action = "GetInsuranceProviders", controller = "Billing"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetInsuranceProviders() on controller CMS.API.Controllers.BillingController (CMS.API).
+2026-09-24 22:33:07.700 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.ClinicSettingDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 22:33:07.726 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[CMS.Shared.DTOs.BillingStatsDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]'.
+2026-09-24 22:33:07.729 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.PatientDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 22:33:07.732 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 36.3143ms
+2026-09-24 22:33:07.735 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.InsuranceProviderDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 22:33:07.746 +03:00 [INF] Executed action CMS.API.Controllers.BillingController.GetBillingStats (CMS.API) in 78.5148ms
+2026-09-24 22:33:07.751 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-09-24 22:33:07.758 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.InsuranceClaimDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 22:33:07.765 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.BillingController.GetBillingStats (CMS.API)'
+2026-09-24 22:33:07.765 +03:00 [INF] Executed action CMS.API.Controllers.BillingController.GetInsuranceProviders (CMS.API) in 42.4251ms
+2026-09-24 22:33:07.770 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 200 null application/json; charset=utf-8 340.5374ms
+2026-09-24 22:33:07.774 +03:00 [INF] Executed action CMS.API.Controllers.PatientsController.Search (CMS.API) in 68.0877ms
+2026-09-24 22:33:07.780 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - application/json null
+2026-09-24 22:33:07.784 +03:00 [INF] Executed action CMS.API.Controllers.BillingController.GetInsuranceClaims (CMS.API) in 68.2837ms
+2026-09-24 22:33:07.784 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/billing/stats?fromDate=2026-09-24&toDate=2026-09-24 - 200 null application/json; charset=utf-8 355.937ms
+2026-09-24 22:33:07.789 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.BillingController.GetInsuranceProviders (CMS.API)'
+2026-09-24 22:33:07.792 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/billing/stats?fromDate=2026-09-24&toDate=2026-09-24 - application/json null
+2026-09-24 22:33:07.805 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.InvoiceDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 22:33:07.806 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.PatientsController.Search (CMS.API)'
+2026-09-24 22:33:07.817 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:33:07.822 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.BillingController.GetInsuranceClaims (CMS.API)'
+2026-09-24 22:33:07.837 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/billing/insurance/providers - 200 null application/json; charset=utf-8 406.6335ms
+2026-09-24 22:33:07.845 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/billing/insurance/providers - application/json null
+2026-09-24 22:33:07.848 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:33:07.857 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/patients/search - 200 null application/json; charset=utf-8 428.6423ms
+2026-09-24 22:33:07.864 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/patients/search - application/json null
+2026-09-24 22:33:07.866 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:33:07.870 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/billing/insurance/claims - 200 null application/json; charset=utf-8 437.8263ms
+2026-09-24 22:33:07.876 +03:00 [INF] Executed action CMS.API.Controllers.BillingController.GetInvoices (CMS.API) in 194.9985ms
+2026-09-24 22:33:07.880 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/billing/insurance/claims - application/json null
+2026-09-24 22:33:07.896 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:33:07.904 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:33:07.930 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:33:07.933 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-09-24 22:33:07.951 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.BillingController.GetInvoices (CMS.API)'
+2026-09-24 22:33:07.961 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:33:07.969 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:33:07.973 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.BillingController.GetBillingStats (CMS.API)'
+2026-09-24 22:33:07.983 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:33:07.988 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-09-24 22:33:07.993 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/billing/invoices?limit=1000&fromDate=2026-09-24&toDate=2026-09-24 - 200 null application/json; charset=utf-8 565.9381ms
+2026-09-24 22:33:08.000 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/billing/invoices?limit=1000&fromDate=2026-09-24&toDate=2026-09-24 - application/json null
+2026-09-24 22:33:08.003 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:33:08.008 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.BillingController.GetInsuranceProviders (CMS.API)'
+2026-09-24 22:33:08.011 +03:00 [INF] Route matched with {action = "GetBillingStats", controller = "Billing"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetBillingStats(System.Nullable`1[System.DateTime], System.Nullable`1[System.DateTime]) on controller CMS.API.Controllers.BillingController (CMS.API).
+2026-09-24 22:33:08.015 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.PatientsController.Search (CMS.API)'
+2026-09-24 22:33:08.024 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.ClinicSettingDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 22:33:08.160 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:33:08.177 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.BillingController.GetInsuranceClaims (CMS.API)'
+2026-09-24 22:33:08.190 +03:00 [INF] Route matched with {action = "GetInsuranceProviders", controller = "Billing"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetInsuranceProviders() on controller CMS.API.Controllers.BillingController (CMS.API).
+2026-09-24 22:33:08.207 +03:00 [INF] Route matched with {action = "Search", controller = "Patients"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] Search(System.String, Int32, Int32) on controller CMS.API.Controllers.PatientsController (CMS.API).
+2026-09-24 22:33:08.217 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 195.6229ms
+2026-09-24 22:33:08.219 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[CMS.Shared.DTOs.BillingStatsDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]'.
+2026-09-24 22:33:08.231 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:33:08.235 +03:00 [INF] Route matched with {action = "GetInsuranceClaims", controller = "Billing"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetInsuranceClaims() on controller CMS.API.Controllers.BillingController (CMS.API).
+2026-09-24 22:33:08.250 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.InsuranceProviderDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 22:33:08.259 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.PatientDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 22:33:08.260 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-09-24 22:33:08.265 +03:00 [INF] Executed action CMS.API.Controllers.BillingController.GetBillingStats (CMS.API) in 63.4778ms
+2026-09-24 22:33:08.269 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.BillingController.GetInvoices (CMS.API)'
+2026-09-24 22:33:08.280 +03:00 [INF] Executed action CMS.API.Controllers.BillingController.GetInsuranceProviders (CMS.API) in 33.2492ms
+2026-09-24 22:33:08.285 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.InsuranceClaimDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 22:33:08.285 +03:00 [INF] Executed action CMS.API.Controllers.PatientsController.Search (CMS.API) in 29.9448ms
+2026-09-24 22:33:08.289 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 200 null application/json; charset=utf-8 508.0811ms
+2026-09-24 22:33:08.293 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.BillingController.GetBillingStats (CMS.API)'
+2026-09-24 22:33:08.297 +03:00 [INF] Route matched with {action = "GetInvoices", controller = "Billing"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetInvoices(Int32, System.Nullable`1[System.Int32], System.Nullable`1[System.DateTime], System.Nullable`1[System.DateTime], System.Nullable`1[System.DateTime]) on controller CMS.API.Controllers.BillingController (CMS.API).
+2026-09-24 22:33:08.301 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.BillingController.GetInsuranceProviders (CMS.API)'
+2026-09-24 22:33:08.307 +03:00 [INF] Executed action CMS.API.Controllers.BillingController.GetInsuranceClaims (CMS.API) in 31.4354ms
+2026-09-24 22:33:08.311 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.PatientsController.Search (CMS.API)'
+2026-09-24 22:33:08.329 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/billing/stats?fromDate=2026-09-24&toDate=2026-09-24 - 200 null application/json; charset=utf-8 537.3239ms
+2026-09-24 22:33:08.340 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/billing/insurance/providers - 200 null application/json; charset=utf-8 494.9239ms
+2026-09-24 22:33:08.344 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.BillingController.GetInsuranceClaims (CMS.API)'
+2026-09-24 22:33:08.348 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/patients/search - 200 null application/json; charset=utf-8 483.9719ms
+2026-09-24 22:33:08.351 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.InvoiceDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 22:33:08.381 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/billing/insurance/claims - 200 null application/json; charset=utf-8 500.1694ms
+2026-09-24 22:33:08.400 +03:00 [INF] Executed action CMS.API.Controllers.BillingController.GetInvoices (CMS.API) in 64.4159ms
+2026-09-24 22:33:08.424 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.BillingController.GetInvoices (CMS.API)'
+2026-09-24 22:33:08.433 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/billing/invoices?limit=1000&fromDate=2026-09-24&toDate=2026-09-24 - 200 null application/json; charset=utf-8 432.7815ms
+2026-09-24 22:33:17.975 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/billing/invoices?limit=1000&fromDate=2026-09-17&toDate=2026-09-24 - application/json null
+2026-09-24 22:33:17.979 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/billing/stats?fromDate=2026-09-17&toDate=2026-09-24 - application/json null
+2026-09-24 22:33:17.980 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/patients/search - application/json null
+2026-09-24 22:33:17.980 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - application/json null
+2026-09-24 22:33:17.981 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/billing/insurance/providers - application/json null
+2026-09-24 22:33:17.984 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/billing/insurance/claims - application/json null
+2026-09-24 22:33:17.986 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:33:17.996 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:33:18.004 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:33:18.015 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:33:18.021 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:33:18.030 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:33:18.038 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:33:18.048 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:33:18.056 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:33:18.064 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:33:18.073 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:33:18.082 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:33:18.086 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.BillingController.GetInvoices (CMS.API)'
+2026-09-24 22:33:18.090 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.BillingController.GetBillingStats (CMS.API)'
+2026-09-24 22:33:18.094 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.PatientsController.Search (CMS.API)'
+2026-09-24 22:33:18.124 +03:00 [INF] Route matched with {action = "Search", controller = "Patients"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] Search(System.String, Int32, Int32) on controller CMS.API.Controllers.PatientsController (CMS.API).
+2026-09-24 22:33:18.102 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.BillingController.GetInsuranceProviders (CMS.API)'
+2026-09-24 22:33:18.108 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.BillingController.GetInsuranceClaims (CMS.API)'
+2026-09-24 22:33:18.113 +03:00 [INF] Route matched with {action = "GetInvoices", controller = "Billing"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetInvoices(Int32, System.Nullable`1[System.Int32], System.Nullable`1[System.DateTime], System.Nullable`1[System.DateTime], System.Nullable`1[System.DateTime]) on controller CMS.API.Controllers.BillingController (CMS.API).
+2026-09-24 22:33:18.117 +03:00 [INF] Route matched with {action = "GetBillingStats", controller = "Billing"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetBillingStats(System.Nullable`1[System.DateTime], System.Nullable`1[System.DateTime]) on controller CMS.API.Controllers.BillingController (CMS.API).
+2026-09-24 22:33:18.098 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-09-24 22:33:18.139 +03:00 [INF] Route matched with {action = "GetInsuranceProviders", controller = "Billing"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetInsuranceProviders() on controller CMS.API.Controllers.BillingController (CMS.API).
+2026-09-24 22:33:18.139 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.PatientDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 22:33:18.143 +03:00 [INF] Route matched with {action = "GetInsuranceClaims", controller = "Billing"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetInsuranceClaims() on controller CMS.API.Controllers.BillingController (CMS.API).
+2026-09-24 22:33:18.172 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-09-24 22:33:18.182 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.InsuranceProviderDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 22:33:18.184 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[CMS.Shared.DTOs.BillingStatsDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]'.
+2026-09-24 22:33:18.187 +03:00 [INF] Executed action CMS.API.Controllers.PatientsController.Search (CMS.API) in 53.2726ms
+2026-09-24 22:33:18.202 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.InsuranceClaimDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 22:33:18.202 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.ClinicSettingDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 22:33:18.205 +03:00 [INF] Executed action CMS.API.Controllers.BillingController.GetInsuranceProviders (CMS.API) in 24.2984ms
+2026-09-24 22:33:18.211 +03:00 [INF] Executed action CMS.API.Controllers.BillingController.GetBillingStats (CMS.API) in 46.1314ms
+2026-09-24 22:33:18.215 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.PatientsController.Search (CMS.API)'
+2026-09-24 22:33:18.220 +03:00 [INF] Executed action CMS.API.Controllers.BillingController.GetInsuranceClaims (CMS.API) in 27.682ms
+2026-09-24 22:33:18.225 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 25.2574ms
+2026-09-24 22:33:18.230 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.BillingController.GetInsuranceProviders (CMS.API)'
+2026-09-24 22:33:18.235 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.BillingController.GetBillingStats (CMS.API)'
+2026-09-24 22:33:18.240 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/patients/search - 200 null application/json; charset=utf-8 259.9588ms
+2026-09-24 22:33:18.245 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.BillingController.GetInsuranceClaims (CMS.API)'
+2026-09-24 22:33:18.250 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-09-24 22:33:18.254 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/billing/insurance/providers - 200 null application/json; charset=utf-8 273.5403ms
+2026-09-24 22:33:18.256 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.InvoiceDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 22:33:18.259 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/billing/stats?fromDate=2026-09-17&toDate=2026-09-24 - 200 null application/json; charset=utf-8 280.2425ms
+2026-09-24 22:33:18.275 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/billing/insurance/claims - 200 null application/json; charset=utf-8 291.5057ms
+2026-09-24 22:33:18.279 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 200 null application/json; charset=utf-8 298.9787ms
+2026-09-24 22:33:18.301 +03:00 [INF] Executed action CMS.API.Controllers.BillingController.GetInvoices (CMS.API) in 147.9985ms
+2026-09-24 22:33:18.341 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.BillingController.GetInvoices (CMS.API)'
+2026-09-24 22:33:18.345 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/billing/invoices?limit=1000&fromDate=2026-09-17&toDate=2026-09-24 - 200 null application/json; charset=utf-8 370.6247ms
+2026-09-24 22:33:18.808 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-09-24 22:33:18.817 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:33:18.824 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:33:18.827 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 22:33:18.831 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-09-24 22:33:18.838 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 22:33:18.843 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 6.7899ms
+2026-09-24 22:33:18.848 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 22:33:18.852 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 44.0116ms
+2026-09-24 22:33:24.499 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/dashboard/metrics - null null
+2026-09-24 22:33:24.510 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:33:24.521 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:33:24.526 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.DashboardController.GetMetrics (CMS.API)'
+2026-09-24 22:33:24.532 +03:00 [INF] Route matched with {action = "GetMetrics", controller = "Dashboard"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetMetrics() on controller CMS.API.Controllers.DashboardController (CMS.API).
+2026-09-24 22:33:24.575 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[CMS.Shared.DTOs.DashboardMetricsDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]'.
+2026-09-24 22:33:24.580 +03:00 [INF] Executed action CMS.API.Controllers.DashboardController.GetMetrics (CMS.API) in 41.2975ms
+2026-09-24 22:33:24.585 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.DashboardController.GetMetrics (CMS.API)'
+2026-09-24 22:33:24.589 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/dashboard/metrics - null null
+2026-09-24 22:33:24.589 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/dashboard/metrics - 200 null application/json; charset=utf-8 90.739ms
+2026-09-24 22:33:24.598 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:33:24.615 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:33:24.618 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.DashboardController.GetMetrics (CMS.API)'
+2026-09-24 22:33:24.621 +03:00 [INF] Route matched with {action = "GetMetrics", controller = "Dashboard"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetMetrics() on controller CMS.API.Controllers.DashboardController (CMS.API).
+2026-09-24 22:33:24.657 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[CMS.Shared.DTOs.DashboardMetricsDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]'.
+2026-09-24 22:33:24.662 +03:00 [INF] Executed action CMS.API.Controllers.DashboardController.GetMetrics (CMS.API) in 35.7972ms
+2026-09-24 22:33:24.666 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.DashboardController.GetMetrics (CMS.API)'
+2026-09-24 22:33:24.669 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/dashboard/metrics - 200 null application/json; charset=utf-8 80.1688ms
+2026-09-24 22:33:33.815 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-09-24 22:33:33.828 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:33:33.837 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:33:33.842 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 22:33:33.846 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-09-24 22:33:33.857 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 22:33:33.863 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 8.4359ms
+2026-09-24 22:33:33.868 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 22:33:33.874 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 59.0536ms
+2026-09-24 22:33:48.809 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-09-24 22:33:48.823 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:33:48.832 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:33:48.837 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 22:33:48.842 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-09-24 22:33:48.854 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 22:33:48.860 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 7.6909ms
+2026-09-24 22:33:48.865 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 22:33:48.870 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 61.2868ms
+2026-09-24 22:34:01.530 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-09-24 22:34:01.534 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-09-24 22:34:01.545 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:34:01.556 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:34:01.570 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:34:01.582 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:34:01.587 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 22:34:01.593 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 22:34:01.596 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-09-24 22:34:01.601 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-09-24 22:34:01.611 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 22:34:01.617 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 22:34:01.620 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 11.3303ms
+2026-09-24 22:34:01.627 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 11.7742ms
+2026-09-24 22:34:01.631 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 22:34:01.636 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 22:34:01.641 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 110.9639ms
+2026-09-24 22:34:01.646 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 111.2367ms
+2026-09-24 22:34:03.797 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-09-24 22:34:03.805 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:34:03.813 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:34:03.816 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 22:34:03.819 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-09-24 22:34:03.828 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 22:34:03.831 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 5.8312ms
+2026-09-24 22:34:03.835 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 22:34:03.839 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 41.6195ms
+2026-09-24 22:34:18.807 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-09-24 22:34:18.821 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:34:18.831 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:34:18.836 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 22:34:18.840 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-09-24 22:34:18.851 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 22:34:18.858 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 8.9706ms
+2026-09-24 22:34:18.862 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 22:34:18.867 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 59.6147ms
+2026-09-24 22:34:34.533 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-09-24 22:34:34.545 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:34:34.554 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:34:34.558 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 22:34:34.562 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-09-24 22:34:34.569 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 22:34:34.573 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 6.6302ms
+2026-09-24 22:34:34.579 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 22:34:34.582 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 49.5273ms
+2026-09-24 22:34:49.529 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-09-24 22:34:49.543 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:34:49.553 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:34:49.557 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 22:34:49.561 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-09-24 22:34:49.570 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 22:34:49.576 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 8.2101ms
+2026-09-24 22:34:49.585 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 22:34:49.589 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 60.703ms
+2026-09-24 22:35:01.663 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-09-24 22:35:01.664 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-09-24 22:35:01.679 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:35:01.692 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:35:01.704 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:35:01.715 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:35:01.721 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 22:35:01.726 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 22:35:01.731 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-09-24 22:35:01.736 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-09-24 22:35:01.747 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 22:35:01.755 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 22:35:01.759 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 14.439ms
+2026-09-24 22:35:01.765 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 11.9459ms
+2026-09-24 22:35:01.770 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 22:35:01.776 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 22:35:01.781 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 117.6728ms
+2026-09-24 22:35:01.787 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 123.5592ms
+2026-09-24 22:35:04.532 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-09-24 22:35:04.546 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:35:04.558 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:35:04.562 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 22:35:04.564 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-09-24 22:35:04.577 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 22:35:04.583 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 9.3164ms
+2026-09-24 22:35:04.588 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 22:35:04.591 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 59.276ms
+2026-09-24 22:35:19.529 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-09-24 22:35:19.542 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:35:19.553 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:35:19.557 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 22:35:19.562 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-09-24 22:35:19.572 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 22:35:19.577 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 8.1311ms
+2026-09-24 22:35:19.584 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 22:35:19.590 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 60.2243ms
+2026-09-24 22:35:55.261 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-09-24 22:35:55.329 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:35:55.353 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:35:55.359 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 22:35:55.362 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-09-24 22:35:55.373 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 22:35:55.399 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 28.325ms
+2026-09-24 22:35:55.409 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 22:35:55.444 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 182.8388ms
+2026-09-24 22:36:01.906 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-09-24 22:36:01.961 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-09-24 22:36:02.018 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:36:02.034 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:36:02.157 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:36:02.197 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:36:02.201 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 22:36:02.205 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 22:36:02.213 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-09-24 22:36:02.218 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-09-24 22:36:02.231 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 22:36:02.251 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 22:36:02.264 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 40.4597ms
+2026-09-24 22:36:02.278 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 32.6748ms
+2026-09-24 22:36:02.298 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 22:36:02.294 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 22:36:02.332 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 371.6905ms
+2026-09-24 22:36:02.360 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 453.8785ms
+2026-09-24 22:36:04.541 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-09-24 22:36:04.554 +03:00 [INF] Failed to validate the token.
+Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+   at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+2026-09-24 22:36:04.564 +03:00 [INF] Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'VNGqhB7kZ75afXrNakqPyb1WYggzQUo6Cgi8Kx2i7Zs'. , KeyId: 
+'. Number of keys in TokenValidationParameters: '1'. 
+Number of keys in Configuration: '0'. 
+Exceptions caught:
+ '[PII of type 'System.Text.StringBuilder' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+2026-09-24 22:36:04.568 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 22:36:04.572 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-09-24 22:36:04.592 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-24 22:36:04.598 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 16.4588ms
+2026-09-24 22:36:04.603 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-24 22:36:04.607 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 65.5303ms
+2026-09-24 22:36:13.724 +03:00 [INF] Application is shutting down...
+2026-09-24 22:36:13.746 +03:00 [INF] [2026-09-24 22:36:13.746] LISTENER STOPPED: Port 2575
+2026-09-24 22:36:13.746 +03:00 [INF] [2026-09-24 22:36:13.746] LISTENER STOPPED: Port 5100

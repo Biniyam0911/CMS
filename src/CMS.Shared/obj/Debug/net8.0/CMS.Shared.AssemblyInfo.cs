@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("CMS.Shared")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+bce41c872a7a5d01993c84a5eb09b82121fbb7e4")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b4704e6f501e2a4b58a016bc9fcf87ceb35ec55d")]
 [assembly: System.Reflection.AssemblyProductAttribute("CMS.Shared")]
 [assembly: System.Reflection.AssemblyTitleAttribute("CMS.Shared")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
