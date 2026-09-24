@@ -83,7 +83,7 @@ export default function Header({ title, subtitle, user, clinicName, appIconName 
 
   useEffect(() => {
     loadNotifications();
-    const interval = setInterval(loadNotifications, 15000);
+    const interval = setInterval(loadNotifications, 60000);
 
     const handleNewNotification = (e: any) => {
       const notif = e.detail;

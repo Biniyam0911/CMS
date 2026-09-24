@@ -120,7 +120,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "CMS",
             ValidAudience = builder.Configuration["Jwt:Audience"] ?? "CMS",
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "SuperSecretKeyThatIsAtLeast32BytesLongForCMS!"))
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "SuperSecretKeyThatIsAtLeast32BytesLongForCMS!"))
+            {
+                KeyId = "cms-hmac-key-v1"
+            }
         };
     });
 

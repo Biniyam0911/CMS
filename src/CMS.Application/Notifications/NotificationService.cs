@@ -7,10 +7,12 @@ namespace CMS.Application.Notifications;
 public class NotificationService
 {
     private readonly IDbConnectionFactory _dbFactory;
+    private readonly ICacheService _cache;
 
-    public NotificationService(IDbConnectionFactory dbFactory)
+    public NotificationService(IDbConnectionFactory dbFactory, ICacheService cache)
     {
         _dbFactory = dbFactory;
+        _cache = cache;
     }
 
     public async Task<long> EnqueueNotificationAsync(EnqueueNotificationDto dto)
@@ -26,6 +28,11 @@ public class NotificationService
 
     public async Task<List<NotificationItemDto>> GetNotificationsAsync(byte tenantId, int? userId = null, string? role = null)
     {
+        // 30-second cache per tenant+user to absorb concurrent polling from multiple browser tabs
+        var cacheKey = $"notif:{tenantId}:{userId ?? 0}";
+        var cached = await _cache.GetAsync<List<NotificationItemDto>>(cacheKey);
+        if (cached != null) return cached;
+
         using var conn = _dbFactory.CreateConnection();
         var sql = @"
             SELECT TOP 50
@@ -33,12 +40,15 @@ public class NotificationService
                 CASE Channel WHEN 1 THEN 'Email' WHEN 2 THEN 'SMS' WHEN 3 THEN 'InApp' ELSE 'All' END AS Channel,
                 Subject, Body, Priority, NotificationType, RefType, RefId, StatusId, CreatedAt,
                 RefType AS TargetRole
-            FROM Notifications
+            FROM Notifications WITH (NOLOCK)
             WHERE TenantId = @TenantId
               AND (RecipientUserId IS NULL OR @UserId IS NULL OR RecipientUserId = @UserId)
             ORDER BY StatusId ASC, Priority ASC, CreatedAt DESC";
 
         var list = (await conn.QueryAsync<NotificationItemDto>(sql, new { TenantId = tenantId, UserId = userId })).ToList();
+
+        // Cache for 30 seconds — acceptable staleness for notification badge
+        await _cache.SetAsync(cacheKey, list, TimeSpan.FromSeconds(30));
         return list;
     }
 

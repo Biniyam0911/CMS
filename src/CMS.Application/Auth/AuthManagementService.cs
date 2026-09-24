@@ -160,7 +160,10 @@ public class AuthManagementService
         var issuer = _config["Jwt:Issuer"] ?? "CMS";
         var audience = _config["Jwt:Audience"] ?? "CMS";
 
-        var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
+        var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key))
+        {
+            KeyId = "cms-hmac-key-v1"
+        };
         var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
         var claims = new List<Claim>
