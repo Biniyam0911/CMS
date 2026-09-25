@@ -40,7 +40,7 @@ public class PharmacyService
         using var conn = _dbFactory.CreateConnection();
 
         // 1. Ensure valid EncounterId exists (FK_Prescriptions_Encounters constraint)
-        int encounterId = dto.EncounterId;
+        int encounterId = dto.EncounterId.GetValueOrDefault();
         if (encounterId <= 0)
         {
             var openEncId = await conn.ExecuteScalarAsync<int?>(@"
@@ -66,7 +66,7 @@ public class PharmacyService
         }
 
         // 2. Ensure valid PrescribedBy Doctor ID exists (FK_Prescriptions_Doctor constraint)
-        int doctorId = dto.DoctorId;
+        int doctorId = dto.DoctorId.GetValueOrDefault();
         if (doctorId > 0)
         {
             var exists = await conn.ExecuteScalarAsync<int?>(

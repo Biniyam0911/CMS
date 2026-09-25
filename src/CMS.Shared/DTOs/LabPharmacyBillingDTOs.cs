@@ -66,12 +66,49 @@ public record PrescriptionDto(
     bool IsPaid = false,
     string? Mrn = null);
 
-public record CreatePrescriptionItemDto(
-    int DrugId, string Dosage, string Frequency, string Duration, int Quantity, string Instructions);
+public record CreatePrescriptionItemDto
+{
+    public int DrugId { get; init; }
+    public string Dosage { get; init; } = string.Empty;
+    public string Frequency { get; init; } = string.Empty;
+    public string Duration { get; init; } = string.Empty;
+    public int Quantity { get; init; } = 1;
+    public string Instructions { get; init; } = string.Empty;
 
-public record CreatePrescriptionDto(
-    byte TenantId, int EncounterId, int PatientId, int DoctorId,
-    List<CreatePrescriptionItemDto> Items);
+    public CreatePrescriptionItemDto() { }
+
+    public CreatePrescriptionItemDto(int drugId, string dosage, string frequency, string duration, int quantity, string instructions)
+    {
+        DrugId = drugId;
+        Dosage = dosage;
+        Frequency = frequency;
+        Duration = duration;
+        Quantity = quantity;
+        Instructions = instructions;
+    }
+}
+
+public record CreatePrescriptionDto
+{
+    public byte TenantId { get; init; } = 1;
+    public int? EncounterId { get; init; }
+    public int PatientId { get; init; }
+    public int? DoctorId { get; init; }
+    public string? Diagnosis { get; init; }
+    public List<CreatePrescriptionItemDto> Items { get; init; } = new();
+
+    public CreatePrescriptionDto() { }
+
+    public CreatePrescriptionDto(byte tenantId, int? encounterId, int patientId, int? doctorId, List<CreatePrescriptionItemDto> items, string? diagnosis = null)
+    {
+        TenantId = tenantId;
+        EncounterId = encounterId;
+        PatientId = patientId;
+        DoctorId = doctorId;
+        Items = items;
+        Diagnosis = diagnosis;
+    }
+}
 
 public record DispensePrescriptionDto(
     int PrescriptionId, int DispensedBy, string? Notes);
