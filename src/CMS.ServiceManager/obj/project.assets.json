@@ -1858,6 +1858,7 @@
           "CMS.Shared": "1.0.0",
           "Dapper": "2.1.35",
           "Microsoft.EntityFrameworkCore.SqlServer": "8.0.8",
+          "Microsoft.Extensions.Caching.Memory": "8.0.0",
           "Microsoft.Extensions.Configuration.Binder": "8.0.0",
           "Microsoft.Extensions.Hosting.Abstractions": "8.0.0",
           "Serilog": "4.1.0",
