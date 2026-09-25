@@ -213,9 +213,11 @@ public class PharmacyService
             var itemsSql = @"
                 SELECT pi.Id, pi.PrescriptionId, pi.DrugId, 
                        ISNULL(d.GenericName, 'Prescribed Medication') AS DrugName,
-                       pi.Dosage, pi.Frequency, 
+                       ISNULL(pi.Dosage, '') AS Dosage, 
+                       ISNULL(pi.Frequency, '') AS Frequency, 
                        ISNULL(CASE WHEN pi.DurationDays IS NOT NULL THEN CAST(pi.DurationDays AS VARCHAR) + ' Days' ELSE '' END, '') AS Duration,
-                       pi.Quantity, ISNULL(pi.Instructions, '') AS Instructions
+                       CAST(pi.Quantity AS INT) AS Quantity, 
+                       ISNULL(pi.Instructions, '') AS Instructions
                 FROM PrescriptionItems pi WITH (NOLOCK)
                 LEFT JOIN DrugFormulary d WITH (NOLOCK) ON d.Id = pi.DrugId
                 WHERE pi.PrescriptionId IN @PrescriptionIds";

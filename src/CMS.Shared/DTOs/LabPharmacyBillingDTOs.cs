@@ -29,9 +29,35 @@ public record RestockDrugDto(
     int DrugId, int QuantityAdded, decimal UnitCostPrice, decimal UnitSellingPrice,
     string BatchNumber, DateTime ExpiryDate, string? SupplierName);
 
-public record PrescriptionItemDto(
-    int Id, int PrescriptionId, int DrugId, string DrugName, string Dosage,
-    string Frequency, string Duration, int Quantity, string Instructions);
+public class PrescriptionItemDto
+{
+    public int Id { get; set; }
+    public int PrescriptionId { get; set; }
+    public int DrugId { get; set; }
+    public string DrugName { get; set; } = string.Empty;
+    public string Dosage { get; set; } = string.Empty;
+    public string Frequency { get; set; } = string.Empty;
+    public string Duration { get; set; } = string.Empty;
+    public int Quantity { get; set; }
+    public string Instructions { get; set; } = string.Empty;
+
+    public PrescriptionItemDto() { }
+
+    public PrescriptionItemDto(
+        int id, int prescriptionId, int drugId, string drugName, string dosage,
+        string frequency, string duration, int quantity, string instructions)
+    {
+        Id = id;
+        PrescriptionId = prescriptionId;
+        DrugId = drugId;
+        DrugName = drugName;
+        Dosage = dosage;
+        Frequency = frequency;
+        Duration = duration;
+        Quantity = quantity;
+        Instructions = instructions;
+    }
+}
 
 public record PrescriptionDto(
     int Id, byte TenantId, int EncounterId, int PatientId, string PatientName,
