@@ -26,7 +26,7 @@ public class PharmacyService
             SELECT Id, TenantId, GenericName, BrandName, DrugClass, Form, Form AS DosageForm,
                    Strength, Unit, StockQuantity, StockQuantity AS CurrentStock, MinStockLevel,
                    CostPrice, SellingPrice, UnitPrice, BatchNumber, ExpiryDate, IsControlled, IsActive
-            FROM DrugFormulary
+            FROM DrugFormulary WITH (NOLOCK)
             WHERE TenantId = @TenantId AND IsActive = 1
             ORDER BY GenericName";
 

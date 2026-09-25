@@ -11,10 +11,12 @@ namespace CMS.API.Controllers;
 public class ServicesController : ControllerBase
 {
     private readonly IDbConnectionFactory _dbFactory;
+    private readonly ICacheService _cache;
 
-    public ServicesController(IDbConnectionFactory dbFactory)
+    public ServicesController(IDbConnectionFactory dbFactory, ICacheService cache)
     {
         _dbFactory = dbFactory;
+        _cache = cache;
     }
 
     [HttpGet]
@@ -24,6 +26,15 @@ public class ServicesController : ControllerBase
         [FromQuery] int limit = 1500)
     {
         byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+        bool isDefaultQuery = string.IsNullOrWhiteSpace(search) && (string.IsNullOrWhiteSpace(category) || category == "ALL");
+        string? cacheKey = isDefaultQuery ? $"tenant:{tenantId}:services:all:{limit}" : null;
+
+        if (cacheKey != null)
+        {
+            var cached = await _cache.GetAsync<List<dynamic>>(cacheKey);
+            if (cached != null) return Ok(ApiResponse<dynamic>.Ok(cached));
+        }
+
         using var conn = _dbFactory.CreateConnection();
 
         var sql = @"
@@ -56,6 +67,11 @@ public class ServicesController : ControllerBase
             Search = string.IsNullOrWhiteSpace(search) ? null : search.Trim(),
             Limit = limit
         })).ToList();
+
+        if (cacheKey != null)
+        {
+            await _cache.SetAsync(cacheKey, services, TimeSpan.FromMinutes(15));
+        }
 
         return Ok(ApiResponse<dynamic>.Ok(services));
     }
@@ -128,6 +144,7 @@ public class ServicesController : ControllerBase
             Description = request.Description?.Trim()
         });
 
+        await _cache.RemoveByPrefixAsync($"tenant:{tenantId}:services");
         return Ok(ApiResponse<object>.Ok(new { Id = newId, Message = "Service created successfully." }));
     }
 
@@ -164,6 +181,7 @@ public class ServicesController : ControllerBase
         });
 
         if (rows == 0) return NotFound(ApiResponse<string>.Fail("Service not found."));
+        await _cache.RemoveByPrefixAsync($"tenant:{tenantId}:services");
         return Ok(ApiResponse<object>.Ok(new { Success = true, Message = "Service updated successfully." }));
     }
 
@@ -177,6 +195,7 @@ public class ServicesController : ControllerBase
         int rows = await conn.ExecuteAsync(sql, new { Id = id, TenantId = tenantId });
 
         if (rows == 0) return NotFound(ApiResponse<string>.Fail("Service not found."));
+        await _cache.RemoveByPrefixAsync($"tenant:{tenantId}:services");
         return Ok(ApiResponse<object>.Ok(new { Success = true, Message = "Service deactivated." }));
     }
 }

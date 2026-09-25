@@ -47,29 +47,33 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddSingleton<IDbConnectionFactory, DbConnectionFactory>();
 
-// Redis is optional — if not available the API falls back to a no-op in-memory cache
+builder.Services.AddMemoryCache();
+
+// Redis is optional — if not available the API falls back to high-speed in-memory cache
 var redisConnStr = builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379";
 try
 {
     var redisOptions = ConfigurationOptions.Parse(redisConnStr);
     redisOptions.AbortOnConnectFail = false;
-    redisOptions.ConnectTimeout = 2000;
-    redisOptions.SyncTimeout = 2000;
+    redisOptions.ConnectTimeout = 1000;
+    redisOptions.SyncTimeout = 1000;
     var mux = ConnectionMultiplexer.Connect(redisOptions);
     if (mux.IsConnected)
     {
+        Log.Information("Cache: Using Redis at {RedisEndpoint}", redisConnStr);
         builder.Services.AddSingleton<IConnectionMultiplexer>(mux);
         builder.Services.AddSingleton<ICacheService, RedisCacheService>();
     }
     else
     {
-        builder.Services.AddSingleton<ICacheService, NoOpCacheService>();
+        Log.Information("Cache: Redis not connected. Using MemoryCacheService fallback");
+        builder.Services.AddSingleton<ICacheService, MemoryCacheService>();
     }
 }
-catch
+catch (Exception ex)
 {
-    // Redis unavailable — use no-op cache so the API still starts
-    builder.Services.AddSingleton<ICacheService, NoOpCacheService>();
+    Log.Information("Cache: Redis connect failed ({Message}). Using MemoryCacheService fallback", ex.Message);
+    builder.Services.AddSingleton<ICacheService, MemoryCacheService>();
 }
 
 // Domain & Application services across all 16 modules
