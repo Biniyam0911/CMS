@@ -316,6 +316,8 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
   // ORDER MODAL STATE
   // ==========================================
   const [showOrderModal, setShowOrderModal] = useState(false);
+  const [activeOrderCategory, setActiveOrderCategory] = useState<string>('LAB'); // 'LAB', 'RX', or Service Category (e.g. 'Consultation', 'Procedures')
+  const [orderModalCategorySearch, setOrderModalCategorySearch] = useState<string>('');
   const [expandedNodes, setExpandedNodes] = useState<{ lab: boolean; proc: boolean; rx: boolean; cert: boolean }>({
     lab: true,
     proc: false,
@@ -477,94 +479,6 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
       return { icon: Stethoscope, color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe', badge: '#2563eb', type: 'PROCEDURE' as const };
     }
     return { icon: Activity, color: '#475569', bg: '#f8fafc', border: '#e2e8f0', badge: '#475569', type: 'PROCEDURE' as const };
-  };
-
-  const handleSelectService = (svc: ServiceCatalogItem) => {
-    const meta = getCategoryMeta(svc.category);
-    const item = {
-      id: String(svc.id),
-      code: svc.code,
-      name: svc.name,
-      category: svc.category,
-      price: svc.price,
-      specimen: 'Specimen / Blood',
-      fasting: false,
-      tat: 'Routine',
-      subParams: [],
-      defaultSite: 'Target Area',
-      anesthesia: 'Local Anesthesia / As Required',
-      notes: `Perform ${svc.name} as indicated.`,
-      defaultDosage: '1 Unit',
-      defaultRoute: 'Oral / Topical',
-      defaultFreq: 'Once Daily (OD)',
-      defaultDuration: '7 Days',
-      defaultQty: 1,
-      instructions: svc.description || 'Take as directed'
-    };
-    handleSelectCatalogItem(meta.type, item);
-  };
-
-  const toggleCheckService = (svc: ServiceCatalogItem) => {
-    const meta = getCategoryMeta(svc.category);
-    const item = {
-      id: String(svc.id),
-      code: svc.code,
-      name: svc.name,
-      category: svc.category,
-      price: svc.price,
-      specimen: 'Specimen / Blood',
-      defaultSite: 'Target Area',
-      anesthesia: 'Local Anesthesia',
-      notes: `Perform ${svc.name} as indicated.`,
-      defaultDosage: '1 Unit',
-      defaultRoute: 'Oral',
-      defaultFreq: 'Once Daily (OD)',
-      defaultDuration: '7 Days',
-      defaultQty: 1,
-      instructions: svc.description || 'Take as directed'
-    };
-    toggleCheckItem(meta.type, item);
-  };
-
-  const handleToggleSelectCategory = (catName: string, itemsList: ServiceCatalogItem[]) => {
-    const meta = getCategoryMeta(catName);
-    const allChecked = itemsList.every(s => !!checkedCatalogItems[`${meta.type}:${s.id}`]);
-    setCheckedCatalogItems(prev => {
-      const next = { ...prev };
-      if (allChecked) {
-        itemsList.forEach(s => delete next[`${meta.type}:${s.id}`]);
-      } else {
-        itemsList.forEach(s => {
-          next[`${meta.type}:${s.id}`] = {
-            type: meta.type,
-            item: {
-              id: String(s.id),
-              code: s.code,
-              name: s.name,
-              category: s.category,
-              price: s.price,
-              specimen: 'Specimen / Blood',
-              defaultSite: 'Target Area',
-              anesthesia: 'Local Anesthesia',
-              notes: `Perform ${s.name} as indicated.`,
-              defaultDosage: '1 Unit',
-              defaultRoute: 'Oral',
-              defaultFreq: 'OD',
-              defaultQty: 1,
-              instructions: s.description || 'Take as directed'
-            }
-          };
-        });
-      }
-      return next;
-    });
-  };
-
-  const toggleCategoryExpand = (catName: string) => {
-    setExpandedCategories(prev => ({
-      ...prev,
-      [catName]: !prev[catName]
-    }));
   };
 
   const [medicationCatalogue, setMedicationCatalogue] = useState<MedicationItem[]>([
@@ -1057,78 +971,175 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
     setOrderBasket(prev => prev.filter(x => x.id !== id));
   };
 
-  // MULTISELECT ORDERING HELPER FUNCTIONS
-  const toggleCheckItem = (type: 'LAB' | 'PROCEDURE' | 'RX', item: any) => {
+  // MULTISELECT ORDERING HELPER FUNCTIONS (Direct selection, no Add-to-Basket needed)
+  const isServiceChecked = (type: 'LAB' | 'PROCEDURE' | 'RX', id: any) => {
+    const key = `${type}:${id}`;
+    return orderBasket.some(b => b.id === key);
+  };
+
+  const toggleServiceSelection = (type: 'LAB' | 'PROCEDURE' | 'RX', item: any) => {
     const key = `${type}:${item.id}`;
-    setCheckedCatalogItems(prev => {
-      const next = { ...prev };
-      if (next[key]) {
-        delete next[key];
-      } else {
-        next[key] = { type, item };
-      }
-      return next;
-    });
-  };
+    const existingIndex = orderBasket.findIndex(b => b.id === key);
 
-  const handleToggleSelectAll = (type: 'LAB' | 'PROCEDURE' | 'RX', itemsList: any[]) => {
-    const allChecked = itemsList.every(i => !!checkedCatalogItems[`${type}:${i.id}`]);
-    setCheckedCatalogItems(prev => {
-      const next = { ...prev };
-      if (allChecked) {
-        itemsList.forEach(i => delete next[`${type}:${i.id}`]);
-      } else {
-        itemsList.forEach(i => {
-          next[`${type}:${i.id}`] = { type, item: i };
-        });
-      }
-      return next;
-    });
-  };
-
-  const handleAddAllCheckedToBasket = () => {
-    const itemsToAdd = Object.values(checkedCatalogItems);
-    if (itemsToAdd.length === 0) return;
-
-    const newBasketItems: BasketItem[] = itemsToAdd.map(({ type, item }, idx) => {
+    if (existingIndex >= 0) {
+      // Uncheck / Remove
+      setOrderBasket(prev => prev.filter(b => b.id !== key));
+    } else {
+      // Check / Add
+      let newItem: BasketItem;
       if (type === 'LAB') {
-        return {
-          id: `lab-${item.id}-${Date.now()}-${idx}`,
+        newItem = {
+          id: key,
           type: 'LAB',
           title: item.name,
           code: item.code,
-          price: item.price,
-          paramsSummary: `Priority: Routine | Specimen: ${item.specimen}`,
-          details: { testId: Number(item.id) || 1, priority: 'Routine', indication: 'Clinical evaluation', fasting: item.fasting || false, subParams: item.subParams }
+          price: item.price || 0,
+          paramsSummary: `Routine · ${item.specimen || 'Standard'}`,
+          details: {
+            testId: Number(item.id) || 1,
+            priority: 'Routine',
+            indication: 'Clinical evaluation',
+            fasting: item.fasting || false,
+            subParams: item.subParams
+          }
         };
-      } else if (type === 'PROCEDURE') {
-        return {
-          id: `proc-${item.id}-${Date.now()}-${idx}`,
+      } else if (type === 'RX') {
+        const uPrice = parseFloat(item.unitPrice) || 0;
+        const q = Number(item.defaultQty) || 1;
+        newItem = {
+          id: key,
+          type: 'RX',
+          title: item.name,
+          code: item.class || 'Prescription',
+          price: uPrice * q,
+          paramsSummary: `${item.defaultDosage || '1 Tablet'} · ${item.defaultFreq || 'OD'} · ${item.defaultDuration || '7 Days'}`,
+          details: {
+            drugId: Number(item.id) || 1,
+            unitPrice: uPrice,
+            dosage: item.defaultDosage || '1 Tablet',
+            route: item.defaultRoute || 'Oral',
+            freq: item.defaultFreq || 'OD',
+            duration: item.defaultDuration || '7 Days',
+            qty: q,
+            timing: item.instructions || 'Take as directed'
+          }
+        };
+
+        // Evaluate CDS Alerts
+        const existingRxNames = [
+          ...medications.map(m => m.drugName),
+          ...orderBasket.filter(b => b.type === 'RX').map(b => b.title),
+          ...historyPrescriptions.map(p => p.drugName || p.DrugName || '')
+        ];
+        const alerts = evaluateCdsAlerts(activePatient?.allergies, existingRxNames, item.name);
+        if (alerts.length > 0) {
+          setCdsAlerts(alerts);
+        }
+      } else {
+        newItem = {
+          id: key,
           type: 'PROCEDURE',
           title: item.name,
           code: item.code,
-          price: item.price,
-          paramsSummary: `Urgency: Routine | Site: ${item.defaultSite || 'Affected Area'}`,
-          details: { urgency: 'Routine', site: item.defaultSite || 'Affected Area', anesthesia: item.anesthesia, notes: 'Perform as indicated' }
-        };
-      } else {
-        return {
-          id: `rx-${item.id}-${Date.now()}-${idx}`,
-          type: 'RX',
-          title: item.name,
-          code: item.class,
-          price: item.unitPrice * (item.defaultQty || 1),
-          paramsSummary: `${item.defaultDosage || '1 Tab'} - ${item.defaultRoute || 'Oral'} - ${item.defaultFreq || 'OD'} (Qty: ${item.defaultQty || 1})`,
-          details: { dosage: item.defaultDosage, route: item.defaultRoute, freq: item.defaultFreq, duration: item.defaultDuration, qty: item.defaultQty, timing: item.instructions }
+          price: item.price || 0,
+          paramsSummary: `Urgency: Routine | ${item.category}`,
+          details: {
+            urgency: 'Routine',
+            site: item.defaultSite || 'Affected Area',
+            anesthesia: item.anesthesia,
+            notes: `Perform ${item.name} as indicated`
+          }
         };
       }
-    });
 
-    setOrderBasket(prev => [...prev, ...newBasketItems]);
-    const addedCount = itemsToAdd.length;
-    setCheckedCatalogItems({});
-    setOrderDispatchedToast(`Added ${addedCount} order items to basket!`);
-    setTimeout(() => setOrderDispatchedToast(null), 3000);
+      setOrderBasket(prev => [...prev, newItem]);
+    }
+  };
+
+  const handleToggleSelectCategory = (type: 'LAB' | 'PROCEDURE' | 'RX', itemsList: any[]) => {
+    const allChecked = itemsList.every(i => isServiceChecked(type, i.id));
+    if (allChecked) {
+      // Deselect all
+      const keysToRemove = new Set(itemsList.map(i => `${type}:${i.id}`));
+      setOrderBasket(prev => prev.filter(b => !keysToRemove.has(b.id)));
+    } else {
+      // Select all unselected
+      const newItems: BasketItem[] = [];
+      for (const item of itemsList) {
+        const key = `${type}:${item.id}`;
+        if (!orderBasket.some(b => b.id === key)) {
+          if (type === 'LAB') {
+            newItems.push({
+              id: key,
+              type: 'LAB',
+              title: item.name,
+              code: item.code,
+              price: item.price || 0,
+              paramsSummary: `Routine · ${item.specimen || 'Standard'}`,
+              details: { testId: Number(item.id) || 1, priority: 'Routine', indication: 'Clinical evaluation', fasting: item.fasting || false, subParams: item.subParams }
+            });
+          } else if (type === 'RX') {
+            const uPrice = parseFloat(item.unitPrice) || 0;
+            const q = Number(item.defaultQty) || 1;
+            newItems.push({
+              id: key,
+              type: 'RX',
+              title: item.name,
+              code: item.class || 'Prescription',
+              price: uPrice * q,
+              paramsSummary: `${item.defaultDosage || '1 Tablet'} · ${item.defaultFreq || 'OD'} · ${item.defaultDuration || '7 Days'}`,
+              details: {
+                drugId: Number(item.id) || 1,
+                unitPrice: uPrice,
+                dosage: item.defaultDosage || '1 Tablet',
+                route: item.defaultRoute || 'Oral',
+                freq: item.defaultFreq || 'OD',
+                duration: item.defaultDuration || '7 Days',
+                qty: q,
+                timing: item.instructions || 'Take as directed'
+              }
+            });
+          } else {
+            newItems.push({
+              id: key,
+              type: 'PROCEDURE',
+              title: item.name,
+              code: item.code,
+              price: item.price || 0,
+              paramsSummary: `Urgency: Routine | ${item.category}`,
+              details: { urgency: 'Routine', site: item.defaultSite || 'Affected Area', anesthesia: item.anesthesia, notes: `Perform ${item.name} as indicated` }
+            });
+          }
+        }
+      }
+      setOrderBasket(prev => [...prev, ...newItems]);
+    }
+  };
+
+  const updateBasketItemDetails = (id: string, updates: Partial<any>) => {
+    setOrderBasket(prev => prev.map(b => {
+      if (b.id !== id) return b;
+      const newDetails = { ...b.details, ...updates };
+      let newPrice = b.price;
+      if (updates.qty !== undefined) {
+        const q = parseInt(updates.qty) || 1;
+        newPrice = (newDetails.unitPrice || 0) * q;
+      }
+      let summary = b.paramsSummary;
+      if (b.type === 'RX') {
+        summary = `${newDetails.dosage || '1 Tab'} · ${newDetails.freq || 'OD'} · ${newDetails.duration || '7 Days'} (Qty: ${newDetails.qty || 1})`;
+      } else if (b.type === 'LAB') {
+        summary = `Priority: ${newDetails.priority || 'Routine'} ${newDetails.indication ? `· ${newDetails.indication}` : ''}`;
+      } else if (b.type === 'PROCEDURE') {
+        summary = `Urgency: ${newDetails.urgency || 'Routine'} ${newDetails.notes ? `· ${newDetails.notes}` : ''}`;
+      }
+      return {
+        ...b,
+        price: newPrice,
+        details: newDetails,
+        paramsSummary: summary
+      };
+    }));
   };
 
   // MULTI-DISCIPLINARY DISPATCH + DATABASE BILLING INVOICE INSERTION
@@ -1275,12 +1286,12 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
             encounterId: null,
             diagnosis: diagnosis || 'Clinical Encounter',
             items: rxItems.map(r => ({
-              drugId: 1,
-              dosage: r.details.dosage || '1 Tablet',
-              frequency: r.details.freq || 'OD',
-              duration: r.details.duration || '7 Days',
-              quantity: Number(r.details.qty) || 1,
-              instructions: `${r.title} - ${r.details.timing || 'Take as directed'}`
+              drugId: Number(r.details?.drugId) > 0 ? Number(r.details.drugId) : 1,
+              dosage: r.details?.dosage || '1 Tablet',
+              frequency: r.details?.freq || 'OD',
+              duration: r.details?.duration || '7 Days',
+              quantity: Number(r.details?.qty) || 1,
+              instructions: `${r.title} - ${r.details?.timing || 'Take as directed'}`
             }))
           });
         } catch (rxErr) {
@@ -2871,408 +2882,555 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
       {/* ========================================================================= */}
       {/* ORDER MODAL (Including Medical Certificate Node)                          */}
       {/* ========================================================================= */}
-      {showOrderModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,15,15,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
-          <div style={{ width: '1060px', height: '88vh', display: 'flex', flexDirection: 'column', background: '#ffffff', borderRadius: '14px', overflow: 'hidden', boxShadow: '0 24px 60px rgba(0,0,0,0.3)', border: '1px solid #e2e8f0' }}>
+      {showOrderModal && (() => {
+        const totalEstimatedCost = orderBasket.reduce((sum, item) => sum + (item.price || 0), 0);
+        const labSelectedCount = orderBasket.filter(b => b.type === 'LAB').length;
+        const rxSelectedCount = orderBasket.filter(b => b.type === 'RX').length;
 
-            {/* HEADER */}
-            <div style={{ flexShrink: 0, padding: '14px 20px', background: 'linear-gradient(135deg,#0369a1,#0284c7)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <ShoppingCart size={18} color="#fff" />
+        // Current category items
+        let middlePanelTitle = 'Laboratory Tests';
+        let middlePanelIcon = FlaskConical;
+        let middlePanelColor = '#0284c7';
+        let middlePanelItems: any[] = [];
+        let middlePanelType: 'LAB' | 'RX' | 'PROCEDURE' = 'LAB';
+
+        const q = orderModalCategorySearch.trim().toLowerCase();
+
+        if (activeOrderCategory === 'LAB') {
+          middlePanelTitle = 'Laboratory Tests';
+          middlePanelIcon = FlaskConical;
+          middlePanelColor = '#0284c7';
+          middlePanelType = 'LAB';
+          middlePanelItems = (filteredLabCatalogItems || []).filter(item => 
+            !q || (item.name || '').toLowerCase().includes(q) || (item.code || '').toLowerCase().includes(q)
+          );
+        } else if (activeOrderCategory === 'RX') {
+          middlePanelTitle = 'Prescriptions / E-Rx';
+          middlePanelIcon = Pill;
+          middlePanelColor = '#059669';
+          middlePanelType = 'RX';
+          middlePanelItems = (medicationCatalogue || []).filter(item =>
+            !q || (item.name || '').toLowerCase().includes(q) || (item.class || '').toLowerCase().includes(q)
+          );
+        } else {
+          // Dynamic category from groupedServices
+          const catMeta = getCategoryMeta(activeOrderCategory);
+          middlePanelTitle = activeOrderCategory;
+          middlePanelIcon = catMeta.icon || Stethoscope;
+          middlePanelColor = catMeta.color || '#6366f1';
+          middlePanelType = 'PROCEDURE';
+          const items = groupedServices[activeOrderCategory] || [];
+          middlePanelItems = items.filter(item =>
+            !q || (item.name || '').toLowerCase().includes(q) || (item.code || '').toLowerCase().includes(q)
+          );
+        }
+
+        const isAllCurrentSelected = middlePanelItems.length > 0 && middlePanelItems.every(i => isServiceChecked(middlePanelType, i.id));
+        const MiddleIcon = middlePanelIcon;
+
+        return (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,15,15,0.7)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}>
+            <div style={{ width: '1160px', maxWidth: '98vw', height: '90vh', display: 'flex', flexDirection: 'column', background: '#ffffff', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 25px 65px rgba(0,0,0,0.35)', border: '1px solid #cbd5e1' }}>
+
+              {/* HEADER */}
+              <div style={{ flexShrink: 0, padding: '12px 20px', background: 'linear-gradient(135deg,#0369a1,#0284c7)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ width: '36px', height: '36px', borderRadius: '9px', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <ShoppingCart size={19} color="#fff" />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#fff' }}>Clinical Order Hub — {activePatient?.name}</div>
+                    <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.85)' }}>Card: <strong>{activePatient?.mrn}</strong> · Select category & check items to order directly</div>
+                  </div>
                 </div>
-                <div>
-                  <div style={{ fontSize: '1rem', fontWeight: 800, color: '#fff' }}>Clinical Order Hub — {activePatient?.name}</div>
-                  <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.75)' }}>Card: {activePatient?.mrn} · Select items, configure, then Submit &amp; Bill</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  {orderBasket.length > 0 && (
+                    <span style={{ padding: '4px 12px', borderRadius: '20px', background: '#f59e0b', color: '#fff', fontSize: '0.76rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <Check size={13} /> {orderBasket.length} Selected · Br {totalEstimatedCost.toFixed(2)}
+                    </span>
+                  )}
+                  <button onClick={() => setShowOrderModal(false)} style={{ background: 'rgba(255,255,255,0.18)', border: 'none', borderRadius: '7px', padding: '7px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                    <X size={18} color="#fff" />
+                  </button>
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                {orderBasket.length > 0 && (
-                  <span style={{ padding: '3px 10px', borderRadius: '20px', background: '#f59e0b', color: '#fff', fontSize: '0.72rem', fontWeight: 800 }}>
-                    {orderBasket.length} in basket
-                  </span>
-                )}
-                <button onClick={() => setShowOrderModal(false)} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '6px', padding: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-                  <X size={18} color="#fff" />
-                </button>
-              </div>
-            </div>
 
-            {/* BODY */}
-            <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
+              {/* 3-PANEL BODY */}
+              <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
 
-              {/* LEFT: Catalog */}
-              <div style={{ width: '380px', flexShrink: 0, borderRight: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0, height: '100%' }}>
-                <div style={{ padding: '8px 14px', borderBottom: '1px solid #e2e8f0', background: '#f1f5f9', fontSize: '0.68rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <span>Service Catalog</span>
-                  <input
-                    value={serviceSearchQuery}
-                    onChange={e => setServiceSearchQuery(e.target.value)}
-                    placeholder="Search services…"
-                    style={{ padding: '5px 9px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.75rem', fontWeight: 400, color: '#1e293b', background: '#fff', outline: 'none' }}
-                  />
-                </div>
-                <div style={{ flex: '1 1 0%', overflowY: 'auto', padding: '8px', display: 'flex', flexDirection: 'column', gap: '6px', minHeight: 0 }}>
-
-                  {/* Loading spinner */}
-                  {loadingServices && (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', gap: '8px', color: '#64748b', fontSize: '0.78rem' }}>
-                      <div style={{ width: '16px', height: '16px', border: '2px solid #cbd5e1', borderTopColor: '#0284c7', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                      Loading services…
-                    </div>
-                  )}
-
-                  {/* Dedicated Laboratory Tests Category from LabTestCatalog table */}
-                  {(loadingLabCatalog || filteredLabCatalogItems.length > 0) && (
-                    <div style={{ borderRadius: '8px', background: '#fff', border: '1px solid #bae6fd', overflow: 'hidden' }}>
-                      <button
-                        onClick={() => setLabCatalogExpanded(prev => !prev)}
-                        style={{ width: '100%', padding: '10px 12px', background: labCatalogExpanded ? '#eff6ff' : '#fff', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '7px', color: '#0284c7', fontWeight: 700, fontSize: '0.8rem' }}>
-                          <FlaskConical size={14} color="#0284c7" />
-                          Laboratory Tests ({filteredLabCatalogItems.length})
-                          {filteredLabCatalogItems.filter(s => !!checkedCatalogItems[`LAB:${s.id}`]).length > 0 && (
-                            <span style={{ background: '#0284c7', color: '#fff', borderRadius: '10px', padding: '1px 6px', fontSize: '0.62rem', fontWeight: 700 }}>
-                              {filteredLabCatalogItems.filter(s => !!checkedCatalogItems[`LAB:${s.id}`]).length} ✓
-                            </span>
-                          )}
-                        </div>
-                        {labCatalogExpanded ? <ChevronDown size={13} color="#64748b" /> : <ChevronRight size={13} color="#64748b" />}
-                      </button>
-                      {labCatalogExpanded && (
-                        <div style={{ borderTop: '1px solid #bae6fd', maxHeight: '260px', overflowY: 'auto' }}>
-                          <div style={{ padding: '3px 10px', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 1 }}>
-                            <span style={{ fontSize: '0.62rem', color: '#94a3b8' }}>✓ check to multi-select</span>
-                            <button
-                              type="button"
-                              onClick={() => handleToggleSelectCategory('Laboratory', filteredLabCatalogItems)}
-                              style={{ background: 'none', border: 'none', color: '#0284c7', fontSize: '0.65rem', fontWeight: 700, cursor: 'pointer' }}
-                            >
-                              {filteredLabCatalogItems.length > 0 && filteredLabCatalogItems.every(s => !!checkedCatalogItems[`LAB:${s.id}`]) ? 'Deselect All' : 'Select All'}
-                            </button>
-                          </div>
-                          {loadingLabCatalog ? (
-                            <div style={{ padding: '16px', textAlign: 'center', fontSize: '0.75rem', color: '#64748b' }}>
-                              Loading laboratory catalog…
-                            </div>
-                          ) : (
-                            filteredLabCatalogItems.map(svc => {
-                              const isChecked = !!checkedCatalogItems[`LAB:${svc.id}`];
-                              const isSelected = selectedOrderItem?.item?.id === String(svc.id) && selectedOrderItem?.type === 'LAB';
-                              return (
-                                <div
-                                  key={`lab-${svc.id}`}
-                                  onClick={() => handleSelectService(svc)}
-                                  style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 10px', background: isSelected ? '#dbeafe' : isChecked ? '#eff6ff' : '#fff', borderTop: '1px solid #f1f5f9', cursor: 'pointer' }}
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={isChecked}
-                                    onChange={e => { e.stopPropagation(); toggleCheckService(svc); }}
-                                    style={{ flexShrink: 0, width: '14px', height: '14px', cursor: 'pointer' }}
-                                  />
-                                  <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ fontSize: '0.77rem', fontWeight: 600, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{svc.name}</div>
-                                    <div style={{ fontSize: '0.63rem', color: '#94a3b8' }}>{svc.code} · Br {svc.price.toFixed(2)}</div>
-                                  </div>
-                                  {isSelected && <ChevronRight size={12} color="#0284c7" />}
-                                </div>
-                              );
-                            })
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Dynamic grouped services from Services table */}
-                  {!loadingServices && Object.entries(groupedServices).map(([catName, items]) => {
-                    const meta = getCategoryMeta(catName);
-                    const IconComp = meta.icon;
-                    const isExpanded = !!expandedCategories[catName];
-                    const checkedCount = items.filter(s => !!checkedCatalogItems[`${meta.type}:${s.id}`]).length;
-                    const allChecked = items.length > 0 && checkedCount === items.length;
-                    return (
-                      <div key={catName} style={{ borderRadius: '8px', background: '#fff', border: `1px solid ${meta.border}`, overflow: 'hidden' }}>
-                        <button
-                          onClick={() => toggleCategoryExpand(catName)}
-                          style={{ width: '100%', padding: '10px 12px', background: isExpanded ? meta.bg : '#fff', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '7px', color: meta.color, fontWeight: 700, fontSize: '0.8rem' }}>
-                            <IconComp size={14} color={meta.color} />
-                            {catName} ({items.length})
-                            {checkedCount > 0 && (
-                              <span style={{ background: meta.badge, color: '#fff', borderRadius: '10px', padding: '1px 6px', fontSize: '0.62rem', fontWeight: 700 }}>
-                                {checkedCount} ✓
-                              </span>
-                            )}
-                          </div>
-                          {isExpanded ? <ChevronDown size={13} color="#64748b" /> : <ChevronRight size={13} color="#64748b" />}
-                        </button>
-                        {isExpanded && (
-                          <div style={{ borderTop: `1px solid ${meta.border}`, maxHeight: '260px', overflowY: 'auto' }}>
-                            <div style={{ padding: '3px 10px', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 1 }}>
-                              <span style={{ fontSize: '0.62rem', color: '#94a3b8' }}>✓ check to multi-select</span>
-                              <button type="button" onClick={() => handleToggleSelectCategory(catName, items)} style={{ background: 'none', border: 'none', color: meta.color, fontSize: '0.65rem', fontWeight: 700, cursor: 'pointer' }}>
-                                {allChecked ? 'Deselect All' : 'Select All'}
-                              </button>
-                            </div>
-                            {items.map(svc => {
-                              const isChecked = !!checkedCatalogItems[`${meta.type}:${svc.id}`];
-                              const isSelected = selectedOrderItem?.item?.id === String(svc.id);
-                              return (
-                                <div
-                                  key={svc.id}
-                                  onClick={() => handleSelectService(svc)}
-                                  style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 10px', background: isSelected ? meta.bg : isChecked ? meta.bg + 'aa' : '#fff', borderTop: '1px solid #f1f5f9', cursor: 'pointer' }}
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={isChecked}
-                                    onChange={e => { e.stopPropagation(); toggleCheckService(svc); }}
-                                    style={{ flexShrink: 0, width: '14px', height: '14px', cursor: 'pointer' }}
-                                  />
-                                  <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ fontSize: '0.77rem', fontWeight: 600, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{svc.name}</div>
-                                    <div style={{ fontSize: '0.63rem', color: '#94a3b8' }}>{svc.code} · Br {svc.price.toFixed(2)}</div>
-                                  </div>
-                                  {isSelected && <ChevronRight size={12} color={meta.color} />}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-
-                  {/* Prescriptions */}
-                  <div style={{ borderRadius: '8px', background: '#fff', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-                    <button onClick={() => toggleNode('rx')} style={{ width: '100%', padding: '10px 12px', background: expandedNodes.rx ? '#f0fdf4' : '#fff', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '7px', color: '#059669', fontWeight: 700, fontSize: '0.8rem' }}>
-                        <Pill size={14} color="#059669" />
-                        Prescriptions / E-Rx ({medicationCatalogue.length})
-                        {Object.keys(checkedCatalogItems).filter(k => k.startsWith('RX:')).length > 0 && (
-                          <span style={{ background: '#059669', color: '#fff', borderRadius: '10px', padding: '1px 6px', fontSize: '0.62rem', fontWeight: 700 }}>
-                            {Object.keys(checkedCatalogItems).filter(k => k.startsWith('RX:')).length} ✓
-                          </span>
-                        )}
-                      </div>
-                      {expandedNodes.rx ? <ChevronDown size={13} color="#64748b" /> : <ChevronRight size={13} color="#64748b" />}
-                    </button>
-                    {expandedNodes.rx && (
-                      <div style={{ borderTop: '1px solid #e2e8f0', maxHeight: '260px', overflowY: 'auto' }}>
-                        <div style={{ padding: '3px 10px', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 1 }}>
-                          <span style={{ fontSize: '0.62rem', color: '#94a3b8' }}>✓ check to multi-select</span>
-                          <button type="button" onClick={() => handleToggleSelectAll('RX', medicationCatalogue)} style={{ background: 'none', border: 'none', color: '#059669', fontSize: '0.65rem', fontWeight: 700, cursor: 'pointer' }}>
-                            {medicationCatalogue.every(m => !!checkedCatalogItems[`RX:${m.id}`]) ? 'Deselect All' : 'Select All'}
-                          </button>
-                        </div>
-                        {medicationCatalogue.map(med => {
-                          const isChecked = !!checkedCatalogItems[`RX:${med.id}`];
-                          const isSelected = selectedOrderItem?.type === 'RX' && selectedOrderItem.item.id === med.id;
-                          return (
-                            <div key={med.id} onClick={() => handleSelectCatalogItem('RX', med)}
-                              style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 10px', background: isSelected ? '#dcfce7' : isChecked ? '#f0fdf4' : '#fff', borderTop: '1px solid #f1f5f9', cursor: 'pointer' }}>
-                              <input type="checkbox" checked={isChecked} onChange={e => { e.stopPropagation(); toggleCheckItem('RX', med); }} style={{ flexShrink: 0, width: '14px', height: '14px', cursor: 'pointer' }} />
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ fontSize: '0.77rem', fontWeight: 600, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{med.name}</div>
-                                <div style={{ fontSize: '0.63rem', color: '#94a3b8' }}>{med.class} · Br {med.unitPrice.toFixed(2)}</div>
-                              </div>
-                              {isSelected && <ChevronRight size={12} color="#059669" />}
-                            </div>
-                          );
-                        })}
-                      </div>
+                {/* ======================================================== */}
+                {/* PANEL 1 (LEFT, 210px): Categories Navigation            */}
+                {/* ======================================================== */}
+                <div style={{ width: '210px', flexShrink: 0, borderRight: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                  <div style={{ padding: '10px 14px', borderBottom: '1px solid #e2e8f0', background: '#f1f5f9', fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>Categories</span>
+                    {orderBasket.length > 0 && (
+                      <span style={{ background: '#0284c7', color: '#fff', padding: '1px 6px', borderRadius: '10px', fontSize: '0.62rem', fontWeight: 700 }}>
+                        {orderBasket.length}
+                      </span>
                     )}
                   </div>
 
-                  {/* Medical Certificate */}
-                  <div style={{ borderRadius: '8px', background: '#fff', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-                    <button onClick={() => { toggleNode('cert'); handleSelectCatalogItem('CERT', { name: 'Medical Certificate (Huderma)' }); }}
-                      style={{ width: '100%', padding: '10px 12px', background: selectedOrderItem?.type === 'CERT' ? '#fef9c3' : '#fff', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '7px', color: '#b45309', fontWeight: 700, fontSize: '0.8rem' }}>
-                        <Award size={14} color="#b45309" />
-                        Medical Certificate
+                  <div style={{ flex: 1, overflowY: 'auto', padding: '8px 6px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    {/* Laboratory Category */}
+                    <button
+                      type="button"
+                      onClick={() => { setActiveOrderCategory('LAB'); setOrderModalCategorySearch(''); }}
+                      style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '9px 10px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        background: activeOrderCategory === 'LAB' ? '#e0f2fe' : 'transparent',
+                        color: activeOrderCategory === 'LAB' ? '#0369a1' : '#334155',
+                        fontWeight: activeOrderCategory === 'LAB' ? 700 : 500,
+                        fontSize: '0.78rem',
+                        cursor: 'pointer',
+                        textAlign: 'left'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <FlaskConical size={15} color="#0284c7" />
+                        <span>Laboratory</span>
                       </div>
-                      <ChevronRight size={13} color="#64748b" />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        {labSelectedCount > 0 && (
+                          <span style={{ background: '#0284c7', color: '#fff', padding: '1px 5px', borderRadius: '8px', fontSize: '0.62rem', fontWeight: 700 }}>
+                            {labSelectedCount}
+                          </span>
+                        )}
+                        <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>{filteredLabCatalogItems?.length || 0}</span>
+                      </div>
                     </button>
-                  </div>
 
-                  {/* Batch Add */}
-                  {Object.keys(checkedCatalogItems).length > 0 && (
-                    <div style={{ padding: '10px', background: '#eff6ff', borderRadius: '8px', border: '1px solid #bfdbfe', display: 'flex', flexDirection: 'column', gap: '7px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#1d4ed8' }}>✓ {Object.keys(checkedCatalogItems).length} item(s) selected</span>
-                        <button type="button" onClick={() => setCheckedCatalogItems({})} style={{ background: 'none', border: 'none', color: '#dc2626', fontSize: '0.65rem', cursor: 'pointer', fontWeight: 700 }}>Clear</button>
+                    {/* Prescriptions / E-Rx Category */}
+                    <button
+                      type="button"
+                      onClick={() => { setActiveOrderCategory('RX'); setOrderModalCategorySearch(''); }}
+                      style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '9px 10px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        background: activeOrderCategory === 'RX' ? '#dcfce7' : 'transparent',
+                        color: activeOrderCategory === 'RX' ? '#15803d' : '#334155',
+                        fontWeight: activeOrderCategory === 'RX' ? 700 : 500,
+                        fontSize: '0.78rem',
+                        cursor: 'pointer',
+                        textAlign: 'left'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Pill size={15} color="#059669" />
+                        <span>Prescriptions (Rx)</span>
                       </div>
-                      <button type="button" onClick={handleAddAllCheckedToBasket} style={{ padding: '8px', borderRadius: '6px', background: '#1d4ed8', color: '#fff', border: 'none', cursor: 'pointer', fontSize: '0.76rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                        <ShoppingCart size={13} /> Add All {Object.keys(checkedCatalogItems).length} to Basket
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        {rxSelectedCount > 0 && (
+                          <span style={{ background: '#059669', color: '#fff', padding: '1px 5px', borderRadius: '8px', fontSize: '0.62rem', fontWeight: 700 }}>
+                            {rxSelectedCount}
+                          </span>
+                        )}
+                        <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>{medicationCatalogue?.length || 0}</span>
+                      </div>
+                    </button>
+
+                    <div style={{ height: '1px', background: '#e2e8f0', margin: '4px 0' }} />
+
+                    {/* Dynamic Service Categories */}
+                    {Object.entries(groupedServices).map(([catName, items]) => {
+                      const meta = getCategoryMeta(catName);
+                      const IconC = meta.icon || Stethoscope;
+                      const isCatActive = activeOrderCategory === catName;
+                      const catSelectedCount = items.filter(s => isServiceChecked('PROCEDURE', s.id)).length;
+
+                      return (
+                        <button
+                          key={catName}
+                          type="button"
+                          onClick={() => { setActiveOrderCategory(catName); setOrderModalCategorySearch(''); }}
+                          style={{
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '9px 10px',
+                            borderRadius: '8px',
+                            border: 'none',
+                            background: isCatActive ? meta.bg : 'transparent',
+                            color: isCatActive ? meta.color : '#334155',
+                            fontWeight: isCatActive ? 700 : 500,
+                            fontSize: '0.78rem',
+                            cursor: 'pointer',
+                            textAlign: 'left'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <IconC size={15} color={meta.color} />
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{catName}</span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            {catSelectedCount > 0 && (
+                              <span style={{ background: meta.badge || '#6366f1', color: '#fff', padding: '1px 5px', borderRadius: '8px', fontSize: '0.62rem', fontWeight: 700 }}>
+                                {catSelectedCount}
+                              </span>
+                            )}
+                            <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>{items.length}</span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* ======================================================== */}
+                {/* PANEL 2 (MIDDLE, flex: 1): Services Under Category     */}
+                {/* ======================================================== */}
+                <div style={{ flex: 1, borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', background: '#ffffff', minWidth: '360px', overflow: 'hidden' }}>
+                  {/* Category Header & Filter */}
+                  <div style={{ padding: '10px 16px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, fontSize: '0.86rem', color: middlePanelColor }}>
+                        <MiddleIcon size={16} color={middlePanelColor} />
+                        <span>{middlePanelTitle} ({middlePanelItems.length})</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleSelectCategory(middlePanelType, middlePanelItems)}
+                        style={{ background: 'none', border: 'none', color: middlePanelColor, fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}
+                      >
+                        {isAllCurrentSelected ? 'Deselect All' : 'Select All'}
                       </button>
                     </div>
-                  )}
 
-                </div>
-              </div>
-
-              {/* RIGHT: Parameter editor */}
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                <div style={{ padding: '8px 18px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc', fontSize: '0.68rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  {selectedOrderItem ? `Configure: ${selectedOrderItem.item.name}` : 'Order Parameters'}
-                </div>
-                <div style={{ flex: 1, overflowY: 'auto', padding: '22px' }}>
-                  {selectedOrderItem ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                      {/* Item header */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: '14px', borderBottom: '1px solid #e2e8f0' }}>
-                        <div>
-                          <span style={{ padding: '2px 9px', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 700, background: selectedOrderItem.type === 'LAB' ? '#dbeafe' : selectedOrderItem.type === 'RX' ? '#dcfce7' : selectedOrderItem.type === 'PROCEDURE' ? '#ede9fe' : '#fef9c3', color: selectedOrderItem.type === 'LAB' ? '#1d4ed8' : selectedOrderItem.type === 'RX' ? '#15803d' : selectedOrderItem.type === 'PROCEDURE' ? '#6d28d9' : '#92400e' }}>
-                            {selectedOrderItem.type}
-                          </span>
-                          <h3 style={{ fontSize: '1.08rem', fontWeight: 800, marginTop: '6px', color: '#0f172a' }}>{selectedOrderItem.item.name}</h3>
-                          {selectedOrderItem.item.price && <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '2px' }}>Br {selectedOrderItem.item.price?.toFixed(2)}</div>}
-                        </div>
-                        <button onClick={handleAddToBasket} style={{ flexShrink: 0, padding: '9px 18px', borderRadius: '8px', background: '#0284c7', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <Plus size={15} /> Add to Basket
-                        </button>
-                      </div>
-
-                      {/* LAB fields */}
-                      {selectedOrderItem.type === 'LAB' && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                          <div>
-                            <label style={{ fontSize: '0.74rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '5px' }}>Priority</label>
-                            <select value={orderLabPriority} onChange={e => setOrderLabPriority(e.target.value)} style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem', width: '200px' }}>
-                              <option value="Routine">Routine</option>
-                              <option value="STAT">STAT (Urgent)</option>
-                            </select>
-                          </div>
-                          <div>
-                            <label style={{ fontSize: '0.74rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '5px' }}>Clinical Indication</label>
-                            <input type="text" value={orderLabIndication} onChange={e => setOrderLabIndication(e.target.value)} placeholder="e.g. Routine check, suspected anemia..." style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem', boxSizing: 'border-box' }} />
-                          </div>
-                        </div>
-                      )}
-
-                      {/* PROCEDURE fields */}
-                      {selectedOrderItem.type === 'PROCEDURE' && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                          <div>
-                            <label style={{ fontSize: '0.74rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '5px' }}>Urgency</label>
-                            <select value={orderProcUrgency} onChange={e => setOrderProcUrgency(e.target.value)} style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem', width: '200px' }}>
-                              <option value="Routine">Routine</option>
-                              <option value="STAT">STAT (Urgent)</option>
-                            </select>
-                          </div>
-                          <div>
-                            <label style={{ fontSize: '0.74rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '5px' }}>Special Instructions</label>
-                            <input type="text" value={orderProcNotes} onChange={e => setOrderProcNotes(e.target.value)} placeholder="Any special instructions..." style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem', boxSizing: 'border-box' }} />
-                          </div>
-                        </div>
-                      )}
-
-                      {/* RX fields */}
-                      {selectedOrderItem.type === 'RX' && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                            <div>
-                              <label style={{ fontSize: '0.74rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '5px' }}>Dosage</label>
-                              <input type="text" value={orderRxDosage} onChange={e => setOrderRxDosage(e.target.value)} placeholder="e.g. 500mg" style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem', boxSizing: 'border-box' }} />
-                            </div>
-                            <div>
-                              <label style={{ fontSize: '0.74rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '5px' }}>Route</label>
-                              <input type="text" value={orderRxRoute} onChange={e => setOrderRxRoute(e.target.value)} placeholder="e.g. Oral, IV" style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem', boxSizing: 'border-box' }} />
-                            </div>
-                          </div>
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 90px', gap: '12px' }}>
-                            <div>
-                              <label style={{ fontSize: '0.74rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '5px' }}>Frequency</label>
-                              <input type="text" value={orderRxFreq} onChange={e => setOrderRxFreq(e.target.value)} placeholder="OD, BID, TID..." style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem', boxSizing: 'border-box' }} />
-                            </div>
-                            <div>
-                              <label style={{ fontSize: '0.74rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '5px' }}>Duration</label>
-                              <input type="text" value={orderRxDuration} onChange={e => setOrderRxDuration(e.target.value)} placeholder="7 Days" style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem', boxSizing: 'border-box' }} />
-                            </div>
-                            <div>
-                              <label style={{ fontSize: '0.74rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '5px' }}>Qty</label>
-                              <input type="number" value={orderRxQty} onChange={e => setOrderRxQty(parseInt(e.target.value) || 1)} min={1} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem', boxSizing: 'border-box' }} />
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* CERT fields */}
-                      {selectedOrderItem.type === 'CERT' && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                            <div>
-                              <label style={{ fontSize: '0.74rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '5px' }}>Card No</label>
-                              <input type="text" value={activePatient?.mrn} readOnly style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem', background: '#f1f5f9', boxSizing: 'border-box' }} />
-                            </div>
-                            <div>
-                              <label style={{ fontSize: '0.74rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '5px' }}>Examined On</label>
-                              <input type="date" value={certExamDate} onChange={e => setCertExamDate(e.target.value)} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem', boxSizing: 'border-box' }} />
-                            </div>
-                          </div>
-                          <div>
-                            <label style={{ fontSize: '0.74rem', fontWeight: 600, color: '#0369a1', display: 'block', marginBottom: '5px' }}>Diagnosis</label>
-                            <input type="text" value={certDiagnosis || diagnosis} onChange={e => setCertDiagnosis(e.target.value)} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem', boxSizing: 'border-box' }} />
-                          </div>
-                          <div>
-                            <label style={{ fontSize: '0.74rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '5px' }}>Dr's Recommendation</label>
-                            <input type="text" value={recommendation} onChange={e => setRecommendation(e.target.value)} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem', boxSizing: 'border-box' }} />
-                          </div>
-                          <div style={{ width: '140px' }}>
-                            <label style={{ fontSize: '0.74rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '5px' }}>Rest Days</label>
-                            <input type="number" min={1} value={daysExcused} onChange={e => setDaysExcused(parseInt(e.target.value) || 1)} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem', boxSizing: 'border-box' }} />
-                          </div>
-                        </div>
-                      )}
+                    <div style={{ position: 'relative' }}>
+                      <Search size={14} style={{ position: 'absolute', left: '9px', top: '8px', color: '#94a3b8' }} />
+                      <input
+                        value={orderModalCategorySearch}
+                        onChange={e => setOrderModalCategorySearch(e.target.value)}
+                        placeholder={`Filter in ${middlePanelTitle}…`}
+                        style={{ width: '100%', boxSizing: 'border-box', padding: '6px 10px 6px 28px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.76rem', color: '#1e293b', background: '#fff', outline: 'none' }}
+                      />
                     </div>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#94a3b8', textAlign: 'center', gap: '14px' }}>
-                      <ShoppingCart size={52} style={{ opacity: 0.2 }} />
-                      <div>
-                        <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#475569' }}>No item selected</div>
-                        <div style={{ fontSize: '0.8rem', marginTop: '5px' }}>Click any service on the left to configure it, then click "Add to Basket"</div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-            </div>
-
-            {/* FOOTER */}
-            <div style={{ flexShrink: 0, borderTop: '2px solid #e2e8f0', padding: '10px 20px', background: '#f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, overflowX: 'auto', minWidth: 0 }}>
-                <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#475569', flexShrink: 0, textTransform: 'uppercase' }}>Basket ({orderBasket.length}):</span>
-                {orderBasket.length === 0 && <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontStyle: 'italic' }}>empty</span>}
-                {orderBasket.map(b => (
-                  <div key={b.id} style={{ flexShrink: 0, padding: '3px 8px', borderRadius: '6px', background: '#dbeafe', border: '1px solid #93c5fd', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <strong style={{ color: '#1e40af' }}>{b.title}</strong>
-                    <button onClick={() => handleRemoveFromBasket(b.id)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', padding: 0, display: 'flex' }}><X size={11} /></button>
                   </div>
-                ))}
-              </div>
-              <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-                <button onClick={() => setShowOrderModal(false)} style={{ padding: '9px 20px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#fff', color: '#475569', cursor: 'pointer', fontWeight: 600, fontSize: '0.82rem' }}>
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSubmitAllOrders}
-                  disabled={orderBasket.length === 0 && !selectedOrderItem}
-                  style={{ padding: '9px 22px', borderRadius: '8px', background: orderBasket.length === 0 && !selectedOrderItem ? '#94a3b8' : '#0284c7', color: '#fff', border: 'none', cursor: orderBasket.length === 0 && !selectedOrderItem ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '7px' }}
-                >
-                  <Send size={14} /> Submit &amp; Bill Orders
-                </button>
-              </div>
-            </div>
 
+                  {/* Items List with Multi-select Checkboxes */}
+                  <div style={{ flex: 1, overflowY: 'auto', padding: '6px' }}>
+                    {loadingServices && activeOrderCategory !== 'LAB' && activeOrderCategory !== 'RX' ? (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '36px', gap: '8px', color: '#64748b', fontSize: '0.8rem' }}>
+                        <div style={{ width: '16px', height: '16px', border: '2px solid #cbd5e1', borderTopColor: '#0284c7', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                        Loading services…
+                      </div>
+                    ) : middlePanelItems.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '40px 20px', color: '#94a3b8', fontSize: '0.8rem' }}>
+                        No items found matching "{orderModalCategorySearch}".
+                      </div>
+                    ) : (
+                      middlePanelItems.map(item => {
+                        const isChecked = isServiceChecked(middlePanelType, item.id);
+                        return (
+                          <div
+                            key={`${middlePanelType}-${item.id}`}
+                            onClick={() => toggleServiceSelection(middlePanelType, item)}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '10px',
+                              padding: '8px 12px',
+                              borderRadius: '8px',
+                              margin: '2px 0',
+                              background: isChecked ? '#eff6ff' : 'transparent',
+                              border: isChecked ? '1px solid #bfdbfe' : '1px solid transparent',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => toggleServiceSelection(middlePanelType, item)}
+                              onClick={e => e.stopPropagation()}
+                              style={{ width: '16px', height: '16px', cursor: 'pointer', flexShrink: 0, accentColor: '#0284c7' }}
+                            />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: '0.8rem', fontWeight: isChecked ? 700 : 600, color: isChecked ? '#1e40af' : '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {item.name}
+                              </div>
+                              <div style={{ fontSize: '0.67rem', color: '#64748b', marginTop: '1px' }}>
+                                {item.code ? `${item.code} · ` : ''}
+                                {middlePanelType === 'RX' ? `${item.class || 'Rx'} · ` : ''}
+                                <strong style={{ color: '#0369a1' }}>Br {parseFloat(item.price ?? item.unitPrice ?? 0).toFixed(2)}</strong>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
+                {/* ======================================================== */}
+                {/* PANEL 3 (RIGHT, 420px): Selected Orders Review & Config */}
+                {/* ======================================================== */}
+                <div style={{ width: '420px', flexShrink: 0, background: '#f8fafc', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                  {/* Selected Header */}
+                  <div style={{ padding: '10px 16px', borderBottom: '1px solid #e2e8f0', background: '#f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        Selected Orders ({orderBasket.length})
+                      </span>
+                    </div>
+                    {orderBasket.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setOrderBasket([])}
+                        style={{ background: 'none', border: 'none', color: '#dc2626', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer' }}
+                      >
+                        Clear All
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Selected List with inline config */}
+                  <div style={{ flex: 1, overflowY: 'auto', padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {orderBasket.length === 0 ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#94a3b8', textAlign: 'center', padding: '20px' }}>
+                        <ShoppingCart size={42} style={{ opacity: 0.2, marginBottom: '10px' }} />
+                        <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#64748b' }}>No services selected</div>
+                        <div style={{ fontSize: '0.75rem', marginTop: '4px' }}>Click categories on the left and check items to order them directly.</div>
+                      </div>
+                    ) : (
+                      <>
+                        {/* 1. Laboratory Orders */}
+                        {orderBasket.filter(b => b.type === 'LAB').length > 0 && (
+                          <div style={{ borderRadius: '8px', border: '1px solid #bae6fd', background: '#fff', overflow: 'hidden' }}>
+                            <div style={{ padding: '6px 10px', background: '#eff6ff', borderBottom: '1px solid #bae6fd', fontSize: '0.72rem', fontWeight: 700, color: '#0369a1', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <FlaskConical size={13} color="#0369a1" />
+                              Laboratory Orders ({orderBasket.filter(b => b.type === 'LAB').length})
+                            </div>
+                            <div style={{ padding: '6px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                              {orderBasket.filter(b => b.type === 'LAB').map(b => (
+                                <div key={b.id} style={{ padding: '7px 8px', borderRadius: '6px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                    <div>
+                                      <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0f172a' }}>{b.title}</div>
+                                      <div style={{ fontSize: '0.67rem', color: '#64748b' }}>{b.code} · Br {b.price.toFixed(2)}</div>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveFromBasket(b.id)}
+                                      style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', padding: '2px' }}
+                                    >
+                                      <X size={14} />
+                                    </button>
+                                  </div>
+                                  <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr', gap: '6px', marginTop: '2px' }}>
+                                    <select
+                                      value={b.details?.priority || 'Routine'}
+                                      onChange={e => updateBasketItemDetails(b.id, { priority: e.target.value })}
+                                      style={{ padding: '3px 4px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.7rem' }}
+                                    >
+                                      <option value="Routine">Routine</option>
+                                      <option value="STAT">STAT (Urgent)</option>
+                                    </select>
+                                    <input
+                                      type="text"
+                                      value={b.details?.indication || ''}
+                                      onChange={e => updateBasketItemDetails(b.id, { indication: e.target.value })}
+                                      placeholder="Indication / Notes..."
+                                      style={{ padding: '3px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.7rem' }}
+                                    />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 2. Pharmacy Prescriptions */}
+                        {orderBasket.filter(b => b.type === 'RX').length > 0 && (
+                          <div style={{ borderRadius: '8px', border: '1px solid #bbf7d0', background: '#fff', overflow: 'hidden' }}>
+                            <div style={{ padding: '6px 10px', background: '#f0fdf4', borderBottom: '1px solid #bbf7d0', fontSize: '0.72rem', fontWeight: 700, color: '#15803d', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <Pill size={13} color="#15803d" />
+                              Prescription Orders ({orderBasket.filter(b => b.type === 'RX').length})
+                            </div>
+                            <div style={{ padding: '6px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                              {orderBasket.filter(b => b.type === 'RX').map(b => (
+                                <div key={b.id} style={{ padding: '8px', borderRadius: '6px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                    <div>
+                                      <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0f172a' }}>{b.title}</div>
+                                      <div style={{ fontSize: '0.67rem', color: '#15803d', fontWeight: 600 }}>Br {b.price.toFixed(2)} (Br {(b.details?.unitPrice || 0).toFixed(2)}/unit)</div>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveFromBasket(b.id)}
+                                      style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', padding: '2px' }}
+                                    >
+                                      <X size={14} />
+                                    </button>
+                                  </div>
+
+                                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                                    <div>
+                                      <label style={{ fontSize: '0.65rem', color: '#64748b', display: 'block', fontWeight: 600 }}>Dosage</label>
+                                      <input
+                                        type="text"
+                                        value={b.details?.dosage || ''}
+                                        onChange={e => updateBasketItemDetails(b.id, { dosage: e.target.value })}
+                                        placeholder="1 Tab, 500mg"
+                                        style={{ width: '100%', boxSizing: 'border-box', padding: '3px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
+                                      />
+                                    </div>
+                                    <div>
+                                      <label style={{ fontSize: '0.65rem', color: '#64748b', display: 'block', fontWeight: 600 }}>Route</label>
+                                      <select
+                                        value={b.details?.route || 'Oral'}
+                                        onChange={e => updateBasketItemDetails(b.id, { route: e.target.value })}
+                                        style={{ width: '100%', boxSizing: 'border-box', padding: '3px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
+                                      >
+                                        <option value="Oral">Oral</option>
+                                        <option value="Topical">Topical</option>
+                                        <option value="IV">IV</option>
+                                        <option value="IM">IM</option>
+                                        <option value="Inhalation">Inhalation</option>
+                                        <option value="Ophthalmic">Ophthalmic</option>
+                                      </select>
+                                    </div>
+                                  </div>
+
+                                  <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.2fr 60px', gap: '6px' }}>
+                                    <div>
+                                      <label style={{ fontSize: '0.65rem', color: '#64748b', display: 'block', fontWeight: 600 }}>Frequency</label>
+                                      <input
+                                        type="text"
+                                        value={b.details?.freq || ''}
+                                        onChange={e => updateBasketItemDetails(b.id, { freq: e.target.value })}
+                                        placeholder="OD, BID, TID"
+                                        style={{ width: '100%', boxSizing: 'border-box', padding: '3px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
+                                      />
+                                    </div>
+                                    <div>
+                                      <label style={{ fontSize: '0.65rem', color: '#64748b', display: 'block', fontWeight: 600 }}>Duration</label>
+                                      <input
+                                        type="text"
+                                        value={b.details?.duration || ''}
+                                        onChange={e => updateBasketItemDetails(b.id, { duration: e.target.value })}
+                                        placeholder="7 Days"
+                                        style={{ width: '100%', boxSizing: 'border-box', padding: '3px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
+                                      />
+                                    </div>
+                                    <div>
+                                      <label style={{ fontSize: '0.65rem', color: '#64748b', display: 'block', fontWeight: 600 }}>Qty</label>
+                                      <input
+                                        type="number"
+                                        min={1}
+                                        value={b.details?.qty || 1}
+                                        onChange={e => updateBasketItemDetails(b.id, { qty: e.target.value })}
+                                        style={{ width: '100%', boxSizing: 'border-box', padding: '3px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
+                                      />
+                                    </div>
+                                  </div>
+
+                                  <div>
+                                    <label style={{ fontSize: '0.65rem', color: '#64748b', display: 'block', fontWeight: 600 }}>Instructions</label>
+                                    <input
+                                      type="text"
+                                      value={b.details?.timing || ''}
+                                      onChange={e => updateBasketItemDetails(b.id, { timing: e.target.value })}
+                                      placeholder="e.g. Take with meals, avoid direct sun"
+                                      style={{ width: '100%', boxSizing: 'border-box', padding: '3px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
+                                    />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 3. Clinical Procedures & Services */}
+                        {orderBasket.filter(b => b.type !== 'LAB' && b.type !== 'RX').length > 0 && (
+                          <div style={{ borderRadius: '8px', border: '1px solid #ddd6fe', background: '#fff', overflow: 'hidden' }}>
+                            <div style={{ padding: '6px 10px', background: '#f5f3ff', borderBottom: '1px solid #ddd6fe', fontSize: '0.72rem', fontWeight: 700, color: '#6d28d9', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <Stethoscope size={13} color="#6d28d9" />
+                              Procedures &amp; Services ({orderBasket.filter(b => b.type !== 'LAB' && b.type !== 'RX').length})
+                            </div>
+                            <div style={{ padding: '6px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                              {orderBasket.filter(b => b.type !== 'LAB' && b.type !== 'RX').map(b => (
+                                <div key={b.id} style={{ padding: '7px 8px', borderRadius: '6px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                    <div>
+                                      <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0f172a' }}>{b.title}</div>
+                                      <div style={{ fontSize: '0.67rem', color: '#64748b' }}>{b.code} · Br {b.price.toFixed(2)}</div>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveFromBasket(b.id)}
+                                      style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', padding: '2px' }}
+                                    >
+                                      <X size={14} />
+                                    </button>
+                                  </div>
+                                  <input
+                                    type="text"
+                                    value={b.details?.notes || ''}
+                                    onChange={e => updateBasketItemDetails(b.id, { notes: e.target.value })}
+                                    placeholder="Special instructions / Notes..."
+                                    style={{ padding: '3px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.7rem' }}
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+
+                  {/* Right Panel Footer: Direct One-Click Order Button */}
+                  <div style={{ flexShrink: 0, borderTop: '2px solid #e2e8f0', padding: '12px 16px', background: '#f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowOrderModal(false)}
+                      style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#fff', color: '#475569', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem' }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSubmitAllOrders}
+                      disabled={orderBasket.length === 0}
+                      style={{
+                        padding: '9px 20px',
+                        borderRadius: '8px',
+                        background: orderBasket.length === 0 ? '#94a3b8' : '#0284c7',
+                        color: '#fff',
+                        border: 'none',
+                        cursor: orderBasket.length === 0 ? 'not-allowed' : 'pointer',
+                        fontWeight: 700,
+                        fontSize: '0.82rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '7px'
+                      }}
+                    >
+                      <Send size={14} />
+                      Order ({orderBasket.length} items · Br {totalEstimatedCost.toFixed(2)})
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
 
       {/* Print Modal */}

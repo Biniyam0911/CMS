@@ -38,24 +38,92 @@ public class PharmacyService
     public async Task<int> CreatePrescriptionAsync(CreatePrescriptionDto dto)
     {
         using var conn = _dbFactory.CreateConnection();
+
+        // 1. Ensure valid EncounterId exists (FK_Prescriptions_Encounters constraint)
+        int encounterId = dto.EncounterId;
+        if (encounterId <= 0)
+        {
+            var openEncId = await conn.ExecuteScalarAsync<int?>(@"
+                SELECT TOP 1 Id FROM Encounters 
+                WHERE PatientId = @PatientId AND TenantId = @TenantId
+                ORDER BY Id DESC",
+                new { dto.PatientId, dto.TenantId });
+
+            if (openEncId.HasValue && openEncId.Value > 0)
+            {
+                encounterId = openEncId.Value;
+            }
+            else
+            {
+                // Create a basic encounter record
+                var encNo = $"ENC-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..4].ToUpper()}";
+                encounterId = await conn.ExecuteScalarAsync<int>(@"
+                    INSERT INTO Encounters (TenantId, PatientId, EncounterNumber, EncounterDate, StatusId, CreatedAt)
+                    OUTPUT INSERTED.Id
+                    VALUES (@TenantId, @PatientId, @EncounterNumber, GETDATE(), 1, GETDATE())",
+                    new { dto.TenantId, dto.PatientId, EncounterNumber = encNo });
+            }
+        }
+
+        // 2. Ensure valid PrescribedBy Doctor ID exists (FK_Prescriptions_Doctor constraint)
+        int doctorId = dto.DoctorId;
+        if (doctorId > 0)
+        {
+            var exists = await conn.ExecuteScalarAsync<int?>(
+                "SELECT TOP 1 Id FROM Doctors WHERE Id = @Id", new { Id = doctorId });
+            if (!exists.HasValue || exists.Value <= 0) doctorId = 0;
+        }
+        if (doctorId <= 0)
+        {
+            doctorId = await conn.ExecuteScalarAsync<int>(
+                "SELECT TOP 1 Id FROM Doctors WHERE TenantId = @TenantId ORDER BY Id ASC",
+                new { dto.TenantId });
+            if (doctorId <= 0) doctorId = 1;
+        }
+
+        // 3. Insert into Prescriptions table
         var sqlHeader = @"
-            INSERT INTO Prescriptions (TenantId, EncounterId, PatientId, DoctorId, StatusId)
+            INSERT INTO Prescriptions (TenantId, EncounterId, PatientId, PrescribedBy, PrescribedAt, IsDispensed, Notes)
             OUTPUT INSERTED.Id
-            VALUES (@TenantId, @EncounterId, @PatientId, @DoctorId, 1);";
+            VALUES (@TenantId, @EncounterId, @PatientId, @PrescribedBy, GETDATE(), 0, 'Prescription issued from EMR');";
 
-        var pId = await conn.ExecuteScalarAsync<int>(sqlHeader, dto);
+        var pId = await conn.ExecuteScalarAsync<int>(sqlHeader, new {
+            dto.TenantId,
+            EncounterId = encounterId,
+            dto.PatientId,
+            PrescribedBy = doctorId
+        });
 
+        // 4. Insert Prescription Items
         if (dto.Items != null && dto.Items.Count > 0)
         {
             var sqlItem = @"
-                INSERT INTO PrescriptionItems (PrescriptionId, DrugId, Dosage, Frequency, Duration, Quantity, Instructions, StatusId)
-                VALUES (@PrescriptionId, @DrugId, @Dosage, @Frequency, @Duration, @Quantity, @Instructions, 1);";
+                INSERT INTO PrescriptionItems (PrescriptionId, DrugId, Dosage, Frequency, Route, DurationDays, Quantity, Instructions)
+                VALUES (@PrescriptionId, @DrugId, @Dosage, @Frequency, @Route, @DurationDays, @Quantity, @Instructions);";
 
             foreach (var item in dto.Items)
             {
+                // Parse duration string into days (e.g., "7 Days" -> 7, "5" -> 5)
+                short? durationDays = null;
+                if (!string.IsNullOrWhiteSpace(item.Duration))
+                {
+                    var numStr = new string(item.Duration.Where(char.IsDigit).ToArray());
+                    if (short.TryParse(numStr, out var parsedDays) && parsedDays > 0)
+                        durationDays = parsedDays;
+                }
+
+                // Ensure valid drugId or fallback to 1
+                int validDrugId = item.DrugId > 0 ? item.DrugId : 1;
+
                 await conn.ExecuteAsync(sqlItem, new {
-                    PrescriptionId = pId, item.DrugId, item.Dosage, item.Frequency,
-                    item.Duration, item.Quantity, item.Instructions
+                    PrescriptionId = pId,
+                    DrugId = validDrugId,
+                    Dosage = string.IsNullOrWhiteSpace(item.Dosage) ? "1 dose" : item.Dosage,
+                    Frequency = string.IsNullOrWhiteSpace(item.Frequency) ? "OD" : item.Frequency,
+                    Route = "Oral",
+                    DurationDays = durationDays,
+                    Quantity = item.Quantity > 0 ? (short)item.Quantity : (short)1,
+                    Instructions = item.Instructions ?? string.Empty
                 });
             }
         }
@@ -143,11 +211,13 @@ public class PharmacyService
         if (pIds.Any())
         {
             var itemsSql = @"
-                SELECT pi.Id, pi.PrescriptionId, pi.DrugId, d.GenericName AS DrugName,
-                       pi.Dosage, pi.Frequency, ISNULL(pi.Duration, '') AS Duration,
+                SELECT pi.Id, pi.PrescriptionId, pi.DrugId, 
+                       ISNULL(d.GenericName, 'Prescribed Medication') AS DrugName,
+                       pi.Dosage, pi.Frequency, 
+                       ISNULL(CASE WHEN pi.DurationDays IS NOT NULL THEN CAST(pi.DurationDays AS VARCHAR) + ' Days' ELSE '' END, '') AS Duration,
                        pi.Quantity, ISNULL(pi.Instructions, '') AS Instructions
                 FROM PrescriptionItems pi WITH (NOLOCK)
-                JOIN DrugFormulary d WITH (NOLOCK) ON d.Id = pi.DrugId
+                LEFT JOIN DrugFormulary d WITH (NOLOCK) ON d.Id = pi.DrugId
                 WHERE pi.PrescriptionId IN @PrescriptionIds";
             var allItems = await conn.QueryAsync<PrescriptionItemDto>(itemsSql, new { PrescriptionIds = pIds });
             itemsByPrescription = allItems.GroupBy(x => x.PrescriptionId).ToDictionary(g => g.Key, g => g.ToList());

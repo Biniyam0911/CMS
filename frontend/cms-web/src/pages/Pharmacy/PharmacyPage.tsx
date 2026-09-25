@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Pill, CheckCircle, Package, AlertTriangle, Plus, RefreshCw, X, Search, Edit3, DollarSign, TrendingUp, ShieldAlert, FileText, Loader2, Calendar } from 'lucide-react';
+import { Pill, CheckCircle, Package, AlertTriangle, Plus, RefreshCw, X, Search, Edit3, DollarSign, TrendingUp, ShieldAlert, FileText, Loader2, Calendar, Printer, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { api } from '../../api/apiClient';
 
 export default function PharmacyPage() {
@@ -10,20 +10,20 @@ export default function PharmacyPage() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const [activeSubTab, setActiveSubTab] = useState<'prescriptions' | 'sold' | 'inventory' | 'narcotics' | 'restock'>('prescriptions');
+  const [activeSubTab, setActiveSubTab] = useState<'prescriptions' | 'sold' | 'inventory' | 'restock'>('prescriptions');
   const [loading, setLoading] = useState(true);
   const [selectedSoldReceipt, setSelectedSoldReceipt] = useState<any | null>(null);
+  const [printPrescriptionModal, setPrintPrescriptionModal] = useState<any | null>(null);
 
   // Formulary Inventory State with FEFO Expiry & Controlled Status
   const [drugs, setDrugs] = useState<any[]>([]);
+  const [inventorySearch, setInventorySearch] = useState('');
+  const [inventoryPage, setInventoryPage] = useState(1);
+  const [inventoryPageSize, setInventoryPageSize] = useState(25);
+  const [inventoryExpiryFilter, setInventoryExpiryFilter] = useState<'ALL' | 'EXPIRING' | 'EXPIRED' | 'LOW_STOCK'>('ALL');
 
   // Prescriptions Queue State
   const [prescriptions, setPrescriptions] = useState<any[]>([]);
-
-  // Narcotics Serialized Logbook State
-  const [narcoticLogs, setNarcoticLogs] = useState<any[]>([
-    { id: 1, serialNo: 'NARCO-LOG-2026-0042', drug: 'Morphine Sulphate 10mg/ml Ampule', patient: 'Haile Gebrselassie', doctor: 'Dr. Abebe Bekele', pharmacist: 'Pharmacist Worku', qty: 1, date: '2026-08-31 10:15 AM' }
-  ]);
 
   // Add Drug Modal State
   const [showAddModal, setShowAddModal] = useState(false);
@@ -131,19 +131,24 @@ export default function PharmacyPage() {
 
       if (prescriptionsData && prescriptionsData.length > 0) {
         const mappedPrescriptions = prescriptionsData.map((p: any) => {
-          const firstItem = (p.items && p.items[0]) || { drugName: 'Medication', quantity: 10, id: p.id };
+          const itemsList = (p.items && p.items.length > 0)
+            ? p.items
+            : [{ id: p.id, drugName: 'Prescribed Medication', quantity: 1, dosage: '1 dose', frequency: 'OD', duration: '7 Days', instructions: '' }];
+          const drugSummary = itemsList.map((i: any) => `${i.drugName || 'Medication'} ${i.dosage || ''}`.trim()).join(', ');
+          const totalQty = itemsList.reduce((sum: number, it: any) => sum + (Number(it.quantity) || 1), 0);
           return {
             id: p.id || p.Id,
-            itemId: firstItem.id || p.id,
+            itemId: itemsList[0]?.id || p.id,
             patientName: p.patientName || p.PatientName || `Patient #${p.patientId}`,
             mrn: p.mrn || p.Mrn || `MRN-000${p.patientId || 101}`,
             doctorName: p.doctorName || p.DoctorName || 'Dr. Attending',
             date: p.prescribedAt ? String(p.prescribedAt).split('T')[0] : '2026-08-31',
-            drug: `${firstItem.drugName || 'Medication'} ${firstItem.dosage || ''}`.trim(),
-            qty: firstItem.quantity || 10,
-            status: p.statusId === 2 ? 'Dispensed' : 'Pending',
-            isPaid: p.isPaid || p.IsPaid || false,
-            isControlled: (firstItem.drugName || '').toLowerCase().includes('morphine') || (firstItem.drugName || '').toLowerCase().includes('tramadol')
+            drug: drugSummary || `${itemsList[0]?.drugName || 'Medication'} ${itemsList[0]?.dosage || ''}`.trim(),
+            qty: totalQty,
+            status: (p.statusId === 2 || p.statusId === 4 || p.isDispensed) ? 'Dispensed' : 'Pending',
+            isPaid: Boolean(p.isPaid || p.IsPaid),
+            items: itemsList,
+            isControlled: itemsList.some((i: any) => (i.drugName || '').toLowerCase().includes('morphine') || (i.drugName || '').toLowerCase().includes('tramadol'))
           };
         });
         setPrescriptions(mappedPrescriptions);
@@ -187,20 +192,6 @@ export default function PharmacyPage() {
       }
       return d;
     }));
-
-    if (pItem.isControlled) {
-      const newLog = {
-        id: narcoticLogs.length + 1,
-        serialNo: `NARCO-LOG-2026-00${narcoticLogs.length + 43}`,
-        drug: pItem.drug,
-        patient: pItem.patientName,
-        doctor: pItem.doctorName,
-        pharmacist: 'Pharmacist Worku',
-        qty: pItem.qty,
-        date: new Date().toLocaleString()
-      };
-      setNarcoticLogs([newLog, ...narcoticLogs]);
-    }
   };
 
   const handleOpenRestockModal = (drug: any) => {
@@ -370,11 +361,8 @@ export default function PharmacyPage() {
             <CheckCircle size={16} /> Sold Prescriptions ({prescriptions.filter(p => p.status === 'Dispensed' || p.isPaid).length})
           </button>
           <button onClick={() => setActiveSubTab('inventory')} className={activeSubTab === 'inventory' ? 'btn-primary' : 'btn-secondary'} style={{ whiteSpace: 'nowrap' }}>
-            <Package size={16} /> Inventory & FEFO Expiry ({drugs.length})
+            <Package size={16} /> Inventory &amp; FEFO Expiry ({drugs.length})
             {lowStockCount > 0 && <span className="badge badge-critical" style={{ marginLeft: '6px' }}>{lowStockCount} Low</span>}
-          </button>
-          <button onClick={() => setActiveSubTab('narcotics')} className={activeSubTab === 'narcotics' ? 'btn-primary' : 'btn-secondary'} style={{ whiteSpace: 'nowrap' }}>
-            <ShieldAlert size={16} /> Narcotics Logbook ({narcoticLogs.length})
           </button>
         </div>
 
@@ -496,17 +484,31 @@ export default function PharmacyPage() {
                           </span>
                         </td>
                         <td>
-                          {p.status === 'Pending' ? (
-                            p.isPaid ? (
-                              <button onClick={() => handleDispense(p)} className="btn-primary" style={{ padding: '4px 10px', fontSize: '0.75rem' }}>
-                                Dispense Drug
-                              </button>
+                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                            <button
+                              type="button"
+                              onClick={() => setPrintPrescriptionModal(p)}
+                              className="btn-secondary"
+                              style={{ padding: '4px 8px', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+                            >
+                              <Printer size={13} /> Print Rx
+                            </button>
+                            {p.status === 'Pending' ? (
+                              p.isPaid ? (
+                                <button onClick={() => handleDispense(p)} className="btn-primary" style={{ padding: '4px 10px', fontSize: '0.72rem' }}>
+                                  Dispense
+                                </button>
+                              ) : (
+                                <span style={{ fontSize: '0.7rem', color: '#92400e', fontStyle: 'italic', background: '#fef3c7', padding: '3px 6px', borderRadius: '4px' }}>
+                                  Unpaid
+                                </span>
+                              )
                             ) : (
-                              <span style={{ fontSize: '0.72rem', color: '#92400e', fontStyle: 'italic' }}>Awaiting payment at cashier</span>
-                            )
-                          ) : (
-                            <span style={{ fontSize: '0.75rem', color: '#34d399' }}><CheckCircle size={14} /> Completed</span>
-                          )}
+                              <span style={{ fontSize: '0.72rem', color: '#059669', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                <CheckCircle size={13} /> Dispensed
+                              </span>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -711,103 +713,262 @@ export default function PharmacyPage() {
         </div>
       )}
 
-      {/* SUB TAB 2: Inventory & FEFO Expiry */}
-      {activeSubTab === 'inventory' && (
-        <div className="glass-panel" style={{ padding: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Package color="#10b981" size={18} /> Pharmacy Inventory, FEFO Expiry Tracking & Pricing
-            </h3>
-            {loading && <Loader2 size={16} className="animate-spin" color="#06b6d4" />}
-          </div>
+      {/* SUB TAB 2: Inventory & FEFO Expiry with Search & Pagination */}
+      {activeSubTab === 'inventory' && (() => {
+        const today = new Date();
+        const ninetyDaysFromNow = new Date();
+        ninetyDaysFromNow.setDate(today.getDate() + 90);
 
-          <div className="table-responsive">
-            <table className="cms-table">
-              <thead>
-                <tr>
-                  <th>Code</th>
-                  <th>Generic Name (Brand)</th>
-                  <th>Batch #</th>
-                  <th>Expiry Date (FEFO)</th>
-                  <th>Current Stock</th>
-                  <th>Unit Cost</th>
-                  <th>Selling Price</th>
-                  <th>Control</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {drugs.map(d => (
-                  <tr key={d.id}>
-                    <td style={{ fontFamily: 'monospace', color: '#06b6d4', fontWeight: 700 }}>{d.code}</td>
-                    <td style={{ fontWeight: 600 }}>
-                      {d.generic} <small style={{ color: 'var(--text-muted)' }}>({d.brand})</small>
-                    </td>
-                    <td style={{ fontFamily: 'monospace' }}>{d.batchNo}</td>
-                    <td style={{ fontWeight: 600, color: '#fbbf24' }}>{d.expiryDate}</td>
-                    <td>
-                      <span style={{ fontWeight: 700, color: d.stock <= d.minStock ? '#f87171' : '#34d399' }}>
-                        {d.stock} units
-                      </span>
-                    </td>
-                    <td style={{ color: 'var(--text-muted)' }}>Br {Number(d.costPrice).toFixed(2)}</td>
-                    <td style={{ fontWeight: 700, color: '#38bdf8' }}>Br {Number(d.sellingPrice).toFixed(2)}</td>
-                    <td>
-                      {d.isControlled ? (
-                        <span className="badge badge-critical">Controlled</span>
-                      ) : (
-                        <span className="badge badge-normal">Standard</span>
-                      )}
-                    </td>
-                    <td>
-                      <button onClick={() => handleOpenRestockModal(d)} className="btn-secondary" style={{ padding: '4px 10px', fontSize: '0.75rem' }}>
-                        + Restock & FEFO
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+        const filteredDrugs = drugs.filter(d => {
+          // Search filter
+          if (inventorySearch.trim()) {
+            const query = inventorySearch.toLowerCase();
+            const matchCode = (d.code || '').toLowerCase().includes(query);
+            const matchGen = (d.generic || '').toLowerCase().includes(query);
+            const matchBrand = (d.brand || '').toLowerCase().includes(query);
+            const matchBatch = (d.batchNo || '').toLowerCase().includes(query);
+            if (!matchCode && !matchGen && !matchBrand && !matchBatch) return false;
+          }
 
-      {/* SUB TAB 3: Narcotics Audit Logbook */}
-      {activeSubTab === 'narcotics' && (
-        <div className="glass-panel" style={{ padding: '24px' }}>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f87171', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <ShieldAlert size={20} /> Serialized Controlled Substances & Narcotics Register
-          </h3>
-          <div className="table-responsive">
-            <table className="cms-table">
-              <thead>
-                <tr>
-                  <th>Serial Log #</th>
-                  <th>Controlled Substance</th>
-                  <th>Patient Name</th>
-                  <th>Prescribing Doctor</th>
-                  <th>Dispensing Pharmacist</th>
-                  <th>Quantity</th>
-                  <th>Timestamp</th>
-                </tr>
-              </thead>
-              <tbody>
-                {narcoticLogs.map(l => (
-                  <tr key={l.id}>
-                    <td style={{ fontFamily: 'monospace', color: '#f87171', fontWeight: 700 }}>{l.serialNo}</td>
-                    <td style={{ fontWeight: 600 }}>{l.drug}</td>
-                    <td>{l.patient}</td>
-                    <td>{l.doctor}</td>
-                    <td>{l.pharmacist}</td>
-                    <td style={{ fontWeight: 700 }}>{l.qty}</td>
-                    <td style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{l.date}</td>
+          // Expiry & Stock status filter
+          if (inventoryExpiryFilter === 'LOW_STOCK') {
+            return d.stock <= (d.minStock || 0);
+          }
+
+          if (inventoryExpiryFilter === 'EXPIRED') {
+            if (!d.expiryDate) return false;
+            const exp = new Date(d.expiryDate);
+            return !isNaN(exp.getTime()) && exp < today;
+          }
+
+          if (inventoryExpiryFilter === 'EXPIRING') {
+            if (!d.expiryDate) return false;
+            const exp = new Date(d.expiryDate);
+            return !isNaN(exp.getTime()) && exp >= today && exp <= ninetyDaysFromNow;
+          }
+
+          return true;
+        });
+
+        const totalPages = Math.max(1, Math.ceil(filteredDrugs.length / inventoryPageSize));
+        const currentPage = Math.min(inventoryPage, totalPages);
+        const startIndex = (currentPage - 1) * inventoryPageSize;
+        const paginatedDrugs = filteredDrugs.slice(startIndex, startIndex + inventoryPageSize);
+
+        return (
+          <div className="glass-panel" style={{ padding: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Package color="#10b981" size={18} /> Pharmacy Inventory, FEFO Expiry Tracking &amp; Pricing
+                </h3>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: '2px' }}>
+                  Showing {filteredDrugs.length} of {drugs.length} total drug formulary items.
+                </p>
+              </div>
+
+              {/* Search & Filter Controls */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <Search size={14} style={{ position: 'absolute', left: '10px', color: 'var(--text-muted)' }} />
+                  <input
+                    type="text"
+                    value={inventorySearch}
+                    onChange={e => { setInventorySearch(e.target.value); setInventoryPage(1); }}
+                    placeholder="Search generic, brand, batch, code..."
+                    style={{
+                      background: 'var(--bg-dark)',
+                      border: '1px solid var(--border-color)',
+                      color: 'var(--text-main)',
+                      borderRadius: '8px',
+                      padding: '5px 10px 5px 30px',
+                      fontSize: '0.8rem',
+                      width: '230px',
+                      outline: 'none'
+                    }}
+                  />
+                  {inventorySearch && (
+                    <button
+                      onClick={() => { setInventorySearch(''); setInventoryPage(1); }}
+                      style={{ position: 'absolute', right: '8px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+                    >
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+
+                <select
+                  value={inventoryExpiryFilter}
+                  onChange={e => { setInventoryExpiryFilter(e.target.value as any); setInventoryPage(1); }}
+                  style={{
+                    background: 'var(--bg-dark)',
+                    border: '1px solid var(--border-color)',
+                    color: 'var(--text-main)',
+                    borderRadius: '8px',
+                    padding: '5px 10px',
+                    fontSize: '0.8rem',
+                    outline: 'none'
+                  }}
+                >
+                  <option value="ALL">All Statuses</option>
+                  <option value="LOW_STOCK">⚠️ Low Stock Only</option>
+                  <option value="EXPIRING">⏳ Expiring Soon (&lt; 90 Days)</option>
+                  <option value="EXPIRED">❌ Expired</option>
+                </select>
+
+                <select
+                  value={inventoryPageSize}
+                  onChange={e => { setInventoryPageSize(Number(e.target.value)); setInventoryPage(1); }}
+                  style={{
+                    background: 'var(--bg-dark)',
+                    border: '1px solid var(--border-color)',
+                    color: 'var(--text-main)',
+                    borderRadius: '8px',
+                    padding: '5px 8px',
+                    fontSize: '0.8rem',
+                    outline: 'none'
+                  }}
+                >
+                  <option value={15}>15 / page</option>
+                  <option value={25}>25 / page</option>
+                  <option value={50}>50 / page</option>
+                  <option value={100}>100 / page</option>
+                </select>
+
+                {loading && <Loader2 size={16} className="animate-spin" color="#06b6d4" />}
+              </div>
+            </div>
+
+            <div className="table-responsive">
+              <table className="cms-table">
+                <thead>
+                  <tr>
+                    <th>Code</th>
+                    <th>Generic Name (Brand)</th>
+                    <th>Batch #</th>
+                    <th>Expiry Date (FEFO)</th>
+                    <th>Current Stock</th>
+                    <th>Unit Cost</th>
+                    <th>Selling Price</th>
+                    <th>Control</th>
+                    <th>Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {paginatedDrugs.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
+                        No medication inventory items match the current filters.
+                      </td>
+                    </tr>
+                  ) : (
+                    paginatedDrugs.map(d => {
+                      const isLow = d.stock <= (d.minStock || 0);
+                      const expDate = d.expiryDate ? new Date(d.expiryDate) : null;
+                      const isExpired = expDate && !isNaN(expDate.getTime()) && expDate < today;
+                      const isExpiringSoon = expDate && !isNaN(expDate.getTime()) && expDate >= today && expDate <= ninetyDaysFromNow;
+
+                      return (
+                        <tr key={d.id}>
+                          <td style={{ fontFamily: 'monospace', color: '#06b6d4', fontWeight: 700 }}>{d.code}</td>
+                          <td style={{ fontWeight: 600 }}>
+                            {d.generic} <small style={{ color: 'var(--text-muted)' }}>({d.brand})</small>
+                          </td>
+                          <td style={{ fontFamily: 'monospace' }}>{d.batchNo}</td>
+                          <td>
+                            <span style={{
+                              fontWeight: 600,
+                              color: isExpired ? '#ef4444' : isExpiringSoon ? '#f59e0b' : '#34d399'
+                            }}>
+                              {d.expiryDate || 'N/A'}
+                              {isExpired && ' (Expired)'}
+                              {isExpiringSoon && ' (Expiring)'}
+                            </span>
+                          </td>
+                          <td>
+                            <span style={{ fontWeight: 700, color: isLow ? '#f87171' : '#34d399' }}>
+                              {d.stock} units
+                              {isLow && <small style={{ marginLeft: '4px', color: '#f87171' }}>(Low)</small>}
+                            </span>
+                          </td>
+                          <td style={{ color: 'var(--text-muted)' }}>Br {Number(d.costPrice).toFixed(2)}</td>
+                          <td style={{ fontWeight: 700, color: '#38bdf8' }}>Br {Number(d.sellingPrice).toFixed(2)}</td>
+                          <td>
+                            {d.isControlled ? (
+                              <span className="badge badge-critical">Controlled</span>
+                            ) : (
+                              <span className="badge badge-normal">Standard</span>
+                            )}
+                          </td>
+                          <td>
+                            <button onClick={() => handleOpenRestockModal(d)} className="btn-secondary" style={{ padding: '4px 10px', fontSize: '0.75rem' }}>
+                              + Restock &amp; FEFO
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination Controls */}
+            {filteredDrugs.length > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', flexWrap: 'wrap', gap: '10px' }}>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                  Showing {startIndex + 1}–{Math.min(startIndex + inventoryPageSize, filteredDrugs.length)} of {filteredDrugs.length} items
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setInventoryPage(1)}
+                    disabled={currentPage <= 1}
+                    className="btn-secondary"
+                    style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                    title="First page"
+                  >
+                    <ChevronsLeft size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setInventoryPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage <= 1}
+                    className="btn-secondary"
+                    style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                    title="Previous page"
+                  >
+                    <ChevronLeft size={14} />
+                  </button>
+                  <span style={{ fontSize: '0.8rem', padding: '0 8px', fontWeight: 600 }}>
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setInventoryPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage >= totalPages}
+                    className="btn-secondary"
+                    style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                    title="Next page"
+                  >
+                    <ChevronRight size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setInventoryPage(totalPages)}
+                    disabled={currentPage >= totalPages}
+                    className="btn-secondary"
+                    style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                    title="Last page"
+                  >
+                    <ChevronsRight size={14} />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Modal: Add New Drug Item */}
       {showAddModal && (
@@ -1097,6 +1258,141 @@ export default function PharmacyPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Printable Prescription (Rx) */}
+      {printPrescriptionModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 110, padding: '16px' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '640px', padding: '28px 24px', background: '#ffffff', color: '#1f2937', borderRadius: '16px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', maxHeight: '90vh', overflowY: 'auto' }}>
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #0071e3', paddingBottom: '14px', marginBottom: '16px' }}>
+              <div>
+                <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0071e3', letterSpacing: '0.03em' }}>HUDERMA SPECIALTY CLINIC</div>
+                <div style={{ fontSize: '0.75rem', color: '#4b5563', fontWeight: 500 }}>Dermatology &amp; Venereology Specialty Center</div>
+                <div style={{ fontSize: '0.72rem', color: '#6b7280' }}>Addis Ababa, Ethiopia · Tel: +251 911 000 000</div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0071e3', fontFamily: 'serif' }}>℞</div>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#374151' }}>PRESCRIPTION</div>
+                <div style={{ fontSize: '0.72rem', fontFamily: 'monospace', color: '#6b7280' }}>#{printPrescriptionModal.id || 'N/A'}</div>
+              </div>
+            </div>
+
+            {/* Patient & Doctor Meta */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', background: '#f3f4f6', padding: '12px 14px', borderRadius: '8px', marginBottom: '16px', fontSize: '0.82rem' }}>
+              <div>
+                <span style={{ color: '#6b7280', fontSize: '0.7rem' }}>PATIENT NAME</span>
+                <div style={{ fontWeight: 700, color: '#111827' }}>{printPrescriptionModal.patientName}</div>
+              </div>
+              <div>
+                <span style={{ color: '#6b7280', fontSize: '0.7rem' }}>MRN</span>
+                <div style={{ fontWeight: 700, fontFamily: 'monospace', color: '#111827' }}>{printPrescriptionModal.mrn}</div>
+              </div>
+              <div>
+                <span style={{ color: '#6b7280', fontSize: '0.7rem' }}>PRESCRIBING PHYSICIAN</span>
+                <div style={{ fontWeight: 600, color: '#111827' }}>{printPrescriptionModal.doctorName || 'Dr. Attending Physician'}</div>
+              </div>
+              <div>
+                <span style={{ color: '#6b7280', fontSize: '0.7rem' }}>DATE PRESCRIBED</span>
+                <div style={{ fontWeight: 600, color: '#111827' }}>{printPrescriptionModal.date || todayDateStr}</div>
+              </div>
+            </div>
+
+            {/* Medications Table */}
+            <div style={{ border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden', marginBottom: '16px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                <thead style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+                  <tr>
+                    <th style={{ textAlign: 'left', padding: '8px 10px', color: '#374151', fontWeight: 600 }}>Medication &amp; Instructions</th>
+                    <th style={{ textAlign: 'left', padding: '8px 10px', color: '#374151', fontWeight: 600 }}>Dosage / Route</th>
+                    <th style={{ textAlign: 'left', padding: '8px 10px', color: '#374151', fontWeight: 600 }}>Frequency / Duration</th>
+                    <th style={{ textAlign: 'right', padding: '8px 10px', color: '#374151', fontWeight: 600 }}>Qty</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {printPrescriptionModal.items && printPrescriptionModal.items.length > 0 ? (
+                    printPrescriptionModal.items.map((it: any, idx: number) => (
+                      <tr key={idx} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                        <td style={{ padding: '8px 10px', verticalAlign: 'top' }}>
+                          <strong style={{ color: '#111827' }}>{it.drugName || it.drug || 'Medication'}</strong>
+                          {it.instructions && <div style={{ fontSize: '0.75rem', color: '#4b5563', fontStyle: 'italic', marginTop: '2px' }}>{it.instructions}</div>}
+                        </td>
+                        <td style={{ padding: '8px 10px', verticalAlign: 'top', color: '#374151' }}>
+                          {it.dosage || '—'} {it.route ? `(${it.route})` : ''}
+                        </td>
+                        <td style={{ padding: '8px 10px', verticalAlign: 'top', color: '#374151' }}>
+                          {it.frequency || '—'} {it.duration ? `· ${it.duration}` : ''}
+                        </td>
+                        <td style={{ padding: '8px 10px', verticalAlign: 'top', textAlign: 'right', fontWeight: 700, color: '#111827' }}>
+                          {it.quantity || it.qty || 1}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td style={{ padding: '8px 10px', verticalAlign: 'top' }}>
+                        <strong style={{ color: '#111827' }}>{printPrescriptionModal.drug}</strong>
+                      </td>
+                      <td style={{ padding: '8px 10px', verticalAlign: 'top', color: '#374151' }}>As directed</td>
+                      <td style={{ padding: '8px 10px', verticalAlign: 'top', color: '#374151' }}>Standard regimen</td>
+                      <td style={{ padding: '8px 10px', verticalAlign: 'top', textAlign: 'right', fontWeight: 700, color: '#111827' }}>
+                        {printPrescriptionModal.qty || 1}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Note & Payment Notice */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '20px', fontSize: '0.78rem' }}>
+              <div style={{ color: '#475569' }}>
+                Status: <strong style={{ color: printPrescriptionModal.isPaid ? '#059669' : '#d97706' }}>
+                  {printPrescriptionModal.isPaid ? 'Paid at Cashier' : 'Awaiting Cashier Payment / External Purchase'}
+                </strong>
+              </div>
+              <div style={{ color: '#64748b', fontSize: '0.72rem' }}>
+                Valid for fulfillment at in-house pharmacy or external licensed dispensaries.
+              </div>
+            </div>
+
+            {/* Signatures */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', marginTop: '24px', paddingTop: '16px', borderTop: '1px dashed #cbd5e1' }}>
+              <div>
+                <div style={{ height: '36px' }}></div>
+                <div style={{ borderTop: '1px solid #94a3b8', paddingTop: '4px', fontSize: '0.75rem', color: '#475569', textAlign: 'center' }}>
+                  Prescriber Signature &amp; Stamp
+                </div>
+              </div>
+              <div>
+                <div style={{ height: '36px' }}></div>
+                <div style={{ borderTop: '1px solid #94a3b8', paddingTop: '4px', fontSize: '0.75rem', color: '#475569', textAlign: 'center' }}>
+                  Dispensing Pharmacist Signature &amp; Date
+                </div>
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '24px' }}>
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="btn-primary"
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px' }}
+              >
+                <Printer size={15} /> Print Prescription
+              </button>
+              <button
+                type="button"
+                onClick={() => setPrintPrescriptionModal(null)}
+                className="btn-secondary"
+                style={{ padding: '8px 16px' }}
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
