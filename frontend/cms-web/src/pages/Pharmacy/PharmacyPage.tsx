@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Pill, CheckCircle, Package, AlertTriangle, Plus, RefreshCw, X, Search, Edit3, DollarSign, TrendingUp, ShieldAlert, FileText, Loader2, Calendar, Printer, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { Pill, CheckCircle, Package, AlertTriangle, Plus, RefreshCw, X, Search, Edit3, DollarSign, TrendingUp, ShieldAlert, FileText, Loader2, Calendar, Printer, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronDown } from 'lucide-react';
 import { api } from '../../api/apiClient';
 
 export default function PharmacyPage() {
@@ -22,8 +22,13 @@ export default function PharmacyPage() {
   const [inventoryPageSize, setInventoryPageSize] = useState(25);
   const [inventoryExpiryFilter, setInventoryExpiryFilter] = useState<'ALL' | 'EXPIRING' | 'EXPIRED' | 'LOW_STOCK'>('ALL');
 
-  // Prescriptions Queue State
+  // Prescriptions Queue State & Expandable Rows
   const [prescriptions, setPrescriptions] = useState<any[]>([]);
+  const [expandedPrescriptionIds, setExpandedPrescriptionIds] = useState<Record<number, boolean>>({});
+
+  const toggleExpandPrescription = (id: number) => {
+    setExpandedPrescriptionIds(prev => ({ ...prev, [id]: !prev[id] }));
+  };
 
   // Add Drug Modal State
   const [showAddModal, setShowAddModal] = useState(false);
@@ -68,7 +73,7 @@ export default function PharmacyPage() {
       setLoading(true);
       const [formularyData, prescriptionsData, allPatients, settingsData] = await Promise.all([
         api.get<any[]>('/pharmacy/formulary').catch(() => []),
-        api.get<any[]>('/pharmacy/prescriptions').catch(() => []),
+        api.get<any[]>('/pharmacy/prescriptions?limit=2000').catch(() => []),
         api.get<any>('/patients/search').catch(() => api.get<any>('/patients').catch(() => [])),
         api.get<any[]>('/settings').catch(() => [])
       ]);
@@ -355,10 +360,10 @@ export default function PharmacyPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px', flexDirection: isMobile ? 'column' : 'row' }}>
         <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '4px', maxWidth: '100%' }}>
           <button onClick={() => setActiveSubTab('prescriptions')} className={activeSubTab === 'prescriptions' ? 'btn-primary' : 'btn-secondary'} style={{ whiteSpace: 'nowrap' }}>
-            <Pill size={16} /> Dispensary Queue ({prescriptions.filter(p => p.status === 'Pending').length})
+            <Pill size={16} /> Dispensary Queue ({prescriptions.filter(p => !dispensaryDate || p.date === dispensaryDate).length})
           </button>
           <button onClick={() => setActiveSubTab('sold')} className={activeSubTab === 'sold' ? 'btn-primary' : 'btn-secondary'} style={{ whiteSpace: 'nowrap' }}>
-            <CheckCircle size={16} /> Sold Prescriptions ({prescriptions.filter(p => p.status === 'Dispensed' || p.isPaid).length})
+            <CheckCircle size={16} /> Sold Prescriptions ({prescriptions.filter(p => (p.status === 'Dispensed' || p.isPaid) && (!soldDate || p.date === soldDate)).length})
           </button>
           <button onClick={() => setActiveSubTab('inventory')} className={activeSubTab === 'inventory' ? 'btn-primary' : 'btn-secondary'} style={{ whiteSpace: 'nowrap' }}>
             <Package size={16} /> Inventory &amp; FEFO Expiry ({drugs.length})
@@ -436,6 +441,7 @@ export default function PharmacyPage() {
               <table className="cms-table">
                 <thead>
                   <tr>
+                    <th style={{ width: '38px', textAlign: 'center' }}></th>
                     <th>Patient Name</th>
                     <th>MRN</th>
                     <th>Prescribing Doctor</th>
@@ -451,67 +457,168 @@ export default function PharmacyPage() {
                 <tbody>
                   {filteredDispensary.length === 0 ? (
                     <tr>
-                      <td colSpan={10} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
+                      <td colSpan={11} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
                         No prescriptions found for {dispensaryDate ? `date ${dispensaryDate}` : 'the selected filter'}.
                       </td>
                     </tr>
                   ) : (
-                    filteredDispensary.map(p => (
-                      <tr key={p.id}>
-                        <td style={{ fontWeight: 600 }}>{p.patientName}</td>
-                        <td style={{ fontFamily: 'monospace', color: '#06b6d4' }}>{p.mrn}</td>
-                        <td>{p.doctorName}</td>
-                        <td>{p.drug}</td>
-                        <td style={{ fontWeight: 700 }}>{p.qty}</td>
-                        <td style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{p.date}</td>
-                        <td>
-                          {p.isPaid ? (
-                            <span style={{ padding: '3px 8px', borderRadius: '4px', background: '#d1fae5', color: '#065f46', fontSize: '0.72rem', fontWeight: 700 }}>✓ Paid — Ready</span>
-                          ) : (
-                            <span style={{ padding: '3px 8px', borderRadius: '4px', background: '#fef9c3', color: '#92400e', fontSize: '0.72rem', fontWeight: 700 }}>⏳ Awaiting Payment</span>
-                          )}
-                        </td>
-                        <td>
-                          {p.isControlled ? (
-                            <span className="badge badge-critical">Controlled (Rx Only)</span>
-                          ) : (
-                            <span className="badge badge-normal">Standard</span>
-                          )}
-                        </td>
-                        <td>
-                          <span className={p.status === 'Dispensed' ? 'badge badge-normal' : 'badge badge-warning'}>
-                            {p.status}
-                          </span>
-                        </td>
-                        <td>
-                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
-                            <button
-                              type="button"
-                              onClick={() => setPrintPrescriptionModal(p)}
-                              className="btn-secondary"
-                              style={{ padding: '4px 8px', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '4px' }}
-                            >
-                              <Printer size={13} /> Print Rx
-                            </button>
-                            {p.status === 'Pending' ? (
-                              p.isPaid ? (
-                                <button onClick={() => handleDispense(p)} className="btn-primary" style={{ padding: '4px 10px', fontSize: '0.72rem' }}>
-                                  Dispense
-                                </button>
+                    filteredDispensary.map(p => {
+                      const isExpanded = !!expandedPrescriptionIds[p.id];
+                      return (
+                        <React.Fragment key={p.id}>
+                          <tr 
+                            style={{ cursor: 'pointer', transition: 'background-color 0.15s ease' }}
+                            onClick={() => toggleExpandPrescription(p.id)}
+                          >
+                            <td style={{ textAlign: 'center', padding: '8px' }}>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleExpandPrescription(p.id);
+                                }}
+                                style={{
+                                  background: isExpanded ? 'rgba(6, 182, 212, 0.15)' : 'transparent',
+                                  border: '1px solid ' + (isExpanded ? 'rgba(6, 182, 212, 0.4)' : 'transparent'),
+                                  borderRadius: '6px',
+                                  padding: '4px',
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  color: isExpanded ? '#06b6d4' : 'var(--text-muted)'
+                                }}
+                                title={isExpanded ? 'Collapse items' : 'Expand prescription items'}
+                              >
+                                {isExpanded ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
+                              </button>
+                            </td>
+                            <td style={{ fontWeight: 600 }}>{p.patientName}</td>
+                            <td style={{ fontFamily: 'monospace', color: '#06b6d4' }}>{p.mrn}</td>
+                            <td>{p.doctorName}</td>
+                            <td>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span>{p.drug}</span>
+                                {p.items && p.items.length > 1 && (
+                                  <span style={{ fontSize: '0.7rem', padding: '1px 6px', borderRadius: '10px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
+                                    +{p.items.length - 1} more
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td style={{ fontWeight: 700 }}>{p.qty}</td>
+                            <td style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{p.date}</td>
+                            <td>
+                              {p.isPaid ? (
+                                <span style={{ padding: '3px 8px', borderRadius: '4px', background: '#d1fae5', color: '#065f46', fontSize: '0.72rem', fontWeight: 700 }}>✓ Paid — Ready</span>
                               ) : (
-                                <span style={{ fontSize: '0.7rem', color: '#92400e', fontStyle: 'italic', background: '#fef3c7', padding: '3px 6px', borderRadius: '4px' }}>
-                                  Unpaid
-                                </span>
-                              )
-                            ) : (
-                              <span style={{ fontSize: '0.72rem', color: '#059669', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                                <CheckCircle size={13} /> Dispensed
+                                <span style={{ padding: '3px 8px', borderRadius: '4px', background: '#fef9c3', color: '#92400e', fontSize: '0.72rem', fontWeight: 700 }}>⏳ Awaiting Payment</span>
+                              )}
+                            </td>
+                            <td>
+                              {p.isControlled ? (
+                                <span className="badge badge-critical">Controlled (Rx Only)</span>
+                              ) : (
+                                <span className="badge badge-normal">Standard</span>
+                              )}
+                            </td>
+                            <td>
+                              <span className={p.status === 'Dispensed' ? 'badge badge-normal' : 'badge badge-warning'}>
+                                {p.status}
                               </span>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))
+                            </td>
+                            <td onClick={(e) => e.stopPropagation()}>
+                              <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => setPrintPrescriptionModal(p)}
+                                  className="btn-secondary"
+                                  style={{ padding: '4px 8px', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                >
+                                  <Printer size={13} /> Print Rx
+                                </button>
+                                {p.status === 'Pending' ? (
+                                  p.isPaid ? (
+                                    <button onClick={() => handleDispense(p)} className="btn-primary" style={{ padding: '4px 10px', fontSize: '0.72rem' }}>
+                                      Dispense
+                                    </button>
+                                  ) : (
+                                    <span style={{ fontSize: '0.7rem', color: '#92400e', fontStyle: 'italic', background: '#fef3c7', padding: '3px 6px', borderRadius: '4px' }}>
+                                      Unpaid
+                                    </span>
+                                  )
+                                ) : (
+                                  <span style={{ fontSize: '0.72rem', color: '#059669', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                    <CheckCircle size={13} /> Dispensed
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+
+                          {/* Expanded Items Drawer */}
+                          {isExpanded && (
+                            <tr key={`${p.id}-items`} style={{ background: 'rgba(6, 182, 212, 0.03)' }}>
+                              <td colSpan={11} style={{ padding: '12px 20px 16px 44px', borderBottom: '2px solid rgba(6, 182, 212, 0.2)' }}>
+                                <div style={{ background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '10px', padding: '14px 18px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                    <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#06b6d4', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                      <Pill size={14} /> Prescribed Items Breakdown ({p.items?.length || 1})
+                                    </div>
+                                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                                      Prescription #{p.id} · Prescribed by {p.doctorName}
+                                    </div>
+                                  </div>
+
+                                  <div className="table-responsive" style={{ margin: 0 }}>
+                                    <table style={{ width: '100%', fontSize: '0.78rem', borderCollapse: 'collapse' }}>
+                                      <thead>
+                                        <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', textAlign: 'left' }}>
+                                          <th style={{ padding: '6px 8px' }}>#</th>
+                                          <th style={{ padding: '6px 8px' }}>Medication</th>
+                                          <th style={{ padding: '6px 8px' }}>Dosage</th>
+                                          <th style={{ padding: '6px 8px' }}>Frequency</th>
+                                          <th style={{ padding: '6px 8px' }}>Duration</th>
+                                          <th style={{ padding: '6px 8px', textAlign: 'right' }}>Quantity</th>
+                                          <th style={{ padding: '6px 8px' }}>Instructions</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {p.items && p.items.length > 0 ? (
+                                          p.items.map((it: any, itemIdx: number) => (
+                                            <tr key={it.id || itemIdx} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                                              <td style={{ padding: '6px 8px', color: 'var(--text-muted)', width: '28px' }}>{itemIdx + 1}</td>
+                                              <td style={{ padding: '6px 8px', fontWeight: 600 }}>{it.drugName || it.drug || 'Medication'}</td>
+                                              <td style={{ padding: '6px 8px' }}>{it.dosage || '—'} {it.route ? `(${it.route})` : ''}</td>
+                                              <td style={{ padding: '6px 8px' }}>{it.frequency || '—'}</td>
+                                              <td style={{ padding: '6px 8px' }}>{it.duration || '—'}</td>
+                                              <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 700, color: '#06b6d4' }}>{it.quantity || it.qty || 1}</td>
+                                              <td style={{ padding: '6px 8px', color: 'var(--text-muted)', fontStyle: it.instructions ? 'italic' : 'normal' }}>
+                                                {it.instructions || '—'}
+                                              </td>
+                                            </tr>
+                                          ))
+                                        ) : (
+                                          <tr>
+                                            <td style={{ padding: '6px 8px', color: 'var(--text-muted)' }}>1</td>
+                                            <td style={{ padding: '6px 8px', fontWeight: 600 }}>{p.drug}</td>
+                                            <td style={{ padding: '6px 8px' }}>Standard</td>
+                                            <td style={{ padding: '6px 8px' }}>As directed</td>
+                                            <td style={{ padding: '6px 8px' }}>—</td>
+                                            <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 700, color: '#06b6d4' }}>{p.qty}</td>
+                                            <td style={{ padding: '6px 8px', color: 'var(--text-muted)' }}>—</td>
+                                          </tr>
+                                        )}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
@@ -1262,16 +1369,47 @@ export default function PharmacyPage() {
         </div>
       )}
 
+      {/* Print CSS for Prescription Modal */}
+      <style>{`
+        @media print {
+          body * { visibility: hidden !important; }
+          #huderma-printable-prescription, #huderma-printable-prescription * { visibility: visible !important; }
+          #huderma-printable-prescription {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 24px !important;
+            background: #ffffff !important;
+            color: #1f2937 !important;
+            box-shadow: none !important;
+            border: none !important;
+            border-radius: 0 !important;
+          }
+          .no-print-area { display: none !important; }
+        }
+      `}</style>
+
       {/* Modal: Printable Prescription (Rx) */}
       {printPrescriptionModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 110, padding: '16px' }}>
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '640px', padding: '28px 24px', background: '#ffffff', color: '#1f2937', borderRadius: '16px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div id="huderma-printable-prescription" className="glass-panel" style={{ width: '100%', maxWidth: '640px', padding: '28px 24px', background: '#ffffff', color: '#1f2937', borderRadius: '16px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', maxHeight: '90vh', overflowY: 'auto' }}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #0071e3', paddingBottom: '14px', marginBottom: '16px' }}>
-              <div>
-                <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0071e3', letterSpacing: '0.03em' }}>HUDERMA SPECIALTY CLINIC</div>
-                <div style={{ fontSize: '0.75rem', color: '#4b5563', fontWeight: 500 }}>Dermatology &amp; Venereology Specialty Center</div>
-                <div style={{ fontSize: '0.72rem', color: '#6b7280' }}>Addis Ababa, Ethiopia · Tel: +251 911 000 000</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #0071e3', paddingBottom: '14px', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <img
+                  src="/huderma_logo.png"
+                  alt="Huderma Logo"
+                  style={{ height: '56px', width: 'auto', objectFit: 'contain' }}
+                  onError={(e: any) => { e.currentTarget.style.display = 'none'; }}
+                />
+                <div>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0071e3', letterSpacing: '0.03em' }}>HUDERMA SPECIALTY CLINIC</div>
+                  <div style={{ fontSize: '0.75rem', color: '#4b5563', fontWeight: 500 }}>Dermatology &amp; Venereology Specialty Center</div>
+                  <div style={{ fontSize: '0.72rem', color: '#6b7280' }}>Addis Ababa, Ethiopia · Tel: +251 911 000 000</div>
+                </div>
               </div>
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0071e3', fontFamily: 'serif' }}>℞</div>
@@ -1375,7 +1513,7 @@ export default function PharmacyPage() {
             </div>
 
             {/* Action buttons */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '24px' }}>
+            <div className="no-print-area" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '24px' }}>
               <button
                 type="button"
                 onClick={() => window.print()}

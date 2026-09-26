@@ -27,7 +27,7 @@ public class PharmacyController : ControllerBase
     }
 
     [HttpGet("prescriptions")]
-    public async Task<IActionResult> GetPrescriptions([FromQuery] int? patientId = null, [FromQuery] int limit = 100)
+    public async Task<IActionResult> GetPrescriptions([FromQuery] int? patientId = null, [FromQuery] int limit = 2000)
     {
         byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
         var prescriptions = await _pharmacyService.GetPrescriptionsAsync(tenantId, patientId, limit);
@@ -35,7 +35,7 @@ public class PharmacyController : ControllerBase
     }
 
     [HttpGet("patient/{patientId:int}")]
-    public async Task<IActionResult> GetPatientPrescriptions(int patientId, [FromQuery] int limit = 100)
+    public async Task<IActionResult> GetPatientPrescriptions(int patientId, [FromQuery] int limit = 2000)
     {
         byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
         var prescriptions = await _pharmacyService.GetPrescriptionsAsync(tenantId, patientId, limit);
