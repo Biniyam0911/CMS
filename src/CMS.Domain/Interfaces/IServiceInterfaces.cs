@@ -71,7 +71,8 @@ public record LisListenerStatusDto(
     bool IsListening,
     List<int> Ports,
     List<LisClientConnectionInfo> ActiveClients,
-    List<string> RecentLogs
+    List<string> RecentLogs,
+    List<int>? ConfiguredPorts = null
 );
 
 public interface ILabResultIngestionService
@@ -83,8 +84,12 @@ public interface ILisTcpListenerService
 {
     bool IsListening { get; }
     IReadOnlyList<int> ListeningPorts { get; }
+    IReadOnlyList<int> ConfiguredPorts { get; }
     IReadOnlyList<LisClientConnectionInfo> ActiveClients { get; }
     IReadOnlyList<string> RecentLogs { get; }
     void LogEvent(string message);
+    Task<bool> StartAsync(int? port = null);
+    Task<bool> StopAsync(int? port = null);
+    Task<bool> ConfigurePortsAsync(IEnumerable<int> ports);
 }
 

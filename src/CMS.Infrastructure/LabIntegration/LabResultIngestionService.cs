@@ -103,6 +103,10 @@ public class LabResultIngestionService : ILabResultIngestionService
 
             string refRange = parsed.Parameters.FirstOrDefault(p => p.NumericValue == parsed.PrimaryNumeric)?.ReferenceRange ?? "";
             string unit = parsed.PrimaryUnit ?? "10^3/μL";
+            string safeFlag = string.IsNullOrWhiteSpace(parsed.OverallFlag) ? "Normal" : (parsed.OverallFlag.Length > 20 ? parsed.OverallFlag[..20] : parsed.OverallFlag);
+            string safeUnit = string.IsNullOrWhiteSpace(unit) ? "" : (unit.Length > 30 ? unit[..30] : unit);
+            string safeRefRange = string.IsNullOrWhiteSpace(refRange) ? "" : (refRange.Length > 100 ? refRange[..100] : refRange);
+            string safeTextValue = string.IsNullOrWhiteSpace(parsed.SummaryText) ? "" : (parsed.SummaryText.Length > 500 ? parsed.SummaryText[..500] : parsed.SummaryText);
 
             if (existingResultId.HasValue && existingResultId.Value > 0)
             {
@@ -121,10 +125,10 @@ public class LabResultIngestionService : ILabResultIngestionService
                     new {
                         ResultId = existingResultId.Value,
                         NumericValue = parsed.PrimaryNumeric,
-                        TextValue = parsed.SummaryText,
-                        Unit = unit,
-                        Flag = parsed.OverallFlag,
-                        ReferenceRange = refRange,
+                        TextValue = safeTextValue,
+                        Unit = safeUnit,
+                        Flag = safeFlag,
+                        ReferenceRange = safeRefRange,
                         parsed.IsCritical,
                         RawMessage = rawHl7
                     });
@@ -147,10 +151,10 @@ public class LabResultIngestionService : ILabResultIngestionService
                         TestId = testId,
                         PatientId = patientId,
                         NumericValue = parsed.PrimaryNumeric,
-                        TextValue = parsed.SummaryText,
-                        Unit = unit,
-                        Flag = parsed.OverallFlag,
-                        ReferenceRange = refRange,
+                        TextValue = safeTextValue,
+                        Unit = safeUnit,
+                        Flag = safeFlag,
+                        ReferenceRange = safeRefRange,
                         parsed.IsCritical,
                         RawMessage = rawHl7
                     });

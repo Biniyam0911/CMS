@@ -3,7 +3,7 @@ import {
   FlaskConical, ShieldAlert, Cpu, CheckCircle, Barcode, Check, Plus, X, Search,
   ChevronDown, ChevronRight, Layers, GitCommit, TrendingUp, Loader2, Calendar,
   Wifi, WifiOff, Activity, RefreshCw, Trash2, Edit3, Server, Network, Sliders, AlertTriangle, Printer,
-  Save, Zap
+  Save, Zap, Play, Square
 } from 'lucide-react';
 import { api } from '../../api/apiClient';
 
@@ -297,13 +297,22 @@ export default function LaboratoryPage() {
     ports: number[];
     activeClients: { remoteEndPoint: string; connectedAt: string; lastActivityAt: string; bytesReceived: number }[];
     recentLogs: string[];
+    configuredPorts?: number[];
   } | null>(null);
+
+  const [isLisToggling, setIsLisToggling] = useState(false);
+  const [showPortConfig, setShowPortConfig] = useState(false);
+  const [portInputStr, setPortInputStr] = useState('5100, 2575');
 
   const fetchLisListenerStatus = async () => {
     try {
       const res = await api.get<any>('/laboratory/instruments/listener-status');
       if (res) {
         setLisServerStatus(res);
+        if (!showPortConfig) {
+          const effectivePorts = res.configuredPorts?.length ? res.configuredPorts : (res.ports?.length ? res.ports : [5100, 2575]);
+          setPortInputStr(effectivePorts.join(', '));
+        }
         setMachines(prev => prev.map(m => {
           if (m.mode.includes('Unidirectional') || m.port === 5100) {
             const isClientConnected = res.activeClients?.some((c: any) => c.remoteEndPoint?.includes(m.ipAddress));
@@ -807,6 +816,60 @@ export default function LaboratoryPage() {
       localStorage.setItem('lab_integrated_machines_v2', JSON.stringify(updated));
       return updated;
     });
+  };
+
+  const handleStartLisListener = async () => {
+    setIsLisToggling(true);
+    try {
+      const res = await api.post<any>('/laboratory/instruments/listener/start', {});
+      if (res) {
+        setLisServerStatus(res);
+        showToast('LIS Passive TCP Server started successfully.', 'success');
+      }
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to start LIS server.', 'error');
+    } finally {
+      setIsLisToggling(false);
+    }
+  };
+
+  const handleStopLisListener = async () => {
+    setIsLisToggling(true);
+    try {
+      const res = await api.post<any>('/laboratory/instruments/listener/stop', {});
+      if (res) {
+        setLisServerStatus(res);
+        showToast('LIS Passive TCP Server stopped.', 'success');
+      }
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to stop LIS server.', 'error');
+    } finally {
+      setIsLisToggling(false);
+    }
+  };
+
+  const handleSavePorts = async () => {
+    const rawParts = portInputStr.split(/[\s,]+/).map(p => p.trim()).filter(Boolean);
+    const parsedPorts = rawParts.map(p => parseInt(p, 10)).filter(p => !isNaN(p) && p >= 1 && p <= 65535);
+
+    if (parsedPorts.length === 0) {
+      showToast('Please enter at least one valid port number (1 - 65535).', 'error');
+      return;
+    }
+
+    setIsLisToggling(true);
+    try {
+      const res = await api.post<any>('/laboratory/instruments/listener/configure-ports', { ports: parsedPorts });
+      if (res) {
+        setLisServerStatus(res);
+        setShowPortConfig(false);
+        showToast(`LIS server ports updated: ${parsedPorts.join(', ')}`, 'success');
+      }
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to configure ports.', 'error');
+    } finally {
+      setIsLisToggling(false);
+    }
   };
 
   const handleOpenAddMachine = () => {
@@ -1486,26 +1549,67 @@ export default function LaboratoryPage() {
           <div className="glass-panel" style={{ padding: '18px 22px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '14px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: lisServerStatus?.isListening ? '#10b981' : '#f59e0b', boxShadow: lisServerStatus?.isListening ? '0 0 8px #10b981' : 'none' }} />
+                <div style={{ width: '11px', height: '11px', borderRadius: '50%', background: lisServerStatus?.isListening ? '#10b981' : '#ef4444', boxShadow: lisServerStatus?.isListening ? '0 0 8px #10b981' : '0 0 6px #ef4444' }} />
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-main)' }}>
-                      LIS Passive TCP Server ({lisServerStatus?.isListening ? 'RUNNING & LISTENING' : 'STARTING'})
+                      LIS Passive TCP Server ({lisServerStatus?.isListening ? 'RUNNING & LISTENING' : 'STOPPED / INACTIVE'})
                     </span>
-                    <span style={{ fontSize: '0.72rem', background: '#ede9fe', color: '#6d28d9', padding: '2px 8px', borderRadius: '12px', fontWeight: 700 }}>
-                      Passive Server Mode
+                    <span style={{ fontSize: '0.72rem', background: lisServerStatus?.isListening ? '#ede9fe' : '#fee2e2', color: lisServerStatus?.isListening ? '#6d28d9' : '#b91c1c', padding: '2px 8px', borderRadius: '12px', fontWeight: 700 }}>
+                      {lisServerStatus?.isListening ? 'Passive Server Mode' : 'Service Stopped'}
                     </span>
                   </div>
                   <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                    Listening on Ports: <strong style={{ color: '#0284c7', fontFamily: 'monospace' }}>{(lisServerStatus?.ports || [5100, 2575]).map(p => `0.0.0.0:${p}`).join(', ')}</strong> • Waiting for machines to initiate connection
+                    {lisServerStatus?.isListening ? (
+                      <>Listening on Ports: <strong style={{ color: '#0284c7', fontFamily: 'monospace' }}>{(lisServerStatus?.ports?.length ? lisServerStatus.ports : (lisServerStatus?.configuredPorts || [5100, 2575])).map(p => `0.0.0.0:${p}`).join(', ')}</strong> • Waiting for machines to initiate connection</>
+                    ) : (
+                      <span style={{ color: '#ef4444', fontWeight: 600 }}>Server is stopped. Click "Start Server" or configure ports below to begin listening.</span>
+                    )}
                   </div>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                 <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '4px 10px', borderRadius: '6px', background: (lisServerStatus?.activeClients?.length || 0) > 0 ? '#ecfdf5' : '#f8fafc', color: (lisServerStatus?.activeClients?.length || 0) > 0 ? '#059669' : '#64748b', border: '1px solid #cbd5e1' }}>
                   {(lisServerStatus?.activeClients?.length || 0)} Connected Analyzer(s)
                 </span>
+
+                {/* Start / Stop Toggle Button */}
+                {lisServerStatus?.isListening ? (
+                  <button
+                    type="button"
+                    onClick={handleStopLisListener}
+                    disabled={isLisToggling}
+                    style={{ padding: '6px 12px', fontSize: '0.74rem', display: 'flex', alignItems: 'center', gap: '5px', background: '#fee2e2', color: '#dc2626', border: '1px solid #fca5a5', borderRadius: '6px', fontWeight: 700, cursor: 'pointer' }}
+                    title="Stop listening on all LIS ports"
+                  >
+                    {isLisToggling ? <Loader2 size={13} className="animate-spin" /> : <Square size={13} fill="#dc2626" />}
+                    Stop Listening
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleStartLisListener}
+                    disabled={isLisToggling}
+                    style={{ padding: '6px 12px', fontSize: '0.74rem', display: 'flex', alignItems: 'center', gap: '5px', background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0', borderRadius: '6px', fontWeight: 700, cursor: 'pointer' }}
+                    title="Start listening on configured ports"
+                  >
+                    {isLisToggling ? <Loader2 size={13} className="animate-spin" /> : <Play size={13} fill="#059669" />}
+                    Start Listening
+                  </button>
+                )}
+
+                {/* Configure Ports Button */}
+                <button
+                  type="button"
+                  onClick={() => setShowPortConfig(!showPortConfig)}
+                  className="btn-secondary"
+                  style={{ padding: '6px 12px', fontSize: '0.74rem', display: 'flex', alignItems: 'center', gap: '5px', background: showPortConfig ? '#e0f2fe' : '#ffffff', borderColor: showPortConfig ? '#0284c7' : '#cbd5e1', color: showPortConfig ? '#0284c7' : '#334155', fontWeight: 600 }}
+                  title="Change listening port(s)"
+                >
+                  <Sliders size={13} /> {showPortConfig ? 'Close Ports Config' : 'Configure Port(s)'}
+                </button>
+
                 <button
                   type="button"
                   onClick={fetchLisListenerStatus}
@@ -1516,6 +1620,48 @@ export default function LaboratoryPage() {
                 </button>
               </div>
             </div>
+
+            {/* Port Configuration Bar */}
+            {showPortConfig && (
+              <div style={{ padding: '12px 16px', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #0284c7', marginBottom: '14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: '1 1 320px' }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap' }}>
+                    Listening Port(s):
+                  </label>
+                  <input
+                    type="text"
+                    value={portInputStr}
+                    onChange={e => setPortInputStr(e.target.value)}
+                    placeholder="e.g. 5100, 2575"
+                    className="form-input"
+                    style={{ maxWidth: '240px', padding: '5px 10px', fontSize: '0.8rem', fontFamily: 'monospace' }}
+                  />
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                    (Enter comma-separated ports, e.g. 5100 or 5100, 2575)
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={handleSavePorts}
+                    disabled={isLisToggling}
+                    className="btn-primary"
+                    style={{ padding: '6px 14px', fontSize: '0.74rem', display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 700 }}
+                  >
+                    {isLisToggling ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+                    Apply & Rebind Ports
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowPortConfig(false)}
+                    className="btn-secondary"
+                    style={{ padding: '6px 10px', fontSize: '0.74rem' }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Active Clients Pills */}
             {(lisServerStatus?.activeClients && lisServerStatus.activeClients.length > 0) && (

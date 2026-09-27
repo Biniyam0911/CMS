@@ -11,6 +11,14 @@ namespace CMS.Infrastructure.LabIntegration;
 
 public class LisTcpListenerService : BackgroundService, ILisTcpListenerService
 {
+    private class PortListenerEntry
+    {
+        public int Port { get; init; }
+        public TcpListener Listener { get; init; } = default!;
+        public CancellationTokenSource Cts { get; init; } = default!;
+        public Task Task { get; set; } = default!;
+    }
+
     private readonly ILogger<LisTcpListenerService> _logger;
     private readonly ILabResultIngestionService _ingestionService;
     private readonly IHl7Adapter _hl7Adapter;
@@ -18,12 +26,24 @@ public class LisTcpListenerService : BackgroundService, ILisTcpListenerService
 
     private readonly ConcurrentDictionary<string, LisClientConnectionInfo> _activeClients = new();
     private readonly ConcurrentQueue<string> _recentLogs = new();
-    private readonly List<int> _listeningPorts = new();
-    private bool _isListening = false;
+    private readonly ConcurrentDictionary<int, PortListenerEntry> _listeners = new();
+    private readonly HashSet<int> _configuredPorts = new();
+    private readonly object _lock = new();
+    private CancellationToken _appStoppingToken;
     private const int MaxLogs = 100;
 
-    public bool IsListening => _isListening;
-    public IReadOnlyList<int> ListeningPorts => _listeningPorts.AsReadOnly();
+    public bool IsListening => !_listeners.IsEmpty;
+    public IReadOnlyList<int> ListeningPorts => _listeners.Keys.OrderBy(p => p).ToList().AsReadOnly();
+    public IReadOnlyList<int> ConfiguredPorts
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return _configuredPorts.OrderBy(p => p).ToList().AsReadOnly();
+            }
+        }
+    }
     public IReadOnlyList<LisClientConnectionInfo> ActiveClients => _activeClients.Values.ToList().AsReadOnly();
     public IReadOnlyList<string> RecentLogs => _recentLogs.ToList().AsReadOnly();
 
@@ -52,85 +72,191 @@ public class LisTcpListenerService : BackgroundService, ILisTcpListenerService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        // Determine ports to listen on (default 5100 and 2575)
-        var ports = new List<int>();
+        _appStoppingToken = stoppingToken;
+
+        // Determine default ports to listen on (default 5100 and 2575)
         var configuredPort = _config.GetValue<int?>("Lis:Port") ?? _config.GetValue<int?>("LisListener:Port") ?? 5100;
-        ports.Add(configuredPort);
-
         var secondaryPort = _config.GetValue<int?>("Lis:SecondaryPort") ?? 2575;
-        if (!ports.Contains(secondaryPort))
+
+        lock (_lock)
         {
-            ports.Add(secondaryPort);
+            _configuredPorts.Add(configuredPort);
+            if (secondaryPort != configuredPort)
+            {
+                _configuredPorts.Add(secondaryPort);
+            }
         }
 
-        var listenerTasks = new List<Task>();
-        foreach (var port in ports)
-        {
-            listenerTasks.Add(StartPortListenerAsync(port, stoppingToken));
-        }
+        // Start default listeners
+        await StartAsync();
 
-        await Task.WhenAll(listenerTasks);
+        try
+        {
+            await Task.Delay(Timeout.Infinite, stoppingToken);
+        }
+        catch (OperationCanceledException)
+        {
+            // App is stopping
+        }
+        finally
+        {
+            await StopAsync();
+        }
     }
 
-    private async Task StartPortListenerAsync(int port, CancellationToken stoppingToken)
+    public Task<bool> StartAsync(int? port = null)
     {
+        lock (_lock)
+        {
+            if (port.HasValue)
+            {
+                _configuredPorts.Add(port.Value);
+                StartPortListenerInternal(port.Value);
+            }
+            else
+            {
+                foreach (var p in _configuredPorts.ToList())
+                {
+                    StartPortListenerInternal(p);
+                }
+            }
+        }
+        return Task.FromResult(IsListening);
+    }
+
+    public Task<bool> StopAsync(int? port = null)
+    {
+        lock (_lock)
+        {
+            if (port.HasValue)
+            {
+                StopPortListenerInternal(port.Value);
+            }
+            else
+            {
+                foreach (var p in _listeners.Keys.ToList())
+                {
+                    StopPortListenerInternal(p);
+                }
+                LogEvent("LISTENER STOPPED: All LIS listeners stopped.");
+            }
+        }
+        return Task.FromResult(true);
+    }
+
+    public Task<bool> ConfigurePortsAsync(IEnumerable<int> ports)
+    {
+        lock (_lock)
+        {
+            var validPorts = ports.Where(p => p is >= 1 and <= 65535).Distinct().ToList();
+            if (validPorts.Count == 0) return Task.FromResult(false);
+
+            // Stop listeners that are no longer in the list
+            var toStop = _listeners.Keys.Where(p => !validPorts.Contains(p)).ToList();
+            foreach (var p in toStop)
+            {
+                StopPortListenerInternal(p);
+            }
+
+            _configuredPorts.Clear();
+            foreach (var p in validPorts)
+            {
+                _configuredPorts.Add(p);
+                StartPortListenerInternal(p);
+            }
+
+            LogEvent($"PORTS CONFIGURED: Now listening on [{string.Join(", ", _configuredPorts.OrderBy(x => x))}]");
+        }
+        return Task.FromResult(true);
+    }
+
+    private void StartPortListenerInternal(int port)
+    {
+        if (_listeners.ContainsKey(port)) return;
+
+        var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_appStoppingToken);
         TcpListener? listener = null;
         try
         {
             listener = new TcpListener(IPAddress.Any, port);
             listener.Start();
-            lock (_listeningPorts)
-            {
-                if (!_listeningPorts.Contains(port)) _listeningPorts.Add(port);
-                _isListening = true;
-            }
-
             LogEvent($"LISTENER STARTED: Passively waiting for analyzer connections on 0.0.0.0:{port}...");
-
-            while (!stoppingToken.IsCancellationRequested)
-            {
-                try
-                {
-                    var client = await listener.AcceptTcpClientAsync(stoppingToken);
-                    _ = Task.Run(() => HandleClientAsync(client, port, stoppingToken), stoppingToken);
-                }
-                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-                {
-                    break;
-                }
-                catch (Exception ex)
-                {
-                    if (!stoppingToken.IsCancellationRequested)
-                    {
-                        LogEvent($"ERROR accepting connection on port {port}: {ex.Message}");
-                        await Task.Delay(1000, stoppingToken);
-                    }
-                }
-            }
         }
         catch (SocketException ex)
         {
             LogEvent($"WARNING: Port {port} could not be bound ({ex.SocketErrorCode}). It may already be in use by another service.");
             _logger.LogWarning(ex, "Port {Port} could not be bound for LIS listener", port);
+            linkedCts.Dispose();
+            return;
         }
         catch (Exception ex)
         {
             LogEvent($"ERROR starting LIS listener on port {port}: {ex.Message}");
             _logger.LogError(ex, "Error starting LIS listener on port {Port}", port);
+            linkedCts.Dispose();
+            return;
+        }
+
+        var entry = new PortListenerEntry
+        {
+            Port = port,
+            Listener = listener,
+            Cts = linkedCts
+        };
+
+        var task = Task.Run(() => AcceptLoopAsync(entry), linkedCts.Token);
+        entry.Task = task;
+        _listeners[port] = entry;
+    }
+
+    private void StopPortListenerInternal(int port)
+    {
+        if (_listeners.TryRemove(port, out var entry))
+        {
+            try { entry.Cts.Cancel(); } catch { }
+            try { entry.Listener.Stop(); } catch { }
+            try { entry.Cts.Dispose(); } catch { }
+            LogEvent($"LISTENER STOPPED: Port {port}");
+        }
+    }
+
+    private async Task AcceptLoopAsync(PortListenerEntry entry)
+    {
+        var listener = entry.Listener;
+        var port = entry.Port;
+        var token = entry.Cts.Token;
+
+        try
+        {
+            while (!token.IsCancellationRequested)
+            {
+                try
+                {
+                    var client = await listener.AcceptTcpClientAsync(token);
+                    _ = Task.Run(() => HandleClientAsync(client, port, token), token);
+                }
+                catch (OperationCanceledException) when (token.IsCancellationRequested)
+                {
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    if (!token.IsCancellationRequested)
+                    {
+                        LogEvent($"ERROR accepting connection on port {port}: {ex.Message}");
+                        await Task.Delay(1000, token);
+                    }
+                }
+            }
+        }
+        catch (Exception)
+        {
+            // Listener stopped or socket closed
         }
         finally
         {
-            try
-            {
-                listener?.Stop();
-                lock (_listeningPorts)
-                {
-                    _listeningPorts.Remove(port);
-                    if (_listeningPorts.Count == 0) _isListening = false;
-                }
-                LogEvent($"LISTENER STOPPED: Port {port}");
-            }
-            catch { }
+            try { listener.Stop(); } catch { }
+            _listeners.TryRemove(port, out _);
         }
     }
 
@@ -141,7 +267,6 @@ public class LisTcpListenerService : BackgroundService, ILisTcpListenerService
         var clientInfo = new LisClientConnectionInfo(remoteEndPoint, connectedAt, DateTime.Now, 0);
         _activeClients[remoteEndPoint] = clientInfo;
 
-        // Exact requested log format: [2026-09-23 18:11:45.616] CONNECTED: 192.168.1.41:42674
         LogEvent($"CONNECTED: {remoteEndPoint}");
 
         try
@@ -196,7 +321,6 @@ public class LisTcpListenerService : BackgroundService, ILisTcpListenerService
 
                     string rawHl7 = Encoding.UTF8.GetString(msgBytes);
 
-                    // Exact requested log format: [2026-09-23 18:12:51.791] FROM 192.168.1.41:42674 | 1712 bytes | UTF-8
                     LogEvent($"FROM {remoteEndPoint} | {msgBytes.Length} bytes | UTF-8");
 
                     // Ingest into database

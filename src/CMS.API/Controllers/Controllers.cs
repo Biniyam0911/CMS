@@ -340,9 +340,60 @@ public class LaboratoryController : ControllerBase
             _lisListener.IsListening,
             _lisListener.ListeningPorts.ToList(),
             _lisListener.ActiveClients.ToList(),
-            _lisListener.RecentLogs.ToList()
+            _lisListener.RecentLogs.ToList(),
+            _lisListener.ConfiguredPorts.ToList()
         );
         return Ok(ApiResponse<LisListenerStatusDto>.Ok(status));
+    }
+
+    public record LisPortConfigRequest(List<int> Ports);
+    public record LisPortActionRequest(int? Port = null);
+
+    [HttpPost("instruments/listener/start")]
+    public async Task<IActionResult> StartListener([FromBody] LisPortActionRequest? req = null)
+    {
+        bool result = await _lisListener.StartAsync(req?.Port);
+        var status = new LisListenerStatusDto(
+            _lisListener.IsListening,
+            _lisListener.ListeningPorts.ToList(),
+            _lisListener.ActiveClients.ToList(),
+            _lisListener.RecentLogs.ToList(),
+            _lisListener.ConfiguredPorts.ToList()
+        );
+        return Ok(ApiResponse<LisListenerStatusDto>.Ok(status, result ? "LIS listener started." : "Failed to start listener."));
+    }
+
+    [HttpPost("instruments/listener/stop")]
+    public async Task<IActionResult> StopListener([FromBody] LisPortActionRequest? req = null)
+    {
+        bool result = await _lisListener.StopAsync(req?.Port);
+        var status = new LisListenerStatusDto(
+            _lisListener.IsListening,
+            _lisListener.ListeningPorts.ToList(),
+            _lisListener.ActiveClients.ToList(),
+            _lisListener.RecentLogs.ToList(),
+            _lisListener.ConfiguredPorts.ToList()
+        );
+        return Ok(ApiResponse<LisListenerStatusDto>.Ok(status, result ? "LIS listener stopped." : "Failed to stop listener."));
+    }
+
+    [HttpPost("instruments/listener/configure-ports")]
+    public async Task<IActionResult> ConfigurePorts([FromBody] LisPortConfigRequest req)
+    {
+        if (req?.Ports == null || req.Ports.Count == 0 || req.Ports.Any(p => p < 1 || p > 65535))
+        {
+            return BadRequest(ApiResponse<object>.Fail("Please provide valid port numbers (1-65535)."));
+        }
+
+        bool result = await _lisListener.ConfigurePortsAsync(req.Ports);
+        var status = new LisListenerStatusDto(
+            _lisListener.IsListening,
+            _lisListener.ListeningPorts.ToList(),
+            _lisListener.ActiveClients.ToList(),
+            _lisListener.RecentLogs.ToList(),
+            _lisListener.ConfiguredPorts.ToList()
+        );
+        return Ok(ApiResponse<LisListenerStatusDto>.Ok(status, "LIS ports updated successfully."));
     }
 
     public record PingMachineRequest(string IpAddress, int Port, int TimeoutMs = 1500, string? Mode = null);
