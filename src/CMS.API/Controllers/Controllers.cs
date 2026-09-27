@@ -407,7 +407,8 @@ public class LaboratoryController : ControllerBase
         // If the machine is in Passive / Unidirectional mode, check the server's listener status
         bool isPassiveMode = (req.Mode?.Contains("Unidirectional", StringComparison.OrdinalIgnoreCase) == true) ||
                              (req.Mode?.Contains("Results Only", StringComparison.OrdinalIgnoreCase) == true) ||
-                             req.Port == 5100;
+                             _lisListener.ConfiguredPorts.Contains(req.Port) ||
+                             req.Port == 8004 || req.Port == 10001 || req.Port == 10002 || req.Port == 5100;
 
         if (isPassiveMode)
         {

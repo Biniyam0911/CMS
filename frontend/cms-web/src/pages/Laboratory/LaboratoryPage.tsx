@@ -332,7 +332,7 @@ export default function LaboratoryPage() {
 
   const [isLisToggling, setIsLisToggling] = useState(false);
   const [showPortConfig, setShowPortConfig] = useState(false);
-  const [portInputStr, setPortInputStr] = useState('5100, 2575');
+  const [portInputStr, setPortInputStr] = useState('8004, 10001, 10002');
 
   const fetchLisListenerStatus = async () => {
     try {
@@ -340,7 +340,7 @@ export default function LaboratoryPage() {
       if (res) {
         setLisServerStatus(res);
         if (!showPortConfig) {
-          const effectivePorts = res.configuredPorts?.length ? res.configuredPorts : (res.ports?.length ? res.ports : [5100, 2575]);
+          const effectivePorts = res.configuredPorts?.length ? res.configuredPorts : (res.ports?.length ? res.ports : [8004, 10001, 10002]);
           setPortInputStr(effectivePorts.join(', '));
         }
         setMachines(prev => prev.map(m => {
@@ -1996,7 +1996,7 @@ export default function LaboratoryPage() {
                   </div>
                   <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', marginTop: '2px' }}>
                     {lisServerStatus?.isListening ? (
-                      <>Listening on Ports: <strong style={{ color: '#0284c7', fontFamily: 'monospace' }}>{(lisServerStatus?.ports?.length ? lisServerStatus.ports : (lisServerStatus?.configuredPorts || [5100, 2575])).map(p => `0.0.0.0:${p}`).join(', ')}</strong> • Waiting for machines to initiate connection</>
+                      <>Listening on Ports: <strong style={{ color: '#0284c7', fontFamily: 'monospace' }}>{(lisServerStatus?.ports?.length ? lisServerStatus.ports : (lisServerStatus?.configuredPorts || [8004, 10001, 10002])).map(p => `0.0.0.0:${p}`).join(', ')}</strong> • Waiting for machines to initiate connection</>
                     ) : (
                       <span style={{ color: '#ef4444', fontWeight: 600 }}>Server is stopped. Click "Start Server" or configure ports below to begin listening.</span>
                     )}
@@ -2067,12 +2067,12 @@ export default function LaboratoryPage() {
                     type="text"
                     value={portInputStr}
                     onChange={e => setPortInputStr(e.target.value)}
-                    placeholder="e.g. 5100, 2575"
+                    placeholder="e.g. 8004, 10001, 10002"
                     className="form-input"
                     style={{ maxWidth: '240px', padding: '5px 10px', fontSize: '0.8rem', fontFamily: 'monospace' }}
                   />
                   <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                    (Enter comma-separated ports, e.g. 5100 or 5100, 2575)
+                    (Enter comma-separated ports, e.g. 8004 or 8004, 10001, 10002)
                   </span>
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
@@ -2125,7 +2125,7 @@ export default function LaboratoryPage() {
                 ))
               ) : (
                 <div style={{ color: '#64748b', fontStyle: 'italic' }}>
-                  [System] LIS Server listening on port 5100 and 2575. Waiting for incoming analyzer connections (e.g. ZYBIO Z3 at 192.168.1.41)...
+                  [System] LIS Server listening on ports 8004, 10001, and 10002. Waiting for incoming analyzer connections (e.g. ZYBIO Z3 at 192.168.1.41)...
                 </div>
               )}
             </div>

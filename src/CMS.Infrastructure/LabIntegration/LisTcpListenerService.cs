@@ -74,16 +74,28 @@ public class LisTcpListenerService : BackgroundService, ILisTcpListenerService
     {
         _appStoppingToken = stoppingToken;
 
-        // Determine default ports to listen on (default 5100 and 2575)
-        var configuredPort = _config.GetValue<int?>("Lis:Port") ?? _config.GetValue<int?>("LisListener:Port") ?? 5100;
-        var secondaryPort = _config.GetValue<int?>("Lis:SecondaryPort") ?? 2575;
+        // Determine default ports to listen on (default 8004, 10001, 10002)
+        var defaultPorts = new List<int>();
+        var configuredPortsSection = _config.GetSection("Lis:Ports").Get<int[]>();
+        if (configuredPortsSection != null && configuredPortsSection.Length > 0)
+        {
+            defaultPorts.AddRange(configuredPortsSection);
+        }
+        else
+        {
+            var p1 = _config.GetValue<int?>("Lis:Port") ?? _config.GetValue<int?>("LisListener:Port") ?? 8004;
+            var p2 = _config.GetValue<int?>("Lis:SecondaryPort") ?? 10001;
+            var p3 = _config.GetValue<int?>("Lis:TertiaryPort") ?? 10002;
+            defaultPorts.Add(p1);
+            defaultPorts.Add(p2);
+            defaultPorts.Add(p3);
+        }
 
         lock (_lock)
         {
-            _configuredPorts.Add(configuredPort);
-            if (secondaryPort != configuredPort)
+            foreach (var p in defaultPorts.Where(p => p is >= 1 and <= 65535).Distinct())
             {
-                _configuredPorts.Add(secondaryPort);
+                _configuredPorts.Add(p);
             }
         }
 
