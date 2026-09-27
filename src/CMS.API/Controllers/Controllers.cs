@@ -501,26 +501,38 @@ public class LaboratoryController : ControllerBase
         using var conn = _dbFactory.CreateConnection();
         var sql = @"
             SELECT
-                o.Id AS OrderId, o.OrderNumber, o.PatientId, o.Priority, o.OrderedAt,
-                p.FirstName + ' ' + p.LastName AS PatientName, p.DateOfBirth,
+                o.Id AS OrderId, o.OrderNumber, o.PatientId, o.Priority, o.OrderedAt, o.ClinicalInfo,
+                p.FirstName + ' ' + p.LastName AS PatientName, p.DateOfBirth, p.Gender, p.MRN,
                 oi.Id AS ItemId, oi.StatusId AS ItemStatus,
                 t.TestCode, t.TestName, t.Category, t.SampleType,
                 ISNULL(s.Barcode, 'BC-' + CAST(o.Id AS VARCHAR(10)) + '-' + CAST(oi.Id AS VARCHAR(10))) AS Barcode,
                 DATEDIFF(MINUTE, o.OrderedAt, GETDATE()) AS AgeMinutes,
-                t.TurnaroundMinutes
+                t.TurnaroundMinutes,
+                CASE WHEN EXISTS (
+                    SELECT 1 FROM InvoiceItems ii 
+                    JOIN Invoices inv ON inv.Id = ii.InvoiceId 
+                    WHERE ii.RefId = o.Id AND inv.StatusId = 4
+                ) THEN 1 ELSE 0 END AS IsPaid,
+                r.Id AS ResultId,
+                r.NumericValue,
+                r.TextValue,
+                r.Unit AS ResultUnit,
+                r.Flag AS ResultFlag,
+                r.ReferenceRange AS ResultRefRange,
+                ISNULL(r.IsVerified, 0) AS IsVerified,
+                r.VerifiedBy,
+                r.VerifiedAt,
+                r.EnteredAt AS ResultEnteredAt,
+                r.RawMessage
             FROM LabOrders o
             JOIN LabOrderItems oi ON oi.OrderId = o.Id
             JOIN LabTestCatalog t ON t.Id = oi.TestId
             JOIN Patients p ON p.Id = o.PatientId
             LEFT JOIN LabSamples s ON s.OrderId = o.Id
+            LEFT JOIN LabResults r ON r.OrderItemId = oi.Id AND r.OrderId = o.Id
             WHERE o.TenantId = @TenantId
               AND (@StatusId IS NULL OR o.StatusId = @StatusId)
               AND (@Date IS NULL OR CAST(o.OrderedAt AS DATE) = CAST(@Date AS DATE))
-              AND EXISTS (
-                  SELECT 1 FROM InvoiceItems ii 
-                  JOIN Invoices inv ON inv.Id = ii.InvoiceId 
-                  WHERE ii.RefId = o.Id AND inv.StatusId = 4
-              )
             ORDER BY o.Priority ASC, o.OrderedAt DESC";
 
         var worklist = await conn.QueryAsync(sql, new { TenantId = tenantId, StatusId = statusId, Date = date });
@@ -535,7 +547,7 @@ public class LaboratoryController : ControllerBase
         var sql = @"
             SELECT
                 o.Id, o.Id AS OrderId, o.OrderNumber, o.PatientId, o.Priority, o.OrderedAt, o.OrderedAt AS OrderDate, o.ClinicalInfo,
-                p.FirstName + ' ' + p.LastName AS PatientName,
+                p.FirstName + ' ' + p.LastName AS PatientName, p.DateOfBirth, p.Gender, p.MRN,
                 oi.Id AS ItemId, oi.StatusId AS ItemStatus,
                 CASE oi.StatusId
                     WHEN 1 THEN 'Ordered'
@@ -545,11 +557,28 @@ public class LaboratoryController : ControllerBase
                     WHEN 5 THEN 'Completed'
                     WHEN 6 THEN 'Cancelled'
                     ELSE 'Pending' END AS StatusName,
-                t.TestCode, t.TestName, t.Category, t.SampleType, t.Price
+                t.TestCode, t.TestName, t.Category, t.SampleType, t.Price,
+                CASE WHEN EXISTS (
+                    SELECT 1 FROM InvoiceItems ii 
+                    JOIN Invoices inv ON inv.Id = ii.InvoiceId 
+                    WHERE ii.RefId = o.Id AND inv.StatusId = 4
+                ) THEN 1 ELSE 0 END AS IsPaid,
+                r.Id AS ResultId,
+                r.NumericValue,
+                r.TextValue,
+                r.Unit AS ResultUnit,
+                r.Flag AS ResultFlag,
+                r.ReferenceRange AS ResultRefRange,
+                ISNULL(r.IsVerified, 0) AS IsVerified,
+                r.VerifiedBy,
+                r.VerifiedAt,
+                r.EnteredAt AS ResultEnteredAt,
+                r.RawMessage
             FROM LabOrders o
             JOIN LabOrderItems oi ON oi.OrderId = o.Id
             JOIN LabTestCatalog t ON t.Id = oi.TestId
             JOIN Patients p ON p.Id = o.PatientId
+            LEFT JOIN LabResults r ON r.OrderItemId = oi.Id AND r.OrderId = o.Id
             WHERE o.TenantId = @TenantId
               AND (@PatientId IS NULL OR o.PatientId = @PatientId)
               AND (@Date IS NULL OR CAST(o.OrderedAt AS DATE) = CAST(@Date AS DATE))

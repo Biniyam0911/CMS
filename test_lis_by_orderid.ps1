@@ -31,7 +31,7 @@
     TCP server host (default: 127.0.0.1)
 
 .PARAMETER Port
-    TCP port the CMS LIS listener is on (default: 5100)
+    TCP port the CMS LIS listener is on (default: 8004)
 
 .EXAMPLE
     .\test_lis_by_orderid.ps1 -OrderId 78252 -TestId 753 -Value 6.2 -Flag N
@@ -46,7 +46,7 @@ param(
     [Parameter(Mandatory=$false)] [string] $Flag       = "N",
     [Parameter(Mandatory=$false)] [string] $RefRange   = "",
     [Parameter(Mandatory=$false)] [string] $Server     = "127.0.0.1",
-    [Parameter(Mandatory=$false)] [int]    $Port       = 5100
+    [Parameter(Mandatory=$false)] [int]    $Port       = 8004
 )
 
 Set-StrictMode -Off

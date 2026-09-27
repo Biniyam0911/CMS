@@ -15,12 +15,29 @@ interface OrderTestItem {
   barcode: string;
   status: string;
   results: Record<string, string>;
+  resultId?: number;
+  numericValue?: number;
+  textValue?: string;
+  unit?: string;
+  flag?: string;
+  referenceRange?: string;
+  isVerified?: boolean;
+  verifiedAt?: string;
+  rawMessage?: string;
 }
 
 interface OrderItem {
   id: number;         // OrderId
   orderNo: string;
   patientName: string;
+  mrn?: string;
+  gender?: string;
+  dateOfBirth?: string;
+  isPaid?: boolean;
+  clinicalInfo?: string;
+  isVerified?: boolean;
+  verifiedAt?: string;
+  verifiedBy?: string;
   /** @deprecated use tests[0] for display; kept for legacy print compat */
   testCode: string;
   /** @deprecated use tests[0] for display */
@@ -242,7 +259,7 @@ export default function LaboratoryPage() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const [activeTab, setActiveTab] = useState<'worklist' | 'custody' | 'catalog' | 'instruments'>('worklist');
+  const [activeTab, setActiveTab] = useState<'worklist' | 'verified' | 'custody' | 'catalog' | 'instruments'>('worklist');
   const [loading, setLoading] = useState(true);
 
   // Date Filter State for Worklist
@@ -253,6 +270,19 @@ export default function LaboratoryPage() {
   const [catalog, setCatalog] = useState<any[]>([]);
   const [orders, setOrders] = useState<OrderItem[]>([]);
   const [printModalOrder, setPrintModalOrder] = useState<OrderItem | null>(null);
+  const [printModalMode, setPrintModalMode] = useState<'requisition' | 'report'>('report');
+  const [verifiedSearchQuery, setVerifiedSearchQuery] = useState('');
+  const [expandedVerifiedOrderId, setExpandedVerifiedOrderId] = useState<number | null>(null);
+
+  const handlePrintRequisition = (order: OrderItem) => {
+    setPrintModalMode('requisition');
+    setPrintModalOrder(order);
+  };
+
+  const handlePrintReport = (order: OrderItem) => {
+    setPrintModalMode('report');
+    setPrintModalOrder(order);
+  };
 
   const [showAddTestModal, setShowAddTestModal] = useState(false);
   const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
@@ -373,6 +403,104 @@ export default function LaboratoryPage() {
   const [formBaudRate, setFormBaudRate] = useState<number>(9600);
   const [formDescription, setFormDescription] = useState<string>('');
 
+  const parseResultsIntoMap = (
+    resultsMap: Record<string, string>,
+    itemId: number,
+    testCode: string,
+    numVal?: any,
+    textVal?: string,
+    rawMsg?: string
+  ) => {
+    // 1. Assign numeric value if available
+    if (numVal !== null && numVal !== undefined && numVal !== '') {
+      const strNum = String(numVal);
+      const cleanNum = !isNaN(Number(strNum)) ? String(Number(strNum)) : strNum;
+      resultsMap[`${itemId}:${testCode}`] = cleanNum;
+      resultsMap[`${itemId}:VAL`] = cleanNum;
+      resultsMap[testCode] = cleanNum;
+      resultsMap['VAL'] = cleanNum;
+    }
+
+    // 2. Parse from HL7 OBX segments in rawMsg (e.g. OBX|1|NM|WBC^White Blood Cell||6.8|10^3/uL|...)
+    if (rawMsg && typeof rawMsg === 'string' && rawMsg.includes('OBX|')) {
+      const lines = rawMsg.split(/[\r\n]+/);
+      for (const line of lines) {
+        if (line.startsWith('OBX|')) {
+          const parts = line.split('|');
+          if (parts.length > 5) {
+            const idPart = parts[3] || '';
+            const valPart = parts[5] || '';
+            const pCode = idPart.split('^')[0].trim();
+            const cleanVal = valPart.trim();
+            if (pCode && cleanVal) {
+              resultsMap[`${itemId}:${pCode}`] = cleanVal;
+              resultsMap[pCode] = cleanVal;
+              resultsMap[`${itemId}:${testCode}`] = cleanVal;
+              resultsMap[testCode] = cleanVal;
+            }
+          }
+        }
+      }
+    }
+
+    // 3. Parse pipe-separated parameters in textVal
+    if (textVal && typeof textVal === 'string') {
+      const segments = textVal.split('|');
+      for (const seg of segments) {
+        const match = seg.match(/^\s*([^:]+?):\s*([0-9\.]+|Negative|Positive|Reactive|Non-Reactive)/i);
+        if (match) {
+          const rawParam = match[1].trim();
+          const val = match[2].trim();
+          resultsMap[`${itemId}:${rawParam}`] = val;
+          resultsMap[rawParam] = val;
+
+          const lower = rawParam.toLowerCase();
+          if (lower.includes('white blood') || lower === 'wbc') {
+            resultsMap[`${itemId}:WBC`] = val;
+            resultsMap['WBC'] = val;
+          } else if (lower.includes('red blood') || lower === 'rbc') {
+            resultsMap[`${itemId}:RBC`] = val;
+            resultsMap['RBC'] = val;
+          } else if (lower.includes('hemo') || lower === 'hgb') {
+            resultsMap[`${itemId}:HGB`] = val;
+            resultsMap['HGB'] = val;
+          } else if (lower.includes('plate') || lower === 'plt') {
+            resultsMap[`${itemId}:PLT`] = val;
+            resultsMap['PLT'] = val;
+          } else if (lower.includes('hematocrit') || lower === 'hct') {
+            resultsMap[`${itemId}:HCT`] = val;
+            resultsMap['HCT'] = val;
+          } else if (lower.includes('alt') || lower.includes('alanine')) {
+            resultsMap[`${itemId}:ALT`] = val;
+            resultsMap['ALT'] = val;
+          } else if (lower.includes('ast') || lower.includes('aspartate')) {
+            resultsMap[`${itemId}:AST`] = val;
+            resultsMap['AST'] = val;
+          } else if (lower.includes('creat')) {
+            resultsMap[`${itemId}:CREAT`] = val;
+            resultsMap['CREAT'] = val;
+          } else if (lower.includes('bun') || lower.includes('urea')) {
+            resultsMap[`${itemId}:BUN`] = val;
+            resultsMap['BUN'] = val;
+          } else if (lower.includes('chol')) {
+            resultsMap[`${itemId}:CHOL`] = val;
+            resultsMap['CHOL'] = val;
+          } else if (lower.includes('trig')) {
+            resultsMap[`${itemId}:TRIG`] = val;
+            resultsMap['TRIG'] = val;
+          } else if (lower.includes('glucose') || lower.includes('fbs')) {
+            resultsMap[`${itemId}:FBS`] = val;
+            resultsMap['FBS'] = val;
+          } else {
+            resultsMap[`${itemId}:${testCode}`] = val;
+            resultsMap[`${itemId}:VAL`] = val;
+            resultsMap[testCode] = val;
+          }
+        }
+      }
+    }
+  };
+
   const loadLabData = async (filterDate?: string, allDates?: boolean) => {
     try {
       setLoading(true);
@@ -436,13 +564,23 @@ export default function LaboratoryPage() {
           const sampleType: string = String(w.SampleType ?? w.sampleType ?? w.sampletype ?? 'Blood');
           const itemBarcode: string = String(w.Barcode ?? w.barcode ?? `BC-${ordId}-${itemId}`);
           const rawItemStatus = w.ItemStatus ?? w.itemStatus ?? w.itemstatus ?? 0;
-          const itemStatus: string = (Number(rawItemStatus) === 4) ? 'Resulted' : 'Processing';
+          const isItemVerified = Boolean(Number(w.IsVerified ?? w.isVerified ?? 0) === 1);
+          const hasResult = Boolean((w.ResultId ?? w.resultId) || (w.NumericValue !== null && w.NumericValue !== undefined) || w.TextValue || Number(rawItemStatus) === 4);
+          const itemStatus: string = isItemVerified ? 'Verified' : (hasResult ? 'Resulted' : (Number(rawItemStatus) === 3 ? 'InProcess' : 'Processing'));
 
           if (!grouped.has(ordId)) {
             grouped.set(ordId, {
               id: ordId,
               orderNo: String(w.OrderNumber ?? w.orderNumber ?? w.ordernumber ?? `LAB-${ordId}`),
               patientName: String(w.PatientName ?? w.patientName ?? w.patientname ?? 'Patient'),
+              mrn: String(w.MRN ?? w.mrn ?? ''),
+              gender: String(w.Gender ?? w.gender ?? ''),
+              dateOfBirth: String(w.DateOfBirth ?? w.dateOfBirth ?? ''),
+              isPaid: Boolean(w.IsPaid ?? w.isPaid),
+              clinicalInfo: String(w.ClinicalInfo ?? w.clinicalInfo ?? ''),
+              isVerified: false,
+              verifiedAt: w.VerifiedAt ? String(w.VerifiedAt) : undefined,
+              verifiedBy: w.VerifiedBy ? String(w.VerifiedBy) : undefined,
               testCode: testCode,
               testName: testName,
               sampleType: sampleType,
@@ -458,12 +596,54 @@ export default function LaboratoryPage() {
           }
 
           const grp = grouped.get(ordId)!;
-          grp.tests.push({ itemId, testCode, testName, sampleType, barcode: itemBarcode, status: itemStatus, results: {} });
 
-          // Bubble up Resulted status only when ALL tests are resulted
-          if (grp.tests.length > 0 && grp.tests.every(t => t.status === 'Resulted')) {
-            grp.status = 'Resulted';
+          // Parse results for this item into grp.results
+          parseResultsIntoMap(
+            grp.results,
+            itemId,
+            testCode,
+            w.NumericValue ?? w.numericValue,
+            w.TextValue ?? w.textValue,
+            w.RawMessage ?? w.rawMessage
+          );
+
+          const testResults: Record<string, string> = {};
+          parseResultsIntoMap(
+            testResults,
+            itemId,
+            testCode,
+            w.NumericValue ?? w.numericValue,
+            w.TextValue ?? w.textValue,
+            w.RawMessage ?? w.rawMessage
+          );
+
+          grp.tests.push({
+            itemId,
+            testCode,
+            testName,
+            sampleType,
+            barcode: itemBarcode,
+            status: itemStatus,
+            results: testResults,
+            resultId: Number(w.ResultId ?? w.resultId ?? 0),
+            numericValue: w.NumericValue ?? w.numericValue,
+            textValue: w.TextValue ?? w.textValue,
+            unit: w.ResultUnit ?? w.resultUnit,
+            flag: w.ResultFlag ?? w.resultFlag,
+            referenceRange: w.ResultRefRange ?? w.resultRefRange,
+            isVerified: isItemVerified,
+            verifiedAt: w.VerifiedAt ? String(w.VerifiedAt) : undefined,
+            rawMessage: w.RawMessage ?? w.rawMessage
+          });
+
+          // Bubble up Resulted and Verified status
+          if (grp.tests.length > 0 && grp.tests.every(t => t.status === 'Verified')) {
+            grp.status = 'Verified';
             grp.custodyStep = 'Verified';
+            grp.isVerified = true;
+          } else if (grp.tests.length > 0 && grp.tests.every(t => t.status === 'Resulted' || t.status === 'Verified')) {
+            grp.status = 'Resulted';
+            grp.custodyStep = 'ResultsSaved';
           }
         }
 
@@ -966,6 +1146,9 @@ export default function LaboratoryPage() {
     return matchesDept && matchesSearch;
   });
 
+  const worklistOrders = orders.filter(o => o.status !== 'Verified');
+  const verifiedOrders = orders.filter(o => o.status === 'Verified');
+
   return (
     <div>
       {/* Toast Alert */}
@@ -1029,7 +1212,10 @@ export default function LaboratoryPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
         <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '4px', maxWidth: '100%' }}>
           <button onClick={() => setActiveTab('worklist')} className={activeTab === 'worklist' ? 'btn-primary' : 'btn-secondary'} style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
-            <Layers size={15} /> Order Worklist ({orders.length})
+            <Layers size={15} /> Order Worklist ({worklistOrders.length})
+          </button>
+          <button onClick={() => setActiveTab('verified')} className={activeTab === 'verified' ? 'btn-primary' : 'btn-secondary'} style={{ fontWeight: 600, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <CheckCircle size={15} color={activeTab === 'verified' ? '#ffffff' : '#10b981'} /> Verified Results ({verifiedOrders.length})
           </button>
           <button onClick={() => setActiveTab('custody')} className={activeTab === 'custody' ? 'btn-primary' : 'btn-secondary'} style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
             <GitCommit size={15} /> Chain of Custody Tracker
@@ -1137,7 +1323,7 @@ export default function LaboratoryPage() {
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <span className="badge badge-info" style={{ fontSize: '0.76rem', padding: '4px 10px', background: '#e0f2fe', color: '#0369a1', fontWeight: 600 }}>
-                {orders.length} Order{orders.length === 1 ? '' : 's'} {showAllDates ? '(All Time)' : `on ${selectedDate}`}
+                {worklistOrders.length} Order{worklistOrders.length === 1 ? '' : 's'} {showAllDates ? '(All Time)' : `on ${selectedDate}`}
               </span>
               <button
                 type="button"
@@ -1151,16 +1337,16 @@ export default function LaboratoryPage() {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {orders.length === 0 ? (
+            {worklistOrders.length === 0 ? (
               <div style={{ padding: '44px 20px', textAlign: 'center', color: 'var(--text-muted)', background: '#faf8f5', borderRadius: '10px', border: '1px dashed var(--border-color)' }}>
                 <FlaskConical size={42} color="var(--text-muted)" style={{ margin: '0 auto 12px', opacity: 0.5 }} />
-                <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-main)' }}>No Laboratory Orders Found</div>
+                <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-main)' }}>No Active Lab Orders on Worklist</div>
                 <div style={{ fontSize: '0.82rem', marginTop: '4px' }}>
-                  There are no lab diagnostic requisitions recorded for {showAllDates ? 'any date' : selectedDate}. Choose a different date using the datepicker or click "All Orders".
+                  All lab requisitions for {showAllDates ? 'all dates' : selectedDate} have been completed &amp; verified, or no requisitions exist. Check the "Verified Results" tab or choose a different date.
                 </div>
               </div>
             ) : (
-              orders.map(o => {
+              worklistOrders.map(o => {
                 const isExpanded = expandedOrderId === o.id;
                 const isStat = o.priority === 1 || o.priority === 'STAT';
 
@@ -1220,9 +1406,15 @@ export default function LaboratoryPage() {
                       </div>
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                        <span style={{ padding: '3px 8px', borderRadius: '5px', background: '#dcfce7', color: '#15803d', fontSize: '0.68rem', fontWeight: 800, border: '1px solid #bbf7d0', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                          <Check size={11} /> PAID
-                        </span>
+                        {o.isPaid ? (
+                          <span style={{ padding: '3px 8px', borderRadius: '5px', background: '#dcfce7', color: '#15803d', fontSize: '0.68rem', fontWeight: 800, border: '1px solid #bbf7d0', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                            <Check size={11} /> PAID
+                          </span>
+                        ) : (
+                          <span style={{ padding: '3px 8px', borderRadius: '5px', background: '#fef3c7', color: '#92400e', fontSize: '0.68rem', fontWeight: 800, border: '1px solid #fde68a', display: 'inline-flex', alignItems: 'center', gap: '3px' }} title="Pending billing payment or referral for outside laboratory">
+                            UNPAID / REFERRAL
+                          </span>
+                        )}
                         <span style={{ padding: '4px 9px', borderRadius: '6px', background: '#f1f5f9', color: '#334155', fontSize: '0.72rem', fontWeight: 700, border: '1px solid #e2e8f0' }}>
                           {o.custodyStep}
                         </span>
@@ -1231,11 +1423,12 @@ export default function LaboratoryPage() {
                         </span>
                         <button
                           type="button"
-                          onClick={(e) => { e.stopPropagation(); setPrintModalOrder(o); }}
+                          onClick={(e) => { e.stopPropagation(); handlePrintRequisition(o); }}
                           className="btn-secondary"
-                          style={{ padding: '5px 9px', fontSize: '0.73rem', background: '#ffffff', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}
+                          style={{ padding: '5px 10px', fontSize: '0.73rem', background: '#ffffff', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 600, color: '#0369a1', borderColor: '#bae6fd' }}
+                          title="Print Laboratory Requisition / External Referral Slip"
                         >
-                          <Printer size={13} color="#0284c7" /> Print
+                          <Printer size={13} color="#0284c7" /> Print Requisition / Referral
                         </button>
                         <button
                           type="button"
@@ -1356,12 +1549,254 @@ export default function LaboratoryPage() {
                             </div>
                           );
                         })}
-                      </div>
-                    )}
+                          <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '10px', flexWrap: 'wrap', paddingTop: '12px', borderTop: '1px solid #e2e8f0' }}>
+                            <button
+                              type="button"
+                              onClick={() => handlePrintRequisition(o)}
+                              className="btn-secondary"
+                              style={{ padding: '6px 14px', fontSize: '0.78rem', background: '#ffffff', display: 'inline-flex', alignItems: 'center', gap: '5px', fontWeight: 600, color: '#0369a1', borderColor: '#bae6fd' }}
+                              title="Print Laboratory Requisition / External Referral Slip"
+                            >
+                              <Printer size={14} color="#0284c7" /> Print Requisition / Referral Slip
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleSaveOrderResults(o.id, false)}
+                              className="btn-secondary"
+                              style={{ padding: '6px 14px', fontSize: '0.78rem', background: '#f8fafc', borderColor: '#94a3b8', color: '#1e293b', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                            >
+                              <Save size={14} color="#475569" /> Save Draft Results
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleSaveOrderResults(o.id, true)}
+                              className="btn-primary"
+                              style={{ padding: '6px 16px', fontSize: '0.78rem', background: '#059669', borderColor: '#059669', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                              title="Verify and approve results — moves to Verified Results tab & makes live in Doctor EMR"
+                            >
+                              <Check size={14} /> Verify &amp; Approve Results
+                            </button>
+                          </div>
+                        </div>
+                      )}
 
-                  </div>
-                );
-              })
+                    </div>
+                  );
+                })
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* TAB: VERIFIED RESULTS & APPROVED REPORTS */}
+      {activeTab === 'verified' && (
+        <div className="glass-panel" style={{ padding: '22px', background: '#ffffff', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
+          {/* Header & Filter Bar */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '14px', paddingBottom: '14px', borderBottom: '1px solid #e2e8f0' }}>
+            <div>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <CheckCircle size={20} color="#10b981" /> Verified Laboratory Results &amp; Approved Reports
+              </h3>
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
+                Completed diagnostic examination orders certified by laboratory personnel. Ready for official report printing and active in Doctor EMR.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <div style={{ position: 'relative', width: '280px' }}>
+                <Search size={14} color="#94a3b8" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                <input
+                  type="text"
+                  placeholder="Search patient, MRN, order..."
+                  value={verifiedSearchQuery}
+                  onChange={e => setVerifiedSearchQuery(e.target.value)}
+                  style={{ width: '100%', padding: '7px 12px 7px 32px', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                />
+              </div>
+
+              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0284c7', background: '#e0f2fe', padding: '6px 12px', borderRadius: '6px' }}>
+                {verifiedOrders.length} Verified Order{verifiedOrders.length === 1 ? '' : 's'}
+              </div>
+            </div>
+          </div>
+
+          {/* List of Verified Orders */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {verifiedOrders.length === 0 ? (
+              <div style={{ padding: '48px 20px', textAlign: 'center', color: 'var(--text-muted)', background: '#f8fafc', borderRadius: '10px', border: '1px dashed #cbd5e1' }}>
+                <CheckCircle size={44} color="#10b981" style={{ margin: '0 auto 12px', opacity: 0.6 }} />
+                <div style={{ fontWeight: 800, fontSize: '1.05rem', color: '#1e293b' }}>No Verified Results Yet</div>
+                <div style={{ fontSize: '0.82rem', marginTop: '4px' }}>
+                  Orders verified by the laboratory technologist will automatically move here from the Worklist for archiving and official report printing.
+                </div>
+              </div>
+            ) : (
+              verifiedOrders
+                .filter(o => {
+                  if (!verifiedSearchQuery.trim()) return true;
+                  const q = verifiedSearchQuery.toLowerCase();
+                  return (
+                    o.patientName.toLowerCase().includes(q) ||
+                    o.orderNo.toLowerCase().includes(q) ||
+                    (o.mrn && o.mrn.toLowerCase().includes(q)) ||
+                    o.tests.some(t => t.testName.toLowerCase().includes(q) || t.testCode.toLowerCase().includes(q))
+                  );
+                })
+                .map(o => {
+                  const isExpanded = expandedVerifiedOrderId === o.id;
+
+                  return (
+                    <div
+                      key={o.id}
+                      style={{
+                        borderRadius: '10px',
+                        background: '#ffffff',
+                        border: isExpanded ? '1.5px solid #10b981' : '1px solid #e2e8f0',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+                        overflow: 'hidden'
+                      }}
+                    >
+                      {/* Verified Order Card Header */}
+                      <div
+                        onClick={() => setExpandedVerifiedOrderId(isExpanded ? null : o.id)}
+                        style={{
+                          padding: '14px 18px',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          cursor: 'pointer',
+                          background: isExpanded ? '#f0fdf4' : '#ffffff'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          {isExpanded ? <ChevronDown size={18} color="#10b981" /> : <ChevronRight size={18} color="var(--text-muted)" />}
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                              <span style={{ fontWeight: 800, color: '#0369a1', fontFamily: 'monospace', fontSize: '0.88rem' }}>{o.orderNo}</span>
+                              <span style={{ color: 'var(--text-muted)' }}>•</span>
+                              <strong style={{ color: 'var(--text-main)', fontSize: '0.92rem' }}>{o.patientName}</strong>
+                              {o.mrn && (
+                                <span style={{ fontSize: '0.72rem', background: '#f1f5f9', color: '#475569', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                                  MRN: {o.mrn}
+                                </span>
+                              )}
+                              <span style={{ padding: '2px 8px', borderRadius: '4px', background: '#dcfce7', color: '#15803d', fontSize: '0.68rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                <Check size={11} /> VERIFIED &amp; APPROVED
+                              </span>
+                            </div>
+                            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                              <span><strong>Tests ({o.tests.length}):</strong> {o.tests.map(t => t.testName).join(', ')}</span>
+                              <span>•</span>
+                              <span><strong>Barcode:</strong> <code style={{ background: '#f1f5f9', padding: '1px 5px', borderRadius: '3px' }}>{o.barcode}</code></span>
+                              {o.orderedAt && (
+                                <>
+                                  <span>•</span>
+                                  <span><strong>Ordered:</strong> {String(o.orderedAt).split('T')[0]}</span>
+                                </>
+                              )}
+                              {o.verifiedAt && (
+                                <>
+                                  <span>•</span>
+                                  <span style={{ color: '#059669', fontWeight: 600 }}><strong>Certified:</strong> {new Date(o.verifiedAt).toLocaleDateString()}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); handlePrintReport(o); }}
+                            className="btn-primary"
+                            style={{ padding: '6px 14px', fontSize: '0.76rem', background: '#0284c7', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}
+                            title="Print official clinical laboratory report"
+                          >
+                            <Printer size={14} /> Print Official Report
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Expanded View: Results Table (Read-Only Certified View) */}
+                      {isExpanded && (
+                        <div style={{ padding: '18px 20px', borderTop: '1px solid #e2e8f0', background: '#f8fafc' }}>
+                          {o.tests.map((test, tIdx) => {
+                            const testCatalogItem = catalog.find(c => c.code === test.testCode) || {
+                              parameters: [{ code: test.testCode, name: test.testName, unit: '', min: undefined, max: undefined }]
+                            };
+                            const params = testCatalogItem.parameters || [];
+
+                            return (
+                              <div key={test.itemId || tIdx} style={{ marginBottom: tIdx < o.tests.length - 1 ? '18px' : 0 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px', padding: '6px 12px', background: '#e2e8f0', borderRadius: '6px' }}>
+                                  <FlaskConical size={14} color="#0369a1" />
+                                  <span style={{ fontWeight: 800, fontSize: '0.85rem', color: '#0f172a' }}>{test.testName} ({test.testCode})</span>
+                                  <code style={{ fontSize: '0.72rem', background: '#ffffff', padding: '1px 6px', borderRadius: '3px' }}>{test.barcode}</code>
+                                  <span style={{ marginLeft: 'auto', fontSize: '0.72rem', fontWeight: 700, color: '#15803d', background: '#dcfce7', padding: '2px 8px', borderRadius: '4px' }}>
+                                    ✓ Verified
+                                  </span>
+                                </div>
+
+                                <div className="table-responsive" style={{ background: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                  <table className="cms-table" style={{ background: '#ffffff', margin: 0 }}>
+                                    <thead style={{ background: '#f1f5f9' }}>
+                                      <tr>
+                                        <th>Parameter</th>
+                                        <th>Code</th>
+                                        <th>Reference Range</th>
+                                        <th>Measured Result</th>
+                                        <th>Flag / Interpretation</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {params.map((p: any) => {
+                                        const resultKey = `${test.itemId}:${p.code}`;
+                                        const val = o.results[resultKey] || o.results[p.code] || '---';
+                                        const flag = calculateParamFlag(val, p.min, p.max);
+                                        const isAbnormal = flag !== 'Normal' && val !== '---';
+
+                                        return (
+                                          <tr key={p.code}>
+                                            <td style={{ fontWeight: 600, color: 'var(--text-main)' }}>{p.name}</td>
+                                            <td style={{ fontFamily: 'monospace', color: '#0284c7', fontWeight: 600 }}>{p.code}</td>
+                                            <td style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                                              {p.min !== undefined && p.max !== undefined ? `${p.min} – ${p.max} ${p.unit || ''}` : (p.unit ? `Normative (${p.unit})` : 'Normative')}
+                                            </td>
+                                            <td>
+                                              <span style={{ fontWeight: 800, fontSize: '0.92rem', color: isAbnormal ? '#dc2626' : '#0f172a' }}>
+                                                {val} {p.unit || ''}
+                                              </span>
+                                            </td>
+                                            <td>
+                                              <span className={flag === 'HH' || flag === 'LL' ? 'badge badge-critical' : (flag === 'H' || flag === 'L' ? 'badge badge-warning' : 'badge badge-normal')}>
+                                                {val === '---' ? 'Pending' : flag}
+                                              </span>
+                                            </td>
+                                          </tr>
+                                        );
+                                      })}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+                            );
+                          })}
+
+                          <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                            <button
+                              type="button"
+                              onClick={() => handlePrintReport(o)}
+                              className="btn-primary"
+                              style={{ background: '#0284c7', display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 16px', fontWeight: 700 }}
+                            >
+                              <Printer size={15} /> Print Verified Diagnostic Report
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
             )}
           </div>
         </div>
@@ -2240,7 +2675,7 @@ export default function LaboratoryPage() {
         </div>
       )}
 
-      {/* CLINICAL LABORATORY REPORT PRINT MODAL */}
+      {/* CLINICAL LABORATORY REPORT & REQUISITION PRINT MODAL */}
       {printModalOrder && (
         <div style={{
           position: 'fixed',
@@ -2248,7 +2683,7 @@ export default function LaboratoryPage() {
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(0,0,0,0.6)',
+          background: 'rgba(0,0,0,0.65)',
           backdropFilter: 'blur(3px)',
           display: 'flex',
           alignItems: 'center',
@@ -2256,35 +2691,76 @@ export default function LaboratoryPage() {
           zIndex: 9999,
           padding: '20px'
         }}>
-          <div style={{
-            background: '#ffffff',
-            borderRadius: '12px',
-            maxWidth: '850px',
-            width: '100%',
-            maxHeight: '90vh',
-            overflowY: 'auto',
-            padding: '32px',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '20px'
-          }}>
-            {/* Header / Actions */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #0284c7', paddingBottom: '16px' }}>
-              <div>
-                <h2 style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0369a1', margin: 0, letterSpacing: '-0.02em' }}>
-                  HUDERMA SPECIALIZED CLINIC & LABORATORY
-                </h2>
-                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '3px' }}>
-                  Department of Clinical Pathology & Automated Diagnostic Medicine • ISO 15189 Standard
-                </div>
+          {/* Print CSS injection for flawless paper/PDF rendering */}
+          <style>{`
+            @media print {
+              body * {
+                visibility: hidden !important;
+              }
+              #printable-lab-doc, #printable-lab-doc * {
+                visibility: visible !important;
+              }
+              #printable-lab-doc {
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                padding: 15px !important;
+                margin: 0 !important;
+                box-shadow: none !important;
+                border: none !important;
+                background: #ffffff !important;
+              }
+              .no-print {
+                display: none !important;
+              }
+            }
+          `}</style>
+
+          <div
+            id="printable-lab-doc"
+            style={{
+              background: '#ffffff',
+              borderRadius: '12px',
+              maxWidth: '850px',
+              width: '100%',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              padding: '32px',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '20px',
+              color: '#0f172a'
+            }}
+          >
+            {/* Action Bar (Hidden when printed) */}
+            <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #0284c7', paddingBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => setPrintModalMode('requisition')}
+                  className={printModalMode === 'requisition' ? 'btn-primary' : 'btn-secondary'}
+                  style={{ fontSize: '0.76rem', padding: '6px 12px', fontWeight: 700 }}
+                >
+                  Requisition / External Referral Slip
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPrintModalMode('report')}
+                  className={printModalMode === 'report' ? 'btn-primary' : 'btn-secondary'}
+                  style={{ fontSize: '0.76rem', padding: '6px 12px', fontWeight: 700 }}
+                >
+                  Verified Examination Report
+                </button>
               </div>
+
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button
                   type="button"
                   onClick={() => window.print()}
                   className="btn-primary"
-                  style={{ background: '#0284c7', display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', fontWeight: 700 }}
+                  style={{ background: '#0284c7', display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 16px', fontWeight: 700 }}
                 >
                   <Printer size={16} /> Print / Save PDF
                 </button>
@@ -2292,119 +2768,239 @@ export default function LaboratoryPage() {
                   type="button"
                   onClick={() => setPrintModalOrder(null)}
                   className="btn-secondary"
-                  style={{ padding: '8px 14px' }}
+                  style={{ padding: '7px 12px' }}
                 >
                   <X size={16} /> Close
                 </button>
               </div>
             </div>
 
+            {/* Document Header */}
+            <div style={{ textAlign: 'center', borderBottom: '2px solid #0f172a', paddingBottom: '12px' }}>
+              <h1 style={{ fontSize: '1.45rem', fontWeight: 900, color: '#0369a1', margin: 0, letterSpacing: '-0.02em', textTransform: 'uppercase' }}>
+                HUDERMA SPECIALIZED CLINIC &amp; CENTRAL LABORATORY
+              </h1>
+              <div style={{ fontSize: '0.8rem', color: '#475569', marginTop: '3px', fontWeight: 600 }}>
+                Dermatology, Venereology &amp; Medical Diagnostic Center • Bole Sub-City, Addis Ababa, Ethiopia
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
+                Tel: +251 11 667 8900 / +251 911 234567 • Email: info@huderma.com • ISO 15189 Certified LIS
+              </div>
+
+              <div style={{ marginTop: '10px', display: 'inline-block', padding: '4px 18px', background: printModalMode === 'requisition' ? '#e0f2fe' : '#f0fdf4', borderRadius: '4px', border: `1px solid ${printModalMode === 'requisition' ? '#bae6fd' : '#bbf7d0'}` }}>
+                <span style={{ fontSize: '0.9rem', fontWeight: 800, color: printModalMode === 'requisition' ? '#0369a1' : '#15803d', letterSpacing: '0.04em' }}>
+                  {printModalMode === 'requisition'
+                    ? 'LABORATORY INVESTIGATION REQUISITION & REFERRAL FORM'
+                    : 'CLINICAL LABORATORY EXAMINATION REPORT'}
+                </span>
+              </div>
+              {printModalMode === 'requisition' && (
+                <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '3px', fontStyle: 'italic' }}>
+                  (For Internal Sample Collection or External Diagnostic Referral)
+                </div>
+              )}
+            </div>
+
             {/* Patient & Requisition Demographics */}
-            <div style={{ background: '#f8fafc', borderRadius: '8px', padding: '16px', border: '1px solid #e2e8f0', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', fontSize: '0.82rem' }}>
+            <div style={{ background: '#f8fafc', borderRadius: '8px', padding: '14px 18px', border: '1px solid #cbd5e1', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', fontSize: '0.8rem' }}>
               <div>
-                <span style={{ color: 'var(--text-muted)' }}>Patient Name:</span>
-                <div style={{ fontWeight: 800, color: 'var(--text-main)', fontSize: '0.95rem' }}>{printModalOrder.patientName}</div>
+                <span style={{ color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 700 }}>Patient Full Name:</span>
+                <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.95rem' }}>{printModalOrder.patientName}</div>
               </div>
               <div>
-                <span style={{ color: 'var(--text-muted)' }}>Order / Barcode No:</span>
-                <div style={{ fontWeight: 800, color: '#0284c7', fontFamily: 'monospace' }}>{printModalOrder.orderNo} ({printModalOrder.barcode})</div>
+                <span style={{ color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 700 }}>Patient MRN:</span>
+                <div style={{ fontWeight: 800, color: '#0369a1', fontFamily: 'monospace' }}>{printModalOrder.mrn || 'N/A'}</div>
               </div>
               <div>
-                <span style={{ color: 'var(--text-muted)' }}>Specimen Type:</span>
-                <div style={{ fontWeight: 700 }}>{printModalOrder.sampleType || 'Whole Blood (EDTA)'}</div>
+                <span style={{ color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 700 }}>Gender / Age:</span>
+                <div style={{ fontWeight: 700 }}>
+                  {printModalOrder.gender || '---'} / {printModalOrder.dateOfBirth ? (new Date().getFullYear() - new Date(printModalOrder.dateOfBirth).getFullYear()) + ' Yrs' : '---'}
+                </div>
               </div>
               <div>
-                <span style={{ color: 'var(--text-muted)' }}>Requisition Date:</span>
-                <div style={{ fontWeight: 600 }}>{printModalOrder.orderedAt ? new Date(printModalOrder.orderedAt).toLocaleString() : new Date().toLocaleDateString()}</div>
+                <span style={{ color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 700 }}>Order / Barcode No:</span>
+                <div style={{ fontWeight: 800, color: '#0f172a', fontFamily: 'monospace' }}>{printModalOrder.orderNo}</div>
+              </div>
+
+              <div>
+                <span style={{ color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 700 }}>Requested Date:</span>
+                <div style={{ fontWeight: 600 }}>{printModalOrder.orderedAt ? new Date(printModalOrder.orderedAt).toLocaleString() : new Date().toLocaleString()}</div>
               </div>
               <div>
-                <span style={{ color: 'var(--text-muted)' }}>Verification Status:</span>
+                <span style={{ color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 700 }}>Specimen Type:</span>
+                <div style={{ fontWeight: 700 }}>{printModalOrder.sampleType || 'Whole Blood / Serum'}</div>
+              </div>
+              <div>
+                <span style={{ color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 700 }}>Billing Status:</span>
                 <div>
-                  <span style={{ padding: '2px 8px', borderRadius: '4px', background: '#dcfce7', color: '#15803d', fontWeight: 800, fontSize: '0.72rem' }}>
-                    CERTIFIED & VERIFIED
+                  <span style={{ padding: '2px 8px', borderRadius: '4px', background: printModalOrder.isPaid ? '#dcfce7' : '#fef3c7', color: printModalOrder.isPaid ? '#15803d' : '#92400e', fontWeight: 800, fontSize: '0.7rem' }}>
+                    {printModalOrder.isPaid ? 'PAID / SETTLED' : 'EXTERNAL REFERRAL / UNPAID'}
                   </span>
                 </div>
               </div>
               <div>
-                <span style={{ color: 'var(--text-muted)' }}>Payment Status:</span>
+                <span style={{ color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 700 }}>Document Status:</span>
                 <div>
-                  <span style={{ padding: '2px 8px', borderRadius: '4px', background: '#e0f2fe', color: '#0369a1', fontWeight: 800, fontSize: '0.72rem' }}>
-                    PAID / SETTLED
+                  <span style={{ padding: '2px 8px', borderRadius: '4px', background: printModalMode === 'requisition' ? '#e0f2fe' : '#dcfce7', color: printModalMode === 'requisition' ? '#0369a1' : '#15803d', fontWeight: 800, fontSize: '0.7rem' }}>
+                    {printModalMode === 'requisition' ? 'OFFICIAL REQUISITION' : 'CERTIFIED & VERIFIED'}
                   </span>
                 </div>
               </div>
+
+              {printModalOrder.clinicalInfo && (
+                <div style={{ gridColumn: 'span 4', borderTop: '1px solid #e2e8f0', paddingTop: '6px' }}>
+                  <span style={{ color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 700 }}>Clinical Indications / Notes:</span>
+                  <div style={{ fontWeight: 600, color: '#334155', fontStyle: 'italic' }}>{printModalOrder.clinicalInfo}</div>
+                </div>
+              )}
             </div>
 
-            {/* Test Profile Results - one section per test */}
-            {(printModalOrder.tests && printModalOrder.tests.length > 0
-              ? printModalOrder.tests
-              : [{ itemId: 0, testCode: printModalOrder.testCode, testName: printModalOrder.testName, barcode: printModalOrder.barcode, sampleType: printModalOrder.sampleType, status: printModalOrder.status, results: {} }]
-            ).map((test: OrderTestItem, tIdx: number) => {
-              const testCatalogItem = catalog.find(c => c.code === test.testCode) || { parameters: [{ code: test.testCode, name: test.testName, unit: 'U/L', min: 0, max: 100 }] };
-              const params = testCatalogItem.parameters || [];
-              return (
-                <div key={test.itemId || tIdx} style={{ marginBottom: tIdx < (printModalOrder.tests?.length ?? 1) - 1 ? '24px' : 0 }}>
-                  <div style={{ fontSize: '1.0rem', fontWeight: 800, color: 'var(--text-main)', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px', marginBottom: '10px', display: 'flex', gap: '10px', alignItems: 'center' }}>
-                    <span>Test: {test.testName} ({test.testCode})</span>
-                    <code style={{ fontSize: '0.72rem', color: '#334155', background: '#f1f5f9', padding: '1px 6px', borderRadius: '3px' }}>{test.barcode}</code>
+            {/* BODY 1: REQUISITION MODE (Ordered Tests Table for Internal or External Lab) */}
+            {printModalMode === 'requisition' && (
+              <div>
+                <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>Requested Diagnostic Investigations ({printModalOrder.tests.length}):</span>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Barcode: <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '3px' }}>{printModalOrder.barcode}</code></span>
+                </div>
+
+                <table className="cms-table" style={{ background: '#ffffff', margin: 0, width: '100%', border: '1px solid #cbd5e1' }}>
+                  <thead style={{ background: '#f1f5f9' }}>
+                    <tr>
+                      <th style={{ width: '40px', textAlign: 'center' }}>#</th>
+                      <th style={{ textAlign: 'left' }}>Investigation / Profile Name</th>
+                      <th style={{ textAlign: 'left' }}>Test Code</th>
+                      <th style={{ textAlign: 'left' }}>Category / Discipline</th>
+                      <th style={{ textAlign: 'left' }}>Specimen Type</th>
+                      <th style={{ textAlign: 'center' }}>Order Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {printModalOrder.tests.map((test, idx) => {
+                      const catItem = catalog.find(c => c.code === test.testCode);
+                      return (
+                        <tr key={test.itemId || idx}>
+                          <td style={{ textAlign: 'center', fontWeight: 700, color: '#64748b' }}>{idx + 1}</td>
+                          <td style={{ fontWeight: 700, color: '#0f172a' }}>{test.testName}</td>
+                          <td style={{ fontFamily: 'monospace', color: '#0284c7', fontWeight: 700 }}>{test.testCode}</td>
+                          <td style={{ color: '#475569' }}>{catItem?.category || 'Clinical Pathology'}</td>
+                          <td style={{ color: '#475569' }}>{test.sampleType || 'Whole Blood / Serum'}</td>
+                          <td style={{ textAlign: 'center' }}>
+                            <span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, background: '#f1f5f9', color: '#334155' }}>
+                              Order Active
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+
+                {/* External Referral Directives */}
+                <div style={{ marginTop: '16px', padding: '12px 16px', background: '#f0f9ff', borderRadius: '8px', border: '1px solid #bae6fd', fontSize: '0.78rem' }}>
+                  <strong style={{ color: '#0369a1' }}>Notice to Receiving Laboratory / Diagnostic Facility:</strong>
+                  <div style={{ color: '#334155', marginTop: '4px' }}>
+                    Please perform the diagnostic investigation(s) specified above for the referenced patient. Provide the certified examination report including biological reference intervals to the patient or directly to Huderma Specialty Clinic for clinical review.
                   </div>
-                  <table className="cms-table" style={{ background: '#ffffff', margin: 0 }}>
-                    <thead style={{ background: '#f1f5f9' }}>
-                      <tr>
-                        <th style={{ textAlign: 'left' }}>Analyte / Test Parameter</th>
-                        <th style={{ textAlign: 'left' }}>Code</th>
-                        <th style={{ textAlign: 'center' }}>Observed Result</th>
-                        <th style={{ textAlign: 'center' }}>Unit</th>
-                        <th style={{ textAlign: 'center' }}>Reference Interval</th>
-                        <th style={{ textAlign: 'center' }}>Interpretation</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {params.map((p: any) => {
-                        const resultKey = `${test.itemId}:${p.code}`;
-                        const val = printModalOrder.results[resultKey] || printModalOrder.results[p.code] || '---';
-                        const flag = calculateParamFlag(val, p.min, p.max);
-                        const isAbnormal = flag !== 'Normal' && val !== '---';
-                        return (
-                          <tr key={p.code}>
-                            <td style={{ fontWeight: 700, color: 'var(--text-main)' }}>{p.name}</td>
-                            <td style={{ fontFamily: 'monospace', color: '#0284c7' }}>{p.code}</td>
-                            <td style={{ textAlign: 'center', fontWeight: 800, fontSize: '0.95rem', color: isAbnormal ? '#dc2626' : '#0f172a' }}>{val}</td>
-                            <td style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)' }}>{p.unit}</td>
-                            <td style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                              {p.min !== undefined && p.max !== undefined ? `${p.min} – ${p.max}` : 'Normative'}
-                            </td>
-                            <td style={{ textAlign: 'center' }}>
-                              <span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 700, background: isAbnormal ? '#fee2e2' : '#dcfce7', color: isAbnormal ? '#b91c1c' : '#15803d' }}>
-                                {val === '---' ? 'Pending' : flag}
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
                 </div>
-              );
-            })}
 
-            {/* Pathologist / Laboratory Director Signatures */}
-            <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px dashed #cbd5e1', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', fontSize: '0.78rem' }}>
+                {/* Signatures Block for Requisition */}
+                <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px dashed #cbd5e1', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', fontSize: '0.76rem' }}>
+                  <div>
+                    <div style={{ height: '36px', borderBottom: '1px solid #64748b', width: '160px', marginBottom: '4px' }} />
+                    <div style={{ fontWeight: 800, color: '#0f172a' }}>Referring Clinician / Doctor</div>
+                    <div style={{ color: '#64748b' }}>Huderma Specialty Clinic</div>
+                  </div>
+                  <div>
+                    <div style={{ height: '36px', borderBottom: '1px solid #64748b', width: '160px', marginBottom: '4px' }} />
+                    <div style={{ fontWeight: 800, color: '#0f172a' }}>Specimen Phlebotomist</div>
+                    <div style={{ color: '#64748b' }}>Sample Collection Sign-off</div>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ height: '50px', border: '1px dashed #94a3b8', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '0.7rem' }}>
+                      Official Clinic Stamp Box
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* BODY 2: REPORT MODE (Full Verified Results Table) */}
+            {printModalMode === 'report' && (
               <div>
-                <div style={{ height: '36px', borderBottom: '1px solid #64748b', width: '180px', marginBottom: '4px' }} />
-                <div style={{ fontWeight: 800, color: 'var(--text-main)' }}>Medical Laboratory Technologist</div>
-                <div style={{ color: 'var(--text-muted)' }}>License # ETH-MLT-84920 • LIS System Verified</div>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ height: '36px', borderBottom: '1px solid #64748b', width: '180px', marginLeft: 'auto', marginBottom: '4px' }} />
-                <div style={{ fontWeight: 800, color: 'var(--text-main)' }}>Consultant Clinical Pathologist</div>
-                <div style={{ color: 'var(--text-muted)' }}>HUDERMA Central Laboratories</div>
-              </div>
-            </div>
+                {(printModalOrder.tests && printModalOrder.tests.length > 0
+                  ? printModalOrder.tests
+                  : [{ itemId: 0, testCode: printModalOrder.testCode, testName: printModalOrder.testName, barcode: printModalOrder.barcode, sampleType: printModalOrder.sampleType, status: printModalOrder.status, results: {} }]
+                ).map((test: OrderTestItem, tIdx: number) => {
+                  const testCatalogItem = catalog.find(c => c.code === test.testCode) || { parameters: [{ code: test.testCode, name: test.testName, unit: 'U/L', min: 0, max: 100 }] };
+                  const params = testCatalogItem.parameters || [];
+                  return (
+                    <div key={test.itemId || tIdx} style={{ marginBottom: tIdx < (printModalOrder.tests?.length ?? 1) - 1 ? '22px' : 0 }}>
+                      <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px', marginBottom: '8px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+                        <span>Test: {test.testName} ({test.testCode})</span>
+                        <code style={{ fontSize: '0.72rem', color: '#334155', background: '#f1f5f9', padding: '1px 6px', borderRadius: '3px' }}>{test.barcode}</code>
+                        <span style={{ marginLeft: 'auto', fontSize: '0.7rem', fontWeight: 700, color: '#15803d', background: '#dcfce7', padding: '2px 8px', borderRadius: '4px' }}>
+                          ✓ Certified
+                        </span>
+                      </div>
+                      <table className="cms-table" style={{ background: '#ffffff', margin: 0, width: '100%', border: '1px solid #cbd5e1' }}>
+                        <thead style={{ background: '#f1f5f9' }}>
+                          <tr>
+                            <th style={{ textAlign: 'left' }}>Analyte / Test Parameter</th>
+                            <th style={{ textAlign: 'left' }}>Code</th>
+                            <th style={{ textAlign: 'center' }}>Observed Result</th>
+                            <th style={{ textAlign: 'center' }}>Unit</th>
+                            <th style={{ textAlign: 'center' }}>Reference Interval</th>
+                            <th style={{ textAlign: 'center' }}>Interpretation</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {params.map((p: any) => {
+                            const resultKey = `${test.itemId}:${p.code}`;
+                            const val = printModalOrder.results[resultKey] || printModalOrder.results[p.code] || '---';
+                            const flag = calculateParamFlag(val, p.min, p.max);
+                            const isAbnormal = flag !== 'Normal' && val !== '---';
+                            return (
+                              <tr key={p.code}>
+                                <td style={{ fontWeight: 700, color: 'var(--text-main)' }}>{p.name}</td>
+                                <td style={{ fontFamily: 'monospace', color: '#0284c7' }}>{p.code}</td>
+                                <td style={{ textAlign: 'center', fontWeight: 800, fontSize: '0.95rem', color: isAbnormal ? '#dc2626' : '#0f172a' }}>{val}</td>
+                                <td style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)' }}>{p.unit}</td>
+                                <td style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                  {p.min !== undefined && p.max !== undefined ? `${p.min} – ${p.max}` : 'Normative'}
+                                </td>
+                                <td style={{ textAlign: 'center' }}>
+                                  <span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 700, background: isAbnormal ? '#fee2e2' : '#dcfce7', color: isAbnormal ? '#b91c1c' : '#15803d' }}>
+                                    {val === '---' ? 'Pending' : flag}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })}
 
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textAlign: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '10px' }}>
-              Notice: This electronic medical laboratory document was authenticated via HUDERMA Clinic Management LIS. Results relate only to the specimen tested.
-            </div>
+                {/* Pathologist / Laboratory Director Signatures */}
+                <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px dashed #cbd5e1', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', fontSize: '0.78rem' }}>
+                  <div>
+                    <div style={{ height: '36px', borderBottom: '1px solid #64748b', width: '180px', marginBottom: '4px' }} />
+                    <div style={{ fontWeight: 800, color: 'var(--text-main)' }}>Medical Laboratory Technologist</div>
+                    <div style={{ color: 'var(--text-muted)' }}>License # ETH-MLT-84920 • LIS Authenticated</div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ height: '36px', borderBottom: '1px solid #64748b', width: '180px', marginLeft: 'auto', marginBottom: '4px' }} />
+                    <div style={{ fontWeight: 800, color: 'var(--text-main)' }}>Consultant Clinical Pathologist</div>
+                    <div style={{ color: 'var(--text-muted)' }}>HUDERMA Central Laboratories</div>
+                  </div>
+                </div>
+
+                <div style={{ fontSize: '0.7rem', color: '#64748b', textAlign: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '10px' }}>
+                  Notice: This electronic medical laboratory document was authenticated via HUDERMA Clinic Management LIS. Results relate only to the specimen tested.
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
