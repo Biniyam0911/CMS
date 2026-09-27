@@ -52,3 +52,15 @@
 2026-09-25 23:25:21.605 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-25T23:25:21.6056509+03:00"
 2026-09-25 23:26:21.617 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-25T23:26:21.6173350+03:00"
 2026-09-25 23:26:42.155 +03:00 [INF] Application is shutting down...
+2026-09-25 23:35:27.062 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-25T23:35:27.0098434+03:00"
+2026-09-25 23:35:27.174 +03:00 [INF] Starting LabInstrumentListenerWorker TCP listener on Port 5100...
+2026-09-25 23:35:27.192 +03:00 [WRN] Port 5100 could not be bound ("AddressAlreadyInUse"). It may be active in the API process.
+2026-09-25 23:35:27.204 +03:00 [INF] Application started. Press Ctrl+C to shut down.
+2026-09-25 23:35:27.208 +03:00 [INF] Hosting environment: Development
+2026-09-25 23:35:27.211 +03:00 [INF] Content root path: C:\Users\ASUS\source\repos\CMS\src\CMS.ServiceManager
+2026-09-25 23:36:27.176 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-25T23:36:27.1767414+03:00"
+2026-09-25 23:37:27.186 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-25T23:37:27.1865602+03:00"
+2026-09-25 23:38:27.200 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-25T23:38:27.2005667+03:00"
+2026-09-25 23:39:27.220 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-25T23:39:27.2202788+03:00"
+2026-09-25 23:40:27.230 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-09-25T23:40:27.2305702+03:00"
+2026-09-25 23:40:57.840 +03:00 [INF] Application is shutting down...

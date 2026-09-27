@@ -89,19 +89,26 @@ export default function BillingPage() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  const getLocalDateStr = (d = new Date()) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const getDateRangeForPeriod = (period: DatePeriod, cStart?: string, cEnd?: string) => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateStr();
     if (period === 'TODAY') {
       return { fromDate: today, toDate: today };
     }
     if (period === 'WEEK') {
       const d = new Date();
       d.setDate(d.getDate() - 7);
-      return { fromDate: d.toISOString().split('T')[0], toDate: today };
+      return { fromDate: getLocalDateStr(d), toDate: today };
     }
     if (period === 'MONTH') {
       const now = new Date();
-      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+      const firstDay = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
       return { fromDate: firstDay, toDate: today };
     }
     if (period === 'CUSTOM') {

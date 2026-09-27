@@ -63,8 +63,14 @@ export default function PharmacyPage() {
   const [doQty, setDoQty] = useState('1');
   const [doSubmitting, setDoSubmitting] = useState(false);
 
-  // Date Filter States (defaults to Today)
-  const todayDateStr = new Date().toISOString().split('T')[0];
+  // Date Filter States (defaults to Today in local timezone)
+  const getLocalDateStr = (d = new Date()) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+  const todayDateStr = getLocalDateStr();
   const [dispensaryDate, setDispensaryDate] = useState<string>(todayDateStr);
   const [soldDate, setSoldDate] = useState<string>(todayDateStr);
 

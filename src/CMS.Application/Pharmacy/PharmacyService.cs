@@ -181,19 +181,7 @@ public class PharmacyService
                    ISNULL(s.FirstName + ' ' + s.LastName, ISNULL(u.FirstName + ' ' + u.LastName, 'Attending Doctor')) AS DoctorName,
                    pr.PrescribedAt,
                    CAST(CASE WHEN pr.IsDispensed = 1 THEN 4 ELSE 1 END AS TINYINT) AS StatusId,
-                   CASE 
-                       WHEN EXISTS (
-                           SELECT 1 FROM InvoiceItems ii WITH (NOLOCK)
-                           JOIN Invoices inv WITH (NOLOCK) ON inv.Id = ii.InvoiceId 
-                           WHERE (ii.RefId = pr.Id OR inv.EncounterId = pr.EncounterId)
-                             AND inv.PaidAmount >= inv.TotalAmount AND inv.TotalAmount > 0
-                       ) THEN 1 
-                       WHEN EXISTS (
-                           SELECT 1 FROM Invoices inv WITH (NOLOCK)
-                           WHERE inv.PatientId = pr.PatientId AND (inv.EncounterId = pr.EncounterId OR CAST(inv.IssueDate AS DATE) = CAST(pr.PrescribedAt AS DATE)) AND inv.PaidAmount >= inv.TotalAmount AND inv.TotalAmount > 0
-                       ) THEN 1
-                       ELSE 0 
-                   END AS IsPaid
+                   pr.IsDispensed
             FROM Prescriptions pr WITH (NOLOCK)
             JOIN Patients p WITH (NOLOCK) ON p.Id = pr.PatientId
             LEFT JOIN Users u WITH (NOLOCK) ON u.Id = pr.PrescribedBy
@@ -206,7 +194,10 @@ public class PharmacyService
         var result = new List<PrescriptionDto>();
 
         var pIds = list.Select(p => (int)p.Id).ToList();
+        var patientIds = list.Select(p => (int)p.PatientId).Distinct().ToList();
         var itemsByPrescription = new Dictionary<int, List<PrescriptionItemDto>>();
+        var paidPrescriptionIds = new HashSet<int>();
+        var paidPatientDates = new HashSet<string>();
 
         if (pIds.Any())
         {
@@ -223,18 +214,52 @@ public class PharmacyService
                 WHERE pi.PrescriptionId IN @PrescriptionIds";
             var allItems = await conn.QueryAsync<PrescriptionItemDto>(itemsSql, new { PrescriptionIds = pIds });
             itemsByPrescription = allItems.GroupBy(x => x.PrescriptionId).ToDictionary(g => g.Key, g => g.ToList());
+
+            // 1. Check InvoiceItems where RefId matches prescription IDs
+            var paidRefSql = @"
+                SELECT DISTINCT ii.RefId
+                FROM InvoiceItems ii WITH (NOLOCK)
+                JOIN Invoices inv WITH (NOLOCK) ON inv.Id = ii.InvoiceId
+                WHERE ii.RefId IN @PrescriptionIds
+                  AND (inv.StatusId = 4 OR (inv.PaidAmount >= inv.TotalAmount AND inv.TotalAmount > 0))";
+            var paidRefs = await conn.QueryAsync<int>(paidRefSql, new { PrescriptionIds = pIds });
+            foreach (var r in paidRefs) paidPrescriptionIds.Add(r);
+
+            // 2. Check Paid Invoices for matching patients and dates
+            var paidInvSql = @"
+                SELECT DISTINCT inv.PatientId, inv.IssueDate
+                FROM Invoices inv WITH (NOLOCK)
+                WHERE inv.PatientId IN @PatientIds
+                  AND (inv.StatusId = 4 OR (inv.PaidAmount >= inv.TotalAmount AND inv.TotalAmount > 0))";
+            var paidInvs = await conn.QueryAsync<dynamic>(paidInvSql, new { PatientIds = patientIds });
+            foreach (var inv in paidInvs)
+            {
+                int pid = (int)inv.PatientId;
+                if (inv.IssueDate != null)
+                {
+                    DateTime d = (DateTime)inv.IssueDate;
+                    paidPatientDates.Add($"{pid}:{d:yyyy-MM-dd}");
+                }
+            }
         }
 
         foreach (var p in list)
         {
             int presId = (int)p.Id;
+            int patId = (int)p.PatientId;
+            DateTime pDate = (DateTime)p.PrescribedAt;
+            bool isDispensed = (p.IsDispensed != null && (bool)p.IsDispensed) || (byte)p.StatusId == 4;
+            bool isPaid = isDispensed 
+                || paidPrescriptionIds.Contains(presId) 
+                || paidPatientDates.Contains($"{patId}:{pDate:yyyy-MM-dd}");
+
             var items = itemsByPrescription.TryGetValue(presId, out var itms) ? itms : new List<PrescriptionItemDto>();
 
             result.Add(new PrescriptionDto(
-                presId, (byte)p.TenantId, (int)p.EncounterId, (int)p.PatientId,
+                presId, (byte)p.TenantId, (int)p.EncounterId, patId,
                 (string)p.PatientName, (int)(p.DoctorId ?? 1), (string)(p.DoctorName ?? "Attending Doctor"),
-                (DateTime)p.PrescribedAt, (byte)p.StatusId, items,
-                (int)p.IsPaid == 1, (string?)p.MRN
+                pDate, (byte)p.StatusId, items,
+                isPaid, (string?)p.MRN
             ));
         }
 

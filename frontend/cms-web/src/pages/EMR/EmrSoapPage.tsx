@@ -105,8 +105,15 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
   const [selectedDoctorId, setSelectedDoctorId] = useState<number>(initialDoctorId);
   const [availableDoctors, setAvailableDoctors] = useState<{ id: number; name: string; specialization?: string }[]>([]);
 
+  const getLocalDateStr = (d = new Date()) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   // Date Selector State for Logged-In Doctor Queue
-  const [consultDate, setConsultDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [consultDate, setConsultDate] = useState<string>(getLocalDateStr());
 
   // Patients Assigned to Doctor Queue
   const [patients, setPatients] = useState<any[]>([]);
@@ -1266,6 +1273,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
 
       // 2. Dispatch Pharmacy Prescriptions
       const rxItems = currentBasket.filter(x => x.type === 'RX');
+      let createdPrescriptionId: number | null = null;
       if (rxItems.length > 0) {
         setMedications(prev => [
           ...prev,
@@ -1279,7 +1287,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
         ]);
 
         try {
-          await api.post('/pharmacy/prescriptions', {
+          const rxRes: any = await api.post('/pharmacy/prescriptions', {
             tenantId: 1,
             patientId: patId,
             doctorId: selectedDoctorId || 1,
@@ -1294,13 +1302,17 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
               instructions: `${r.title} - ${r.details?.timing || 'Take as directed'}`
             }))
           });
+          const presId = rxRes?.prescriptionId || rxRes?.PrescriptionId || rxRes?.data?.prescriptionId || rxRes?.data?.PrescriptionId;
+          if (presId && Number(presId) > 0) {
+            createdPrescriptionId = Number(presId);
+          }
         } catch (rxErr) {
           console.warn('Prescription backend dispatch error:', rxErr);
         }
 
         setHistoryPrescriptions(prev => [
           {
-            id: Date.now(),
+            id: createdPrescriptionId || Date.now(),
             patientId: patId,
             prescribedAt: new Date().toISOString(),
             items: rxItems.map(r => ({
@@ -1377,6 +1389,8 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
         if (item.type === 'LAB') {
           refId = labOrderIds[labIndex] > 0 ? labOrderIds[labIndex] : null;
           labIndex++;
+        } else if (item.type === 'RX') {
+          refId = createdPrescriptionId;
         }
         return {
           itemType: item.type === 'LAB' ? 'Laboratory' : (item.type === 'RX' ? 'Pharmacy' : ((item.type as string) === 'CONSULTATION' ? 'Consultation' : 'Procedure')),
