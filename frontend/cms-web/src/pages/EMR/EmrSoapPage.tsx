@@ -1218,55 +1218,47 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
     const doctorId = selectedDoctorId || (availableDoctors.length > 0 ? availableDoctors[0].id : null);
 
     try {
-      // 1. Dispatch Laboratory Orders — POST individually so we get each OrderId for billing RefId linkage
+      // 1. Dispatch Laboratory Orders — batch ALL tests into ONE order so they share an OrderNumber/barcode
       const labItems = currentBasket.filter(x => x.type === 'LAB');
-      const labOrderIds: number[] = []; // Will be used as RefId in invoice items
+      let batchedLabOrderId = 0; // Single orderId shared across all lab billing line items
 
-      for (const labItem of labItems) {
-        const testId = labItem.details?.testId && Number(labItem.details.testId) > 0
-          ? Number(labItem.details.testId)
-          : null;
+      if (labItems.length > 0 && doctorId) {
+        // Collect all valid testIds; skip items with no testId
+        const validTestIds = labItems
+          .map(item => item.details?.testId && Number(item.details.testId) > 0 ? Number(item.details.testId) : null)
+          .filter((id): id is number => id !== null);
 
-        if (!testId) {
-          console.warn('Skipping lab item with no valid testId:', labItem);
-          labOrderIds.push(0);
-          continue;
+        if (validTestIds.length > 0) {
+          try {
+            const labRes: any = await api.post('/laboratory/orders', {
+              tenantId: 1,
+              patientId: patId,
+              encounterId: null,
+              orderedBy: doctorId,
+              priority: 2,
+              clinicalInfo: labItems.map(l => l.title).join(', '),
+              testIds: validTestIds
+            });
+            batchedLabOrderId = Number(labRes?.orderId || labRes?.OrderId || labRes?.data?.orderId || 0);
+          } catch (labErr) {
+            console.warn('Lab order backend dispatch error:', labErr);
+          }
         }
-
-        if (!doctorId) {
-          console.warn('No valid doctorId to create lab order for:', labItem.title);
-          labOrderIds.push(0);
-          continue;
-        }
-
-        try {
-          const labRes: any = await api.post('/laboratory/orders', {
-            tenantId: 1,
-            patientId: patId,
-            encounterId: null,
-            orderedBy: doctorId,
-            priority: 2,
-            clinicalInfo: `${labItem.title} (${labItem.paramsSummary})`,
-            testIds: [testId]
-          });
-          const orderId = labRes?.orderId || labRes?.OrderId || labRes?.data?.orderId || 0;
-          labOrderIds.push(Number(orderId));
-        } catch (labErr) {
-          console.warn('Lab order backend dispatch error:', labErr);
-          labOrderIds.push(0);
-        }
+      } else if (labItems.length > 0 && !doctorId) {
+        console.warn('No valid doctorId — lab orders skipped.');
       }
 
       if (labItems.length > 0) {
+        // Show one grouped order entry in local history (matches batched backend order)
         setHistoryLabOrders(prev => [
-          ...labItems.map((l, i) => ({
-            id: Date.now() + i,
-            orderNumber: `LAB-${Date.now() + i}`,
+          {
+            id: batchedLabOrderId > 0 ? batchedLabOrderId : Date.now(),
+            orderNumber: batchedLabOrderId > 0 ? `LAB-1-${String(batchedLabOrderId).padStart(6, '0')}` : `LAB-${Date.now()}`,
             patientId: patId,
-            clinicalInfo: l.title,
+            clinicalInfo: labItems.map(l => l.title).join(', '),
             statusName: 'Processing',
             orderDate: new Date().toISOString()
-          })),
+          },
           ...prev
         ]);
       }
@@ -1383,12 +1375,10 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
       }
 
       // 5. Database Billing Invoice Creation for Billable Items
-      let labIndex = 0;
       const billableItems = currentBasket.filter(x => x.price > 0).map(item => {
         let refId: number | null = null;
         if (item.type === 'LAB') {
-          refId = labOrderIds[labIndex] > 0 ? labOrderIds[labIndex] : null;
-          labIndex++;
+          refId = batchedLabOrderId > 0 ? batchedLabOrderId : null; // All lab items share one order
         } else if (item.type === 'RX') {
           refId = createdPrescriptionId;
         }
