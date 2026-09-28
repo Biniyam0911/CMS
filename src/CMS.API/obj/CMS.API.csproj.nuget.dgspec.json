@@ -86,6 +86,10 @@
               "target": "Package",
               "version": "[1.2.0, )"
             },
+            "Microsoft.Extensions.Hosting.WindowsServices": {
+              "target": "Package",
+              "version": "[8.0.0, )"
+            },
             "QuestPDF": {
               "target": "Package",
               "version": "[2024.10.3, )"

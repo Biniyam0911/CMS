@@ -1,0 +1,27 @@
+2026-09-28 23:11:35.106 +03:00 [INF] Cache: Redis not connected. Using MemoryCacheService fallback
+2026-09-28 23:11:36.038 +03:00 [INF] User profile is available. Using 'C:\Users\ASUS\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
+2026-09-28 23:11:36.073 +03:00 [INF] [2026-09-28 23:11:36.063] LISTENER STARTED: Passively waiting for analyzer connections on 0.0.0.0:8004...
+2026-09-28 23:11:36.076 +03:00 [INF] [2026-09-28 23:11:36.075] LISTENER STARTED: Passively waiting for analyzer connections on 0.0.0.0:10001...
+2026-09-28 23:11:36.077 +03:00 [INF] [2026-09-28 23:11:36.077] LISTENER STARTED: Passively waiting for analyzer connections on 0.0.0.0:10002...
+2026-09-28 23:11:36.219 +03:00 [INF] Now listening on: http://0.0.0.0:5010
+2026-09-28 23:11:36.219 +03:00 [INF] Now listening on: http://localhost:5010
+2026-09-28 23:11:36.219 +03:00 [INF] Application started. Press Ctrl+C to shut down.
+2026-09-28 23:11:36.219 +03:00 [INF] Hosting environment: Development
+2026-09-28 23:11:36.219 +03:00 [INF] Content root path: C:\Users\ASUS\source\repos\CMS\src\CMS.API
+2026-09-28 23:12:01.502 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/telemed/telegram/webhook - null null
+2026-09-28 23:12:01.660 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.TelemedController.TelegramVerify (CMS.API)'
+2026-09-28 23:12:01.683 +03:00 [INF] Route matched with {action = "TelegramVerify", controller = "Telemed"}. Executing controller action with signature Microsoft.AspNetCore.Mvc.IActionResult TelegramVerify() on controller CMS.API.Controllers.TelemedController (CMS.API).
+2026-09-28 23:12:01.706 +03:00 [INF] Executing OkObjectResult, writing value of type 'System.String'.
+2026-09-28 23:12:01.721 +03:00 [INF] Executed action CMS.API.Controllers.TelemedController.TelegramVerify (CMS.API) in 29.3534ms
+2026-09-28 23:12:01.727 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.TelemedController.TelegramVerify (CMS.API)'
+2026-09-28 23:12:01.731 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/telemed/telegram/webhook - 200 null text/plain; charset=utf-8 230.8898ms
+2026-09-28 23:19:20.806 +03:00 [INF] Cache: Redis not connected. Using MemoryCacheService fallback
+2026-09-28 23:19:21.631 +03:00 [INF] User profile is available. Using 'C:\Users\ASUS\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
+2026-09-28 23:19:21.686 +03:00 [INF] [2026-09-28 23:19:21.669] LISTENER STARTED: Passively waiting for analyzer connections on 0.0.0.0:8004...
+2026-09-28 23:19:21.689 +03:00 [INF] [2026-09-28 23:19:21.689] LISTENER STARTED: Passively waiting for analyzer connections on 0.0.0.0:10001...
+2026-09-28 23:19:21.690 +03:00 [INF] [2026-09-28 23:19:21.690] LISTENER STARTED: Passively waiting for analyzer connections on 0.0.0.0:10002...
+2026-09-28 23:19:21.933 +03:00 [INF] Now listening on: http://0.0.0.0:5010
+2026-09-28 23:19:21.934 +03:00 [INF] Now listening on: http://localhost:5010
+2026-09-28 23:19:21.934 +03:00 [INF] Application started. Press Ctrl+C to shut down.
+2026-09-28 23:19:21.934 +03:00 [INF] Hosting environment: Development
+2026-09-28 23:19:21.935 +03:00 [INF] Content root path: C:\Users\ASUS\source\repos\CMS\src\CMS.API
