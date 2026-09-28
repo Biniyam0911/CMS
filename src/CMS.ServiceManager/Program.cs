@@ -1,6 +1,5 @@
 using CMS.Domain.Interfaces;
 using CMS.Infrastructure.Data;
-using CMS.Infrastructure.LabIntegration;
 using CMS.Infrastructure.Notifications;
 using CMS.ServiceManager.Workers;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,12 +18,9 @@ var host = Host.CreateDefaultBuilder(args)
     {
         services.AddSingleton<IDbConnectionFactory, DbConnectionFactory>();
         services.AddTransient<INotificationProvider, SmtpEmailProvider>();
-        services.AddTransient<IHl7Adapter, Hl7Adapter>();
-        services.AddTransient<ILabResultIngestionService, LabResultIngestionService>();
 
         services.AddHostedService<HealthCheckWorker>();
         services.AddHostedService<NotificationDispatchWorker>();
-        services.AddHostedService<LabInstrumentListenerWorker>();
     })
     .Build();
 
