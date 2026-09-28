@@ -219,4 +219,17 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHub<NotificationHub>("/hubs/notifications");
 
-app.Run();
+try
+{
+    Log.Information("CMS API Host starting...");
+    app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "CMS API Host terminated unexpectedly");
+    throw;
+}
+finally
+{
+    Log.CloseAndFlush();
+}
