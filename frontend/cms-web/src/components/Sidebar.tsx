@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Users, FileHeart, Calendar, ListOrdered, FlaskConical,
   Pill, CreditCard, BarChart3, FileSpreadsheet, Globe, ShieldCheck,
   Boxes, Key, Settings, Plug, LogOut, LucideIcon, HeartPulse, Layers,
-  ChevronLeft, ChevronRight, Stethoscope, Activity, Cross, Building, Bed, Video, X
+  ChevronLeft, ChevronRight, Stethoscope, Activity, Cross, Building, Bed, Video, X, KeyRound
 } from 'lucide-react';
 
 import { hasModuleAccess } from '../utils/permissions';
@@ -12,7 +12,7 @@ export type ModuleKey =
   | 'DASHBOARD' | 'PATIENTS' | 'TRIAGE' | 'EMR' | 'INPATIENT' | 'APPOINTMENTS' | 'QUEUE'
   | 'LAB' | 'PHARMACY' | 'BILLING' | 'REPORTS' | 'REPORT_BUILDER'
   | 'PATIENT_PORTAL' | 'USER_MGMT' | 'SERVICE_MGMT' | 'MODULE_MGMT' | 'API_MGMT'
-  | 'SETTINGS' | 'INTEGRATIONS' | 'TELEMED';
+  | 'SETTINGS' | 'INTEGRATIONS' | 'TELEMED' | 'CHANGE_PASSWORD';
 
 interface SidebarProps {
   activeModule: ModuleKey;
@@ -46,6 +46,7 @@ export const MODULE_ITEMS: { key: ModuleKey; label: string; category: string; ic
   { key: 'API_MGMT', label: 'API & Webhooks', category: 'Admin', icon: Key },
   { key: 'SETTINGS', label: 'Clinic Settings', category: 'Admin', icon: Settings },
   { key: 'INTEGRATIONS', label: 'Integrations', category: 'Admin', icon: Plug },
+  { key: 'CHANGE_PASSWORD', label: 'Change Password', category: 'Account', icon: KeyRound },
 ];
 
 const ICON_MAP: Record<string, LucideIcon> = {
@@ -321,8 +322,33 @@ export default function Sidebar({
           </div>
         )}
 
+        {/* User Account / Change Password Button */}
+        <div style={{ padding: effectiveCollapsed ? '6px 6px 0 6px' : '10px 12px 0 12px', borderTop: '1px solid var(--border-color)' }}>
+          <button
+            onClick={() => handleItemClick('CHANGE_PASSWORD')}
+            title={effectiveCollapsed ? 'Change Password' : undefined}
+            style={{
+              display: 'flex', alignItems: 'center',
+              justifyContent: effectiveCollapsed ? 'center' : 'flex-start',
+              gap: '8px', width: '100%',
+              padding: effectiveCollapsed ? '9px' : (isMobile ? '10px 12px' : '7px 10px'),
+              minHeight: isMobile ? '44px' : undefined,
+              borderRadius: '8px',
+              background: activeModule === 'CHANGE_PASSWORD' ? 'rgba(0, 113, 227, 0.09)' : 'transparent',
+              border: activeModule === 'CHANGE_PASSWORD' ? '1px solid rgba(0, 113, 227, 0.18)' : '1px solid transparent',
+              color: activeModule === 'CHANGE_PASSWORD' ? '#0071e3' : 'var(--text-secondary)',
+              fontWeight: activeModule === 'CHANGE_PASSWORD' ? 600 : 500,
+              fontSize: isMobile ? '0.85rem' : '0.78rem',
+              cursor: 'pointer', transition: 'all 0.12s ease'
+            }}
+          >
+            <KeyRound size={effectiveCollapsed ? 18 : 15} color={activeModule === 'CHANGE_PASSWORD' ? '#0071e3' : 'var(--text-muted)'} />
+            {!effectiveCollapsed && <span>Change Password</span>}
+          </button>
+        </div>
+
         {/* Sign Out Button */}
-        <div style={{ padding: effectiveCollapsed ? '10px 6px' : '12px', borderTop: '1px solid var(--border-color)' }}>
+        <div style={{ padding: effectiveCollapsed ? '6px 6px 10px 6px' : '8px 12px 12px 12px' }}>
           <button
             onClick={onLogout}
             title={effectiveCollapsed ? 'Sign Out' : undefined}

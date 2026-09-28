@@ -557,6 +557,8 @@ export default function Header({ title, subtitle, user, clinicName, appIconName 
 
           {/* User Profile Badge */}
           <div
+            onClick={() => onNavigateModule?.('CHANGE_PASSWORD')}
+            title={`Logged in as ${user?.username || 'user'} — Click to Change Password`}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -565,7 +567,9 @@ export default function Header({ title, subtitle, user, clinicName, appIconName 
               borderRadius: '24px',
               background: 'var(--bg-card)',
               border: '1px solid var(--border-color)',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
+              boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
             }}
           >
             <div

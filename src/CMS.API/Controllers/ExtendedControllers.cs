@@ -48,6 +48,32 @@ public class UsersController : ControllerBase
         var roles = await _authService.GetRolesWithPermissionsAsync();
         return Ok(ApiResponse<List<RoleWithPermissionsDto>>.Ok(roles));
     }
+
+    public record AdminResetPasswordDto(
+        string NewPassword,
+        string ConfirmPassword
+    );
+
+    [HttpPost("{userId}/reset-password")]
+    public async Task<IActionResult> AdminResetPassword(int userId, [FromBody] AdminResetPasswordDto dto)
+    {
+        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+
+        if (string.IsNullOrWhiteSpace(dto.NewPassword))
+            return BadRequest(ApiResponse<string>.Fail("New password is required."));
+
+        if (dto.NewPassword != dto.ConfirmPassword)
+            return BadRequest(ApiResponse<string>.Fail("New password and confirmation do not match."));
+
+        if (dto.NewPassword.Length < 6)
+            return BadRequest(ApiResponse<string>.Fail("New password must be at least 6 characters long."));
+
+        var (success, message) = await _authService.AdminResetPasswordAsync(userId, tenantId, dto.NewPassword);
+        if (!success)
+            return BadRequest(ApiResponse<string>.Fail(message));
+
+        return Ok(ApiResponse<string>.Ok(message));
+    }
 }
 
 [ApiController]

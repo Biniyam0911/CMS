@@ -65,6 +65,52 @@ public class AuthController : ControllerBase
 
         return Ok(ApiResponse<LoginResponse>.Ok(new LoginResponse(token, refreshToken, 120, userDto)));
     }
+
+    public record ChangePasswordRequest(
+        string? Username,
+        int? UserId,
+        string OldPassword,
+        string NewPassword,
+        string ConfirmPassword
+    );
+
+    [HttpPost("change-password")]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+    {
+        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+
+        if (string.IsNullOrWhiteSpace(request.OldPassword))
+            return BadRequest(ApiResponse<string>.Fail("Current password is required."));
+
+        if (string.IsNullOrWhiteSpace(request.NewPassword))
+            return BadRequest(ApiResponse<string>.Fail("New password is required."));
+
+        if (request.NewPassword != request.ConfirmPassword)
+            return BadRequest(ApiResponse<string>.Fail("New password and confirm password do not match."));
+
+        if (request.NewPassword.Length < 6)
+            return BadRequest(ApiResponse<string>.Fail("New password must be at least 6 characters long."));
+
+        int? userId = request.UserId;
+        if (!userId.HasValue || userId.Value <= 0)
+        {
+            var claimVal = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (int.TryParse(claimVal, out int parsedId))
+                userId = parsedId;
+        }
+
+        string? username = request.Username;
+        if (string.IsNullOrWhiteSpace(username))
+        {
+            username = User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value;
+        }
+
+        var (success, message) = await _authService.ChangePasswordAsync(userId, username, tenantId, request.OldPassword, request.NewPassword);
+        if (!success)
+            return BadRequest(ApiResponse<string>.Fail(message));
+
+        return Ok(ApiResponse<string>.Ok(message));
+    }
 }
 
 [ApiController]

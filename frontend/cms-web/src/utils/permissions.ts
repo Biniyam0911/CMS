@@ -103,6 +103,9 @@ export async function saveRolePermissions(perms: RolePermissionMap): Promise<voi
 export function hasModuleAccess(userRoles: string[] = [], moduleKey: ModuleKey): boolean {
   if (!userRoles || userRoles.length === 0) return false;
   
+  // Everyone has access to change their own password
+  if (moduleKey === 'CHANGE_PASSWORD') return true;
+
   // SuperAdmin has access to all modules
   if (userRoles.some(r => r.trim().toLowerCase() === 'superadmin')) return true;
 

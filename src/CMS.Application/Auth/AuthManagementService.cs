@@ -192,7 +192,70 @@ public class AuthManagementService
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
-    private static string HashPassword(string password, string salt)
+    public async Task<(bool Success, string Message)> ChangePasswordAsync(int? userId, string? username, byte tenantId, string oldPassword, string newPassword)
+    {
+        if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 6)
+            return (false, "New password must be at least 6 characters long.");
+
+        using var conn = _dbFactory.CreateConnection();
+        var user = await conn.QueryFirstOrDefaultAsync<dynamic>(
+            @"SELECT Id, TenantId, Username, PasswordHash, Salt 
+              FROM Users 
+              WHERE TenantId = @TenantId AND ((@UserId > 0 AND Id = @UserId) OR (Username = @Username))",
+            new { UserId = userId ?? 0, Username = username ?? "", TenantId = tenantId });
+
+        if (user == null)
+            return (false, "User account not found.");
+
+        string salt = (string)user.Salt;
+        string expectedHash = (string)user.PasswordHash;
+        string computedOldHash = HashPassword(oldPassword, salt);
+
+        if (computedOldHash != expectedHash)
+            return (false, "The current password you entered is incorrect.");
+
+        var newSalt = Guid.NewGuid().ToString("N");
+        var newHash = HashPassword(newPassword, newSalt);
+
+        await conn.ExecuteAsync(@"
+            UPDATE Users
+            SET PasswordHash = @PasswordHash,
+                Salt = @Salt,
+                UpdatedAt = GETUTCDATE()
+            WHERE Id = @UserId AND TenantId = @TenantId",
+            new { PasswordHash = newHash, Salt = newSalt, UserId = (int)user.Id, TenantId = tenantId });
+
+        return (true, "Password has been successfully changed.");
+    }
+
+    public async Task<(bool Success, string Message)> AdminResetPasswordAsync(int targetUserId, byte tenantId, string newPassword)
+    {
+        if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 6)
+            return (false, "New password must be at least 6 characters long.");
+
+        using var conn = _dbFactory.CreateConnection();
+        var user = await conn.QueryFirstOrDefaultAsync<dynamic>(
+            "SELECT Id, TenantId FROM Users WHERE Id = @UserId AND TenantId = @TenantId",
+            new { UserId = targetUserId, TenantId = tenantId });
+
+        if (user == null)
+            return (false, "Target user not found.");
+
+        var newSalt = Guid.NewGuid().ToString("N");
+        var newHash = HashPassword(newPassword, newSalt);
+
+        await conn.ExecuteAsync(@"
+            UPDATE Users
+            SET PasswordHash = @PasswordHash,
+                Salt = @Salt,
+                UpdatedAt = GETUTCDATE()
+            WHERE Id = @UserId AND TenantId = @TenantId",
+            new { PasswordHash = newHash, Salt = newSalt, UserId = targetUserId, TenantId = tenantId });
+
+        return (true, "User password has been successfully reset.");
+    }
+
+    public static string HashPassword(string password, string salt)
     {
         using var sha256 = SHA256.Create();
         var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password + salt));

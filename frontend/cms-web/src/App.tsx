@@ -23,6 +23,7 @@ import ApiManagementPage from './pages/ApiManagement/ApiManagementPage';
 import SettingsPage from './pages/Settings/SettingsPage';
 import IntegrationsPage from './pages/Integrations/IntegrationsPage';
 import TelemedQueuePage from './pages/Telemedicine/TelemedQueuePage';
+import ChangePasswordPage from './pages/Auth/ChangePasswordPage';
 import BottomNav from './components/BottomNav';
 import PwaInstallBanner from './components/PwaInstallBanner';
 import { initRolePermissions } from './utils/permissions';
@@ -310,6 +311,7 @@ export default function App() {
           {activeModule === 'SETTINGS' && <SettingsPage />}
           {activeModule === 'INTEGRATIONS' && <IntegrationsPage />}
           {activeModule === 'TELEMED' && <TelemedQueuePage />}
+          {activeModule === 'CHANGE_PASSWORD' && <ChangePasswordPage currentUser={user} />}
         </main>
       </div>
 

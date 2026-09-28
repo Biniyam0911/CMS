@@ -328,18 +328,39 @@ export default function UserManagementPage() {
     setNewUsername(''); setNewFirstName(''); setNewLastName(''); setNewEmail('');
   };
 
-  const handleResetPasswordSubmit = (e: React.FormEvent) => {
+  const [resetError, setResetError] = useState<string | null>(null);
+  const [isResetting, setIsResetting] = useState(false);
+
+  const handleResetPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setResetError(null);
     if (newPassword !== confirmPassword) {
-      alert('Passwords do not match!');
+      setResetError('New password and confirm password do not match.');
       return;
     }
-    setResetSuccess(true);
-    setTimeout(() => {
-      setResetSuccess(false);
-      setShowResetPasswordModal(null);
-      setNewPassword(''); setConfirmPassword('');
-    }, 1500);
+    if (newPassword.length < 6) {
+      setResetError('Password must be at least 6 characters.');
+      return;
+    }
+    try {
+      setIsResetting(true);
+      await api.post(`/users/${showResetPasswordModal.id}/reset-password`, {
+        newPassword,
+        confirmPassword
+      });
+      setResetSuccess(true);
+      setTimeout(() => {
+        setResetSuccess(false);
+        setShowResetPasswordModal(null);
+        setNewPassword('');
+        setConfirmPassword('');
+        setResetError(null);
+      }, 1500);
+    } catch (err: any) {
+      setResetError(err?.response?.data?.message || err?.message || 'Failed to reset password on server.');
+    } finally {
+      setIsResetting(false);
+    }
   };
 
   const handleToggleMfa = (userId: number) => {
@@ -1168,6 +1189,12 @@ export default function UserManagementPage() {
               </div>
             ) : (
               <form onSubmit={handleResetPasswordSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {resetError && (
+                  <div style={{ padding: '10px 14px', borderRadius: '8px', background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <X size={14} />
+                    <span>{resetError}</span>
+                  </div>
+                )}
                 <div>
                   <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>New Password</label>
                   <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} required minLength={6} placeholder="••••••••" />
@@ -1178,8 +1205,11 @@ export default function UserManagementPage() {
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
-                  <button type="button" onClick={() => setShowResetPasswordModal(null)} className="btn-secondary">Cancel</button>
-                  <button type="submit" className="btn-primary">Update Password</button>
+                  <button type="button" disabled={isResetting} onClick={() => { setShowResetPasswordModal(null); setResetError(null); }} className="btn-secondary">Cancel</button>
+                  <button type="submit" disabled={isResetting} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    {isResetting && <Loader2 size={14} className="animate-spin" />}
+                    {isResetting ? 'Updating...' : 'Update Password'}
+                  </button>
                 </div>
               </form>
             )}
