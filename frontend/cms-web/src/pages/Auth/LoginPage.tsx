@@ -32,19 +32,35 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password, tenantId: 1 })
       });
-      const data = await res.json();
-      if (data.success) {
+      let data: any = null;
+      try {
+        data = await res.json();
+      } catch {
+        // Not a JSON response (e.g. IIS 404/502 HTML error page)
+      }
+
+      if (res.ok && data?.success) {
         if (data.data.user.mfaEnabled && !showMfa) {
           setShowMfa(true);
           setLoading(false);
           return;
         }
         onLoginSuccess(data.data.user, data.data.accessToken);
+      } else if (data?.errors?.[0]) {
+        setError(data.errors[0]);
+      } else if (data?.message) {
+        setError(data.message);
+      } else if (res.status === 404) {
+        setError('API route not found (HTTP 404). Ensure IIS URL Rewrite / ARR proxy to port 5010 is enabled.');
+      } else if (res.status === 502 || res.status === 503) {
+        setError(`Bad Gateway (HTTP ${res.status}). CMS.API is not responding on port 5010.`);
+      } else if (!res.ok) {
+        setError(`Server returned HTTP ${res.status} ${res.statusText}`);
       } else {
-        setError(data.errors?.[0] || 'Invalid credentials');
+        setError('Invalid credentials');
       }
-    } catch {
-      setError('Connection to API failed. Ensure CMS.API backend is running on port 5010.');
+    } catch (err: any) {
+      setError(`Network error: Could not connect to API (${err?.message || 'Connection Refused'}). Ensure CMS.API is running on port 5010.`);
     } finally {
       setLoading(false);
     }
