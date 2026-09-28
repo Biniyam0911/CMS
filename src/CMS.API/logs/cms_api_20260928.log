@@ -19,3 +19,68 @@
 2026-09-28 21:46:24.576 +03:00 [INF] Application started. Press Ctrl+C to shut down.
 2026-09-28 21:46:24.577 +03:00 [INF] Hosting environment: Development
 2026-09-28 21:46:24.577 +03:00 [INF] Content root path: C:\Users\ASUS\source\repos\CMS\src\CMS.API
+2026-09-28 21:49:50.961 +03:00 [INF] Cache: Redis not connected. Using MemoryCacheService fallback
+2026-09-28 21:49:51.761 +03:00 [INF] User profile is available. Using 'C:\Users\ASUS\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
+2026-09-28 21:49:51.865 +03:00 [INF] [2026-09-28 21:49:51.849] WARNING: Port 8004 could not be bound (AddressAlreadyInUse). It may already be in use by another service.
+2026-09-28 21:49:51.869 +03:00 [WRN] Port 8004 could not be bound for LIS listener
+System.Net.Sockets.SocketException (10048): Only one usage of each socket address (protocol/network address/port) is normally permitted.
+   at System.Net.Sockets.Socket.UpdateStatusAfterSocketErrorAndThrowException(SocketError error, Boolean disconnectOnFailure, String callerName)
+   at System.Net.Sockets.Socket.DoBind(EndPoint endPointSnapshot, SocketAddress socketAddress)
+   at System.Net.Sockets.Socket.Bind(EndPoint localEP)
+   at System.Net.Sockets.TcpListener.Start(Int32 backlog)
+   at CMS.Infrastructure.LabIntegration.LisTcpListenerService.StartPortListenerInternal(Int32 port) in C:\Users\ASUS\source\repos\CMS\src\CMS.Infrastructure\LabIntegration\LisTcpListenerService.cs:line 194
+2026-09-28 21:49:51.916 +03:00 [INF] [2026-09-28 21:49:51.915] WARNING: Port 10001 could not be bound (AddressAlreadyInUse). It may already be in use by another service.
+2026-09-28 21:49:51.919 +03:00 [WRN] Port 10001 could not be bound for LIS listener
+System.Net.Sockets.SocketException (10048): Only one usage of each socket address (protocol/network address/port) is normally permitted.
+   at System.Net.Sockets.Socket.UpdateStatusAfterSocketErrorAndThrowException(SocketError error, Boolean disconnectOnFailure, String callerName)
+   at System.Net.Sockets.Socket.DoBind(EndPoint endPointSnapshot, SocketAddress socketAddress)
+   at System.Net.Sockets.Socket.Bind(EndPoint localEP)
+   at System.Net.Sockets.TcpListener.Start(Int32 backlog)
+   at CMS.Infrastructure.LabIntegration.LisTcpListenerService.StartPortListenerInternal(Int32 port) in C:\Users\ASUS\source\repos\CMS\src\CMS.Infrastructure\LabIntegration\LisTcpListenerService.cs:line 194
+2026-09-28 21:49:51.929 +03:00 [INF] [2026-09-28 21:49:51.929] WARNING: Port 10002 could not be bound (AddressAlreadyInUse). It may already be in use by another service.
+2026-09-28 21:49:51.934 +03:00 [WRN] Port 10002 could not be bound for LIS listener
+System.Net.Sockets.SocketException (10048): Only one usage of each socket address (protocol/network address/port) is normally permitted.
+   at System.Net.Sockets.Socket.UpdateStatusAfterSocketErrorAndThrowException(SocketError error, Boolean disconnectOnFailure, String callerName)
+   at System.Net.Sockets.Socket.DoBind(EndPoint endPointSnapshot, SocketAddress socketAddress)
+   at System.Net.Sockets.Socket.Bind(EndPoint localEP)
+   at System.Net.Sockets.TcpListener.Start(Int32 backlog)
+   at CMS.Infrastructure.LabIntegration.LisTcpListenerService.StartPortListenerInternal(Int32 port) in C:\Users\ASUS\source\repos\CMS\src\CMS.Infrastructure\LabIntegration\LisTcpListenerService.cs:line 194
+2026-09-28 21:49:52.145 +03:00 [ERR] Hosting failed to start
+System.IO.IOException: Failed to bind to address http://127.0.0.1:5010: address already in use.
+ ---> Microsoft.AspNetCore.Connections.AddressInUseException: Only one usage of each socket address (protocol/network address/port) is normally permitted.
+ ---> System.Net.Sockets.SocketException (10048): Only one usage of each socket address (protocol/network address/port) is normally permitted.
+   at System.Net.Sockets.Socket.UpdateStatusAfterSocketErrorAndThrowException(SocketError error, Boolean disconnectOnFailure, String callerName)
+   at System.Net.Sockets.Socket.DoBind(EndPoint endPointSnapshot, SocketAddress socketAddress)
+   at System.Net.Sockets.Socket.Bind(EndPoint localEP)
+   at Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.SocketTransportOptions.CreateDefaultBoundListenSocket(EndPoint endpoint)
+   at Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.SocketConnectionListener.Bind()
+   --- End of inner exception stack trace ---
+   at Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.SocketConnectionListener.Bind()
+   at Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.SocketTransportFactory.BindAsync(EndPoint endpoint, CancellationToken cancellationToken)
+   at Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Infrastructure.TransportManager.BindAsync(EndPoint endPoint, ConnectionDelegate connectionDelegate, EndpointConfig endpointConfig, CancellationToken cancellationToken)
+   at Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerImpl.<>c__DisplayClass28_0`1.<<StartAsync>g__OnBind|0>d.MoveNext()
+--- End of stack trace from previous location ---
+   at Microsoft.AspNetCore.Server.Kestrel.Core.Internal.AddressBinder.BindEndpointAsync(ListenOptions endpoint, AddressBindContext context, CancellationToken cancellationToken)
+   --- End of inner exception stack trace ---
+   at Microsoft.AspNetCore.Server.Kestrel.Core.Internal.AddressBinder.BindEndpointAsync(ListenOptions endpoint, AddressBindContext context, CancellationToken cancellationToken)
+   at Microsoft.AspNetCore.Server.Kestrel.Core.LocalhostListenOptions.BindAsync(AddressBindContext context, CancellationToken cancellationToken)
+   at Microsoft.AspNetCore.Server.Kestrel.Core.Internal.AddressBinder.AddressesStrategy.BindAsync(AddressBindContext context, CancellationToken cancellationToken)
+   at Microsoft.AspNetCore.Server.Kestrel.Core.Internal.AddressBinder.BindAsync(ListenOptions[] listenOptions, AddressBindContext context, Func`2 useHttps, CancellationToken cancellationToken)
+   at Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerImpl.BindAsync(CancellationToken cancellationToken)
+   at Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerImpl.StartAsync[TContext](IHttpApplication`1 application, CancellationToken cancellationToken)
+   at Microsoft.AspNetCore.Hosting.GenericWebHostService.StartAsync(CancellationToken cancellationToken)
+   at Microsoft.Extensions.Hosting.Internal.Host.<StartAsync>b__15_1(IHostedService service, CancellationToken token)
+   at Microsoft.Extensions.Hosting.Internal.Host.ForeachService[T](IEnumerable`1 services, CancellationToken token, Boolean concurrent, Boolean abortOnFirstException, List`1 exceptions, Func`3 operation)
+2026-09-28 21:49:52.188 +03:00 [INF] [2026-09-28 21:49:52.188] LISTENER STOPPED: All LIS listeners stopped.
+2026-09-28 21:50:31.950 +03:00 [INF] Cache: Redis not connected. Using MemoryCacheService fallback
+2026-09-28 21:50:32.781 +03:00 [INF] User profile is available. Using 'C:\Users\ASUS\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
+2026-09-28 21:50:32.827 +03:00 [INF] [2026-09-28 21:50:32.815] LISTENER STARTED: Passively waiting for analyzer connections on 0.0.0.0:8004...
+2026-09-28 21:50:32.834 +03:00 [INF] [2026-09-28 21:50:32.834] LISTENER STARTED: Passively waiting for analyzer connections on 0.0.0.0:10001...
+2026-09-28 21:50:32.838 +03:00 [INF] [2026-09-28 21:50:32.838] LISTENER STARTED: Passively waiting for analyzer connections on 0.0.0.0:10002...
+2026-09-28 21:50:32.988 +03:00 [INF] Now listening on: http://localhost:5010
+2026-09-28 21:50:32.992 +03:00 [INF] Application started. Press Ctrl+C to shut down.
+2026-09-28 21:50:32.997 +03:00 [INF] Hosting environment: Development
+2026-09-28 21:50:33.002 +03:00 [INF] Content root path: C:\Users\ASUS\source\repos\CMS\src\CMS.API
+2026-09-28 21:50:44.526 +03:00 [INF] Application is shutting down...
+2026-09-28 21:50:44.549 +03:00 [INF] [2026-09-28 21:50:44.549] LISTENER STOPPED: Port 10001
+2026-09-28 21:50:44.552 +03:00 [INF] [2026-09-28 21:50:44.552] LISTENER STOPPED: All LIS listeners stopped.
