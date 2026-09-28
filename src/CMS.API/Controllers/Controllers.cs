@@ -33,6 +33,19 @@ public class AuthController : ControllerBase
         if (user == null)
             return Unauthorized(ApiResponse<string>.Fail("Invalid username or password."));
 
+        if (user.IsActive != null && (bool)user.IsActive == false)
+            return Unauthorized(ApiResponse<string>.Fail("User account is inactive."));
+
+        if (user.IsLocked != null && (bool)user.IsLocked == true)
+            return Unauthorized(ApiResponse<string>.Fail("User account is locked."));
+
+        string salt = (string)(user.Salt ?? "");
+        string storedHash = (string)(user.PasswordHash ?? "");
+        string uname = (string)(user.Username ?? request.Username);
+
+        if (!AuthManagementService.VerifyPassword(request.Password, storedHash, salt, uname))
+            return Unauthorized(ApiResponse<string>.Fail("Invalid username or password."));
+
         int? doctorId = null;
         int? staffId = null;
         var docInfo = await conn.QueryFirstOrDefaultAsync<dynamic>(@"

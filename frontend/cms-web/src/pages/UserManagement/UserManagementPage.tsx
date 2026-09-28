@@ -357,7 +357,9 @@ export default function UserManagementPage() {
         setResetError(null);
       }, 1500);
     } catch (err: any) {
-      setResetError(err?.response?.data?.message || err?.message || 'Failed to reset password on server.');
+      let errorMsg = err?.message || 'Failed to reset password on server.';
+      errorMsg = errorMsg.replace(/^API\s+[A-Z]+\s+[^\s]+\s+failed\s*\(\d+\):\s*/i, '').trim();
+      setResetError(errorMsg);
     } finally {
       setIsResetting(false);
     }

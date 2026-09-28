@@ -59,7 +59,33 @@ class ApiClient {
 
     if (!res.ok) {
       const errorText = await res.text();
-      throw new Error(`API ${method} ${endpoint} failed (${res.status}): ${errorText}`);
+      let cleanMessage = '';
+
+      try {
+        const errorJson = JSON.parse(errorText);
+        if (Array.isArray(errorJson.errors) && errorJson.errors.length > 0) {
+          cleanMessage = errorJson.errors.filter(Boolean).join(', ');
+        } else if (errorJson.message) {
+          cleanMessage = errorJson.message;
+        } else if (errorJson.Message) {
+          cleanMessage = errorJson.Message;
+        } else if (errorJson.error) {
+          cleanMessage = typeof errorJson.error === 'string' ? errorJson.error : JSON.stringify(errorJson.error);
+        }
+      } catch {
+        // Not JSON
+      }
+
+      if (!cleanMessage) {
+        cleanMessage = errorText && errorText.trim().length > 0 && errorText.length < 200
+          ? errorText.trim()
+          : `Request failed with status ${res.status}`;
+      }
+
+      const err: any = new Error(cleanMessage);
+      err.status = res.status;
+      err.rawResponse = errorText;
+      throw err;
     }
 
     const json = await res.json();

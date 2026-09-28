@@ -76,7 +76,28 @@ export default function ChangePasswordPage({ currentUser }: ChangePasswordPagePr
       setNewPassword('');
       setConfirmPassword('');
     } catch (err: any) {
-      const serverError = err?.response?.data?.message || err?.response?.data?.Message || err?.message || 'Failed to change password. Please verify your current password.';
+      let serverError = err?.message || 'Failed to change password. Please verify your current password.';
+
+      // Strip out any accidental JSON or verbose API prefixes
+      try {
+        const jsonMatch = serverError.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (Array.isArray(parsed.errors) && parsed.errors.length > 0) {
+            serverError = parsed.errors.filter(Boolean).join(', ');
+          } else if (parsed.message) {
+            serverError = parsed.message;
+          } else if (parsed.Message) {
+            serverError = parsed.Message;
+          }
+        }
+      } catch {
+        // Keep as-is
+      }
+
+      // Remove any leading "API POST ... failed (XXX):" if still present
+      serverError = serverError.replace(/^API\s+[A-Z]+\s+[^\s]+\s+failed\s*\(\d+\):\s*/i, '').trim();
+
       setErrorMessage(serverError);
     } finally {
       setIsLoading(false);
