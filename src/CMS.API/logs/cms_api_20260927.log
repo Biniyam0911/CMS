@@ -7758,3 +7758,24 @@ Error Number:-2,State:0,Class:11
 2026-09-27 22:11:05.325 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 0.4722ms
 2026-09-27 22:11:05.325 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
 2026-09-27 22:11:05.325 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 1.5463ms
+2026-09-27 22:12:05.373 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/laboratory/instruments/listener-status - application/json null
+2026-09-27 22:12:05.373 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.LaboratoryController.GetListenerStatus (CMS.API)'
+2026-09-27 22:12:05.373 +03:00 [INF] Route matched with {action = "GetListenerStatus", controller = "Laboratory"}. Executing controller action with signature Microsoft.AspNetCore.Mvc.IActionResult GetListenerStatus() on controller CMS.API.Controllers.LaboratoryController (CMS.API).
+2026-09-27 22:12:05.374 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[CMS.Domain.Interfaces.LisListenerStatusDto, CMS.Domain, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]'.
+2026-09-27 22:12:05.374 +03:00 [INF] Executed action CMS.API.Controllers.LaboratoryController.GetListenerStatus (CMS.API) in 0.2428ms
+2026-09-27 22:12:05.374 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.LaboratoryController.GetListenerStatus (CMS.API)'
+2026-09-27 22:12:05.374 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/laboratory/instruments/listener-status - 200 null application/json; charset=utf-8 1.1325ms
+2026-09-27 22:12:05.378 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-09-27 22:12:05.378 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-27 22:12:05.379 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-09-27 22:12:05.386 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-27 22:12:05.386 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 7.4655ms
+2026-09-27 22:12:05.386 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-27 22:12:05.386 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 8.5105ms
+2026-09-27 22:12:08.311 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-09-27 22:12:08.311 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-27 22:12:08.311 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-09-27 22:12:08.312 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-09-27 22:12:08.312 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 0.6225ms
+2026-09-27 22:12:08.312 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-09-27 22:12:08.312 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 1.6544ms
