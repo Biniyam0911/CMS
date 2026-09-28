@@ -23,23 +23,31 @@ if not exist %BIN_PATH% (
 
 echo Target binary: %BIN_PATH%
 
+:: 1. Stop existing service and wait
 sc query %SERVICE_NAME% > NUL 2>&1
 if %ERRORLEVEL% EQU 0 (
-    echo Stopping and removing existing service '%SERVICE_NAME%'...
-    sc stop %SERVICE_NAME% >nul 2>&1
-    sc delete %SERVICE_NAME% >nul 2>&1
+    echo [1/3] Stopping %SERVICE_NAME%...
+    net stop %SERVICE_NAME% >nul 2>&1
+    taskkill /F /IM CMS.API.exe >nul 2>&1
     timeout /t 2 /nobreak >nul
+    
+    echo [2/3] Updating service configuration...
+    sc config %SERVICE_NAME% binPath= %BIN_PATH% start= auto displayname= "CMS Web API Service"
+) else (
+    echo [1/3] Ensuring lingering process is terminated...
+    taskkill /F /IM CMS.API.exe >nul 2>&1
+    timeout /t 1 /nobreak >nul
+
+    echo [2/3] Creating Windows Service '%SERVICE_NAME%'...
+    sc create %SERVICE_NAME% binPath= %BIN_PATH% start= auto displayname= "CMS Web API Service"
 )
 
-echo Registering Windows Service '%SERVICE_NAME%'...
-sc create %SERVICE_NAME% binPath= %BIN_PATH% start= auto displayname= "CMS Web API Service"
-sc description %SERVICE_NAME% "Clinic Management System Backend Web API (Kestrel on port 5010 and LIS TCP ports)"
+sc description %SERVICE_NAME% "Clinic Management System Backend Web API (Kestrel on port 5010 and LIS TCP ports)" >nul 2>&1
 
-echo Starting service...
-sc start %SERVICE_NAME%
+echo [3/3] Starting %SERVICE_NAME%...
+net start %SERVICE_NAME%
 
 echo.
-echo Service status:
 sc query %SERVICE_NAME%
 echo.
 pause
