@@ -67,6 +67,7 @@ export default function TriagePage() {
   const [selectedRoomId, setSelectedRoomId] = useState<number>(1);
   const [selectedServiceId, setSelectedServiceId] = useState<number>(1);
   const [visitType, setVisitType] = useState<'New' | 'New Repeat' | 'Repeat'>('New');
+  const [isAssigning, setIsAssigning] = useState(false);
 
   // Real Previous Visits State for Selected Patient
   const [patientPreviousVisits, setPatientPreviousVisits] = useState<any[]>([]);
@@ -171,6 +172,21 @@ export default function TriagePage() {
     }
   };
 
+  const refreshQueueOnly = async () => {
+    try {
+      const queueData = await api.get<any[]>('/triage/queue', { date: triageDate }).catch(() => []);
+      if (queueData && Array.isArray(queueData)) {
+        setTriageQueue(queueData);
+        if (selectedItem) {
+          const found = queueData.find(x => (x.id === selectedItem.id || x.Id === selectedItem.id));
+          if (found) setSelectedItem(found);
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to refresh triage queue:', err);
+    }
+  };
+
   useEffect(() => {
     fetchTriageData();
   }, [triageDate]);
@@ -233,26 +249,51 @@ export default function TriagePage() {
     try {
       const patientId = Number(item.patientId ?? item.PatientId ?? (item.mrn ? item.id : 0));
       if (patientId > 0) {
-        const encounters = await api.get<any[]>(`/encounters/patient/${patientId}`).catch(() => []);
-        if (encounters && Array.isArray(encounters)) {
-          setPatientPreviousVisits(encounters);
-          if (encounters.length > 0) {
-            const rawDate = encounters[0].encounterDate || encounters[0].EncounterDate;
-            if (rawDate) {
-              const visitTime = new Date(rawDate).getTime();
-              const now = new Date().getTime();
-              const diffDays = Math.floor((now - visitTime) / (1000 * 60 * 60 * 24));
-              if (diffDays <= 30) {
-                setVisitType('Repeat');
-              } else if (diffDays <= 90) {
-                setVisitType('New Repeat');
-              } else {
-                setVisitType('New');
-              }
+        const [encounters, invoices] = await Promise.all([
+          api.get<any[]>(`/encounters/patient/${patientId}`).catch(() => []),
+          api.get<any[]>(`/billing/invoices?patientId=${patientId}&limit=20`).catch(() => [])
+        ]);
+
+        const encList = Array.isArray(encounters) ? encounters : [];
+        const invList = Array.isArray(invoices) ? invoices : [];
+        setPatientPreviousVisits(encList);
+
+        // Find last paid consultation / visit invoice
+        const paidInvoices = invList.filter((inv: any) =>
+          (inv.statusId === 4 || inv.status === 'Paid' || (inv.paidAmount && inv.paidAmount > 0)) &&
+          (inv.issueDate || inv.createdAt || inv.IssueDate)
+        );
+
+        const now = Date.now();
+
+        if (paidInvoices.length > 0) {
+          // Patient has prior paid visit(s)
+          const lastPaidDate = paidInvoices[0].issueDate || paidInvoices[0].createdAt || paidInvoices[0].IssueDate;
+          const visitTime = new Date(lastPaidDate).getTime();
+          const diffDays = Math.floor((now - visitTime) / (1000 * 60 * 60 * 24));
+          // Repeat if within 10 days of last paid visit; otherwise New Repeat
+          if (diffDays <= 10) {
+            setVisitType('Repeat');
+          } else {
+            setVisitType('New Repeat');
+          }
+        } else if (encList.length > 0) {
+          // Patient has previous recorded encounters on file
+          const rawDate = encList[0].encounterDate || encList[0].EncounterDate || encList[0].createdAt;
+          if (rawDate) {
+            const visitTime = new Date(rawDate).getTime();
+            const diffDays = Math.floor((now - visitTime) / (1000 * 60 * 60 * 24));
+            if (diffDays <= 10) {
+              setVisitType('Repeat');
+            } else {
+              setVisitType('New Repeat');
             }
+          } else {
+            setVisitType('New Repeat');
           }
         } else {
-          setPatientPreviousVisits([]);
+          // Brand new patient with zero previous visits ever
+          setVisitType('New');
         }
       } else {
         setPatientPreviousVisits([]);
@@ -409,6 +450,7 @@ export default function TriagePage() {
     const patId = Number(showAssignModal.patientId || showAssignModal.PatientId || showAssignModal.id || 1);
     const trgId = Number(showAssignModal.id || showAssignModal.Id || 1);
 
+    setIsAssigning(true);
     try {
       // 1. Assign doctor in Triage
       await api.post('/triage/assign-doctor', {
@@ -467,14 +509,16 @@ export default function TriagePage() {
       setTimeout(() => setToastMessage(null), 5000);
 
       setShowAssignModal(null);
-      await fetchTriageData();
+      await refreshQueueOnly();
     } catch (err) {
       console.error('Assign doctor error:', err);
       const assignedDoc = doctors.find(d => d.id === selectedDoctorId);
       setToastMessage(`Patient routed to ${assignedDoc?.name || 'Doctor'}!`);
       setTimeout(() => setToastMessage(null), 4000);
       setShowAssignModal(null);
-      await fetchTriageData();
+      await refreshQueueOnly();
+    } finally {
+      setIsAssigning(false);
     }
   };
 
@@ -1032,13 +1076,25 @@ export default function TriagePage() {
 
                 {/* Visit Type: New vs New Repeat vs Repeat (Free) */}
                 <div>
-                  <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Visit Type</label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
+                    <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Visit Type</label>
+                    <span style={{ fontSize: '0.68rem', color: '#0284c7' }}>
+                      {visitType === 'New' && '• First visit ever (No prior history)'}
+                      {visitType === 'New Repeat' && '• >10 days since last paid visit'}
+                      {visitType === 'Repeat' && '• ≤10 days since last paid visit (Free)'}
+                    </span>
+                  </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px' }}>
                     {(['New', 'New Repeat', 'Repeat'] as const).map(vt => (
                       <button
                         key={vt}
                         type="button"
                         onClick={() => setVisitType(vt)}
+                        title={
+                          vt === 'New' ? 'First visit ever — patient has no prior visits' :
+                          vt === 'New Repeat' ? 'Returning patient >10 days after last paid visit' :
+                          'Returning patient within 10 days of last paid visit (Free follow-up)'
+                        }
                         style={{
                           padding: '6px 4px',
                           borderRadius: '6px',
@@ -1047,10 +1103,17 @@ export default function TriagePage() {
                           color: visitType === vt ? '#0369a1' : 'var(--text-main)',
                           fontWeight: 700,
                           fontSize: '0.72rem',
-                          cursor: 'pointer'
+                          cursor: 'pointer',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          gap: '2px'
                         }}
                       >
-                        {vt} {vt === 'Repeat' ? '(Free)' : ''}
+                        <span>{vt}</span>
+                        <span style={{ fontSize: '0.62rem', fontWeight: 500, opacity: 0.85 }}>
+                          {vt === 'New' ? '1st Visit' : vt === 'New Repeat' ? '>10 Days' : '≤10 Days (Free)'}
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -1070,9 +1133,10 @@ export default function TriagePage() {
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '6px' }}>
-                  <button type="button" onClick={() => setShowAssignModal(null)} className="btn-secondary">Cancel</button>
-                  <button type="submit" className="btn-primary">
-                    <ArrowRight size={14} /> Dispatch & Route Patient
+                  <button type="button" onClick={() => setShowAssignModal(null)} className="btn-secondary" disabled={isAssigning}>Cancel</button>
+                  <button type="submit" className="btn-primary" disabled={isAssigning}>
+                    {isAssigning ? <Loader2 size={14} className="animate-spin" /> : <ArrowRight size={14} />}
+                    {isAssigning ? 'Routing Patient...' : 'Dispatch & Route Patient'}
                   </button>
                 </div>
               </form>

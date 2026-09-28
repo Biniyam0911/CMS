@@ -108,6 +108,7 @@ export default function SettingsPage() {
   const [phone, setPhone] = useState('+251911000000');
   const [vat, setVat] = useState('15.0');
   const [currency, setCurrency] = useState('ETB');
+  const [sessionTimeoutMinutes, setSessionTimeoutMinutes] = useState(() => localStorage.getItem('cms_session_timeout_minutes') || '10');
   const [appIcon, setAppIcon] = useState('FileHeart');
   const [savedAlert, setSavedAlert] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -147,6 +148,10 @@ export default function SettingsPage() {
             if (k === 'Currency') setCurrency(v);
             if (k === 'TaxRate') setVat(v);
             if (k === 'AppIcon') setAppIcon(v);
+            if (k === 'SessionTimeoutMinutes' && v) {
+              setSessionTimeoutMinutes(v);
+              localStorage.setItem('cms_session_timeout_minutes', v);
+            }
           });
         }
       } catch (err) { console.error('Failed to load clinic settings:', err); }
@@ -165,7 +170,9 @@ export default function SettingsPage() {
         api.post('/settings', { settingKey: 'Currency', settingValue: currency }),
         api.post('/settings', { settingKey: 'TaxRate', settingValue: vat }),
         api.post('/settings', { settingKey: 'AppIcon', settingValue: appIcon }),
+        api.post('/settings', { settingKey: 'SessionTimeoutMinutes', settingValue: sessionTimeoutMinutes }),
       ]);
+      localStorage.setItem('cms_session_timeout_minutes', sessionTimeoutMinutes);
       window.dispatchEvent(new Event('clinic_settings_changed'));
       setSavedAlert(true); setTimeout(() => setSavedAlert(false), 3000);
     } catch (err: any) { setSaveError(err?.message || 'Failed to save settings.'); }
@@ -319,8 +326,16 @@ export default function SettingsPage() {
               <div><label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Standard VAT Percentage (%)</label>
                 <input type="text" value={vat} onChange={e => setVat(e.target.value)} required /></div>
             </div>
-            <div><label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Default Operating Currency</label>
-              <input type="text" value={currency} onChange={e => setCurrency(e.target.value)} required /></div>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '14px' }}>
+              <div><label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Default Operating Currency</label>
+                <input type="text" value={currency} onChange={e => setCurrency(e.target.value)} required /></div>
+              <div><label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Session Inactivity Timeout (Minutes)</label>
+                <input type="number" min="1" max="180" value={sessionTimeoutMinutes} onChange={e => setSessionTimeoutMinutes(e.target.value)} required />
+                <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '2px', display: 'block' }}>
+                  Auto-logout after inactivity (Default: 10 minutes)
+                </span>
+              </div>
+            </div>
             <div>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '8px' }}>Sidebar App Icon</label>
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>

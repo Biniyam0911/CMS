@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, Lock, User, Key, Activity, ArrowRight } from 'lucide-react';
+import { ShieldCheck, Lock, User, Key, Activity, ArrowRight, Clock } from 'lucide-react';
 
 interface LoginPageProps {
   onLoginSuccess: (user: any, token: string) => void;
@@ -12,6 +12,14 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
   const [showMfa, setShowMfa] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [logoutNotice, setLogoutNotice] = useState<string | null>(() => {
+    const reason = sessionStorage.getItem('cms_logout_reason');
+    if (reason) {
+      sessionStorage.removeItem('cms_logout_reason');
+      return reason;
+    }
+    return null;
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,6 +125,12 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
           <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '24px' }}>
             {showMfa ? 'Enter the 6-digit TOTP code from your authenticator app' : 'Enter your staff username and credentials to access'}
           </p>
+
+          {logoutNotice && (
+            <div style={{ padding: '12px 14px', borderRadius: '8px', background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)', color: '#fbbf24', fontSize: '0.85rem', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Clock size={16} /> {logoutNotice}
+            </div>
+          )}
 
           {error && (
             <div style={{ padding: '12px', borderRadius: '8px', background: 'rgba(244,63,94,0.15)', border: '1px solid rgba(244,63,94,0.3)', color: '#f87171', fontSize: '0.85rem', marginBottom: '20px' }}>

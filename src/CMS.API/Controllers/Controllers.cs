@@ -550,13 +550,13 @@ public class LaboratoryController : ControllerBase
                 o.Id, o.Id AS OrderId, o.OrderNumber, o.PatientId, o.Priority, o.OrderedAt, o.OrderedAt AS OrderDate, o.ClinicalInfo,
                 p.FirstName + ' ' + p.LastName AS PatientName, p.DateOfBirth, p.Gender, p.MRN,
                 oi.Id AS ItemId, oi.StatusId AS ItemStatus,
-                CASE oi.StatusId
-                    WHEN 1 THEN 'Ordered'
-                    WHEN 2 THEN 'Collected'
-                    WHEN 3 THEN 'Received'
-                    WHEN 4 THEN 'InProcess'
-                    WHEN 5 THEN 'Completed'
-                    WHEN 6 THEN 'Cancelled'
+                CASE
+                    WHEN ISNULL(r.IsVerified, 0) = 1 OR oi.StatusId = 5 THEN 'Approved'
+                    WHEN oi.StatusId = 4 THEN 'Resulted'
+                    WHEN oi.StatusId = 3 THEN 'InProcess'
+                    WHEN oi.StatusId = 2 THEN 'Collected'
+                    WHEN oi.StatusId = 1 THEN 'Ordered'
+                    WHEN oi.StatusId = 6 THEN 'Cancelled'
                     ELSE 'Pending' END AS StatusName,
                 t.TestCode, t.TestName, t.Category, t.SampleType, t.Price,
                 CASE WHEN EXISTS (
@@ -783,16 +783,16 @@ public class LaboratoryController : ControllerBase
                         });
                 }
 
-                // Update OrderItem status (4 = Resulted/Completed, 3 = InProcess)
-                byte itemStatus = (byte)(req.IsVerified ? 4 : 3);
+                // Update OrderItem status (5 = Completed/Approved, 4 = Resulted, 3 = InProcess)
+                byte itemStatus = (byte)(req.IsVerified ? 5 : 4);
                 await conn.ExecuteAsync(
                     "UPDATE LabOrderItems SET StatusId = @StatusId WHERE Id = @OrderItemId",
                     new { StatusId = itemStatus, OrderItemId = orderItemId });
             }
         }
 
-        // Update overall Order status
-        byte orderStatus = (byte)(req.IsVerified ? 4 : 3);
+        // Update overall Order status (5 = Completed/Approved, 4 = Resulted, 3 = InProcess)
+        byte orderStatus = (byte)(req.IsVerified ? 5 : 4);
         await conn.ExecuteAsync(
             "UPDATE LabOrders SET StatusId = @StatusId, UpdatedAt = GETDATE() WHERE Id = @OrderId",
             new { StatusId = orderStatus, req.OrderId });

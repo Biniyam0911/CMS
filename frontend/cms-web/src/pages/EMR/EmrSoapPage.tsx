@@ -5,7 +5,7 @@ import {
   FlaskConical, History, Calendar, Check, Send, AlertTriangle, ShieldAlert, Loader2,
   ChevronDown, ChevronRight, ShoppingCart, Pill, Scissors, Clock, ArrowRight,
   Sparkles, CheckSquare, Layers, FileCheck, ShieldCheck, CreditCard, Eye,
-  ChevronLeft, Users, ChevronUp, DollarSign
+  ChevronLeft, Users, ChevronUp, DollarSign, RefreshCw
 } from 'lucide-react';
 import { api } from '../../api/apiClient';
 import { evaluateCdsAlerts, CdsAlert } from '../../utils/cdsRuleEngine';
@@ -544,66 +544,69 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
   };
 
   // Load patients assigned to the logged-in doctor on the selected date (defaults to today)
-  useEffect(() => {
-    const loadEmrPatients = async () => {
-      // Guard: do not query if selectedDoctorId is not yet resolved!
-      if (!selectedDoctorId || selectedDoctorId <= 0) {
+  const loadEmrPatients = async (doctorId?: number, date?: string) => {
+    const targetDoctorId = doctorId ?? selectedDoctorId;
+    const targetDate = date ?? consultDate;
+    // Guard: do not query if selectedDoctorId is not yet resolved!
+    if (!targetDoctorId || targetDoctorId <= 0) {
+      setPatients([]);
+      setActivePatient(null);
+      setPatientPaymentMap({});
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      // Fetch assignments for this doctor on the selected date + date-scoped invoices for payment badge
+      const [assigned, allInvoices] = await Promise.all([
+        api.get<any[]>(`/triage/doctor/${targetDoctorId}`, { date: targetDate }).catch(() => []),
+        api.get<any[]>('/billing/invoices', { date: targetDate, limit: 100 }).catch(() => [])
+      ]);
+      if (assigned && Array.isArray(assigned) && assigned.length > 0) {
+        const mapped = assigned.map((p: any) => ({
+          id: p.patientId || p.PatientId || p.id || p.Id,
+          mrn: p.mrn || p.MRN || `HD-${p.patientId || p.id}`,
+          name: p.patientName || p.PatientName || 'Assigned Patient',
+          age: p.dateOfBirth ? (new Date().getFullYear() - new Date(p.dateOfBirth).getFullYear()) : 30,
+          gender: p.gender === 1 || p.Gender === 1 ? 'Male' : 'Female',
+          blood: p.bloodGroup || p.BloodGroup || 'O+',
+          allergies: p.allergies || p.Allergies || 'None',
+          insurance: p.insuranceProvider || p.InsuranceProvider || 'Cash'
+        }));
+        setPatients(mapped);
+        const target = mapped.find((p: any) => p.id === selectedPatientId) || mapped[0];
+        setActivePatient(target);
+
+        // Build payment map: patientId -> true if the patient has a PAID invoice on consultDate
+        // Color reflects the consultation payment for that specific date
+        const payMap: Record<number, boolean> = {};
+        if (allInvoices && Array.isArray(allInvoices)) {
+          allInvoices.forEach((inv: any) => {
+            const pid = Number(inv.patientId || inv.PatientId);
+            const invDate = (inv.issueDate || inv.IssueDate || inv.createdAt || inv.CreatedAt || '').split('T')[0];
+            const isPaid = (inv.statusId || inv.StatusId) === 4 || (inv.statusName || inv.StatusName) === 'Paid';
+            if (isPaid && invDate === targetDate) {
+              payMap[pid] = true;
+            }
+          });
+        }
+        setPatientPaymentMap(payMap);
+      } else {
         setPatients([]);
         setActivePatient(null);
         setPatientPaymentMap({});
-        setLoading(false);
-        return;
       }
+    } catch (err) {
+      console.error('Failed to load doctor assigned patients:', err);
+      setPatients([]);
+      setActivePatient(null);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      try {
-        setLoading(true);
-        // Fetch assignments for this doctor on the selected date + date-scoped invoices for payment badge
-        const [assigned, allInvoices] = await Promise.all([
-          api.get<any[]>(`/triage/doctor/${selectedDoctorId}`, { date: consultDate }).catch(() => []),
-          api.get<any[]>('/billing/invoices', { date: consultDate, limit: 100 }).catch(() => [])
-        ]);
-        if (assigned && Array.isArray(assigned) && assigned.length > 0) {
-          const mapped = assigned.map((p: any) => ({
-            id: p.patientId || p.PatientId || p.id || p.Id,
-            mrn: p.mrn || p.MRN || `HD-${p.patientId || p.id}`,
-            name: p.patientName || p.PatientName || 'Assigned Patient',
-            age: p.dateOfBirth ? (new Date().getFullYear() - new Date(p.dateOfBirth).getFullYear()) : 30,
-            gender: p.gender === 1 || p.Gender === 1 ? 'Male' : 'Female',
-            blood: p.bloodGroup || p.BloodGroup || 'O+',
-            allergies: p.allergies || p.Allergies || 'None',
-            insurance: p.insuranceProvider || p.InsuranceProvider || 'Cash'
-          }));
-          setPatients(mapped);
-          const target = mapped.find((p: any) => p.id === selectedPatientId) || mapped[0];
-          setActivePatient(target);
-
-          // Build payment map: patientId -> true if the patient has a PAID invoice on consultDate
-          // Color reflects the consultation payment for that specific date
-          const payMap: Record<number, boolean> = {};
-          if (allInvoices && Array.isArray(allInvoices)) {
-            allInvoices.forEach((inv: any) => {
-              const pid = Number(inv.patientId || inv.PatientId);
-              const invDate = (inv.issueDate || inv.IssueDate || inv.createdAt || inv.CreatedAt || '').split('T')[0];
-              const isPaid = (inv.statusId || inv.StatusId) === 4 || (inv.statusName || inv.StatusName) === 'Paid';
-              if (isPaid && invDate === consultDate) {
-                payMap[pid] = true;
-              }
-            });
-          }
-          setPatientPaymentMap(payMap);
-        } else {
-          setPatients([]);
-          setActivePatient(null);
-          setPatientPaymentMap({});
-        }
-      } catch (err) {
-        console.error('Failed to load doctor assigned patients:', err);
-        setPatients([]);
-        setActivePatient(null);
-      } finally {
-        setLoading(false);
-      }
-    };
+  useEffect(() => {
     loadEmrPatients();
   }, [consultDate, selectedPatientId, selectedDoctorId]);
 
@@ -700,16 +703,56 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
       setHistoryProcedures(procs || []);
 
       const rawLabs = Array.isArray(labRes) ? labRes : [];
-      const mappedLabs = rawLabs
-        .filter((l: any) => !l.patientId && !l.PatientId ? true : Number(l.patientId || l.PatientId) === patId)
-        .map((l: any) => ({
-          id: l.id || l.orderId || l.OrderId,
-          orderNumber: l.orderNumber || l.OrderNumber || `LAB-${l.orderId || l.id}`,
-          patientId: l.patientId || l.PatientId || patId,
-          orderDate: l.orderedAt || l.OrderedAt || l.orderDate || new Date().toISOString(),
-          clinicalInfo: l.testName || l.TestName || l.clinicalInfo || l.ClinicalInfo || 'Diagnostic Lab Order',
-          statusName: l.statusName || l.StatusName || (l.itemStatus === 1 ? 'Ordered' : 'Completed')
-        }));
+      // Group raw lab rows by orderNumber / orderId so orders with multiple items do not repeat
+      const groupedOrdersMap = new Map<string, any>();
+      rawLabs
+        .filter((l: any) => (!l.patientId && !l.PatientId) ? true : Number(l.patientId || l.PatientId) === patId)
+        .forEach((l: any) => {
+          const ordKey = String(l.orderNumber || l.OrderNumber || l.orderId || l.OrderId || l.id || l.Id);
+          const currentTestName = l.testName || l.TestName || l.clinicalInfo || l.ClinicalInfo || 'Diagnostic Lab Order';
+          const isRowVerified = l.isVerified === true || l.isVerified === 1 || l.IsVerified === true || l.IsVerified === 1 ||
+                                l.statusName === 'Approved' || l.statusName === 'Completed' || l.statusName === 'Verified' ||
+                                l.StatusName === 'Approved' || l.StatusName === 'Completed' || l.StatusName === 'Verified' ||
+                                l.itemStatus === 5;
+
+          if (!groupedOrdersMap.has(ordKey)) {
+            groupedOrdersMap.set(ordKey, {
+              id: l.id || l.orderId || l.OrderId,
+              orderNumber: l.orderNumber || l.OrderNumber || `LAB-${l.orderId || l.id}`,
+              patientId: l.patientId || l.PatientId || patId,
+              orderDate: l.orderedAt || l.OrderedAt || l.orderDate || new Date().toISOString(),
+              clinicalInfo: currentTestName,
+              tests: [currentTestName],
+              isVerified: isRowVerified,
+              statusName: isRowVerified ? 'Approved' : (l.statusName || l.StatusName || (l.itemStatus === 1 ? 'Ordered' : 'In Process'))
+            });
+          } else {
+            const existing = groupedOrdersMap.get(ordKey);
+            if (!existing.tests.includes(currentTestName)) {
+              existing.tests.push(currentTestName);
+              existing.clinicalInfo = existing.tests.join(', ');
+            }
+            if (isRowVerified) {
+              existing.isVerified = true;
+              existing.statusName = 'Approved';
+            }
+          }
+        });
+
+      // Cross-reference with patientLabResults: if any result for this order is verified, mark Approved
+      const mappedLabs = Array.from(groupedOrdersMap.values()).map(ord => {
+        const hasVerifiedResult = (results || []).some((r: any) =>
+          (String(r.orderNumber || r.OrderNumber || `LAB-${r.orderId}`) === String(ord.orderNumber) ||
+           String(r.orderId || r.OrderId) === String(ord.id)) &&
+          (r.isVerified === true || r.isVerified === 1 || r.IsVerified === true || r.IsVerified === 1)
+        );
+        if (hasVerifiedResult) {
+          ord.isVerified = true;
+          ord.statusName = 'Approved';
+        }
+        return ord;
+      });
+
       setHistoryLabOrders(mappedLabs);
 
       setHistoryPrescriptions(rxs || []);
@@ -1248,20 +1291,8 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
         console.warn('No valid doctorId — lab orders skipped.');
       }
 
-      if (labItems.length > 0) {
-        // Show one grouped order entry in local history (matches batched backend order)
-        setHistoryLabOrders(prev => [
-          {
-            id: batchedLabOrderId > 0 ? batchedLabOrderId : Date.now(),
-            orderNumber: batchedLabOrderId > 0 ? `LAB-1-${String(batchedLabOrderId).padStart(6, '0')}` : `LAB-${Date.now()}`,
-            patientId: patId,
-            clinicalInfo: labItems.map(l => l.title).join(', '),
-            statusName: 'Processing',
-            orderDate: new Date().toISOString()
-          },
-          ...prev
-        ]);
-      }
+      // NOTE: No optimistic push here — loadFullPatientHistory() below re-fetches server state
+      // which correctly shows the approved order with its true status (no duplicate, no stale status)
 
       // 2. Dispatch Pharmacy Prescriptions
       const rxItems = currentBasket.filter(x => x.type === 'RX');
@@ -1603,16 +1634,28 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
               <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Doctor Consultation Queue
               </div>
-              {isMobile && (
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                 <button
                   type="button"
-                  onClick={() => setShowMobileQueue(!showMobileQueue)}
+                  title="Refresh patient queue"
+                  onClick={() => loadEmrPatients()}
                   className="btn-secondary"
-                  style={{ padding: '2px 8px', fontSize: '0.72rem' }}
+                  style={{ padding: '2px 8px', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '4px' }}
                 >
-                  {showMobileQueue ? 'Hide Queue' : `View Queue (${patients.length})`}
+                  <RefreshCw size={12} />
+                  Refresh
                 </button>
-              )}
+                {isMobile && (
+                  <button
+                    type="button"
+                    onClick={() => setShowMobileQueue(!showMobileQueue)}
+                    className="btn-secondary"
+                    style={{ padding: '2px 8px', fontSize: '0.72rem' }}
+                  >
+                    {showMobileQueue ? 'Hide Queue' : `View Queue (${patients.length})`}
+                  </button>
+                )}
+              </div>
             </div>
 
             {(!isMobile || showMobileQueue) && (
@@ -2623,8 +2666,8 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <span style={{ fontSize: '0.72rem', padding: '2px 8px', borderRadius: '4px',
-                          background: lab.statusName === 'Completed' || lab.statusName === 'Verified' ? '#dcfce7' : '#fef3c7',
-                          color: lab.statusName === 'Completed' || lab.statusName === 'Verified' ? '#166534' : '#92400e',
+                          background: lab.statusName === 'Completed' || lab.statusName === 'Verified' || lab.statusName === 'Approved' ? '#dcfce7' : '#fef3c7',
+                          color: lab.statusName === 'Completed' || lab.statusName === 'Verified' || lab.statusName === 'Approved' ? '#166534' : '#92400e',
                           fontWeight: 700 }}>
                           {lab.statusName || 'Processing'}
                         </span>

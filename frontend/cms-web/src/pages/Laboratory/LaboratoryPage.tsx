@@ -2776,29 +2776,40 @@ export default function LaboratoryPage() {
             </div>
 
             {/* Document Header */}
-            <div style={{ textAlign: 'center', borderBottom: '2px solid #0f172a', paddingBottom: '12px' }}>
-              <h1 style={{ fontSize: '1.45rem', fontWeight: 900, color: '#0369a1', margin: 0, letterSpacing: '-0.02em', textTransform: 'uppercase' }}>
-                HUDERMA SPECIALIZED CLINIC &amp; CENTRAL LABORATORY
-              </h1>
-              <div style={{ fontSize: '0.8rem', color: '#475569', marginTop: '3px', fontWeight: 600 }}>
-                Dermatology, Venereology &amp; Medical Diagnostic Center • Bole Sub-City, Addis Ababa, Ethiopia
-              </div>
-              <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
-                Tel: +251 11 667 8900 / +251 911 234567 • Email: info@huderma.com • ISO 15189 Certified LIS
+            <div style={{ borderBottom: '2px solid #0f172a', paddingBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '6px' }}>
+                <img
+                  src="/huderma_logo.png"
+                  alt="Huderma"
+                  style={{ width: '72px', height: '72px', objectFit: 'contain', flexShrink: 0 }}
+                />
+                <div style={{ flex: 1, textAlign: 'center' }}>
+                  <h1 style={{ fontSize: '1.45rem', fontWeight: 900, color: '#0369a1', margin: 0, letterSpacing: '-0.02em', textTransform: 'uppercase' }}>
+                    HUDERMA SPECIALIZED CLINIC &amp; CENTRAL LABORATORY
+                  </h1>
+                  <div style={{ fontSize: '0.8rem', color: '#475569', marginTop: '3px', fontWeight: 600 }}>
+                    Dermatology, Venereology &amp; Medical Diagnostic Center • Bole Sub-City, Addis Ababa, Ethiopia
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
+                    Tel: +251 11 667 8900 / +251 911 234567 • Email: info@huderma.com • ISO 15189 Certified LIS
+                  </div>
+                </div>
               </div>
 
-              <div style={{ marginTop: '10px', display: 'inline-block', padding: '4px 18px', background: printModalMode === 'requisition' ? '#e0f2fe' : '#f0fdf4', borderRadius: '4px', border: `1px solid ${printModalMode === 'requisition' ? '#bae6fd' : '#bbf7d0'}` }}>
-                <span style={{ fontSize: '0.9rem', fontWeight: 800, color: printModalMode === 'requisition' ? '#0369a1' : '#15803d', letterSpacing: '0.04em' }}>
-                  {printModalMode === 'requisition'
-                    ? 'LABORATORY INVESTIGATION REQUISITION & REFERRAL FORM'
-                    : 'CLINICAL LABORATORY EXAMINATION REPORT'}
-                </span>
-              </div>
-              {printModalMode === 'requisition' && (
-                <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '3px', fontStyle: 'italic' }}>
-                  (For Internal Sample Collection or External Diagnostic Referral)
+              <div style={{ textAlign: 'center', marginTop: '10px' }}>
+                <div style={{ display: 'inline-block', padding: '4px 18px', background: printModalMode === 'requisition' ? '#e0f2fe' : '#f0fdf4', borderRadius: '4px', border: `1px solid ${printModalMode === 'requisition' ? '#bae6fd' : '#bbf7d0'}` }}>
+                  <span style={{ fontSize: '0.9rem', fontWeight: 800, color: printModalMode === 'requisition' ? '#0369a1' : '#15803d', letterSpacing: '0.04em' }}>
+                    {printModalMode === 'requisition'
+                      ? 'LABORATORY INVESTIGATION REQUISITION & REFERRAL FORM'
+                      : 'CLINICAL LABORATORY EXAMINATION REPORT'}
+                  </span>
                 </div>
-              )}
+                {printModalMode === 'requisition' && (
+                  <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '3px', fontStyle: 'italic' }}>
+                    (For Internal Sample Collection or External Diagnostic Referral)
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Patient & Requisition Demographics */}

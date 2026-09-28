@@ -102,6 +102,10 @@ public class ServicesController : ControllerBase
     public async Task<IActionResult> GetConsultationServices()
     {
         byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+        string cacheKey = $"tenant:{tenantId}:services:consultation";
+        var cached = await _cache.GetAsync<List<dynamic>>(cacheKey);
+        if (cached != null) return Ok(ApiResponse<dynamic>.Ok(cached));
+
         using var conn = _dbFactory.CreateConnection();
 
         var sql = @"
@@ -119,6 +123,7 @@ public class ServicesController : ControllerBase
             ORDER BY Price ASC, Name ASC";
 
         var list = (await conn.QueryAsync<dynamic>(sql, new { TenantId = tenantId })).ToList();
+        await _cache.SetAsync(cacheKey, list, TimeSpan.FromHours(1));
         return Ok(ApiResponse<dynamic>.Ok(list));
     }
 

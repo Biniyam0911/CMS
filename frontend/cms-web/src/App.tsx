@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Clock } from 'lucide-react';
 import Sidebar, { ModuleKey, MODULE_ITEMS } from './components/Sidebar';
 import Header from './components/Header';
 import LoginPage from './pages/Auth/LoginPage';
@@ -45,6 +46,22 @@ export default function App() {
   const [selectedEmrPatientId, setSelectedEmrPatientId] = useState<number | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
+
+  // Session Inactivity Timeout State
+  const [showTimeoutWarning, setShowTimeoutWarning] = useState(false);
+  const [timeoutSecondsRemaining, setTimeoutSecondsRemaining] = useState(60);
+
+  const handleLogout = (reason?: string) => {
+    setUser(null);
+    setToken('');
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('current_user');
+    applyUserTheme('default');
+    setShowTimeoutWarning(false);
+    if (reason) {
+      sessionStorage.setItem('cms_logout_reason', reason);
+    }
+  };
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
@@ -98,6 +115,9 @@ export default function App() {
           const v = s.settingValue || s.SettingValue;
           if (k === 'ClinicName' && v) name = v;
           if (k === 'AppIcon' && v) icon = v;
+          if (k === 'SessionTimeoutMinutes' && v) {
+            localStorage.setItem('cms_session_timeout_minutes', v);
+          }
         });
       }
       if (name) {
@@ -168,6 +188,41 @@ export default function App() {
     };
   }, [user]);
 
+  // Idle Inactivity Tracker for Configurable Session Timeout
+  useEffect(() => {
+    if (!user || !token) return;
+
+    let lastActivity = Date.now();
+    const updateActivity = () => {
+      lastActivity = Date.now();
+      setShowTimeoutWarning(prev => (prev ? false : prev));
+    };
+
+    const events = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click'];
+    events.forEach(ev => window.addEventListener(ev, updateActivity, { passive: true }));
+
+    const checkInterval = setInterval(() => {
+      const configuredMinutes = Math.max(1, Number(localStorage.getItem('cms_session_timeout_minutes') || '10'));
+      const timeoutMs = configuredMinutes * 60 * 1000;
+      const warningThresholdMs = timeoutMs - (60 * 1000); // 60s before timeout
+      const elapsed = Date.now() - lastActivity;
+
+      if (elapsed >= timeoutMs) {
+        handleLogout(`Your session expired due to ${configuredMinutes} minutes of inactivity.`);
+      } else if (elapsed >= warningThresholdMs && timeoutMs > 60000) {
+        setShowTimeoutWarning(true);
+        setTimeoutSecondsRemaining(Math.max(1, Math.ceil((timeoutMs - elapsed) / 1000)));
+      } else {
+        setShowTimeoutWarning(false);
+      }
+    }, 1000);
+
+    return () => {
+      events.forEach(ev => window.removeEventListener(ev, updateActivity));
+      clearInterval(checkInterval);
+    };
+  }, [user, token]);
+
   if (!user || !token) {
     return (
       <LoginPage
@@ -211,13 +266,7 @@ export default function App() {
             setActiveModule(key);
             setIsMobileMenuOpen(false);
           }}
-          onLogout={() => {
-            setUser(null);
-            setToken('');
-            localStorage.removeItem('auth_token');
-            localStorage.removeItem('current_user');
-            applyUserTheme('default');
-          }}
+          onLogout={() => handleLogout()}
         />
 
         {/* Main Content Area */}
@@ -273,6 +322,63 @@ export default function App() {
         }}
         onToggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
       />
+
+      {/* Session Timeout Warning Modal */}
+      {showTimeoutWarning && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(15, 23, 42, 0.72)',
+          backdropFilter: 'blur(5px)',
+          zIndex: 99999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '16px'
+        }}>
+          <div style={{
+            background: 'var(--bg-card, #ffffff)',
+            borderRadius: '16px',
+            padding: '26px 28px',
+            maxWidth: '430px',
+            width: '100%',
+            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.35)',
+            border: '2px solid #f59e0b',
+            textAlign: 'center'
+          }}>
+            <div style={{ width: '50px', height: '50px', borderRadius: '50%', background: '#fef3c7', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
+              <Clock size={28} />
+            </div>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0 0 6px 0', color: 'var(--text-main)' }}>
+              Inactivity Session Timeout
+            </h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0 0 16px 0', lineHeight: 1.45 }}>
+              You have been inactive. For clinical data security and patient privacy, your session will automatically close in:
+            </p>
+            <div style={{ fontSize: '2.4rem', fontWeight: 900, color: '#dc2626', fontFamily: 'monospace', margin: '0 0 20px 0', letterSpacing: '-0.02em' }}>
+              {timeoutSecondsRemaining}s
+            </div>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+              <button
+                type="button"
+                onClick={() => setShowTimeoutWarning(false)}
+                className="btn-primary"
+                style={{ flex: 1, padding: '10px 16px', fontWeight: 700 }}
+              >
+                Stay Logged In
+              </button>
+              <button
+                type="button"
+                onClick={() => handleLogout('Logged out by user.')}
+                className="btn-secondary"
+                style={{ flex: 1, padding: '10px 16px' }}
+              >
+                Log Out Now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

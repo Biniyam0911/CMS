@@ -260,6 +260,85 @@ export default function BillingPage() {
     fetchInvoicesAndPatients();
   }, []);
 
+  // Lightweight invoice-only refresh (avoids re-fetching patients, settings, claims after every payment)
+  const fetchInvoicesOnly = async () => {
+    try {
+      const { fromDate, toDate } = getDateRangeForPeriod(datePeriod, customStartDate, customEndDate);
+      const invQuery = new URLSearchParams();
+      invQuery.set('limit', datePeriod === 'ALL' ? '300' : '1000');
+      if (fromDate) invQuery.set('fromDate', fromDate);
+      if (toDate) invQuery.set('toDate', toDate);
+
+      const [invData, statsRes] = await Promise.all([
+        api.get<any[]>(`/billing/invoices?${invQuery.toString()}`).catch(() => []),
+        api.get<any>(`/billing/stats?${fromDate ? `fromDate=${fromDate}&toDate=${toDate}` : ''}`).catch(() => null)
+      ]);
+
+      const statsData = statsRes?.data ?? statsRes;
+      if (statsData && typeof statsData === 'object') {
+        setDbStats({
+          totalInvoices: Number(statsData.totalInvoices ?? statsData.TotalInvoices ?? 0),
+          billableInvoices: Number(statsData.billableInvoices ?? statsData.BillableInvoices ?? 0),
+          waivedInvoices: Number(statsData.waivedInvoices ?? statsData.WaivedInvoices ?? 0),
+          totalBilled: Number(statsData.totalBilled ?? statsData.TotalBilled ?? 0),
+          paidRevenue: Number(statsData.paidRevenue ?? statsData.PaidRevenue ?? 0),
+          pendingReceivables: Number(statsData.pendingReceivables ?? statsData.PendingReceivables ?? 0),
+          paidCount: Number(statsData.paidCount ?? statsData.PaidCount ?? 0),
+          collectionRate: Number(statsData.collectionRate ?? statsData.CollectionRate ?? 100)
+        });
+      }
+
+      if (invData && Array.isArray(invData)) {
+        const mapped = invData.map((inv: any) => {
+          const isWaived = inv.isWaived || inv.IsWaived || inv.totalAmount === 0 || inv.TotalAmount === 0;
+          return {
+            id: inv.id || inv.Id,
+            invoiceNo: inv.invoiceNo || inv.InvoiceNo || `INV-1-${inv.id}`,
+            patientId: inv.patientId || inv.PatientId,
+            patientName: inv.patientName || inv.PatientName || `Patient #${inv.patientId}`,
+            issueDate: inv.issueDate ? String(inv.issueDate).split('T')[0] : new Date().toISOString().split('T')[0],
+            subtotal: inv.subTotal || inv.SubTotal || 0,
+            vat: inv.taxAmount || inv.TaxAmount || 0,
+            total: inv.totalAmount || inv.TotalAmount || 0,
+            paid: inv.paidAmount || inv.PaidAmount || 0,
+            isWaived,
+            status: isWaived ? 'Waived' : (inv.statusName || (inv.statusId === 4 ? 'Paid' : (inv.statusId === 3 ? 'PartiallyPaid' : 'Issued'))),
+            insuranceProviderId: inv.insuranceProviderId || inv.InsuranceProviderId,
+            insuranceProviderName: inv.insuranceProviderName || inv.InsuranceProviderName,
+            insuranceCoPayPercent: inv.insuranceCoPayPercent ?? inv.InsuranceCoPayPercent ?? 0,
+            insuranceClaimAmount: inv.insuranceClaimAmount ?? inv.InsuranceClaimAmount ?? 0,
+            patientPayAmount: inv.patientPayAmount ?? inv.PatientPayAmount ?? inv.totalAmount ?? 0,
+            preAuthCode: inv.preAuthCode || inv.PreAuthCode,
+            claimStatusId: inv.claimStatusId || inv.ClaimStatusId || 1,
+            fiscalReceiptNo: inv.fiscalReceiptNo || inv.FiscalReceiptNo,
+            fiscalSignature: inv.fiscalSignature || inv.FiscalSignature,
+            fiscalQrPayload: inv.fiscalQrPayload || inv.FiscalQrPayload,
+            receiptImageUrl: inv.receiptImageUrl || inv.ReceiptImageUrl || null,
+            notes: inv.notes || inv.Notes || '',
+            items: (inv.items || []).map((it: any) => ({
+              id: it.id || it.Id,
+              description: it.description || it.Description,
+              itemType: it.itemType || it.ItemType || 'General',
+              quantity: it.quantity || it.Quantity || 1,
+              unitPrice: it.unitPrice || it.UnitPrice || 0,
+              totalPrice: it.totalPrice || it.TotalPrice || ((it.quantity || 1) * (it.unitPrice || 0))
+            }))
+          };
+        });
+        setInvoices(mapped);
+        if (mapped.length > 0) {
+          setSelectedInvoice((prev: any) => {
+            if (!prev) return mapped[0];
+            const found = mapped.find(m => m.id === prev.id);
+            return found || mapped[0];
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Failed to refresh invoices:', err);
+    }
+  };
+
   const calculateSubtotal = () => items.reduce((acc, i) => acc + (i.qty * i.unitPrice), 0);
   const calculateVat = () => Math.round(calculateSubtotal() * (vatPercent / 100) * 100) / 100;
   const calculateTotal = () => calculateSubtotal() + calculateVat();
@@ -318,7 +397,7 @@ export default function BillingPage() {
           fiscalQrPayload: signData.fiscalQrPayload || signData.FiscalQrPayload,
           mrcNumber: signData.mrcNumber || signData.MrcNumber || 'ERCA-ETH-2026-F9812'
         });
-        await fetchInvoicesAndPatients();
+        await fetchInvoicesOnly();
       }
     } catch (err: any) {
       alert(`Fiscal device signature failed: ${err?.message || 'Check ERCA communication port.'}`);
@@ -330,7 +409,7 @@ export default function BillingPage() {
   const handleUpdateClaimStatus = async (invoiceId: number, statusId: number) => {
     try {
       await api.put(`/billing/insurance/claims/${invoiceId}/status`, { statusId });
-      await fetchInvoicesAndPatients();
+      await fetchInvoicesOnly();
     } catch (err) {
       console.error('Failed to update claim status:', err);
     }
@@ -342,7 +421,7 @@ export default function BillingPage() {
       await api.post(`/billing/invoices/${invoiceId}/verify-telemed-payment`, {});
       setPaySuccessMsg('✓ Transfer verified & confirmed! Telegram notification sent to patient.');
       setTimeout(() => setPaySuccessMsg(null), 4500);
-      await fetchInvoicesAndPatients();
+      await fetchInvoicesOnly();
     } catch (err: any) {
       alert(`Transfer verification failed: ${err?.message || 'Check server connection.'}`);
     } finally {
@@ -467,7 +546,7 @@ export default function BillingPage() {
       setPayAmount('');
       setPayReference('');
       setPayMethod('1');
-      await fetchInvoicesAndPatients();
+      await fetchInvoicesOnly();
     } catch (err) {
       console.error('Process payment error:', err);
       setPaySuccessMsg(isWaived ? 'Invoice marked as waived!' : `Payment logged for Br ${paidNum.toFixed(2)}!`);
@@ -1022,6 +1101,7 @@ export default function BillingPage() {
                             placeholder={String(selectedInvoice.total - selectedInvoice.paid)}
                             value={payAmount}
                             onChange={e => setPayAmount(e.target.value)}
+                            onWheel={(e) => (e.target as HTMLInputElement).blur()}
                             required={payMethod !== '4'}
                             disabled={payMethod === '4'}
                             style={{ opacity: payMethod === '4' ? 0.5 : 1 }}
@@ -1348,7 +1428,7 @@ export default function BillingPage() {
                   </div>
                   <div>
                     <label style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Price (Br)</label>
-                    <input type="number" step="0.5" value={newItemPrice} onChange={e => setNewItemPrice(e.target.value)} />
+                    <input type="number" step="0.5" value={newItemPrice} onChange={e => setNewItemPrice(e.target.value)} onWheel={(e) => (e.target as HTMLInputElement).blur()} />
                   </div>
                   <button type="button" onClick={handleAddItem} className="btn-secondary" style={{ padding: '6px 10px' }}><Plus size={14} /></button>
                 </div>
