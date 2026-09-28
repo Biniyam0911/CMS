@@ -44,7 +44,7 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
         setError(data.errors?.[0] || 'Invalid credentials');
       }
     } catch {
-      setError('Connection to API failed. Ensure CMS.API is running on port 5000.');
+      setError('Connection to API failed. Ensure CMS.API backend is running on port 5010.');
     } finally {
       setLoading(false);
     }
