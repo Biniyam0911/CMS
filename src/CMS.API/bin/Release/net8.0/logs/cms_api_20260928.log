@@ -25,3 +25,14 @@
 2026-09-28 23:19:21.934 +03:00 [INF] Application started. Press Ctrl+C to shut down.
 2026-09-28 23:19:21.934 +03:00 [INF] Hosting environment: Development
 2026-09-28 23:19:21.935 +03:00 [INF] Content root path: C:\Users\ASUS\source\repos\CMS\src\CMS.API
+2026-09-28 23:47:58.495 +03:00 [INF] Cache: Redis not connected. Using MemoryCacheService fallback
+2026-09-28 23:47:58.986 +03:00 [INF] CMS API Host starting...
+2026-09-28 23:47:59.034 +03:00 [INF] User profile is available. Using 'C:\Users\ASUS\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
+2026-09-28 23:47:59.071 +03:00 [INF] [2026-09-28 23:47:59.060] LISTENER STARTED: Passively waiting for analyzer connections on 0.0.0.0:8004...
+2026-09-28 23:47:59.074 +03:00 [INF] [2026-09-28 23:47:59.074] LISTENER STARTED: Passively waiting for analyzer connections on 0.0.0.0:10001...
+2026-09-28 23:47:59.075 +03:00 [INF] [2026-09-28 23:47:59.074] LISTENER STARTED: Passively waiting for analyzer connections on 0.0.0.0:10002...
+2026-09-28 23:47:59.194 +03:00 [INF] Now listening on: http://0.0.0.0:5010
+2026-09-28 23:47:59.195 +03:00 [INF] Now listening on: http://localhost:5010
+2026-09-28 23:47:59.195 +03:00 [INF] Application started. Press Ctrl+C to shut down.
+2026-09-28 23:47:59.195 +03:00 [INF] Hosting environment: Development
+2026-09-28 23:47:59.196 +03:00 [INF] Content root path: C:\Users\ASUS\source\repos\CMS\src\CMS.API
