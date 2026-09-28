@@ -372,6 +372,7 @@ Allow local clinic devices to access the system:
 New-NetFirewallRule -DisplayName "CMS Web App (HTTP 80)" -Direction Inbound -LocalPort 80 -Protocol TCP -Action Allow
 New-NetFirewallRule -DisplayName "CMS Web App (HTTPS 443)" -Direction Inbound -LocalPort 443 -Protocol TCP -Action Allow
 New-NetFirewallRule -DisplayName "CMS API (TCP 5010)" -Direction Inbound -LocalPort 5010 -Protocol TCP -Action Allow
+New-NetFirewallRule -DisplayName "CMS LIS Analyzer TCP Listeners (8004, 10001, 10002)" -Direction Inbound -LocalPort 8004,10001,10002 -Protocol TCP -Action Allow
 ```
 
 ---

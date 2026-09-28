@@ -38,15 +38,25 @@ if exist "%IIS_API_DIR%\appsettings.Production.json" (
     copy /Y "%IIS_API_DIR%\appsettings.Production.json" "%BACKUP_DIR%\appsettings.Production.json" >nul
 )
 
-:: 3. Stop IIS to release all locked DLLs and files
+:: 3. Stop IIS and Services to release all locked DLLs and files
 echo.
-echo [STEP 2/6] Stopping IIS to release file locks (w3wp.exe)...
+echo [STEP 2/6] Stopping IIS and background services to release file locks...
+sc query CMSServiceManager >nul 2>&1
+if %errorLevel% equ 0 (
+    echo [INFO] Stopping CMSServiceManager Windows Service...
+    net stop CMSServiceManager >nul 2>&1
+)
+sc query CMSApi >nul 2>&1
+if %errorLevel% equ 0 (
+    echo [INFO] Stopping CMSApi Windows Service...
+    net stop CMSApi >nul 2>&1
+)
 iisreset /stop
 if %errorLevel% neq 0 (
     echo [WARNING] iisreset /stop had an issue. Terminating w3wp.exe directly if lingering...
     taskkill /F /IM w3wp.exe >nul 2>&1
 )
-echo [OK] IIS stopped.
+echo [OK] Web server and services stopped.
 
 :: 4. Pull latest update from GitHub
 echo.
@@ -99,11 +109,19 @@ if exist "%FRONTEND_DIST%" (
     xcopy /E /Y /I "%FRONTEND_DIST%\*" "%IIS_WEB_DIR%\" >nul
 )
 
-:: 7. Restart IIS
+:: 7. Restart IIS and Background Services
 echo.
-echo [STEP 6/6] Starting IIS...
+echo [STEP 6/6] Starting IIS and background services...
 iisreset /start
-echo [OK] IIS is running.
+sc query CMSApi >nul 2>&1
+if %errorLevel% equ 0 (
+    net start CMSApi >nul 2>&1
+)
+sc query CMSServiceManager >nul 2>&1
+if %errorLevel% equ 0 (
+    net start CMSServiceManager >nul 2>&1
+)
+echo [OK] IIS and background services are running.
 
 :: 8. Verification & Health Check
 echo.
@@ -111,9 +129,9 @@ echo ===========================================================================
 echo                      UPDATE COMPLETED SUCCESSFULLY!
 echo ===============================================================================
 echo Server Endpoints:
-echo  - Web Application: http://localhost:5000 / http://127.0.0.1
-echo  - API Swagger/Base: http://localhost:5000/api/v1/health
-echo  - LIS TCP Listener: Ports 5100, 2575 (Listening for ZYBIO Z3 and analyzers)
+echo  - Web Application: http://localhost / http://127.0.0.1
+echo  - API Swagger/Base: http://localhost:5010/swagger or http://localhost/api/v1/health
+echo  - LIS TCP Listener: Ports 8004, 10001, 10002 (Passive TCP analyzers)
 echo ===============================================================================
 echo.
 pause
