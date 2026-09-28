@@ -44,6 +44,14 @@ export default function UserManagementPage() {
   const [specializations, setSpecializations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Search & Filter State for Users
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [userRoleFilter, setUserRoleFilter] = useState('ALL');
+  const [userStatusFilter, setUserStatusFilter] = useState('ALL');
+
+  // Search for Notifications
+  const [notifSearchQuery, setNotifSearchQuery] = useState('');
+
   // Modal States
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [showRoleModal, setShowRoleModal] = useState<any>(null);
@@ -448,6 +456,54 @@ export default function UserManagementPage() {
   // Group modules by category
   const categories = Array.from(new Set(MODULE_ITEMS.map(m => m.category)));
 
+  // Collect unique role options for filter dropdown
+  const rolesListOptions = Array.from(new Set(
+    users.flatMap(u => u.roles || [])
+      .concat(roles.map((r: any) => r.name || r))
+      .concat(availableRolesList.map(r => r.name))
+  )).filter(Boolean).sort();
+
+  // Filter users by search query, role, and status
+  const filteredUsers = users.filter(u => {
+    // 1. Text Query Search (name, username, email, phone, roles)
+    if (userSearchQuery.trim()) {
+      const q = userSearchQuery.toLowerCase().trim();
+      const matchUsername = (u.username || '').toLowerCase().includes(q);
+      const matchName = (u.name || '').toLowerCase().includes(q);
+      const matchEmail = (u.email || '').toLowerCase().includes(q);
+      const matchPhone = (u.phone || '').toLowerCase().includes(q);
+      const matchRoles = (u.roles || []).some((r: string) => r.toLowerCase().includes(q));
+      if (!matchUsername && !matchName && !matchEmail && !matchPhone && !matchRoles) {
+        return false;
+      }
+    }
+
+    // 2. Role Filter
+    if (userRoleFilter !== 'ALL') {
+      const hasRole = (u.roles || []).some((r: string) => r.toLowerCase() === userRoleFilter.toLowerCase());
+      if (!hasRole) return false;
+    }
+
+    // 3. Status Filter
+    if (userStatusFilter !== 'ALL') {
+      if ((u.status || '').toLowerCase() !== userStatusFilter.toLowerCase()) return false;
+    }
+
+    return true;
+  });
+
+  // Filter notification events by keyword
+  const filteredNotificationEvents = NOTIFICATION_EVENTS.filter(ev => {
+    if (!notifSearchQuery.trim()) return true;
+    const q = notifSearchQuery.toLowerCase().trim();
+    return (
+      ev.name.toLowerCase().includes(q) ||
+      ev.description.toLowerCase().includes(q) ||
+      ev.category.toLowerCase().includes(q) ||
+      ev.targetModule.toLowerCase().includes(q)
+    );
+  });
+
   return (
     <div>
       {/* Toast */}
@@ -510,17 +566,169 @@ export default function UserManagementPage() {
       {/* ========================================================================= */}
       {activeTab === 'users' && (
         <div className="glass-panel" style={{ padding: isMobile ? '16px 12px' : '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h4 style={{ fontWeight: 700 }}>System Users Directory</h4>
-            {loading && <Loader2 size={16} className="animate-spin" color="#06b6d4" />}
+          {/* Header & Refresh */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+            <div>
+              <h4 style={{ fontWeight: 700, margin: 0, fontSize: '1.05rem', color: 'var(--text-main)' }}>System Users Directory</h4>
+              <p style={{ fontSize: '0.76rem', color: 'var(--text-muted)', margin: '3px 0 0 0' }}>
+                Showing <strong style={{ color: 'var(--text-main)' }}>{filteredUsers.length}</strong> of {users.length} registered clinic staff accounts
+                {(userSearchQuery || userRoleFilter !== 'ALL' || userStatusFilter !== 'ALL') && (
+                  <span style={{ marginLeft: '6px', color: '#0284c7', fontWeight: 600 }}>(Filtered)</span>
+                )}
+              </p>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                onClick={fetchUsersAndRoles}
+                disabled={loading}
+                className="btn-secondary"
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', padding: '6px 12px' }}
+                title="Refresh user directory"
+              >
+                <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+                <span>Refresh</span>
+              </button>
+            </div>
           </div>
+
+          {/* Search & Filter Toolbar */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            marginBottom: '18px',
+            flexWrap: 'wrap',
+            background: 'var(--bg-subtle, #f8fafc)',
+            padding: '12px 14px',
+            borderRadius: '10px',
+            border: '1px solid var(--border-color)'
+          }}>
+            {/* Search Input */}
+            <div style={{ position: 'relative', flex: '1 1 260px', minWidth: '220px' }}>
+              <Search
+                size={16}
+                color="var(--text-muted)"
+                style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}
+              />
+              <input
+                type="text"
+                placeholder="Search staff by name, @username, email, phone, role..."
+                value={userSearchQuery}
+                onChange={e => setUserSearchQuery(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px 36px 8px 36px',
+                  fontSize: '0.84rem',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  background: '#ffffff',
+                  outline: 'none'
+                }}
+              />
+              {userSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setUserSearchQuery('')}
+                  style={{
+                    position: 'absolute',
+                    right: '10px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-muted)',
+                    cursor: 'pointer',
+                    padding: '2px',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}
+                  title="Clear search"
+                >
+                  <X size={15} />
+                </button>
+              )}
+            </div>
+
+            {/* Role Filter */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                Role:
+              </label>
+              <select
+                value={userRoleFilter}
+                onChange={e => setUserRoleFilter(e.target.value)}
+                style={{
+                  padding: '7px 10px',
+                  fontSize: '0.8rem',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  background: '#ffffff',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="ALL">All Roles ({users.length})</option>
+                {rolesListOptions.map(r => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Status Filter */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                Status:
+              </label>
+              <select
+                value={userStatusFilter}
+                onChange={e => setUserStatusFilter(e.target.value)}
+                style={{
+                  padding: '7px 10px',
+                  fontSize: '0.8rem',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  background: '#ffffff',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="ALL">All Status</option>
+                <option value="Active">Active Only</option>
+                <option value="Inactive">Inactive Only</option>
+              </select>
+            </div>
+
+            {/* Clear All Filters Button */}
+            {(userSearchQuery || userRoleFilter !== 'ALL' || userStatusFilter !== 'ALL') && (
+              <button
+                type="button"
+                onClick={() => {
+                  setUserSearchQuery('');
+                  setUserRoleFilter('ALL');
+                  setUserStatusFilter('ALL');
+                }}
+                className="btn-secondary"
+                style={{
+                  padding: '6px 12px',
+                  fontSize: '0.75rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  color: '#dc2626'
+                }}
+                title="Reset all search filters"
+              >
+                <RotateCcw size={12} />
+                <span>Reset Filters</span>
+              </button>
+            )}
+          </div>
+
           <div className="table-responsive">
             <table className="cms-table">
               <thead>
                 <tr>
                   <th>Username</th>
                   <th>Full Name</th>
-                  <th>Email</th>
+                  <th>Email &amp; Phone</th>
                   <th>Assigned Roles</th>
                   <th>MFA Security</th>
                   <th>Account Status</th>
@@ -528,11 +736,18 @@ export default function UserManagementPage() {
                 </tr>
               </thead>
               <tbody>
-                {users.map(u => (
+                {filteredUsers.map(u => (
                   <tr key={u.id}>
-                    <td style={{ fontWeight: 700, color: '#0284c7' }}>{u.username}</td>
+                    <td style={{ fontWeight: 700, color: '#0284c7' }}>@{u.username}</td>
                     <td style={{ fontWeight: 600 }}>{u.name}</td>
-                    <td>{u.email}</td>
+                    <td>
+                      <div>{u.email}</div>
+                      {u.phone && (
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                          📞 {u.phone}
+                        </div>
+                      )}
+                    </td>
                     <td>
                       {(u.roles || []).map((r: string) => (
                         <span key={r} className="badge badge-info" style={{ marginRight: '4px' }}>
@@ -547,7 +762,11 @@ export default function UserManagementPage() {
                         </span>
                       </button>
                     </td>
-                    <td><span className="badge badge-normal">{u.status}</span></td>
+                    <td>
+                      <span className={u.status === 'Active' ? 'badge badge-normal' : 'badge badge-danger'}>
+                        {u.status}
+                      </span>
+                    </td>
                     <td>
                       <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                         <button onClick={() => handleOpenEditStaffModal(u)} className="btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem', color: '#0284c7', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -563,6 +782,48 @@ export default function UserManagementPage() {
                     </td>
                   </tr>
                 ))}
+
+                {filteredUsers.length === 0 && (
+                  <tr>
+                    <td colSpan={7} style={{ textAlign: 'center', padding: '40px 20px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+                        <div style={{
+                          width: '44px',
+                          height: '44px',
+                          borderRadius: '50%',
+                          background: '#f1f5f9',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#94a3b8'
+                        }}>
+                          <Search size={22} />
+                        </div>
+                        <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-main)' }}>
+                          No staff accounts found
+                        </div>
+                        <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0, maxWidth: '420px' }}>
+                          No users matched your search criteria {userSearchQuery ? `"${userSearchQuery}"` : ''}
+                          {userRoleFilter !== 'ALL' ? ` with role "${userRoleFilter}"` : ''}
+                          {userStatusFilter !== 'ALL' ? ` with status "${userStatusFilter}"` : ''}.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setUserSearchQuery('');
+                            setUserRoleFilter('ALL');
+                            setUserStatusFilter('ALL');
+                          }}
+                          className="btn-secondary"
+                          style={{ marginTop: '6px', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+                        >
+                          <RotateCcw size={13} />
+                          <span>Clear Search Filters</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -668,14 +929,36 @@ export default function UserManagementPage() {
 
           {/* Module Filter Search */}
           <div style={{ position: 'relative', width: isMobile ? '100%' : '320px' }}>
-            <Search size={15} color="var(--text-muted)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+            <Search size={15} color="var(--text-muted)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
             <input
               type="text"
               placeholder="Search module permissions..."
               value={permSearchQuery}
               onChange={e => setPermSearchQuery(e.target.value)}
-              style={{ paddingLeft: '32px' }}
+              style={{ paddingLeft: '32px', paddingRight: permSearchQuery ? '32px' : '10px', width: '100%' }}
             />
+            {permSearchQuery && (
+              <button
+                type="button"
+                onClick={() => setPermSearchQuery('')}
+                style={{
+                  position: 'absolute',
+                  right: '10px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  padding: '2px',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+                title="Clear module search"
+              >
+                <X size={15} />
+              </button>
+            )}
           </div>
 
           {/* Module Grid by Category */}
@@ -830,9 +1113,9 @@ export default function UserManagementPage() {
 
           {/* Main Matrix Table */}
           <div className="glass-panel" style={{ padding: '24px', marginBottom: '24px', overflowX: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
               <div>
-                <h4 style={{ fontWeight: 700, fontSize: '0.92rem' }}>Role-to-Alert Subscription Matrix</h4>
+                <h4 style={{ fontWeight: 700, fontSize: '0.92rem', margin: 0 }}>Role-to-Alert Subscription Matrix</h4>
                 <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
                   Click any checkbox to enable or disable notification delivery for that role.
                 </span>
@@ -847,10 +1130,44 @@ export default function UserManagementPage() {
               </div>
             </div>
 
+            {/* Notification Events Search Bar */}
+            <div style={{ position: 'relative', width: isMobile ? '100%' : '320px', marginBottom: '16px' }}>
+              <Search size={15} color="var(--text-muted)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+              <input
+                type="text"
+                placeholder="Search notification events & modules..."
+                value={notifSearchQuery}
+                onChange={e => setNotifSearchQuery(e.target.value)}
+                style={{ paddingLeft: '32px', paddingRight: notifSearchQuery ? '32px' : '10px', width: '100%', fontSize: '0.82rem' }}
+              />
+              {notifSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setNotifSearchQuery('')}
+                  style={{
+                    position: 'absolute',
+                    right: '10px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-muted)',
+                    cursor: 'pointer',
+                    padding: '2px',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}
+                  title="Clear notification search"
+                >
+                  <X size={15} />
+                </button>
+              )}
+            </div>
+
             <table className="cms-table" style={{ width: '100%', minWidth: '820px' }}>
               <thead>
                 <tr>
-                  <th style={{ width: '280px' }}>Notification Event & Scope</th>
+                  <th style={{ width: '280px' }}>Notification Event &amp; Scope</th>
                   <th style={{ width: '90px' }}>Target</th>
                   {availableRolesList.map(r => (
                     <th key={r.name} style={{ textAlign: 'center', fontSize: '0.75rem', padding: '8px 4px' }}>
@@ -860,7 +1177,7 @@ export default function UserManagementPage() {
                 </tr>
               </thead>
               <tbody>
-                {NOTIFICATION_EVENTS.map(ev => {
+                {filteredNotificationEvents.map(ev => {
                   const subscribedRoles = notificationRules[ev.key] || DEFAULT_ROLE_RULES[ev.key] || [];
                   return (
                     <tr key={ev.key}>
@@ -928,6 +1245,30 @@ export default function UserManagementPage() {
                     </tr>
                   );
                 })}
+
+                {filteredNotificationEvents.length === 0 && (
+                  <tr>
+                    <td colSpan={2 + availableRolesList.length} style={{ textAlign: 'center', padding: '36px 16px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                        <Search size={20} color="var(--text-muted)" />
+                        <div style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-main)' }}>
+                          No notification events found
+                        </div>
+                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>
+                          No alerts match "{notifSearchQuery}".
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setNotifSearchQuery('')}
+                          className="btn-secondary"
+                          style={{ marginTop: '4px', fontSize: '0.75rem' }}
+                        >
+                          Clear Search
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
