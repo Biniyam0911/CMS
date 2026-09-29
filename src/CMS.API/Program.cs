@@ -62,25 +62,21 @@ var redisConnStr = builder.Configuration["Redis:ConnectionString"] ?? "localhost
 try
 {
     var redisOptions = ConfigurationOptions.Parse(redisConnStr);
-    redisOptions.AbortOnConnectFail = false;
-    redisOptions.ConnectTimeout = 1000;
-    redisOptions.SyncTimeout = 1000;
+    redisOptions.AbortOnConnectFail = true;   // fail fast so we know immediately
+    redisOptions.ConnectTimeout = 5000;        // 5 seconds — enough for Memurai on Windows
+    redisOptions.SyncTimeout = 5000;
+    redisOptions.ReconnectRetryPolicy = new ExponentialRetry(1000);
     var mux = ConnectionMultiplexer.Connect(redisOptions);
-    if (mux.IsConnected)
-    {
-        Log.Information("Cache: Using Redis at {RedisEndpoint}", redisConnStr);
-        builder.Services.AddSingleton<IConnectionMultiplexer>(mux);
-        builder.Services.AddSingleton<ICacheService, RedisCacheService>();
-    }
-    else
-    {
-        Log.Information("Cache: Redis not connected. Using MemoryCacheService fallback");
-        builder.Services.AddSingleton<ICacheService, MemoryCacheService>();
-    }
+    // Ping to confirm the connection is actually usable (not just "opened")
+    var db = mux.GetDatabase();
+    db.Ping();
+    Log.Information("Cache: Using Redis at {RedisEndpoint}", redisConnStr);
+    builder.Services.AddSingleton<IConnectionMultiplexer>(mux);
+    builder.Services.AddSingleton<ICacheService, RedisCacheService>();
 }
 catch (Exception ex)
 {
-    Log.Information("Cache: Redis connect failed ({Message}). Using MemoryCacheService fallback", ex.Message);
+    Log.Warning("Cache: Redis unavailable ({Message}). Using MemoryCacheService fallback", ex.Message);
     builder.Services.AddSingleton<ICacheService, MemoryCacheService>();
 }
 
