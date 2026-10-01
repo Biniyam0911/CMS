@@ -204,6 +204,26 @@ export default function ModuleManagementPage() {
       isEnabled: true,
       desc: 'Ethio Telecom & Africa\'s Talking SMS gateway, Telebirr payment webhooks, HL7/ASTM analyzer TCP feeds, and OpenAI clinical summarizer.',
       features: ['Ethio Telecom SMS Gateway', 'SMS Delivery Logs', 'Telebirr Mobile Webhook', 'HL7 / ASTM TCP Feeds']
+    },
+    {
+      id: 20,
+      code: 'PAYROLL',
+      name: 'Doctor Payroll & Agreements',
+      category: 'Financial',
+      isCore: false,
+      isEnabled: true,
+      desc: 'Doctor salary computation based on configurable percentage or fixed-amount agreements per service category. Hierarchical payroll breakdown with date, category, and service-level drill-down.',
+      features: ['Agreement Setup', 'Percentage / Fixed Rate', 'Hierarchical Payroll Tree', 'CSV Export', 'Category Totals']
+    },
+    {
+      id: 21,
+      code: 'TELEMED',
+      name: 'Telemedicine Video Queue',
+      category: 'Clinical',
+      isCore: false,
+      isEnabled: true,
+      desc: 'Virtual consultation queue management with video call readiness tracking, session join links, and waiting room coordination for remote patients.',
+      features: ['Virtual Queue Board', 'Video Session Links', 'Remote Patient Coordination', 'Consultation Status Tracking']
     }
   ];
 
@@ -236,6 +256,10 @@ export default function ModuleManagementPage() {
               : dm;
           });
           setModules(merged);
+          // Sync to localStorage so App.tsx module guard is up-to-date
+          const disabledCodes = merged.filter(m => !m.isEnabled && !m.isCore).map(m => m.code);
+          localStorage.setItem('cms_disabled_modules', JSON.stringify(disabledCodes));
+          window.dispatchEvent(new Event('module_state_changed'));
         }
       } catch (err) {
         console.error('Failed to load modules:', err);
@@ -257,7 +281,15 @@ export default function ModuleManagementPage() {
       console.error('Toggle module error:', err);
     }
 
-    setModules(modules.map(m => (m.id === id ? { ...m, isEnabled: newState } : m)));
+    const updated = modules.map(m => (m.id === id ? { ...m, isEnabled: newState } : m));
+    setModules(updated);
+
+    // Persist disabled modules to localStorage so App.tsx can gate access
+    const disabledCodes = updated
+      .filter(m => !m.isEnabled && !m.isCore)
+      .map(m => m.code);
+    localStorage.setItem('cms_disabled_modules', JSON.stringify(disabledCodes));
+    window.dispatchEvent(new Event('module_state_changed'));
   };
 
   const categories = ['ALL', 'Clinical', 'Financial', 'Core', 'Analytics', 'Administrative', 'Portals'];

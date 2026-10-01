@@ -28,7 +28,7 @@ import TelemedQueuePage from './pages/Telemedicine/TelemedQueuePage';
 import ChangePasswordPage from './pages/Auth/ChangePasswordPage';
 import BottomNav from './components/BottomNav';
 import PwaInstallBanner from './components/PwaInstallBanner';
-import { initRolePermissions } from './utils/permissions';
+import { initRolePermissions, hasModuleAccess } from './utils/permissions';
 
 export default function App() {
   const [user, setUser] = useState<{ id?: number; username: string; roles: string[]; tenantId: number; doctorId?: number; staffId?: number; name?: string; firstName?: string; lastName?: string } | null>(() => {
@@ -47,6 +47,12 @@ export default function App() {
   const [token, setToken] = useState<string | null>(localStorage.getItem('auth_token'));
   const [activeModule, setActiveModule] = useState<ModuleKey>('DASHBOARD');
   const [selectedEmrPatientId, setSelectedEmrPatientId] = useState<number | null>(null);
+  const [disabledModules, setDisabledModules] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem('cms_disabled_modules');
+      return saved ? new Set<string>(JSON.parse(saved)) : new Set<string>();
+    } catch { return new Set<string>(); }
+  });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
 
@@ -57,6 +63,8 @@ export default function App() {
   const handleLogout = (reason?: string) => {
     setUser(null);
     setToken('');
+    setActiveModule('DASHBOARD');
+    setSelectedEmrPatientId(null);
     localStorage.removeItem('auth_token');
     localStorage.removeItem('current_user');
     applyUserTheme('default');
@@ -181,13 +189,21 @@ export default function App() {
 
     const handleBrandingChange = () => loadBranding();
     const handleUserThemeChange = () => applyUserTheme(user?.username);
+    const handleModuleStateChange = () => {
+      try {
+        const saved = localStorage.getItem('cms_disabled_modules');
+        setDisabledModules(saved ? new Set<string>(JSON.parse(saved)) : new Set<string>());
+      } catch {}
+    };
 
     window.addEventListener('clinic_settings_changed', handleBrandingChange);
     window.addEventListener('cms_user_theme_changed', handleUserThemeChange);
+    window.addEventListener('module_state_changed', handleModuleStateChange);
 
     return () => {
       window.removeEventListener('clinic_settings_changed', handleBrandingChange);
       window.removeEventListener('cms_user_theme_changed', handleUserThemeChange);
+      window.removeEventListener('module_state_changed', handleModuleStateChange);
     };
   }, [user]);
 
@@ -241,6 +257,12 @@ export default function App() {
           initRolePermissions();
           loadBranding();
           applyUserTheme(normalizedUser.username);
+
+          // Navigate to the first module this user is allowed to access
+          const firstAllowed = MODULE_ITEMS.find(
+            m => m.key !== 'CHANGE_PASSWORD' && hasModuleAccess(normalizedUser.roles, m.key)
+          );
+          setActiveModule(firstAllowed ? firstAllowed.key : 'DASHBOARD');
         }}
       />
     );
@@ -293,35 +315,56 @@ export default function App() {
           />
 
           {/* Dynamic Module Views */}
-          {activeModule === 'DASHBOARD' && <DashboardPage token={token} onNavigateModule={(key) => setActiveModule(key as ModuleKey)} />}
-          {activeModule === 'PATIENTS' && <PatientsPage onSelectEmrPatient={navigateToEmrWithPatient} />}
-          {activeModule === 'TRIAGE' && <TriagePage />}
-          {activeModule === 'EMR' && <EmrSoapPage selectedPatientId={selectedEmrPatientId} currentUser={user} />}
-          {activeModule === 'INPATIENT' && <InpatientPage />}
-          {activeModule === 'APPOINTMENTS' && <AppointmentsPage />}
-          {activeModule === 'QUEUE' && <QueuePage />}
-          {activeModule === 'LAB' && <LaboratoryPage />}
-          {activeModule === 'PHARMACY' && <PharmacyPage />}
-          {activeModule === 'BILLING' && <BillingPage />}
-          {activeModule === 'PAYROLL' && <PayrollPage />}
-          {activeModule === 'REPORTS' && <ReportsLibraryPage />}
-          {activeModule === 'REPORT_SALES' && <DedicatedReportPage reportType="REPORT_SALES" />}
-          {activeModule === 'REPORT_AGE_STRATIFIED' && <DedicatedReportPage reportType="REPORT_AGE_STRATIFIED" />}
-          {activeModule === 'REPORT_SEX_STRATIFIED' && <DedicatedReportPage reportType="REPORT_SEX_STRATIFIED" />}
-          {activeModule === 'REPORT_DOCTOR_PERFORMANCE' && <DedicatedReportPage reportType="REPORT_DOCTOR_PERFORMANCE" />}
-          {activeModule === 'REPORT_DIAGNOSIS' && <DedicatedReportPage reportType="REPORT_DIAGNOSIS" />}
-          {activeModule === 'REPORT_PROCEDURE' && <DedicatedReportPage reportType="REPORT_PROCEDURE" />}
-          {activeModule === 'REPORT_BUILDER' && <ReportBuilderPage />}
-          {activeModule === 'PATIENT_PORTAL' && <PatientPortalPage />}
-          {activeModule === 'SERVICE_MGMT' && <ServicesPage />}
-          {activeModule === 'USER_MGMT' && <UserManagementPage />}
+          {/* Module Disabled Guard — show blocked screen if module is toggled off in Module Manager */}
+          {disabledModules.has(activeModule) ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: '18px', textAlign: 'center' }}>
+              <div style={{ width: '70px', height: '70px', borderRadius: '50%', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #fca5a5' }}>
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+                </svg>
+              </div>
+              <div>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-main)', margin: '0 0 8px' }}>Module Disabled</h3>
+                <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', margin: 0, maxWidth: '360px', lineHeight: 1.6 }}>
+                  The <strong>{currentModuleItem?.label || activeModule}</strong> module has been disabled by your system administrator.<br />
+                  Please contact your administrator to re-enable it.
+                </p>
+              </div>
+              <span style={{ fontSize: '0.72rem', fontFamily: 'monospace', color: '#94a3b8', padding: '4px 10px', background: '#f1f5f9', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                MODULE CODE: {activeModule}
+              </span>
+            </div>
+          ) : activeModule === 'DASHBOARD' ? <DashboardPage token={token} onNavigateModule={(key) => setActiveModule(key as ModuleKey)} /> : null}
+
+          {!disabledModules.has(activeModule) && activeModule === 'PATIENTS' && <PatientsPage onSelectEmrPatient={navigateToEmrWithPatient} />}
+          {!disabledModules.has(activeModule) && activeModule === 'TRIAGE' && <TriagePage />}
+          {!disabledModules.has(activeModule) && activeModule === 'EMR' && <EmrSoapPage selectedPatientId={selectedEmrPatientId} currentUser={user} />}
+          {!disabledModules.has(activeModule) && activeModule === 'INPATIENT' && <InpatientPage />}
+          {!disabledModules.has(activeModule) && activeModule === 'APPOINTMENTS' && <AppointmentsPage />}
+          {!disabledModules.has(activeModule) && activeModule === 'QUEUE' && <QueuePage />}
+          {!disabledModules.has(activeModule) && activeModule === 'LAB' && <LaboratoryPage />}
+          {!disabledModules.has(activeModule) && activeModule === 'PHARMACY' && <PharmacyPage />}
+          {!disabledModules.has(activeModule) && activeModule === 'BILLING' && <BillingPage />}
+          {!disabledModules.has(activeModule) && activeModule === 'PAYROLL' && <PayrollPage />}
+          {!disabledModules.has(activeModule) && activeModule === 'REPORTS' && <ReportsLibraryPage />}
+          {!disabledModules.has(activeModule) && activeModule === 'REPORT_SALES' && <DedicatedReportPage reportType="REPORT_SALES" />}
+          {!disabledModules.has(activeModule) && activeModule === 'REPORT_AGE_STRATIFIED' && <DedicatedReportPage reportType="REPORT_AGE_STRATIFIED" />}
+          {!disabledModules.has(activeModule) && activeModule === 'REPORT_SEX_STRATIFIED' && <DedicatedReportPage reportType="REPORT_SEX_STRATIFIED" />}
+          {!disabledModules.has(activeModule) && activeModule === 'REPORT_DOCTOR_PERFORMANCE' && <DedicatedReportPage reportType="REPORT_DOCTOR_PERFORMANCE" />}
+          {!disabledModules.has(activeModule) && activeModule === 'REPORT_DIAGNOSIS' && <DedicatedReportPage reportType="REPORT_DIAGNOSIS" />}
+          {!disabledModules.has(activeModule) && activeModule === 'REPORT_PROCEDURE' && <DedicatedReportPage reportType="REPORT_PROCEDURE" />}
+          {!disabledModules.has(activeModule) && activeModule === 'REPORT_BUILDER' && <ReportBuilderPage />}
+          {!disabledModules.has(activeModule) && activeModule === 'PATIENT_PORTAL' && <PatientPortalPage />}
+          {!disabledModules.has(activeModule) && activeModule === 'SERVICE_MGMT' && <ServicesPage />}
+          {!disabledModules.has(activeModule) && activeModule === 'USER_MGMT' && <UserManagementPage />}
           {activeModule === 'MODULE_MGMT' && <ModuleManagementPage />}
-          {activeModule === 'API_MGMT' && <ApiManagementPage />}
+          {!disabledModules.has(activeModule) && activeModule === 'API_MGMT' && <ApiManagementPage />}
           {activeModule === 'SETTINGS' && <SettingsPage />}
-          {activeModule === 'INTEGRATIONS' && <IntegrationsPage />}
-          {activeModule === 'TELEMED' && <TelemedQueuePage />}
+          {!disabledModules.has(activeModule) && activeModule === 'INTEGRATIONS' && <IntegrationsPage />}
+          {!disabledModules.has(activeModule) && activeModule === 'TELEMED' && <TelemedQueuePage />}
           {activeModule === 'CHANGE_PASSWORD' && <ChangePasswordPage currentUser={user} />}
         </main>
+
       </div>
 
       {/* Mobile Bottom Navigation Bar */}
