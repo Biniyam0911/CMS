@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "qgPjl/cDIww=",
+  "dgSpecHash": "SiQjcSGPKGc=",
   "success": true,
-  "projectFilePath": "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Application\\CMS.Application.csproj",
+  "projectFilePath": "C:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Application\\CMS.Application.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\ASUS\\.nuget\\packages\\dapper\\2.1.35\\dapper.2.1.35.nupkg.sha512",
     "C:\\Users\\ASUS\\.nuget\\packages\\epplus\\7.4.2\\epplus.7.4.2.nupkg.sha512",
