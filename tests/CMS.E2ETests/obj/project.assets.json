@@ -5516,11 +5516,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\ASUS\\source\\repos\\CMS\\tests\\CMS.E2ETests\\CMS.E2ETests.csproj",
+      "projectUniqueName": "c:\\Users\\ASUS\\source\\repos\\CMS\\tests\\CMS.E2ETests\\CMS.E2ETests.csproj",
       "projectName": "CMS.E2ETests",
-      "projectPath": "C:\\Users\\ASUS\\source\\repos\\CMS\\tests\\CMS.E2ETests\\CMS.E2ETests.csproj",
+      "projectPath": "c:\\Users\\ASUS\\source\\repos\\CMS\\tests\\CMS.E2ETests\\CMS.E2ETests.csproj",
       "packagesPath": "C:\\Users\\ASUS\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\ASUS\\source\\repos\\CMS\\tests\\CMS.E2ETests\\obj\\",
+      "outputPath": "c:\\Users\\ASUS\\source\\repos\\CMS\\tests\\CMS.E2ETests\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files\\DevExpress 24.1\\Components\\Offline Packages",
@@ -5615,13 +5615,5 @@
         "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.202/PortableRuntimeIdentifierGraph.json"
       }
     }
-  },
-  "logs": [
-    {
-      "code": "NU1900",
-      "level": "Warning",
-      "warningLevel": 1,
-      "message": "Error occurred while getting package vulnerability data: Unable to load the service index for source https://api.nuget.org/v3/index.json."
-    }
-  ]
+  }
 }

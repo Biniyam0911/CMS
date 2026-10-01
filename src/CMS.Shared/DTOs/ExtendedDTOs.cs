@@ -113,4 +113,8 @@ public record DashboardMetricsDto(
     List<PatientQueueDto> LiveQueue,
     List<dynamic> CriticalAlerts,
     List<dynamic> RecentActivities,
-    List<dynamic>? RevenueTrend = null);
+    List<dynamic>? RevenueTrend = null,
+    int MalePatientsCount = 0,
+    int FemalePatientsCount = 0,
+    List<dynamic>? TopServices = null,
+    List<dynamic>? PatientVisitGrowth = null);

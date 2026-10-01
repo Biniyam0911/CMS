@@ -23,6 +23,8 @@ public class AuthManagementService
         _cache = cache;
     }
 
+    public System.Data.IDbConnection CreateDbConnection() => _dbFactory.CreateConnection();
+
     public async Task<LoginResponse?> LoginAsync(LoginRequest request)
     {
         using var conn = _dbFactory.CreateConnection();

@@ -77,6 +77,40 @@ export default function TriagePage() {
   const [showNewTriageModal, setShowNewTriageModal] = useState(false);
   const [newPatientSearch, setNewPatientSearch] = useState('');
   const [newSelectedPatient, setNewSelectedPatient] = useState<any>(null);
+  const [isSearchingPatients, setIsSearchingPatients] = useState(false);
+
+  // Dynamic debounced patient search for Triage Modal
+  useEffect(() => {
+    if (!showNewTriageModal) return;
+    const q = newPatientSearch.trim();
+    const handler = setTimeout(async () => {
+      try {
+        setIsSearchingPatients(true);
+        const data: any = await api.get('/patients/search', { q, limit: 50 });
+        const list = Array.isArray(data) ? data : (data?.data || data?.Data || []);
+        if (Array.isArray(list) && list.length > 0) {
+          const mapped = list.map((p: any) => ({
+            id: p.id || p.Id,
+            mrn: p.mrn || p.MRN || `HD-${p.id || p.Id}`,
+            name: `${p.firstName || p.FirstName || ''} ${p.middleName || p.MiddleName || ''} ${p.lastName || p.LastName || ''}`.trim(),
+            phone: p.primaryPhone || p.PrimaryPhone || '',
+            gender: p.gender === 1 || p.Gender === 1 || p.gender === 'Male' ? 'Male' : 'Female',
+            age: p.dateOfBirth ? (new Date().getFullYear() - new Date(p.dateOfBirth).getFullYear()) : 30
+          }));
+          setPatients(mapped);
+          if (mapped.length > 0 && !newSelectedPatient) {
+            setNewSelectedPatient(mapped[0]);
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to search patients for triage modal:', err);
+      } finally {
+        setIsSearchingPatients(false);
+      }
+    }, 200);
+
+    return () => clearTimeout(handler);
+  }, [newPatientSearch, showNewTriageModal]);
 
   // Toast for routing and billing
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -563,11 +597,18 @@ export default function TriagePage() {
   // Filter patients for the New Triage Search Modal
   const filteredNewPatients = patients.filter(p => {
     if (!newPatientSearch) return true;
-    const q = newPatientSearch.toLowerCase();
+    const q = newPatientSearch.trim().toLowerCase();
+    const cleanQ = q.replace(/[^a-z0-9]/gi, '');
+    const cleanMrn = (p.mrn || '').toLowerCase().replace(/[^a-z0-9]/gi, '');
+    const cleanPhone = (p.phone || '').replace(/[^0-9]/g, '');
+    const searchDigits = q.replace(/[^0-9]/g, '');
+
     return (
-      p.name.toLowerCase().includes(q) ||
-      p.mrn.toLowerCase().includes(q) ||
-      p.phone.includes(q)
+      p.name?.toLowerCase().includes(q) ||
+      p.mrn?.toLowerCase().includes(q) ||
+      (cleanQ && cleanMrn.includes(cleanQ)) ||
+      (searchDigits && cleanPhone.includes(searchDigits)) ||
+      p.phone?.includes(q)
     );
   });
 

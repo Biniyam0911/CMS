@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Users, Search, Plus, FileText, Phone, Mail, Calendar, Activity, X,
   Stethoscope, Camera, ShieldCheck, Copy, Loader2, ChevronLeft, ChevronRight,
-  MapPin, CreditCard, User, Building, Hash
+  MapPin, CreditCard, User, Building, Hash, Edit3
 } from 'lucide-react';
 import { api } from '../../api/apiClient';
 
@@ -28,6 +28,7 @@ export default function PatientsPage({ onSelectEmrPatient }: PatientsPageProps) 
   const [middleName, setMiddleName] = useState(''); // Father's Name
   const [grandfatherName, setGrandfatherName] = useState(''); // Grandfather Name / LastName
   const [dob, setDob] = useState('1995-01-01');
+  const [age, setAge] = useState<string>('31');
   const [gender, setGender] = useState('1');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -37,11 +38,125 @@ export default function PatientsPage({ onSelectEmrPatient }: PatientsPageProps) 
   const [copayPercent, setCopayPercent] = useState('0');
   const [nationalId, setNationalId] = useState('');
 
+  // Edit Patient State
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editPatientId, setEditPatientId] = useState<number | null>(null);
+  const [editMrn, setEditMrn] = useState('');
+  const [editFirstName, setEditFirstName] = useState('');
+  const [editMiddleName, setEditMiddleName] = useState('');
+  const [editGrandfatherName, setEditGrandfatherName] = useState('');
+  const [editDob, setEditDob] = useState('1995-01-01');
+  const [editAge, setEditAge] = useState<string>('31');
+  const [editGender, setEditGender] = useState('1');
+  const [editPhone, setEditPhone] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editAddress, setEditAddress] = useState('');
+  const [editPaymentType, setEditPaymentType] = useState<'Cash' | 'Insurance'>('Cash');
+  const [editInsuranceProvider, setEditInsuranceProvider] = useState('');
+  const [editCopayPercent, setEditCopayPercent] = useState('0');
+  const [editNationalId, setEditNationalId] = useState('');
+
   // Medical History Form State
   const [historyType, setHistoryType] = useState('PastMedical');
   const [historyDesc, setHistoryDesc] = useState('');
 
   const [patients, setPatients] = useState<any[]>([]);
+
+  // Calculate age from DOB
+  const handleDobChange = (newDob: string, isEdit = false) => {
+    if (isEdit) {
+      setEditDob(newDob);
+      if (newDob) {
+        const birthDate = new Date(newDob);
+        if (!isNaN(birthDate.getTime())) {
+          const calculatedAge = Math.floor((Date.now() - birthDate.getTime()) / (365.25 * 24 * 3600 * 1000));
+          setEditAge(calculatedAge >= 0 ? String(calculatedAge) : '0');
+        }
+      }
+    } else {
+      setDob(newDob);
+      if (newDob) {
+        const birthDate = new Date(newDob);
+        if (!isNaN(birthDate.getTime())) {
+          const calculatedAge = Math.floor((Date.now() - birthDate.getTime()) / (365.25 * 24 * 3600 * 1000));
+          setAge(calculatedAge >= 0 ? String(calculatedAge) : '0');
+        }
+      }
+    }
+  };
+
+  // Calculate DOB from Age
+  const handleAgeChange = (newAge: string, isEdit = false) => {
+    const ageNum = parseInt(newAge);
+    if (isEdit) {
+      setEditAge(newAge);
+      if (!isNaN(ageNum) && ageNum >= 0 && ageNum <= 130) {
+        const birthYear = new Date().getFullYear() - ageNum;
+        const currentMonthDay = editDob ? editDob.substring(4) : '-01-01';
+        setEditDob(`${birthYear}${currentMonthDay || '-01-01'}`);
+      }
+    } else {
+      setAge(newAge);
+      if (!isNaN(ageNum) && ageNum >= 0 && ageNum <= 130) {
+        const birthYear = new Date().getFullYear() - ageNum;
+        const currentMonthDay = dob ? dob.substring(4) : '-01-01';
+        setDob(`${birthYear}${currentMonthDay || '-01-01'}`);
+      }
+    }
+  };
+
+  const openEditModal = (p: any) => {
+    setEditPatientId(p.id);
+    setEditMrn(p.mrn);
+    setEditFirstName(p.firstName || '');
+    setEditMiddleName(p.middleName || '');
+    setEditGrandfatherName(p.lastName || '');
+    const pDob = p.dateOfBirth ? p.dateOfBirth.split('T')[0] : '1995-01-01';
+    setEditDob(pDob);
+    if (pDob) {
+      const birthDate = new Date(pDob);
+      const calculatedAge = Math.floor((Date.now() - birthDate.getTime()) / (365.25 * 24 * 3600 * 1000));
+      setEditAge(calculatedAge >= 0 ? String(calculatedAge) : '30');
+    }
+    setEditGender(p.gender === 'Female' ? '2' : '1');
+    setEditPhone(p.primaryPhone || '');
+    setEditEmail(p.email || '');
+    setEditAddress(p.address || '');
+    const isIns = p.insuranceProvider && p.insuranceProvider !== 'Cash' && p.insuranceProvider !== 'Self-Pay';
+    setEditPaymentType(isIns ? 'Insurance' : 'Cash');
+    setEditInsuranceProvider(isIns ? p.insuranceProvider : '');
+    setEditCopayPercent(String(p.copayPercent || 0));
+    setEditNationalId(p.nationalId || '');
+    setShowEditModal(true);
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editPatientId) return;
+    try {
+      await api.put(`/patients/${editPatientId}`, {
+        tenantId: 1,
+        mrn: editMrn,
+        firstName: editFirstName,
+        middleName: editMiddleName,
+        lastName: editGrandfatherName,
+        dateOfBirth: editDob,
+        gender: parseInt(editGender),
+        primaryPhone: editPhone,
+        email: editEmail || null,
+        address: editAddress || null,
+        insuranceProvider: editPaymentType === 'Insurance' ? editInsuranceProvider : 'Cash',
+        insuranceCopayPercent: editPaymentType === 'Insurance' ? (parseFloat(editCopayPercent) || 0) : 0,
+        allergies: 'None',
+        nationalId: editNationalId || null
+      });
+      setShowEditModal(false);
+      await fetchPatients(searchQuery);
+    } catch (err) {
+      console.error('Patient update error:', err);
+      alert('Failed to update patient details.');
+    }
+  };
 
   const fetchPatients = async (query = '') => {
     try {
@@ -280,7 +395,7 @@ export default function PatientsPage({ onSelectEmrPatient }: PatientsPageProps) 
                       )}
                     </td>
                     <td onClick={e => e.stopPropagation()}>
-                      <div style={{ display: 'flex', gap: '6px' }}>
+                      <div style={{ display: 'flex', gap: '4px', flexWrap: 'nowrap' }}>
                         <button
                           onClick={() => setSelectedPatient(p)}
                           className="btn-secondary"
@@ -288,15 +403,14 @@ export default function PatientsPage({ onSelectEmrPatient }: PatientsPageProps) 
                         >
                           View
                         </button>
-                        {onSelectEmrPatient && (
-                          <button
-                            onClick={() => onSelectEmrPatient(p.id)}
-                            className="btn-primary"
-                            style={{ padding: '3px 8px', fontSize: '0.72rem' }}
-                          >
-                            <Stethoscope size={12} /> EMR
-                          </button>
-                        )}
+                        <button
+                          onClick={() => openEditModal(p)}
+                          className="btn-secondary"
+                          style={{ padding: '3px 8px', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '3px' }}
+                          title="Edit Patient Information"
+                        >
+                          <Edit3 size={11} /> Edit
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -476,11 +590,22 @@ export default function PatientsPage({ onSelectEmrPatient }: PatientsPageProps) 
                 </div>
               </div>
 
-              {/* DOB, Gender, Phone */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+              {/* DOB, Age, Gender, Phone */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr 1fr 1fr', gap: '10px' }}>
                 <div>
                   <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Date of Birth *</label>
-                  <input type="date" value={dob} onChange={e => setDob(e.target.value)} required />
+                  <input type="date" value={dob} onChange={e => handleDobChange(e.target.value)} required />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Age (Yrs)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="130"
+                    value={age}
+                    onChange={e => handleAgeChange(e.target.value)}
+                    placeholder="e.g. 28"
+                  />
                 </div>
                 <div>
                   <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Gender *</label>
@@ -578,6 +703,171 @@ export default function PatientsPage({ onSelectEmrPatient }: PatientsPageProps) 
                 <button type="button" onClick={() => setShowRegisterModal(false)} className="btn-secondary">Cancel</button>
                 <button type="submit" className="btn-primary">
                   <Plus size={14} /> Complete Registration
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* PATIENT EDIT MODAL                                                        */}
+      {/* ========================================================================= */}
+      {showEditModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(28,25,23,0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}>
+          <div className="glass-panel" style={{ width: '560px', maxHeight: '92vh', overflowY: 'auto', padding: '24px', background: '#ffffff', border: '1px solid var(--border-color)', borderRadius: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>
+              <div>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Edit3 size={17} color="#0284c7" /> Edit Patient Profile
+                </h3>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Update demographic and contact details for {editMrn}</span>
+              </div>
+              <button onClick={() => setShowEditModal(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleEditSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div>
+                <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <Hash size={13} color="#0284c7" /> MRN / Card No (Read-Only)
+                </label>
+                <input
+                  type="text"
+                  value={editMrn}
+                  disabled
+                  readOnly
+                  style={{
+                    background: '#f1eee6',
+                    borderColor: '#dfd7c9',
+                    color: '#0369a1',
+                    fontFamily: 'monospace',
+                    fontWeight: 700,
+                    cursor: 'not-allowed'
+                  }}
+                />
+              </div>
+
+              {/* Names */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>First Name *</label>
+                  <input type="text" value={editFirstName} onChange={e => setEditFirstName(e.target.value)} required />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Father's Name *</label>
+                  <input type="text" value={editMiddleName} onChange={e => setEditMiddleName(e.target.value)} required />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>G. Father Name *</label>
+                  <input type="text" value={editGrandfatherName} onChange={e => setEditGrandfatherName(e.target.value)} required />
+                </div>
+              </div>
+
+              {/* DOB, Age, Gender, Phone */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr 1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Date of Birth *</label>
+                  <input type="date" value={editDob} onChange={e => handleDobChange(e.target.value, true)} required />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Age (Yrs)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="130"
+                    value={editAge}
+                    onChange={e => handleAgeChange(e.target.value, true)}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Gender *</label>
+                  <select value={editGender} onChange={e => setEditGender(e.target.value)}>
+                    <option value="1">Male</option>
+                    <option value="2">Female</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Primary Phone *</label>
+                  <input type="tel" value={editPhone} onChange={e => setEditPhone(e.target.value)} required />
+                </div>
+              </div>
+
+              {/* Email & Address */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Email</label>
+                  <input type="email" value={editEmail} onChange={e => setEditEmail(e.target.value)} placeholder="patient@example.com" />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Address / Residence</label>
+                  <input type="text" value={editAddress} onChange={e => setEditAddress(e.target.value)} placeholder="Kirkos, Woreda 01" />
+                </div>
+              </div>
+
+              {/* Payment Type: Cash vs Insurance */}
+              <div style={{ padding: '12px', background: '#fdfcf9', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Payment Category</label>
+                    <select
+                      value={editPaymentType}
+                      onChange={e => {
+                        const val = e.target.value as 'Cash' | 'Insurance';
+                        setEditPaymentType(val);
+                        if (val === 'Cash') {
+                          setEditInsuranceProvider('');
+                          setEditCopayPercent('0');
+                        }
+                      }}
+                    >
+                      <option value="Cash">Cash (Self-Pay)</option>
+                      <option value="Insurance">Insurance Coverage</option>
+                    </select>
+                  </div>
+
+                  {editPaymentType === 'Insurance' && (
+                    <div>
+                      <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Insurance Provider</label>
+                      <input
+                        type="text"
+                        value={editInsuranceProvider}
+                        onChange={e => setEditInsuranceProvider(e.target.value)}
+                        placeholder="e.g. Nyala, Awash, MedNet"
+                        required={editPaymentType === 'Insurance'}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {editPaymentType === 'Insurance' && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div>
+                      <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Patient Copay (%)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="1"
+                        value={editCopayPercent}
+                        onChange={e => setEditCopayPercent(e.target.value)}
+                        placeholder="0"
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>National ID / Policy No</label>
+                      <input type="text" value={editNationalId} onChange={e => setEditNationalId(e.target.value)} placeholder="Policy or National ID" />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Buttons */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '10px' }}>
+                <button type="button" onClick={() => setShowEditModal(false)} className="btn-secondary">Cancel</button>
+                <button type="submit" className="btn-primary">
+                  <Edit3 size={14} /> Update Patient Profile
                 </button>
               </div>
             </form>

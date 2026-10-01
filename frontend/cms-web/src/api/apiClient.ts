@@ -92,8 +92,13 @@ class ApiClient {
     return unwrapResponse<any>(json);
   }
 
+  private resolveUrl(endpoint: string): string {
+    if (endpoint.startsWith(API_BASE_URL)) return endpoint;
+    return `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+  }
+
   async get<T>(endpoint: string, params?: Record<string, string | number | boolean | undefined>): Promise<T> {
-    let url = `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+    let url = this.resolveUrl(endpoint);
     if (params) {
       const searchParams = new URLSearchParams();
       Object.entries(params).forEach(([key, val]) => {
@@ -116,7 +121,7 @@ class ApiClient {
   }
 
   async post<T>(endpoint: string, body?: any): Promise<T> {
-    const url = `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+    const url = this.resolveUrl(endpoint);
     const res = await fetch(url, {
       method: 'POST',
       headers: this.getHeaders(),
@@ -127,7 +132,7 @@ class ApiClient {
   }
 
   async put<T>(endpoint: string, body?: any): Promise<T> {
-    const url = `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+    const url = this.resolveUrl(endpoint);
     const res = await fetch(url, {
       method: 'PUT',
       headers: this.getHeaders(),
@@ -138,7 +143,7 @@ class ApiClient {
   }
 
   async delete<T>(endpoint: string): Promise<T> {
-    const url = `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+    const url = this.resolveUrl(endpoint);
     const res = await fetch(url, {
       method: 'DELETE',
       headers: this.getHeaders()

@@ -21,6 +21,8 @@ public class DashboardService
         var sqlCounts = @"
             SELECT 
                 (SELECT COUNT(1) FROM Patients WITH (NOLOCK) WHERE TenantId = @TenantId AND IsActive = 1) AS PatientCount,
+                (SELECT COUNT(1) FROM Patients WITH (NOLOCK) WHERE TenantId = @TenantId AND IsActive = 1 AND Gender = 1) AS MaleCount,
+                (SELECT COUNT(1) FROM Patients WITH (NOLOCK) WHERE TenantId = @TenantId AND IsActive = 1 AND Gender = 2) AS FemaleCount,
                 (SELECT COUNT(1) FROM Appointments WITH (NOLOCK) WHERE TenantId = @TenantId AND SlotDateTime >= @TodayStart AND SlotDateTime < @TomorrowStart) AS ApptCount,
                 (SELECT COUNT(1) FROM LabOrders WITH (NOLOCK) WHERE TenantId = @TenantId AND StatusId < 4) AS LabCount,
                 (SELECT COUNT(1) FROM PatientTriage WITH (NOLOCK) WHERE TenantId = @TenantId AND Status IN ('Waiting', 'Triaged', 'AssignedToDoctor') AND TriagedAt >= @TodayStart AND TriagedAt < @TomorrowStart) AS QueueCount,
@@ -33,6 +35,8 @@ public class DashboardService
             TomorrowStart = tomorrowStart
         });
         int patientCount = (int)(counts?.PatientCount ?? 0);
+        int maleCount = (int)(counts?.MaleCount ?? 0);
+        int femaleCount = (int)(counts?.FemaleCount ?? 0);
         int apptCount = (int)(counts?.ApptCount ?? 0);
         int labCount = (int)(counts?.LabCount ?? 0);
         int queueCount = (int)(counts?.QueueCount ?? 0);
@@ -101,9 +105,49 @@ public class DashboardService
 
         var revenueTrend = (await conn.QueryAsync<dynamic>(sqlRevenue, new { TenantId = tenantId })).ToList();
 
+        // Top 8 performing services for past 30 days
+        var sqlTopServices = @"
+            SELECT TOP 8
+                ISNULL(ii.Description, 'Medical Consultation') AS ServiceName,
+                COUNT(1) AS Count,
+                ISNULL(SUM(ii.Total), 0) AS TotalRevenue
+            FROM InvoiceItems ii WITH (NOLOCK)
+            JOIN Invoices i WITH (NOLOCK) ON i.Id = ii.InvoiceId
+            WHERE i.TenantId = @TenantId 
+              AND i.IssueDate >= DATEADD(DAY, -30, GETDATE())
+            GROUP BY ii.Description
+            ORDER BY TotalRevenue DESC";
+        var topServices = (await conn.QueryAsync<dynamic>(sqlTopServices, new { TenantId = tenantId })).ToList();
+
+        // 30-day patient consultation growth trend (Encounters)
+        var sqlVisitGrowth = @"
+            SELECT 
+                FORMAT(CAST(EncounterDate AS DATE), 'yyyy-MM-dd') AS [Date],
+                COUNT(1) AS VisitCount
+            FROM Encounters WITH (NOLOCK)
+            WHERE TenantId = @TenantId 
+              AND EncounterDate >= DATEADD(DAY, -30, GETDATE())
+            GROUP BY CAST(EncounterDate AS DATE)
+            ORDER BY CAST(EncounterDate AS DATE) ASC";
+        var visitGrowth = (await conn.QueryAsync<dynamic>(sqlVisitGrowth, new { TenantId = tenantId })).ToList();
+        if (!visitGrowth.Any())
+        {
+            var sqlFallback = @"
+                SELECT 
+                    FORMAT(CAST(TriagedAt AS DATE), 'yyyy-MM-dd') AS [Date],
+                    COUNT(1) AS VisitCount
+                FROM PatientTriage WITH (NOLOCK)
+                WHERE TenantId = @TenantId 
+                  AND TriagedAt >= DATEADD(DAY, -30, GETDATE())
+                GROUP BY CAST(TriagedAt AS DATE)
+                ORDER BY CAST(TriagedAt AS DATE) ASC";
+            visitGrowth = (await conn.QueryAsync<dynamic>(sqlFallback, new { TenantId = tenantId })).ToList();
+        }
+
         return new DashboardMetricsDto(
             patientCount, apptCount, labCount, queueCount, revenue, 98.4, docCount,
-            queueList, criticals, new List<dynamic>(), revenueTrend
+            queueList, criticals, new List<dynamic>(), revenueTrend,
+            maleCount, femaleCount, topServices, visitGrowth
         );
     }
 }

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import {
   ShieldCheck, UserPlus, Key, Lock, Check, X, Shield, RefreshCw,
   Loader2, Users, CheckCircle2, RotateCcw, Save, Eye, Layers, Settings,
-  Edit3, Stethoscope, Briefcase, Bell, Send, Volume2, Flame, Pill, FlaskConical, DollarSign, Search
+  Edit3, Stethoscope, Briefcase, Bell, Send, Volume2, Flame, Pill, FlaskConical, DollarSign, Search,
+  Plus, Trash2
 } from 'lucide-react';
 import { api } from '../../api/apiClient';
 import { MODULE_ITEMS, ModuleKey } from '../../components/Sidebar';
@@ -29,7 +30,7 @@ export default function UserManagementPage() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const [activeTab, setActiveTab] = useState<'users' | 'permissions' | 'notifications' | 'audit'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'roles' | 'permissions' | 'notifications' | 'audit'>('users');
 
   // HIPAA Compliance Audit State
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
@@ -144,7 +145,14 @@ export default function UserManagementPage() {
     setTimeout(() => setSaveSuccessToast(null), 4000);
   };
 
-  const availableRolesList = [
+  // Role CRUD Modal States
+  const [showAddRoleModal, setShowAddRoleModal] = useState(false);
+  const [editingRole, setEditingRole] = useState<{ id: number; name: string; description: string } | null>(null);
+  const [roleFormName, setRoleFormName] = useState('');
+  const [roleFormDesc, setRoleFormDesc] = useState('');
+  const [roleSaving, setRoleSaving] = useState(false);
+
+  const baseRoles = [
     { name: 'SuperAdmin', desc: 'Full unrestricted clinical, financial, and system administrative authority' },
     { name: 'Admin', desc: 'Clinic operations, user accounts, and financial/billing manager' },
     { name: 'Doctor', desc: 'Physicians: EMR consultation notes, triage queue, lab orders & prescriptions' },
@@ -156,6 +164,84 @@ export default function UserManagementPage() {
     { name: 'BillingOfficer', desc: 'Invoices, insurance claims, cashier receipts, ERCA fiscal tax receipts & Telebirr QR payments' },
     { name: 'Receptionist', desc: 'Front desk patient registration, appointment booking & check-in' }
   ];
+
+  // Dynamic roles list automatically incorporating any created roles
+  const availableRolesList = React.useMemo(() => {
+    const list = [...baseRoles];
+    const existingNames = new Set(list.map(r => r.name.toLowerCase()));
+    for (const r of roles) {
+      const rName = r.name || r.roleName;
+      if (rName && !existingNames.has(rName.toLowerCase())) {
+        list.push({
+          name: rName,
+          desc: r.description || `${rName} custom clinical or operational role`
+        });
+        existingNames.add(rName.toLowerCase());
+      }
+    }
+    return list;
+  }, [roles]);
+
+  const handleOpenAddRole = () => {
+    setRoleFormName('');
+    setRoleFormDesc('');
+    setShowAddRoleModal(true);
+  };
+
+  const handleOpenEditRole = (r: any) => {
+    setEditingRole(r);
+    setRoleFormName(r.name);
+    setRoleFormDesc(r.description || '');
+  };
+
+  const handleSaveRole = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!roleFormName.trim()) return;
+    try {
+      setRoleSaving(true);
+      if (editingRole) {
+        await api.put(`/users/roles/${editingRole.id}`, {
+          name: roleFormName.trim(),
+          description: roleFormDesc.trim()
+        });
+        setRoles(prev => prev.map(r => r.id === editingRole.id ? { ...r, name: roleFormName.trim(), description: roleFormDesc.trim() } : r));
+        setEditingRole(null);
+        setSaveSuccessToast(`✓ Role "${roleFormName}" updated successfully!`);
+      } else {
+        const created: any = await api.post('/users/roles', {
+          name: roleFormName.trim(),
+          description: roleFormDesc.trim()
+        });
+        const newId = created?.id || created?.roleId || Date.now();
+        setRoles(prev => [...prev, { id: newId, name: roleFormName.trim(), description: roleFormDesc.trim() }]);
+        setShowAddRoleModal(false);
+        setSaveSuccessToast(`✓ Role "${roleFormName}" created! Automatically available across Permissions and Notifications.`);
+      }
+    } catch (err: any) {
+      alert(err?.response?.data?.message || err?.message || 'Failed to save role');
+    } finally {
+      setRoleSaving(false);
+      setTimeout(() => setSaveSuccessToast(null), 4000);
+    }
+  };
+
+  const handleDeleteRole = async (r: any) => {
+    const coreRoles = ['superadmin', 'admin', 'doctor'];
+    if (coreRoles.includes(r.name.toLowerCase())) {
+      alert(`Cannot delete core system role "${r.name}".`);
+      return;
+    }
+    if (!window.confirm(`Are you sure you want to delete the role "${r.name}"? Users with this role should be reassigned.`)) return;
+
+    try {
+      await api.delete(`/users/roles/${r.id}`);
+      setRoles(prev => prev.filter(item => item.id !== r.id));
+      setSaveSuccessToast(`✓ Role "${r.name}" deleted successfully.`);
+      setTimeout(() => setSaveSuccessToast(null), 4000);
+    } catch (err: any) {
+      alert(err?.response?.data?.message || err?.message || 'Failed to delete role');
+    }
+  };
 
   const fetchUsersAndRoles = async () => {
     try {
@@ -182,18 +268,19 @@ export default function UserManagementPage() {
       if (rolesData && rolesData.length > 0) {
         setRoles(rolesData.map((r: any) => ({
           id: r.id || r.Id || r.roleId,
-          name: r.name || r.Name || r.roleName || 'Staff'
+          name: r.name || r.Name || r.roleName || 'Staff',
+          description: r.description || r.Description || ''
         })));
       } else {
         setRoles([
-          { id: 1, name: 'SuperAdmin' },
-          { id: 2, name: 'Admin' },
-          { id: 3, name: 'Doctor' },
-          { id: 4, name: 'Nurse' },
-          { id: 5, name: 'LabTechnician' },
-          { id: 6, name: 'Pharmacist' },
-          { id: 7, name: 'BillingOfficer' },
-          { id: 8, name: 'Receptionist' }
+          { id: 1, name: 'SuperAdmin', description: 'Full unrestricted clinical, financial, and system administrative authority' },
+          { id: 2, name: 'Admin', description: 'Clinic operations, user accounts, and financial/billing manager' },
+          { id: 3, name: 'Doctor', description: 'Physicians: EMR consultation notes, triage queue, lab orders & prescriptions' },
+          { id: 4, name: 'Nurse', description: 'Patient vitals triage, inpatient ward beds, appointment check-in & token queue management' },
+          { id: 5, name: 'LabTechnician', description: 'Specimen processing, analyte result entry & LIS machine integrations' },
+          { id: 6, name: 'Pharmacist', description: 'Medication formulary, stock inventory & prescription dispensing' },
+          { id: 7, name: 'BillingOfficer', description: 'Invoices, insurance claims, cashier receipts & ERCA tax receipts' },
+          { id: 8, name: 'Receptionist', description: 'Front desk patient registration, appointment booking & check-in' }
         ]);
       }
 
@@ -524,6 +611,11 @@ export default function UserManagementPage() {
             <UserPlus size={16} /> Add Staff Account
           </button>
         )}
+        {activeTab === 'roles' && (
+          <button onClick={handleOpenAddRole} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Plus size={16} /> Add New Role
+          </button>
+        )}
       </div>
 
       {/* Main Tabs Navigation */}
@@ -534,6 +626,13 @@ export default function UserManagementPage() {
           style={{ display: 'flex', alignItems: 'center', gap: '7px', whiteSpace: 'nowrap', flexShrink: 0 }}
         >
           <Users size={16} /> User Directory & Accounts ({users.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('roles')}
+          className={activeTab === 'roles' ? 'btn-primary' : 'btn-secondary'}
+          style={{ display: 'flex', alignItems: 'center', gap: '7px', whiteSpace: 'nowrap', flexShrink: 0 }}
+        >
+          <Key size={16} /> Roles Management ({roles.length})
         </button>
         <button
           onClick={() => setActiveTab('permissions')}
@@ -824,6 +923,95 @@ export default function UserManagementPage() {
                     </td>
                   </tr>
                 )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB: ROLES MANAGEMENT (CRUD ROLES)                                        */}
+      {/* ========================================================================= */}
+      {activeTab === 'roles' && (
+        <div className="glass-panel" style={{ padding: isMobile ? '16px 12px' : '24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+            <div>
+              <h4 style={{ fontWeight: 700, margin: 0, fontSize: '1.05rem', color: 'var(--text-main)' }}>Clinical &amp; Operational Roles Directory</h4>
+              <p style={{ fontSize: '0.76rem', color: 'var(--text-muted)', margin: '3px 0 0 0' }}>
+                Create, update, and manage staff roles. Dynamic roles are automatically reflected in the Role &amp; Permission Editor and Notification Manager.
+              </p>
+            </div>
+            <button onClick={handleOpenAddRole} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Plus size={15} /> Add New Role
+            </button>
+          </div>
+
+          <div style={{ overflowX: 'auto' }}>
+            <table className="data-table" style={{ width: '100%' }}>
+              <thead>
+                <tr>
+                  <th style={{ width: '70px' }}>ID</th>
+                  <th style={{ width: '180px' }}>Role Name</th>
+                  <th>Description / Purpose</th>
+                  <th style={{ width: '130px', textAlign: 'center' }}>Active Staff</th>
+                  <th style={{ width: '140px', textAlign: 'right' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {roles.map(r => {
+                  const staffCount = users.filter(u => (u.roleName || '').toLowerCase() === (r.name || '').toLowerCase()).length;
+                  const isCore = ['superadmin', 'admin', 'doctor'].includes((r.name || '').toLowerCase());
+
+                  return (
+                    <tr key={r.id}>
+                      <td style={{ fontFamily: 'monospace', color: 'var(--text-muted)' }}>#{r.id}</td>
+                      <td>
+                        <span className="badge badge-info" style={{ fontWeight: 700, fontSize: '0.8rem' }}>
+                          {r.name}
+                        </span>
+                        {isCore && (
+                          <span style={{ marginLeft: '6px', fontSize: '0.65rem', background: '#fef3c7', color: '#b45309', padding: '1px 5px', borderRadius: '4px', fontWeight: 600 }}>
+                            Core
+                          </span>
+                        )}
+                      </td>
+                      <td style={{ fontSize: '0.82rem', color: 'var(--text-main)' }}>
+                        {r.description || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Standard operational role</span>}
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <span style={{ fontSize: '0.8rem', fontWeight: 700, padding: '2px 8px', borderRadius: '10px', background: staffCount > 0 ? '#ecfdf5' : '#f1f5f9', color: staffCount > 0 ? '#059669' : '#64748b' }}>
+                          {staffCount} {staffCount === 1 ? 'user' : 'users'}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditRole(r)}
+                            className="btn-secondary"
+                            style={{ padding: '4px 8px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+                            title="Edit Role details"
+                          >
+                            <Edit3 size={13} /> Edit
+                          </button>
+                          {!isCore ? (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteRole(r)}
+                              className="btn-secondary"
+                              style={{ padding: '4px 8px', fontSize: '0.75rem', color: '#ef4444', borderColor: '#fca5a5' }}
+                              title="Delete Role"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          ) : (
+                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', padding: '4px 6px', fontStyle: 'italic' }}>Protected</span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -1717,6 +1905,84 @@ export default function UserManagementPage() {
                 <button type="button" onClick={() => setShowEditStaffModal(null)} className="btn-secondary">Cancel</button>
                 <button type="submit" className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Save size={15} /> Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Add or Edit Role */}
+      {(showAddRoleModal || editingRole) && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '480px', padding: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Key size={18} color="#0284c7" />
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>
+                  {editingRole ? `Edit Role: ${editingRole.name}` : 'Add New Custom Role'}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setShowAddRoleModal(false); setEditingRole(null); }}
+                style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveRole} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>
+                  Role Name <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  value={roleFormName}
+                  onChange={e => setRoleFormName(e.target.value)}
+                  placeholder="e.g. Optometrist, Anesthesiologist, WardSupervisor"
+                  required
+                  style={{ width: '100%', padding: '8px 12px', fontSize: '0.85rem' }}
+                />
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                  Name used in permission assignment and system audit logs.
+                </span>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>
+                  Role Description & Scope
+                </label>
+                <textarea
+                  rows={3}
+                  value={roleFormDesc}
+                  onChange={e => setRoleFormDesc(e.target.value)}
+                  placeholder="Describe duties, departmental access, and operational scope..."
+                  style={{ width: '100%', padding: '8px 12px', fontSize: '0.82rem' }}
+                />
+              </div>
+
+              <div style={{ padding: '10px 12px', borderRadius: '6px', background: '#f0f9ff', border: '1px solid #bae6fd', fontSize: '0.74rem', color: '#0369a1' }}>
+                💡 <strong>Dynamic Sync:</strong> Once created, this role will immediately appear in the <strong>Role Permission Editor</strong> (to configure allowed modules) and the <strong>Notification Manager</strong> (to configure event subscriptions).
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', borderTop: '1px solid var(--border-color)', paddingTop: '14px' }}>
+                <button
+                  type="button"
+                  onClick={() => { setShowAddRoleModal(false); setEditingRole(null); }}
+                  className="btn-secondary"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={roleSaving}
+                  className="btn-primary"
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  {roleSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                  {editingRole ? 'Save Changes' : 'Create Role'}
                 </button>
               </div>
             </form>

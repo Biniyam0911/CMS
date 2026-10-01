@@ -255,6 +255,51 @@ public class PatientsController : ControllerBase
         await _cache.RemoveByPrefixAsync($"tenant:{tenantId}:patients");
         return Ok(ApiResponse<object>.Ok(new { PatientId = newId, MRN = finalMrn }));
     }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(int id, [FromBody] CreatePatientDto dto)
+    {
+        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+        using var conn = _dbFactory.CreateConnection();
+
+        var updateSql = @"
+            UPDATE Patients
+            SET FirstName = @FirstName,
+                MiddleName = @MiddleName,
+                LastName = @LastName,
+                DateOfBirth = @DateOfBirth,
+                Gender = @Gender,
+                PrimaryPhone = @PrimaryPhone,
+                Email = @Email,
+                Address = @Address,
+                InsuranceProvider = @InsuranceProvider,
+                InsuranceCopayPercent = @InsuranceCopayPercent,
+                Allergies = ISNULL(@Allergies, Allergies),
+                NationalId = ISNULL(@NationalId, NationalId),
+                UpdatedAt = GETDATE()
+            WHERE TenantId = @TenantId AND Id = @Id;";
+
+        int rows = await conn.ExecuteAsync(updateSql, new
+        {
+            TenantId = tenantId,
+            Id = id,
+            dto.FirstName,
+            dto.MiddleName,
+            dto.LastName,
+            dto.DateOfBirth,
+            dto.Gender,
+            dto.PrimaryPhone,
+            dto.Email,
+            dto.Address,
+            dto.InsuranceProvider,
+            InsuranceCopayPercent = dto.InsuranceCopayPercent ?? 0,
+            dto.Allergies,
+            dto.NationalId
+        });
+
+        await _cache.RemoveByPrefixAsync($"tenant:{tenantId}:patients");
+        return Ok(ApiResponse<object>.Ok(new { Success = rows > 0, PatientId = id }));
+    }
 }
 
 [ApiController]

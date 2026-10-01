@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Plug, CheckCircle2, AlertCircle, RefreshCw, X, Save, Loader2, Send, MessageSquare, Phone } from 'lucide-react';
+import { Plug, CheckCircle2, AlertCircle, RefreshCw, X, Save, Loader2, Send, MessageSquare, Phone, Server } from 'lucide-react';
 import { api } from '../../api/apiClient';
+import MachineIntegrationTab from './MachineIntegrationTab';
 
 export default function IntegrationsPage() {
+  const [mainTab, setMainTab] = useState<'external' | 'lab_machines'>('external');
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
@@ -148,11 +150,34 @@ export default function IntegrationsPage() {
 
   return (
     <div>
-      {/* â”€â”€ Integration Cards â”€â”€ */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>3rd Party Integration Providers</h3>
-        {loading && <Loader2 size={16} className="animate-spin" color="#06b6d4" />}
+      {/* Tab Navigation */}
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px' }}>
+        <button
+          type="button"
+          onClick={() => setMainTab('external')}
+          className={mainTab === 'external' ? 'btn-primary' : 'btn-secondary'}
+          style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600, padding: '8px 16px' }}
+        >
+          <Plug size={16} /> External Services & APIs
+        </button>
+        <button
+          type="button"
+          onClick={() => setMainTab('lab_machines')}
+          className={mainTab === 'lab_machines' ? 'btn-primary' : 'btn-secondary'}
+          style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600, padding: '8px 16px' }}
+        >
+          <Server size={16} /> Laboratory Machine Integrations
+        </button>
       </div>
+
+      {mainTab === 'lab_machines' ? (
+        <MachineIntegrationTab />
+      ) : (
+        <>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>3rd Party Integration Providers</h3>
+            {loading && <Loader2 size={16} className="animate-spin" color="#06b6d4" />}
+          </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '16px' }}>
         {integrations.map((item, idx) => (
@@ -339,6 +364,8 @@ export default function IntegrationsPage() {
             </form>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );

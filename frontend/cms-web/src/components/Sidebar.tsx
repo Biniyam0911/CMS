@@ -3,14 +3,16 @@ import {
   LayoutDashboard, Users, FileHeart, Calendar, ListOrdered, FlaskConical,
   Pill, CreditCard, BarChart3, FileSpreadsheet, Globe, ShieldCheck,
   Boxes, Key, Settings, Plug, LogOut, LucideIcon, HeartPulse, Layers,
-  ChevronLeft, ChevronRight, Stethoscope, Activity, Cross, Building, Bed, Video, X, KeyRound
+  ChevronLeft, ChevronRight, Stethoscope, Activity, Cross, Building, Bed, Video, X, KeyRound,
+  DollarSign, Coins
 } from 'lucide-react';
 
 import { hasModuleAccess } from '../utils/permissions';
 
 export type ModuleKey =
   | 'DASHBOARD' | 'PATIENTS' | 'TRIAGE' | 'EMR' | 'INPATIENT' | 'APPOINTMENTS' | 'QUEUE'
-  | 'LAB' | 'PHARMACY' | 'BILLING' | 'REPORTS' | 'REPORT_BUILDER'
+  | 'LAB' | 'PHARMACY' | 'BILLING' | 'PAYROLL' | 'REPORTS' | 'REPORT_BUILDER'
+  | 'REPORT_SALES' | 'REPORT_AGE_STRATIFIED' | 'REPORT_SEX_STRATIFIED' | 'REPORT_DOCTOR_PERFORMANCE' | 'REPORT_DIAGNOSIS' | 'REPORT_PROCEDURE'
   | 'PATIENT_PORTAL' | 'USER_MGMT' | 'SERVICE_MGMT' | 'MODULE_MGMT' | 'API_MGMT'
   | 'SETTINGS' | 'INTEGRATIONS' | 'TELEMED' | 'CHANGE_PASSWORD';
 
@@ -37,8 +39,14 @@ export const MODULE_ITEMS: { key: ModuleKey; label: string; category: string; ic
   { key: 'LAB', label: 'Laboratory (LIS)', category: 'Clinical', icon: FlaskConical },
   { key: 'PHARMACY', label: 'Dispensary', category: 'Clinical', icon: Pill },
   { key: 'BILLING', label: 'Billing & Invoices', category: 'Financial', icon: CreditCard },
-  { key: 'REPORTS', label: 'Standard Reports', category: 'Analytics', icon: BarChart3 },
-  { key: 'REPORT_BUILDER', label: 'Report Builder', category: 'Analytics', icon: FileSpreadsheet },
+  { key: 'PAYROLL', label: 'Doctor Payroll', category: 'Financial', icon: Coins },
+  { key: 'REPORT_SALES', label: 'Sales Report', category: 'Reports', icon: DollarSign },
+  { key: 'REPORT_AGE_STRATIFIED', label: 'Age Stratified Report', category: 'Reports', icon: BarChart3 },
+  { key: 'REPORT_SEX_STRATIFIED', label: 'Sex Stratified Report', category: 'Reports', icon: Users },
+  { key: 'REPORT_DOCTOR_PERFORMANCE', label: 'Doctor Performance', category: 'Reports', icon: Stethoscope },
+  { key: 'REPORT_DIAGNOSIS', label: 'Diagnosis Report', category: 'Reports', icon: FileHeart },
+  { key: 'REPORT_PROCEDURE', label: 'Procedure Report', category: 'Reports', icon: Activity },
+  { key: 'REPORT_BUILDER', label: 'Report Builder', category: 'Reports', icon: FileSpreadsheet },
   { key: 'PATIENT_PORTAL', label: 'Patient Portal', category: 'Portals', icon: Globe },
   { key: 'SERVICE_MGMT', label: 'Service Management', category: 'Admin', icon: Layers },
   { key: 'USER_MGMT', label: 'Users & RBAC', category: 'Admin', icon: ShieldCheck },
@@ -126,6 +134,26 @@ export default function Sidebar({
     const handleBrandingChange = () => loadClinicBranding();
     window.addEventListener('clinic_settings_changed', handleBrandingChange);
     return () => window.removeEventListener('clinic_settings_changed', handleBrandingChange);
+  }, []);
+
+  const [pinnedReports, setPinnedReports] = useState<any[]>(() => {
+    try {
+      const s = localStorage.getItem('pinned_custom_reports');
+      return s ? JSON.parse(s) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    const handleReportsChanged = () => {
+      try {
+        const s = localStorage.getItem('pinned_custom_reports');
+        setPinnedReports(s ? JSON.parse(s) : []);
+      } catch {}
+    };
+    window.addEventListener('sidebar_reports_changed', handleReportsChanged);
+    return () => window.removeEventListener('sidebar_reports_changed', handleReportsChanged);
   }, []);
 
   const AppLogoIcon = ICON_MAP[appIconName] || FileHeart;
@@ -304,6 +332,35 @@ export default function Sidebar({
                     </button>
                   );
                 })}
+                {cat === 'Reports' && pinnedReports.map(prep => (
+                  <button
+                    key={`pinned-${prep.id}`}
+                    onClick={() => {
+                      onSelectModule('REPORT_BUILDER');
+                      setTimeout(() => {
+                        window.dispatchEvent(new CustomEvent('open_custom_report', { detail: prep }));
+                      }, 50);
+                      if (isMobile && onCloseMobile) onCloseMobile();
+                    }}
+                    title={effectiveCollapsed ? `Custom: ${prep.name}` : undefined}
+                    style={{
+                      display: 'flex', alignItems: 'center',
+                      justifyContent: effectiveCollapsed ? 'center' : 'flex-start',
+                      gap: '10px',
+                      padding: effectiveCollapsed ? '9px' : (isMobile ? '10px 12px' : '7px 10px'),
+                      minHeight: isMobile ? '44px' : undefined,
+                      borderRadius: '8px',
+                      background: 'rgba(2, 132, 199, 0.05)',
+                      border: '1px dashed rgba(2, 132, 199, 0.25)',
+                      color: '#0284c7',
+                      fontWeight: 500, fontSize: isMobile ? '0.88rem' : '0.78rem',
+                      cursor: 'pointer', textAlign: 'left', transition: 'all 0.12s ease'
+                    }}
+                  >
+                    <FileSpreadsheet size={effectiveCollapsed ? 18 : (isMobile ? 18 : 14)} color="#0284c7" />
+                    {!effectiveCollapsed && <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{prep.name}</span>}
+                  </button>
+                ))}
               </div>
             </div>
           ))}

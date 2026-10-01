@@ -13,8 +13,10 @@ import QueuePage from './pages/Queue/QueuePage';
 import LaboratoryPage from './pages/Laboratory/LaboratoryPage';
 import PharmacyPage from './pages/Pharmacy/PharmacyPage';
 import BillingPage from './pages/Billing/BillingPage';
+import PayrollPage from './pages/Payroll/PayrollPage';
 import ReportBuilderPage from './pages/ReportBuilder/ReportBuilderPage';
 import ReportsLibraryPage from './pages/Reports/ReportsLibraryPage';
+import DedicatedReportPage from './pages/Reports/DedicatedReportPage';
 import PatientPortalPage from './pages/PatientPortal/PatientPortalPage';
 import UserManagementPage from './pages/UserManagement/UserManagementPage';
 import ServicesPage from './pages/Services/ServicesPage';
@@ -301,7 +303,14 @@ export default function App() {
           {activeModule === 'LAB' && <LaboratoryPage />}
           {activeModule === 'PHARMACY' && <PharmacyPage />}
           {activeModule === 'BILLING' && <BillingPage />}
+          {activeModule === 'PAYROLL' && <PayrollPage />}
           {activeModule === 'REPORTS' && <ReportsLibraryPage />}
+          {activeModule === 'REPORT_SALES' && <DedicatedReportPage reportType="REPORT_SALES" />}
+          {activeModule === 'REPORT_AGE_STRATIFIED' && <DedicatedReportPage reportType="REPORT_AGE_STRATIFIED" />}
+          {activeModule === 'REPORT_SEX_STRATIFIED' && <DedicatedReportPage reportType="REPORT_SEX_STRATIFIED" />}
+          {activeModule === 'REPORT_DOCTOR_PERFORMANCE' && <DedicatedReportPage reportType="REPORT_DOCTOR_PERFORMANCE" />}
+          {activeModule === 'REPORT_DIAGNOSIS' && <DedicatedReportPage reportType="REPORT_DIAGNOSIS" />}
+          {activeModule === 'REPORT_PROCEDURE' && <DedicatedReportPage reportType="REPORT_PROCEDURE" />}
           {activeModule === 'REPORT_BUILDER' && <ReportBuilderPage />}
           {activeModule === 'PATIENT_PORTAL' && <PatientPortalPage />}
           {activeModule === 'SERVICE_MGMT' && <ServicesPage />}

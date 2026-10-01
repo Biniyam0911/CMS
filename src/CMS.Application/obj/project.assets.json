@@ -1311,11 +1311,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Application\\CMS.Application.csproj",
+      "projectUniqueName": "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Application\\CMS.Application.csproj",
       "projectName": "CMS.Application",
-      "projectPath": "C:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Application\\CMS.Application.csproj",
+      "projectPath": "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Application\\CMS.Application.csproj",
       "packagesPath": "C:\\Users\\ASUS\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Application\\obj\\",
+      "outputPath": "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Application\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files\\DevExpress 24.1\\Components\\Offline Packages",
@@ -1342,11 +1342,11 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "projectReferences": {
-            "C:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Domain\\CMS.Domain.csproj": {
-              "projectPath": "C:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Domain\\CMS.Domain.csproj"
+            "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Domain\\CMS.Domain.csproj": {
+              "projectPath": "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Domain\\CMS.Domain.csproj"
             },
-            "C:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Shared\\CMS.Shared.csproj": {
-              "projectPath": "C:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Shared\\CMS.Shared.csproj"
+            "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Shared\\CMS.Shared.csproj": {
+              "projectPath": "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Shared\\CMS.Shared.csproj"
             }
           }
         }
