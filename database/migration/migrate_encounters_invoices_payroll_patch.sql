@@ -1,4 +1,13 @@
 -- ============================================================
+-- *** ARCHIVED — DO NOT RUN ***
+-- This patch has been fully merged into:
+--   database/migration/dbOHMS_to_ClinicDB_migration.sql
+--   Steps 13 (PayrollAgreements), 14 (ChapaTransactions), 15 (LabTestParameters)
+--   and Step 11 (EncounterId linking during invoice insert).
+--
+-- Run the main migration file instead.
+-- ============================================================
+--
 -- MIGRATION PATCH: Encounters in Invoices, Payroll Agreements & Enterprise Tables
 -- Database: ClinicDB
 -- Description:

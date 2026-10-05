@@ -25,6 +25,746 @@ RAISERROR('Starting full migration from dbOHMS to ClinicDB...', 0, 1) WITH NOWAI
 GO
 
 -- ============================================================
+-- PRE-MIGRATION DDL: Create tables if missing, add columns if
+-- table exists but column is absent.
+-- All statements are idempotent / safe to re-run.
+-- ============================================================
+PRINT '----------------------------------------------------------------------';
+PRINT 'PRE-MIGRATION DDL: Ensuring all ClinicDB tables & columns exist...';
+RAISERROR('PRE-MIGRATION DDL: Checking schema...', 0, 1) WITH NOWAIT;
+
+-- ─── TENANTS ─────────────────────────────────────────────────
+IF OBJECT_ID('ClinicDB.dbo.Tenants','U') IS NULL
+BEGIN
+    CREATE TABLE ClinicDB.dbo.[Tenants] (
+        [Id]        TINYINT         NOT NULL IDENTITY(1,1),
+        [Code]      VARCHAR(20)     NOT NULL,
+        [Name]      NVARCHAR(200)   NOT NULL,
+        [IsActive]  BIT             NOT NULL DEFAULT 1,
+        [CreatedAt] DATETIME2       NOT NULL DEFAULT GETDATE(),
+        CONSTRAINT PK_Tenants PRIMARY KEY ([Id]),
+        CONSTRAINT UQ_Tenants_Code UNIQUE ([Code])
+    );
+    INSERT INTO ClinicDB.dbo.[Tenants] ([Code],[Name]) VALUES ('MAIN','Main Clinic');
+    PRINT '--> Created Tenants.';
+END
+
+-- ─── ROLES ───────────────────────────────────────────────────
+IF OBJECT_ID('ClinicDB.dbo.Roles','U') IS NULL
+BEGIN
+    CREATE TABLE ClinicDB.dbo.[Roles] (
+        [Id]             INT          NOT NULL IDENTITY(1,1),
+        [TenantId]       TINYINT      NOT NULL DEFAULT 1,
+        [Name]           NVARCHAR(100) NOT NULL,
+        [NormalizedName] NVARCHAR(100) NOT NULL,
+        [Description]    NVARCHAR(300) NULL,
+        [IsSystem]       BIT          NOT NULL DEFAULT 0,
+        [CreatedAt]      DATETIME2    NOT NULL DEFAULT GETDATE(),
+        CONSTRAINT PK_Roles PRIMARY KEY ([Id]),
+        CONSTRAINT UQ_Roles_TenantName UNIQUE ([TenantId],[NormalizedName]),
+        CONSTRAINT FK_Roles_Tenants FOREIGN KEY ([TenantId]) REFERENCES ClinicDB.dbo.[Tenants]([Id])
+    );
+    INSERT INTO ClinicDB.dbo.[Roles] ([TenantId],[Name],[NormalizedName],[IsSystem]) VALUES
+        (1,'SuperAdmin','SUPERADMIN',1),(1,'Admin','ADMIN',1),(1,'Doctor','DOCTOR',1),
+        (1,'Nurse','NURSE',1),(1,'Receptionist','RECEPTIONIST',1),(1,'LabTechnician','LABTECHNICIAN',1),
+        (1,'Pharmacist','PHARMACIST',1),(1,'BillingOfficer','BILLINGOFFICER',1),(1,'PatientPortal','PATIENTPORTAL',1);
+    PRINT '--> Created Roles.';
+END
+
+-- ─── USERS ───────────────────────────────────────────────────
+IF OBJECT_ID('ClinicDB.dbo.Users','U') IS NULL
+BEGIN
+    CREATE TABLE ClinicDB.dbo.[Users] (
+        [Id]                  INT           NOT NULL IDENTITY(1,1),
+        [TenantId]            TINYINT       NOT NULL DEFAULT 1,
+        [Username]            NVARCHAR(100) NOT NULL,
+        [NormalizedUsername]  NVARCHAR(100) NOT NULL,
+        [Email]               NVARCHAR(200) NOT NULL,
+        [NormalizedEmail]     NVARCHAR(200) NOT NULL,
+        [PasswordHash]        NVARCHAR(MAX) NOT NULL,
+        [Salt]                NVARCHAR(100) NULL,
+        [FirstName]           NVARCHAR(100) NOT NULL,
+        [LastName]            NVARCHAR(100) NOT NULL,
+        [Phone]               VARCHAR(20)   NULL,
+        [IsActive]            BIT           NOT NULL DEFAULT 1,
+        [IsLocked]            BIT           NOT NULL DEFAULT 0,
+        [FailedLoginAttempts] TINYINT       NOT NULL DEFAULT 0,
+        [LastLoginAt]         DATETIME2     NULL,
+        [MustChangePassword]  BIT           NOT NULL DEFAULT 0,
+        [MfaEnabled]          BIT           NOT NULL DEFAULT 0,
+        [MfaSecret]           NVARCHAR(100) NULL,
+        [CreatedAt]           DATETIME2     NOT NULL DEFAULT GETDATE(),
+        [UpdatedAt]           DATETIME2     NULL,
+        CONSTRAINT PK_Users PRIMARY KEY ([Id]),
+        CONSTRAINT UQ_Users_TenantUsername UNIQUE ([TenantId],[NormalizedUsername]),
+        CONSTRAINT UQ_Users_TenantEmail    UNIQUE ([TenantId],[NormalizedEmail]),
+        CONSTRAINT FK_Users_Tenants FOREIGN KEY ([TenantId]) REFERENCES ClinicDB.dbo.[Tenants]([Id])
+    );
+    PRINT '--> Created Users.';
+END
+ELSE
+BEGIN
+    -- Add missing columns to existing Users table
+    IF COL_LENGTH('ClinicDB.dbo.Users','Salt') IS NULL
+        ALTER TABLE ClinicDB.dbo.[Users] ADD [Salt] NVARCHAR(100) NULL;
+    IF COL_LENGTH('ClinicDB.dbo.Users','NormalizedUsername') IS NULL
+        ALTER TABLE ClinicDB.dbo.[Users] ADD [NormalizedUsername] NVARCHAR(100) NOT NULL DEFAULT '';
+    IF COL_LENGTH('ClinicDB.dbo.Users','NormalizedEmail') IS NULL
+        ALTER TABLE ClinicDB.dbo.[Users] ADD [NormalizedEmail] NVARCHAR(200) NOT NULL DEFAULT '';
+    IF COL_LENGTH('ClinicDB.dbo.Users','FailedLoginAttempts') IS NULL
+        ALTER TABLE ClinicDB.dbo.[Users] ADD [FailedLoginAttempts] TINYINT NOT NULL DEFAULT 0;
+    IF COL_LENGTH('ClinicDB.dbo.Users','MfaEnabled') IS NULL
+        ALTER TABLE ClinicDB.dbo.[Users] ADD [MfaEnabled] BIT NOT NULL DEFAULT 0;
+END
+
+-- ─── USER ROLES ──────────────────────────────────────────────
+IF OBJECT_ID('ClinicDB.dbo.UserRoles','U') IS NULL
+BEGIN
+    CREATE TABLE ClinicDB.dbo.[UserRoles] (
+        [UserId]     INT       NOT NULL,
+        [RoleId]     INT       NOT NULL,
+        [AssignedAt] DATETIME2 NOT NULL DEFAULT GETDATE(),
+        [AssignedBy] INT       NULL,
+        CONSTRAINT PK_UserRoles PRIMARY KEY ([UserId],[RoleId]),
+        CONSTRAINT FK_UserRoles_Users FOREIGN KEY ([UserId]) REFERENCES ClinicDB.dbo.[Users]([Id]) ON DELETE CASCADE,
+        CONSTRAINT FK_UserRoles_Roles FOREIGN KEY ([RoleId]) REFERENCES ClinicDB.dbo.[Roles]([Id]) ON DELETE CASCADE
+    );
+    PRINT '--> Created UserRoles.';
+END
+
+-- ─── REFRESH TOKENS ──────────────────────────────────────────
+IF OBJECT_ID('ClinicDB.dbo.RefreshTokens','U') IS NULL
+BEGIN
+    CREATE TABLE ClinicDB.dbo.[RefreshTokens] (
+        [Id]          BIGINT        NOT NULL IDENTITY(1,1),
+        [UserId]      INT           NOT NULL,
+        [Token]       NVARCHAR(500) NOT NULL,
+        [ExpiresAt]   DATETIME2     NOT NULL,
+        [RevokedAt]   DATETIME2     NULL,
+        [CreatedAt]   DATETIME2     NOT NULL DEFAULT GETDATE(),
+        [CreatedByIp] VARCHAR(45)   NULL,
+        CONSTRAINT PK_RefreshTokens PRIMARY KEY ([Id]),
+        CONSTRAINT FK_RefreshTokens_Users FOREIGN KEY ([UserId]) REFERENCES ClinicDB.dbo.[Users]([Id]) ON DELETE CASCADE
+    );
+    PRINT '--> Created RefreshTokens.';
+END
+
+-- ─── SPECIALIZATIONS ─────────────────────────────────────────
+IF OBJECT_ID('ClinicDB.dbo.Specializations','U') IS NULL
+BEGIN
+    CREATE TABLE ClinicDB.dbo.[Specializations] (
+        [Id]       SMALLINT      NOT NULL IDENTITY(1,1),
+        [Name]     NVARCHAR(100) NOT NULL,
+        [Code]     VARCHAR(20)   NULL,
+        [IsActive] BIT           NOT NULL DEFAULT 1,
+        CONSTRAINT PK_Specializations PRIMARY KEY ([Id])
+    );
+    INSERT INTO ClinicDB.dbo.[Specializations] ([Name],[Code]) VALUES ('General Practice','GEN'),('Pediatrics','PED'),('Surgery','SUR');
+    PRINT '--> Created Specializations.';
+END
+
+-- ─── DEPARTMENTS ─────────────────────────────────────────────
+IF OBJECT_ID('ClinicDB.dbo.Departments','U') IS NULL
+BEGIN
+    CREATE TABLE ClinicDB.dbo.[Departments] (
+        [Id]          INT           NOT NULL IDENTITY(1,1),
+        [TenantId]    TINYINT       NOT NULL DEFAULT 1,
+        [Name]        NVARCHAR(100) NOT NULL,
+        [Code]        VARCHAR(20)   NULL,
+        [HeadDoctorId] INT          NULL,
+        [IsActive]    BIT           NOT NULL DEFAULT 1,
+        CONSTRAINT PK_Departments PRIMARY KEY ([Id]),
+        CONSTRAINT FK_Departments_Tenants FOREIGN KEY ([TenantId]) REFERENCES ClinicDB.dbo.[Tenants]([Id])
+    );
+    INSERT INTO ClinicDB.dbo.[Departments]([TenantId],[Name],[Code]) VALUES (1,'General Practice','GP'),(1,'Laboratory','LAB'),(1,'Pharmacy','PHA');
+    PRINT '--> Created Departments.';
+END
+
+-- ─── STAFF ───────────────────────────────────────────────────
+IF OBJECT_ID('ClinicDB.dbo.Staff','U') IS NULL
+BEGIN
+    CREATE TABLE ClinicDB.dbo.[Staff] (
+        [Id]            INT           NOT NULL IDENTITY(1,1),
+        [TenantId]      TINYINT       NOT NULL DEFAULT 1,
+        [UserId]        INT           NOT NULL,
+        [StaffCode]     VARCHAR(30)   NOT NULL,
+        [Title]         NVARCHAR(20)  NULL,
+        [FirstName]     NVARCHAR(100) NOT NULL,
+        [LastName]      NVARCHAR(100) NOT NULL,
+        [Phone]         VARCHAR(20)   NULL,
+        [Email]         NVARCHAR(200) NULL,
+        [PrimaryRoleId] INT           NULL,
+        [Department]    NVARCHAR(100) NULL,
+        [JoinDate]      DATE          NULL,
+        [IsActive]      BIT           NOT NULL DEFAULT 1,
+        [CreatedAt]     DATETIME2     NOT NULL DEFAULT GETDATE(),
+        CONSTRAINT PK_Staff PRIMARY KEY ([Id]),
+        CONSTRAINT UQ_Staff_Code UNIQUE ([TenantId],[StaffCode]),
+        CONSTRAINT FK_Staff_Users   FOREIGN KEY ([UserId])   REFERENCES ClinicDB.dbo.[Users]([Id]),
+        CONSTRAINT FK_Staff_Tenants FOREIGN KEY ([TenantId]) REFERENCES ClinicDB.dbo.[Tenants]([Id])
+    );
+    PRINT '--> Created Staff.';
+END
+ELSE
+BEGIN
+    IF COL_LENGTH('ClinicDB.dbo.Staff','StaffCode') IS NULL
+        ALTER TABLE ClinicDB.dbo.[Staff] ADD [StaffCode] VARCHAR(30) NOT NULL DEFAULT '';
+    IF COL_LENGTH('ClinicDB.dbo.Staff','Title') IS NULL
+        ALTER TABLE ClinicDB.dbo.[Staff] ADD [Title] NVARCHAR(20) NULL;
+    IF COL_LENGTH('ClinicDB.dbo.Staff','Department') IS NULL
+        ALTER TABLE ClinicDB.dbo.[Staff] ADD [Department] NVARCHAR(100) NULL;
+    IF COL_LENGTH('ClinicDB.dbo.Staff','FirstName') IS NULL
+        ALTER TABLE ClinicDB.dbo.[Staff] ADD [FirstName] NVARCHAR(100) NOT NULL DEFAULT '';
+    IF COL_LENGTH('ClinicDB.dbo.Staff','LastName') IS NULL
+        ALTER TABLE ClinicDB.dbo.[Staff] ADD [LastName] NVARCHAR(100) NOT NULL DEFAULT '';
+END
+
+-- ─── DOCTORS ─────────────────────────────────────────────────
+IF OBJECT_ID('ClinicDB.dbo.Doctors','U') IS NULL
+BEGIN
+    CREATE TABLE ClinicDB.dbo.[Doctors] (
+        [Id]             INT           NOT NULL IDENTITY(1,1),
+        [StaffId]        INT           NOT NULL,
+        [LicenseNumber]  VARCHAR(50)   NULL,
+        [SpecializationId] SMALLINT    NULL,
+        [ConsultationFee] DECIMAL(10,2) NULL,
+        [IsAvailable]    BIT           NOT NULL DEFAULT 1,
+        [IsActive]       BIT           NOT NULL DEFAULT 1,
+        [CreatedAt]      DATETIME2     NOT NULL DEFAULT GETDATE(),
+        CONSTRAINT PK_Doctors PRIMARY KEY ([Id]),
+        CONSTRAINT FK_Doctors_Staff FOREIGN KEY ([StaffId]) REFERENCES ClinicDB.dbo.[Staff]([Id])
+    );
+    PRINT '--> Created Doctors.';
+END
+ELSE
+BEGIN
+    IF COL_LENGTH('ClinicDB.dbo.Doctors','SpecializationId') IS NULL
+        ALTER TABLE ClinicDB.dbo.[Doctors] ADD [SpecializationId] SMALLINT NULL;
+    IF COL_LENGTH('ClinicDB.dbo.Doctors','IsAvailable') IS NULL
+        ALTER TABLE ClinicDB.dbo.[Doctors] ADD [IsAvailable] BIT NOT NULL DEFAULT 1;
+    IF COL_LENGTH('ClinicDB.dbo.Doctors','ConsultationFee') IS NULL
+        ALTER TABLE ClinicDB.dbo.[Doctors] ADD [ConsultationFee] DECIMAL(10,2) NULL;
+END
+
+-- ─── PATIENTS ────────────────────────────────────────────────
+IF OBJECT_ID('ClinicDB.dbo.Patients','U') IS NULL
+BEGIN
+    CREATE TABLE ClinicDB.dbo.[Patients] (
+        [Id]                    INT           NOT NULL IDENTITY(1,1),
+        [TenantId]              TINYINT       NOT NULL DEFAULT 1,
+        [MRN]                   VARCHAR(20)   NOT NULL,
+        [UserId]                INT           NULL,
+        [FirstName]             NVARCHAR(100) NOT NULL,
+        [MiddleName]            NVARCHAR(100) NULL,
+        [LastName]              NVARCHAR(100) NOT NULL,
+        [DateOfBirth]           DATE          NOT NULL DEFAULT '1900-01-01',
+        [Gender]                TINYINT       NOT NULL DEFAULT 1,
+        [NationalId]            NVARCHAR(50)  NULL,
+        [BloodGroup]            VARCHAR(5)    NULL,
+        [MaritalStatus]         TINYINT       NULL,
+        [Nationality]           NVARCHAR(100) NULL,
+        [PrimaryPhone]          VARCHAR(20)   NOT NULL DEFAULT '0000000000',
+        [SecondaryPhone]        VARCHAR(20)   NULL,
+        [Email]                 NVARCHAR(200) NULL,
+        [Address]               NVARCHAR(500) NULL,
+        [City]                  NVARCHAR(100) NULL,
+        [Region]                NVARCHAR(100) NULL,
+        [Country]               NVARCHAR(100) NULL DEFAULT 'Ethiopia',
+        [EmergencyName]         NVARCHAR(200) NULL,
+        [EmergencyPhone]        VARCHAR(20)   NULL,
+        [EmergencyRelation]     NVARCHAR(50)  NULL,
+        [InsuranceProvider]     NVARCHAR(100) NULL,
+        [InsurancePolicyNo]     NVARCHAR(100) NULL,
+        [InsuranceExpiry]       DATE          NULL,
+        [InsuranceCopayPercent] DECIMAL(5,2)  NULL DEFAULT 0,
+        [Allergies]             NVARCHAR(1000) NULL,
+        [ChronicConditions]     NVARCHAR(1000) NULL,
+        [PhotoUrl]              NVARCHAR(500) NULL,
+        [Notes]                 NVARCHAR(2000) NULL,
+        [IsActive]              BIT           NOT NULL DEFAULT 1,
+        [CreatedAt]             DATETIME2     NOT NULL DEFAULT GETDATE(),
+        [UpdatedAt]             DATETIME2     NULL,
+        [CreatedBy]             INT           NULL,
+        CONSTRAINT PK_Patients PRIMARY KEY ([Id]),
+        CONSTRAINT UQ_Patients_TenantMRN UNIQUE ([TenantId],[MRN]),
+        CONSTRAINT FK_Patients_Tenants FOREIGN KEY ([TenantId]) REFERENCES ClinicDB.dbo.[Tenants]([Id])
+    );
+    CREATE INDEX IX_Patients_TenantId ON ClinicDB.dbo.[Patients] ([TenantId]);
+    CREATE INDEX IX_Patients_MRN      ON ClinicDB.dbo.[Patients] ([TenantId],[MRN]);
+    CREATE INDEX IX_Patients_Name     ON ClinicDB.dbo.[Patients] ([TenantId],[LastName],[FirstName]);
+    PRINT '--> Created Patients.';
+END
+ELSE
+BEGIN
+    IF COL_LENGTH('ClinicDB.dbo.Patients','MiddleName') IS NULL
+        ALTER TABLE ClinicDB.dbo.[Patients] ADD [MiddleName] NVARCHAR(100) NULL;
+    IF COL_LENGTH('ClinicDB.dbo.Patients','BloodGroup') IS NULL
+        ALTER TABLE ClinicDB.dbo.[Patients] ADD [BloodGroup] VARCHAR(5) NULL;
+    IF COL_LENGTH('ClinicDB.dbo.Patients','MaritalStatus') IS NULL
+        ALTER TABLE ClinicDB.dbo.[Patients] ADD [MaritalStatus] TINYINT NULL;
+    IF COL_LENGTH('ClinicDB.dbo.Patients','InsuranceProvider') IS NULL
+        ALTER TABLE ClinicDB.dbo.[Patients] ADD [InsuranceProvider] NVARCHAR(100) NULL;
+    IF COL_LENGTH('ClinicDB.dbo.Patients','InsurancePolicyNo') IS NULL
+        ALTER TABLE ClinicDB.dbo.[Patients] ADD [InsurancePolicyNo] NVARCHAR(100) NULL;
+    IF COL_LENGTH('ClinicDB.dbo.Patients','InsuranceCopayPercent') IS NULL
+        ALTER TABLE ClinicDB.dbo.[Patients] ADD [InsuranceCopayPercent] DECIMAL(5,2) NULL DEFAULT 0;
+    IF COL_LENGTH('ClinicDB.dbo.Patients','ChronicConditions') IS NULL
+        ALTER TABLE ClinicDB.dbo.[Patients] ADD [ChronicConditions] NVARCHAR(1000) NULL;
+    IF COL_LENGTH('ClinicDB.dbo.Patients','PhotoUrl') IS NULL
+        ALTER TABLE ClinicDB.dbo.[Patients] ADD [PhotoUrl] NVARCHAR(500) NULL;
+END
+
+-- ─── APPOINTMENTS ─────────────────────────────────────────────
+IF OBJECT_ID('ClinicDB.dbo.Appointments','U') IS NULL
+BEGIN
+    CREATE TABLE ClinicDB.dbo.[Appointments] (
+        [Id]              INT           NOT NULL IDENTITY(1,1),
+        [TenantId]        TINYINT       NOT NULL DEFAULT 1,
+        [PatientId]       INT           NOT NULL,
+        [DoctorId]        INT           NOT NULL,
+        [AppointmentDate] DATE          NOT NULL,
+        [StartTime]       TIME          NOT NULL,
+        [EndTime]         TIME          NOT NULL,
+        [Type]            TINYINT       NOT NULL DEFAULT 1,
+        [StatusId]        TINYINT       NOT NULL DEFAULT 1,
+        [ChiefComplaint]  NVARCHAR(500) NULL,
+        [Notes]           NVARCHAR(500) NULL,
+        [CreatedBy]       INT           NOT NULL DEFAULT 1,
+        [CreatedAt]       DATETIME2     NOT NULL DEFAULT GETDATE(),
+        [UpdatedAt]       DATETIME2     NULL,
+        CONSTRAINT PK_Appointments PRIMARY KEY ([Id]),
+        CONSTRAINT FK_Appointments_Tenants  FOREIGN KEY ([TenantId])  REFERENCES ClinicDB.dbo.[Tenants]([Id]),
+        CONSTRAINT FK_Appointments_Patients FOREIGN KEY ([PatientId]) REFERENCES ClinicDB.dbo.[Patients]([Id]),
+        CONSTRAINT FK_Appointments_Doctors  FOREIGN KEY ([DoctorId])  REFERENCES ClinicDB.dbo.[Doctors]([Id])
+    );
+    CREATE INDEX IX_Appointments_Date    ON ClinicDB.dbo.[Appointments] ([DoctorId],[AppointmentDate]);
+    CREATE INDEX IX_Appointments_Patient ON ClinicDB.dbo.[Appointments] ([PatientId],[AppointmentDate] DESC);
+    PRINT '--> Created Appointments.';
+END
+
+-- ─── ENCOUNTERS ───────────────────────────────────────────────
+IF OBJECT_ID('ClinicDB.dbo.Encounters','U') IS NULL
+BEGIN
+    CREATE TABLE ClinicDB.dbo.[Encounters] (
+        [Id]               INT           NOT NULL IDENTITY(1,1),
+        [TenantId]         TINYINT       NOT NULL DEFAULT 1,
+        [AppointmentId]    INT           NULL,
+        [PatientId]        INT           NOT NULL,
+        [DoctorId]         INT           NOT NULL,
+        [EncounterDate]    DATE          NOT NULL DEFAULT CAST(GETDATE() AS DATE),
+        [EncounterTime]    TIME          NOT NULL DEFAULT CAST(GETDATE() AS TIME),
+        [ChiefComplaint]   NVARCHAR(500) NULL,
+        [HistoryOfIllness] NVARCHAR(2000) NULL,
+        [PhysicalExam]     NVARCHAR(2000) NULL,
+        [Assessment]       NVARCHAR(2000) NULL,
+        [SoapPlan]         NVARCHAR(2000) NULL,
+        [VitalSigns]       NVARCHAR(1000) NULL,
+        [IsFinalized]      BIT           NOT NULL DEFAULT 0,
+        [FinalizedAt]      DATETIME2     NULL,
+        [CreatedAt]        DATETIME2     NOT NULL DEFAULT GETDATE(),
+        [UpdatedAt]        DATETIME2     NULL,
+        [CreatedBy]        INT           NOT NULL DEFAULT 1,
+        CONSTRAINT PK_Encounters PRIMARY KEY ([Id]),
+        CONSTRAINT FK_Encounters_Tenants      FOREIGN KEY ([TenantId])      REFERENCES ClinicDB.dbo.[Tenants]([Id]),
+        CONSTRAINT FK_Encounters_Patients     FOREIGN KEY ([PatientId])     REFERENCES ClinicDB.dbo.[Patients]([Id]),
+        CONSTRAINT FK_Encounters_Doctors      FOREIGN KEY ([DoctorId])      REFERENCES ClinicDB.dbo.[Doctors]([Id]),
+        CONSTRAINT FK_Encounters_Appointments FOREIGN KEY ([AppointmentId]) REFERENCES ClinicDB.dbo.[Appointments]([Id])
+    );
+    CREATE INDEX IX_Encounters_PatientId ON ClinicDB.dbo.[Encounters] ([PatientId],[EncounterDate] DESC);
+    CREATE INDEX IX_Encounters_DoctorId  ON ClinicDB.dbo.[Encounters] ([DoctorId],[EncounterDate] DESC);
+    PRINT '--> Created Encounters.';
+END
+ELSE
+BEGIN
+    IF COL_LENGTH('ClinicDB.dbo.Encounters','HistoryOfIllness') IS NULL
+        ALTER TABLE ClinicDB.dbo.[Encounters] ADD [HistoryOfIllness] NVARCHAR(2000) NULL;
+    IF COL_LENGTH('ClinicDB.dbo.Encounters','SoapPlan') IS NULL
+        ALTER TABLE ClinicDB.dbo.[Encounters] ADD [SoapPlan] NVARCHAR(2000) NULL;
+    IF COL_LENGTH('ClinicDB.dbo.Encounters','VitalSigns') IS NULL
+        ALTER TABLE ClinicDB.dbo.[Encounters] ADD [VitalSigns] NVARCHAR(1000) NULL;
+    IF COL_LENGTH('ClinicDB.dbo.Encounters','FinalizedAt') IS NULL
+        ALTER TABLE ClinicDB.dbo.[Encounters] ADD [FinalizedAt] DATETIME2 NULL;
+END
+
+-- ─── DIAGNOSES ────────────────────────────────────────────────
+IF OBJECT_ID('ClinicDB.dbo.Diagnoses','U') IS NULL
+BEGIN
+    CREATE TABLE ClinicDB.dbo.[Diagnoses] (
+        [Id]            INT          NOT NULL IDENTITY(1,1),
+        [EncounterId]   INT          NOT NULL,
+        [DiagnosisCode] VARCHAR(10)  NOT NULL DEFAULT 'Z00.0',
+        [DiagnosisText] NVARCHAR(300) NOT NULL,
+        [DiagnosisType] TINYINT      NOT NULL DEFAULT 1,
+        [CreatedAt]     DATETIME2    NOT NULL DEFAULT GETDATE(),
+        CONSTRAINT PK_Diagnoses PRIMARY KEY ([Id]),
+        CONSTRAINT FK_Diagnoses_Encounters FOREIGN KEY ([EncounterId]) REFERENCES ClinicDB.dbo.[Encounters]([Id])
+    );
+    PRINT '--> Created Diagnoses.';
+END
+
+-- ─── DRUG FORMULARY ───────────────────────────────────────────
+IF OBJECT_ID('ClinicDB.dbo.DrugFormulary','U') IS NULL
+BEGIN
+    CREATE TABLE ClinicDB.dbo.[DrugFormulary] (
+        [Id]            INT           NOT NULL IDENTITY(1,1),
+        [TenantId]      TINYINT       NOT NULL DEFAULT 1,
+        [DrugCode]      VARCHAR(20)   NULL,
+        [GenericName]   NVARCHAR(200) NOT NULL,
+        [BrandName]     NVARCHAR(200) NULL,
+        [DrugClass]     NVARCHAR(100) NULL,
+        [DosageForm]    NVARCHAR(50)  NULL,
+        [Strength]      NVARCHAR(50)  NULL,
+        [Unit]          NVARCHAR(30)  NULL,
+        [CurrentStock]  INT           NOT NULL DEFAULT 0,
+        [MinStockLevel] INT           NOT NULL DEFAULT 10,
+        [CostPrice]     DECIMAL(10,2) NOT NULL DEFAULT 0,
+        [SellingPrice]  DECIMAL(10,2) NOT NULL DEFAULT 0,
+        [BatchNumber]   VARCHAR(50)   NULL,
+        [ExpiryDate]    DATE          NULL,
+        [IsControlled]  BIT           NOT NULL DEFAULT 0,
+        [IsActive]      BIT           NOT NULL DEFAULT 1,
+        [CreatedAt]     DATETIME2     NOT NULL DEFAULT GETDATE(),
+        [UpdatedAt]     DATETIME2     NULL,
+        CONSTRAINT PK_DrugFormulary PRIMARY KEY ([Id]),
+        CONSTRAINT FK_DrugFormulary_Tenants FOREIGN KEY ([TenantId]) REFERENCES ClinicDB.dbo.[Tenants]([Id])
+    );
+    PRINT '--> Created DrugFormulary.';
+END
+
+-- ─── PRESCRIPTIONS ────────────────────────────────────────────
+IF OBJECT_ID('ClinicDB.dbo.Prescriptions','U') IS NULL
+BEGIN
+    CREATE TABLE ClinicDB.dbo.[Prescriptions] (
+        [Id]          INT       NOT NULL IDENTITY(1,1),
+        [TenantId]    TINYINT   NOT NULL DEFAULT 1,
+        [EncounterId] INT       NOT NULL,
+        [PatientId]   INT       NOT NULL,
+        [DoctorId]    INT       NOT NULL,
+        [PrescribedAt] DATETIME2 NOT NULL DEFAULT GETDATE(),
+        [StatusId]    TINYINT   NOT NULL DEFAULT 1,
+        [Notes]       NVARCHAR(500) NULL,
+        CONSTRAINT PK_Prescriptions PRIMARY KEY ([Id]),
+        CONSTRAINT FK_Prescriptions_Tenants    FOREIGN KEY ([TenantId])    REFERENCES ClinicDB.dbo.[Tenants]([Id]),
+        CONSTRAINT FK_Prescriptions_Encounters FOREIGN KEY ([EncounterId]) REFERENCES ClinicDB.dbo.[Encounters]([Id]),
+        CONSTRAINT FK_Prescriptions_Patients   FOREIGN KEY ([PatientId])   REFERENCES ClinicDB.dbo.[Patients]([Id]),
+        CONSTRAINT FK_Prescriptions_Doctors    FOREIGN KEY ([DoctorId])    REFERENCES ClinicDB.dbo.[Doctors]([Id])
+    );
+    PRINT '--> Created Prescriptions.';
+END
+
+-- ─── PRESCRIPTION ITEMS ───────────────────────────────────────
+IF OBJECT_ID('ClinicDB.dbo.PrescriptionItems','U') IS NULL
+BEGIN
+    CREATE TABLE ClinicDB.dbo.[PrescriptionItems] (
+        [Id]             INT           NOT NULL IDENTITY(1,1),
+        [PrescriptionId] INT           NOT NULL,
+        [DrugId]         INT           NOT NULL,
+        [Dosage]         NVARCHAR(100) NOT NULL DEFAULT '',
+        [Frequency]      NVARCHAR(100) NOT NULL DEFAULT '',
+        [Route]          NVARCHAR(50)  NULL,
+        [Duration]       NVARCHAR(50)  NULL,
+        [Quantity]       SMALLINT      NOT NULL DEFAULT 1,
+        [Instructions]   NVARCHAR(300) NULL,
+        [StatusId]       TINYINT       NOT NULL DEFAULT 1,
+        CONSTRAINT PK_PrescriptionItems PRIMARY KEY ([Id]),
+        CONSTRAINT FK_PrescriptionItems_Rx   FOREIGN KEY ([PrescriptionId]) REFERENCES ClinicDB.dbo.[Prescriptions]([Id]),
+        CONSTRAINT FK_PrescriptionItems_Drug FOREIGN KEY ([DrugId])         REFERENCES ClinicDB.dbo.[DrugFormulary]([Id])
+    );
+    PRINT '--> Created PrescriptionItems.';
+END
+
+-- ─── LAB TEST CATALOG ─────────────────────────────────────────
+IF OBJECT_ID('ClinicDB.dbo.LabTestCatalog','U') IS NULL
+BEGIN
+    CREATE TABLE ClinicDB.dbo.[LabTestCatalog] (
+        [Id]                INT           NOT NULL IDENTITY(1,1),
+        [TenantId]          TINYINT       NOT NULL DEFAULT 1,
+        [TestCode]          VARCHAR(20)   NOT NULL,
+        [TestName]          NVARCHAR(200) NOT NULL,
+        [Category]          NVARCHAR(100) NULL,
+        [Method]            NVARCHAR(100) NULL,
+        [SampleType]        NVARCHAR(50)  NULL,
+        [SampleVolume]      VARCHAR(30)   NULL,
+        [TurnaroundMinutes] INT           NOT NULL DEFAULT 60,
+        [NormalRangeLow]    DECIMAL(12,4) NULL,
+        [NormalRangeHigh]   DECIMAL(12,4) NULL,
+        [CriticalLow]       DECIMAL(12,4) NULL,
+        [CriticalHigh]      DECIMAL(12,4) NULL,
+        [Unit]              VARCHAR(30)   NULL,
+        [ResultType]        TINYINT       NOT NULL DEFAULT 1,
+        [Price]             DECIMAL(10,2) NULL,
+        [ParentTestId]      INT           NULL,
+        [IsActive]          BIT           NOT NULL DEFAULT 1,
+        [CreatedAt]         DATETIME2     NOT NULL DEFAULT GETDATE(),
+        CONSTRAINT PK_LabTestCatalog PRIMARY KEY ([Id]),
+        CONSTRAINT UQ_LabTestCatalog_Code UNIQUE ([TenantId],[TestCode]),
+        CONSTRAINT FK_LabTestCatalog_Tenants FOREIGN KEY ([TenantId]) REFERENCES ClinicDB.dbo.[Tenants]([Id])
+    );
+    PRINT '--> Created LabTestCatalog.';
+END
+ELSE
+BEGIN
+    IF COL_LENGTH('ClinicDB.dbo.LabTestCatalog','ParentTestId') IS NULL
+        ALTER TABLE ClinicDB.dbo.[LabTestCatalog] ADD [ParentTestId] INT NULL;
+    IF COL_LENGTH('ClinicDB.dbo.LabTestCatalog','Price') IS NULL
+        ALTER TABLE ClinicDB.dbo.[LabTestCatalog] ADD [Price] DECIMAL(10,2) NULL;
+END
+
+-- ─── LAB ORDERS ───────────────────────────────────────────────
+IF OBJECT_ID('ClinicDB.dbo.LabOrders','U') IS NULL
+BEGIN
+    CREATE TABLE ClinicDB.dbo.[LabOrders] (
+        [Id]          INT           NOT NULL IDENTITY(1,1),
+        [TenantId]    TINYINT       NOT NULL DEFAULT 1,
+        [OrderNumber] VARCHAR(30)   NOT NULL,
+        [PatientId]   INT           NOT NULL,
+        [EncounterId] INT           NULL,
+        [OrderedBy]   INT           NOT NULL,
+        [Priority]    TINYINT       NOT NULL DEFAULT 2,
+        [OrderedAt]   DATETIME2     NOT NULL DEFAULT GETDATE(),
+        [ClinicalInfo] NVARCHAR(500) NULL,
+        [StatusId]    TINYINT       NOT NULL DEFAULT 1,
+        [CreatedAt]   DATETIME2     NOT NULL DEFAULT GETDATE(),
+        CONSTRAINT PK_LabOrders PRIMARY KEY ([Id]),
+        CONSTRAINT UQ_LabOrders_Number UNIQUE ([TenantId],[OrderNumber]),
+        CONSTRAINT FK_LabOrders_Tenants   FOREIGN KEY ([TenantId])   REFERENCES ClinicDB.dbo.[Tenants]([Id]),
+        CONSTRAINT FK_LabOrders_Patients  FOREIGN KEY ([PatientId])  REFERENCES ClinicDB.dbo.[Patients]([Id]),
+        CONSTRAINT FK_LabOrders_Encounters FOREIGN KEY ([EncounterId]) REFERENCES ClinicDB.dbo.[Encounters]([Id]),
+        CONSTRAINT FK_LabOrders_Doctors   FOREIGN KEY ([OrderedBy])  REFERENCES ClinicDB.dbo.[Doctors]([Id])
+    );
+    CREATE INDEX IX_LabOrders_PatientId ON ClinicDB.dbo.[LabOrders] ([PatientId],[OrderedAt] DESC);
+    PRINT '--> Created LabOrders.';
+END
+
+-- ─── LAB ORDER ITEMS ──────────────────────────────────────────
+IF OBJECT_ID('ClinicDB.dbo.LabOrderItems','U') IS NULL
+BEGIN
+    CREATE TABLE ClinicDB.dbo.[LabOrderItems] (
+        [Id]       INT     NOT NULL IDENTITY(1,1),
+        [OrderId]  INT     NOT NULL,
+        [TestId]   INT     NOT NULL,
+        [StatusId] TINYINT NOT NULL DEFAULT 1,
+        CONSTRAINT PK_LabOrderItems PRIMARY KEY ([Id]),
+        CONSTRAINT FK_LabOrderItems_Orders FOREIGN KEY ([OrderId]) REFERENCES ClinicDB.dbo.[LabOrders]([Id]) ON DELETE CASCADE,
+        CONSTRAINT FK_LabOrderItems_Tests  FOREIGN KEY ([TestId])  REFERENCES ClinicDB.dbo.[LabTestCatalog]([Id])
+    );
+    PRINT '--> Created LabOrderItems.';
+END
+
+-- ─── INVOICE STATUSES ─────────────────────────────────────────
+IF OBJECT_ID('ClinicDB.dbo.InvoiceStatuses','U') IS NULL
+BEGIN
+    CREATE TABLE ClinicDB.dbo.[InvoiceStatuses] (
+        [Id]   TINYINT       NOT NULL,
+        [Name] NVARCHAR(30)  NOT NULL,
+        CONSTRAINT PK_InvoiceStatuses PRIMARY KEY ([Id])
+    );
+    INSERT INTO ClinicDB.dbo.[InvoiceStatuses] VALUES (1,'Draft'),(2,'Issued'),(3,'PartiallyPaid'),(4,'Paid'),(5,'Void'),(6,'Written Off');
+    PRINT '--> Created InvoiceStatuses.';
+END
+
+-- ─── INVOICES ─────────────────────────────────────────────────
+IF OBJECT_ID('ClinicDB.dbo.Invoices','U') IS NULL
+BEGIN
+    CREATE TABLE ClinicDB.dbo.[Invoices] (
+        [Id]            INT           NOT NULL IDENTITY(1,1),
+        [TenantId]      TINYINT       NOT NULL DEFAULT 1,
+        [InvoiceNumber] VARCHAR(30)   NOT NULL,
+        [PatientId]     INT           NOT NULL,
+        [EncounterId]   INT           NULL,
+        [StatusId]      TINYINT       NOT NULL DEFAULT 1,
+        [IssueDate]     DATE          NOT NULL DEFAULT CAST(GETDATE() AS DATE),
+        [DueDate]       DATE          NULL,
+        [SubTotal]      DECIMAL(12,2) NOT NULL DEFAULT 0,
+        [DiscountAmt]   DECIMAL(12,2) NOT NULL DEFAULT 0,
+        [TaxAmt]        DECIMAL(12,2) NOT NULL DEFAULT 0,
+        [TotalAmount]   DECIMAL(12,2) NOT NULL DEFAULT 0,
+        [PaidAmount]    DECIMAL(12,2) NOT NULL DEFAULT 0,
+        [InsuranceClaim] DECIMAL(12,2) NOT NULL DEFAULT 0,
+        [Notes]         NVARCHAR(500) NULL,
+        [CreatedBy]     INT           NOT NULL DEFAULT 1,
+        [CreatedAt]     DATETIME2     NOT NULL DEFAULT GETDATE(),
+        [UpdatedAt]     DATETIME2     NULL,
+        CONSTRAINT PK_Invoices PRIMARY KEY ([Id]),
+        CONSTRAINT UQ_Invoices_Number UNIQUE ([TenantId],[InvoiceNumber]),
+        CONSTRAINT FK_Invoices_Tenants   FOREIGN KEY ([TenantId])   REFERENCES ClinicDB.dbo.[Tenants]([Id]),
+        CONSTRAINT FK_Invoices_Patients  FOREIGN KEY ([PatientId])  REFERENCES ClinicDB.dbo.[Patients]([Id]),
+        CONSTRAINT FK_Invoices_Encounters FOREIGN KEY ([EncounterId]) REFERENCES ClinicDB.dbo.[Encounters]([Id]),
+        CONSTRAINT FK_Invoices_Status    FOREIGN KEY ([StatusId])   REFERENCES ClinicDB.dbo.[InvoiceStatuses]([Id])
+    );
+    CREATE INDEX IX_Invoices_PatientId   ON ClinicDB.dbo.[Invoices] ([PatientId],[IssueDate] DESC);
+    CREATE INDEX IX_Invoices_EncounterId ON ClinicDB.dbo.[Invoices] ([EncounterId]);
+    PRINT '--> Created Invoices.';
+END
+ELSE
+BEGIN
+    -- Most critical: EncounterId may be absent in older installs
+    IF COL_LENGTH('ClinicDB.dbo.Invoices','EncounterId') IS NULL
+        ALTER TABLE ClinicDB.dbo.[Invoices] ADD [EncounterId] INT NULL;
+    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name='IX_Invoices_EncounterId' AND object_id=OBJECT_ID('ClinicDB.dbo.Invoices'))
+        CREATE INDEX IX_Invoices_EncounterId ON ClinicDB.dbo.[Invoices] ([EncounterId]);
+    -- Column name variants (InvoiceNo vs InvoiceNumber)
+    IF COL_LENGTH('ClinicDB.dbo.Invoices','InvoiceNumber') IS NULL AND COL_LENGTH('ClinicDB.dbo.Invoices','InvoiceNo') IS NOT NULL
+        EXEC sp_rename 'ClinicDB.dbo.Invoices.InvoiceNo','InvoiceNumber','COLUMN';
+    IF COL_LENGTH('ClinicDB.dbo.Invoices','DiscountAmt') IS NULL
+        ALTER TABLE ClinicDB.dbo.[Invoices] ADD [DiscountAmt] DECIMAL(12,2) NOT NULL DEFAULT 0;
+    IF COL_LENGTH('ClinicDB.dbo.Invoices','TaxAmt') IS NULL
+        ALTER TABLE ClinicDB.dbo.[Invoices] ADD [TaxAmt] DECIMAL(12,2) NOT NULL DEFAULT 0;
+    IF COL_LENGTH('ClinicDB.dbo.Invoices','InsuranceClaim') IS NULL
+        ALTER TABLE ClinicDB.dbo.[Invoices] ADD [InsuranceClaim] DECIMAL(12,2) NOT NULL DEFAULT 0;
+    IF COL_LENGTH('ClinicDB.dbo.Invoices','UpdatedAt') IS NULL
+        ALTER TABLE ClinicDB.dbo.[Invoices] ADD [UpdatedAt] DATETIME2 NULL;
+END
+
+-- ─── INVOICE ITEMS ────────────────────────────────────────────
+IF OBJECT_ID('ClinicDB.dbo.InvoiceItems','U') IS NULL
+BEGIN
+    CREATE TABLE ClinicDB.dbo.[InvoiceItems] (
+        [Id]          INT           NOT NULL IDENTITY(1,1),
+        [InvoiceId]   INT           NOT NULL,
+        [ItemType]    TINYINT       NOT NULL DEFAULT 1,
+        [Description] NVARCHAR(200) NOT NULL,
+        [Quantity]    DECIMAL(10,2) NOT NULL DEFAULT 1,
+        [UnitPrice]   DECIMAL(10,2) NOT NULL DEFAULT 0,
+        [Discount]    DECIMAL(10,2) NOT NULL DEFAULT 0,
+        [Total]       DECIMAL(10,2) NOT NULL DEFAULT 0,
+        [RefId]       INT           NULL,
+        CONSTRAINT PK_InvoiceItems PRIMARY KEY ([Id]),
+        CONSTRAINT FK_InvoiceItems_Invoices FOREIGN KEY ([InvoiceId]) REFERENCES ClinicDB.dbo.[Invoices]([Id]) ON DELETE CASCADE
+    );
+    PRINT '--> Created InvoiceItems.';
+END
+ELSE
+BEGIN
+    IF COL_LENGTH('ClinicDB.dbo.InvoiceItems','RefId') IS NULL
+        ALTER TABLE ClinicDB.dbo.[InvoiceItems] ADD [RefId] INT NULL;
+END
+
+-- ─── PAYROLL AGREEMENTS ───────────────────────────────────────
+IF OBJECT_ID('ClinicDB.dbo.PayrollAgreements','U') IS NULL
+BEGIN
+    CREATE TABLE ClinicDB.dbo.[PayrollAgreements] (
+        [Id]        INT           NOT NULL IDENTITY(1,1),
+        [TenantId]  TINYINT       NOT NULL DEFAULT 1,
+        [DoctorId]  INT           NOT NULL,
+        [Category]  NVARCHAR(100) NOT NULL,
+        [RateType]  TINYINT       NOT NULL DEFAULT 1,
+        [Rate]      DECIMAL(10,2) NOT NULL DEFAULT 0,
+        [IsActive]  BIT           NOT NULL DEFAULT 1,
+        [CreatedAt] DATETIME2     NOT NULL DEFAULT GETDATE(),
+        [UpdatedAt] DATETIME2     NOT NULL DEFAULT GETDATE(),
+        CONSTRAINT PK_PayrollAgreements PRIMARY KEY ([Id]),
+        CONSTRAINT FK_PayrollAgreements_Tenants FOREIGN KEY ([TenantId]) REFERENCES ClinicDB.dbo.[Tenants]([Id]),
+        CONSTRAINT FK_PayrollAgreements_Doctors FOREIGN KEY ([DoctorId]) REFERENCES ClinicDB.dbo.[Doctors]([Id]),
+        CONSTRAINT UQ_PayrollAgreements_Doc_Cat UNIQUE ([TenantId],[DoctorId],[Category])
+    );
+    CREATE INDEX IX_PayrollAgreements_Doctor ON ClinicDB.dbo.[PayrollAgreements] ([TenantId],[DoctorId],[IsActive]);
+    PRINT '--> Created PayrollAgreements.';
+END
+
+-- ─── CHAPA TRANSACTIONS ───────────────────────────────────────
+IF OBJECT_ID('ClinicDB.dbo.ChapaTransactions','U') IS NULL
+BEGIN
+    CREATE TABLE ClinicDB.dbo.[ChapaTransactions] (
+        [Id]             INT           NOT NULL IDENTITY(1,1),
+        [TenantId]       TINYINT       NOT NULL DEFAULT 1,
+        [InvoiceId]      INT           NOT NULL,
+        [TxRef]          VARCHAR(100)  NOT NULL UNIQUE,
+        [Amount]         DECIMAL(12,2) NOT NULL,
+        [Currency]       VARCHAR(10)   NOT NULL DEFAULT 'ETB',
+        [Email]          VARCHAR(100)  NULL,
+        [FirstName]      NVARCHAR(100) NULL,
+        [LastName]       NVARCHAR(100) NULL,
+        [PaymentStatus]  VARCHAR(30)   NOT NULL DEFAULT 'pending',
+        [CheckoutUrl]    NVARCHAR(500) NULL,
+        [ChapaReference] VARCHAR(100)  NULL,
+        [CreatedAt]      DATETIME2     NOT NULL DEFAULT GETDATE(),
+        [UpdatedAt]      DATETIME2     NULL,
+        CONSTRAINT PK_ChapaTransactions PRIMARY KEY ([Id]),
+        CONSTRAINT FK_ChapaTransactions_Invoices FOREIGN KEY ([InvoiceId]) REFERENCES ClinicDB.dbo.[Invoices]([Id])
+    );
+    CREATE INDEX IX_ChapaTransactions_Invoice ON ClinicDB.dbo.[ChapaTransactions] ([TenantId],[InvoiceId]);
+    CREATE INDEX IX_ChapaTransactions_TxRef   ON ClinicDB.dbo.[ChapaTransactions] ([TxRef]);
+    PRINT '--> Created ChapaTransactions.';
+END
+
+-- ─── LAB TEST PARAMETERS ──────────────────────────────────────
+IF OBJECT_ID('ClinicDB.dbo.LabTestParameters','U') IS NULL
+BEGIN
+    CREATE TABLE ClinicDB.dbo.[LabTestParameters] (
+        [Id]                 INT           NOT NULL IDENTITY(1,1),
+        [TestCatalogId]      INT           NOT NULL,
+        [ParameterCode]      VARCHAR(50)   NOT NULL,
+        [ParameterName]      NVARCHAR(100) NOT NULL,
+        [Unit]               VARCHAR(30)   NULL,
+        [ReferenceLow]       DECIMAL(10,2) NULL,
+        [ReferenceHigh]      DECIMAL(10,2) NULL,
+        [TextReferenceRange] NVARCHAR(200) NULL,
+        [DisplayOrder]       INT           NOT NULL DEFAULT 1,
+        [CreatedAt]          DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT PK_LabTestParameters PRIMARY KEY ([Id]),
+        CONSTRAINT FK_LabTestParameters_Catalog FOREIGN KEY ([TestCatalogId]) REFERENCES ClinicDB.dbo.[LabTestCatalog]([Id]) ON DELETE CASCADE
+    );
+    CREATE INDEX IX_LabTestParameters_Catalog ON ClinicDB.dbo.[LabTestParameters] ([TestCatalogId],[DisplayOrder]);
+    PRINT '--> Created LabTestParameters.';
+END
+ELSE
+BEGIN
+    -- Column name variants between master schema (TestId) and live schema (TestCatalogId)
+    IF COL_LENGTH('ClinicDB.dbo.LabTestParameters','TestCatalogId') IS NULL AND COL_LENGTH('ClinicDB.dbo.LabTestParameters','TestId') IS NOT NULL
+        EXEC sp_rename 'ClinicDB.dbo.LabTestParameters.TestId','TestCatalogId','COLUMN';
+    IF COL_LENGTH('ClinicDB.dbo.LabTestParameters','TextReferenceRange') IS NULL
+        ALTER TABLE ClinicDB.dbo.[LabTestParameters] ADD [TextReferenceRange] NVARCHAR(200) NULL;
+    IF COL_LENGTH('ClinicDB.dbo.LabTestParameters','DisplayOrder') IS NULL AND COL_LENGTH('ClinicDB.dbo.LabTestParameters','SortOrder') IS NOT NULL
+        EXEC sp_rename 'ClinicDB.dbo.LabTestParameters.SortOrder','DisplayOrder','COLUMN';
+    IF COL_LENGTH('ClinicDB.dbo.LabTestParameters','ReferenceLow') IS NULL AND COL_LENGTH('ClinicDB.dbo.LabTestParameters','NormalRangeLow') IS NOT NULL
+    BEGIN
+        EXEC sp_rename 'ClinicDB.dbo.LabTestParameters.NormalRangeLow','ReferenceLow','COLUMN';
+        EXEC sp_rename 'ClinicDB.dbo.LabTestParameters.NormalRangeHigh','ReferenceHigh','COLUMN';
+    END
+END
+
+-- ─── MEDICAL CERTIFICATES ─────────────────────────────────────
+IF OBJECT_ID('ClinicDB.dbo.MedicalCertificates','U') IS NULL
+BEGIN
+    CREATE TABLE ClinicDB.dbo.[MedicalCertificates] (
+        [Id]                INT           NOT NULL IDENTITY(1,1),
+        [TenantId]          TINYINT       NOT NULL DEFAULT 1,
+        [CertificateNo]     VARCHAR(30)   NOT NULL,
+        [PatientId]         INT           NOT NULL,
+        [DoctorId]          INT           NOT NULL,
+        [EncounterId]       INT           NULL,
+        [CertificateType]   NVARCHAR(50)  NOT NULL DEFAULT 'SickLeave',
+        [DiagnosisSummary]  NVARCHAR(500) NULL,
+        [Recommendation]    NVARCHAR(1000) NULL,
+        [StartDate]         DATE          NOT NULL DEFAULT CAST(GETDATE() AS DATE),
+        [EndDate]           DATE          NULL,
+        [DaysExcused]       INT           NOT NULL DEFAULT 1,
+        [QrVerificationCode] VARCHAR(64)  NULL,
+        [IsIssued]          BIT           NOT NULL DEFAULT 1,
+        [IssuedAt]          DATETIME2     NULL,
+        [CreatedAt]         DATETIME2     NOT NULL DEFAULT GETDATE(),
+        CONSTRAINT PK_MedicalCertificates PRIMARY KEY ([Id]),
+        CONSTRAINT UQ_MedCert_No UNIQUE ([TenantId],[CertificateNo]),
+        CONSTRAINT FK_MedCert_Tenants  FOREIGN KEY ([TenantId])  REFERENCES ClinicDB.dbo.[Tenants]([Id]),
+        CONSTRAINT FK_MedCert_Patients FOREIGN KEY ([PatientId]) REFERENCES ClinicDB.dbo.[Patients]([Id]),
+        CONSTRAINT FK_MedCert_Doctors  FOREIGN KEY ([DoctorId])  REFERENCES ClinicDB.dbo.[Doctors]([Id])
+    );
+    PRINT '--> Created MedicalCertificates.';
+END
+ELSE
+BEGIN
+    IF COL_LENGTH('ClinicDB.dbo.MedicalCertificates','QrVerificationCode') IS NULL
+        ALTER TABLE ClinicDB.dbo.[MedicalCertificates] ADD [QrVerificationCode] VARCHAR(64) NULL;
+    IF COL_LENGTH('ClinicDB.dbo.MedicalCertificates','EncounterId') IS NULL
+        ALTER TABLE ClinicDB.dbo.[MedicalCertificates] ADD [EncounterId] INT NULL;
+END
+
+PRINT '--> [COMPLETED] PRE-MIGRATION DDL: All tables verified / created.';
+RAISERROR('--> PRE-MIGRATION DDL complete.', 0, 1) WITH NOWAIT;
+GO
+
+-- ============================================================
 -- PRE-MIGRATION: Disable Audit Triggers & Temporal Versioning
 -- ============================================================
 PRINT 'Optimizing database: Disabling audit triggers & temporal versioning for bulk speed...';
@@ -1271,7 +2011,7 @@ RAISERROR('--> [COMPLETED] Step 10/12: Prescriptions done (%d records).', 0, 1, 
 GO
 
 -- ============================================================
--- STEP 11: ORDERS -> INVOICES & ITEMS
+-- STEP 11: ORDERS -> INVOICES & ITEMS (WITH ENCOUNTER LINKING)
 -- Source: [dbOHMS.dbo.tblOrder]
 -- Target: [ClinicDB.dbo.Invoices] & [ClinicDB.dbo.InvoiceItems]
 -- ============================================================
@@ -1306,13 +2046,20 @@ InvoiceHeaders AS (
     GROUP BY onum.[InvRank], onum.[patid]
 )
 INSERT INTO ClinicDB.dbo.[Invoices] (
-    [TenantId], [InvoiceNumber], [PatientId], [StatusId],
+    [TenantId], [InvoiceNumber], [PatientId], [EncounterId], [StatusId],
     [IssueDate], [SubTotal], [TotalAmount], [PaidAmount], [CreatedBy], [CreatedAt]
 )
 SELECT
     1,
     ih.[InvoiceNumber],
     mp.[NewId],
+    -- Link to closest Encounter for this patient (same-day preferred, else closest within 30 days)
+    (SELECT TOP 1 e.[Id]
+     FROM ClinicDB.dbo.[Encounters] e
+     WHERE e.[TenantId] = 1
+       AND e.[PatientId] = mp.[NewId]
+       AND ABS(DATEDIFF(day, e.[EncounterDate], ISNULL(CAST(ih.[OrderDate] AS DATE), CAST(GETDATE() AS DATE)))) <= 30
+     ORDER BY ABS(DATEDIFF(day, e.[EncounterDate], ISNULL(CAST(ih.[OrderDate] AS DATE), CAST(GETDATE() AS DATE)))) ASC, e.[Id] DESC),
     CASE WHEN ih.[IsPaid] = 1 THEN 4 ELSE 2 END, -- 4=Paid, 2=Issued
     ISNULL(CAST(ih.[OrderDate] AS DATE), CAST(GETDATE() AS DATE)),
     ih.[TotalAmount],
@@ -1369,7 +2116,7 @@ JOIN ClinicDB.dbo.[Invoices] inv
 OPTION (MAXDOP 1);
 
 DECLARE @invCount INT = (SELECT COUNT(*) FROM ClinicDB.dbo.[Invoices] WHERE [TenantId] = 1);
-INSERT INTO dbo.[MigrationLog] VALUES ('Step 11', 'tblOrder', 'Invoices & InvoiceItems', @srcCount, @invCount, 'OK', 'All invoices generated with unique InvoiceNumber', GETDATE());
+INSERT INTO dbo.[MigrationLog] VALUES ('Step 11', 'tblOrder', 'Invoices & InvoiceItems', @srcCount, @invCount, 'OK', 'All invoices generated with unique InvoiceNumber and EncounterId linked', GETDATE());
 PRINT '--> [COMPLETED] Step 11/12: [dbOHMS.dbo.tblOrder] -> [ClinicDB.dbo.Invoices] & [ClinicDB.dbo.InvoiceItems] | Processed: ' + CAST(@invCount AS VARCHAR) + ' of ' + CAST(@srcCount AS VARCHAR) + ' records.';
 RAISERROR('--> [COMPLETED] Step 11/12: Invoices done (%d invoices).', 0, 1, @invCount) WITH NOWAIT;
 GO
@@ -1440,6 +2187,192 @@ RAISERROR('--> [COMPLETED] Step 12/12: Medical Certificates done (%d certificate
 GO
 
 -- ============================================================
+-- STEP 13: PAYROLL AGREEMENTS TABLE + SEEDING
+-- Creates PayrollAgreements if it does not exist, then seeds
+-- standard commission categories for all doctors.
+-- Idempotent: skips rows that already exist (TenantId, DoctorId, Category).
+-- ============================================================
+PRINT '------------------------------------------------------------';
+PRINT 'Step 13/15: PayrollAgreements — create table & seed defaults...';
+RAISERROR('Step 13/15: PayrollAgreements...', 0, 1) WITH NOWAIT;
+
+IF OBJECT_ID('ClinicDB.dbo.PayrollAgreements', 'U') IS NULL
+BEGIN
+    CREATE TABLE ClinicDB.dbo.[PayrollAgreements] (
+        [Id]        INT             NOT NULL IDENTITY(1,1),
+        [TenantId]  TINYINT         NOT NULL DEFAULT 1,
+        [DoctorId]  INT             NOT NULL,
+        [Category]  NVARCHAR(100)   NOT NULL,
+        [RateType]  TINYINT         NOT NULL DEFAULT 1, -- 1=Percentage, 2=Fixed Amount
+        [Rate]      DECIMAL(10,2)   NOT NULL DEFAULT 0,
+        [IsActive]  BIT             NOT NULL DEFAULT 1,
+        [CreatedAt] DATETIME2       NOT NULL DEFAULT GETDATE(),
+        [UpdatedAt] DATETIME2       NOT NULL DEFAULT GETDATE(),
+        CONSTRAINT PK_PayrollAgreements PRIMARY KEY ([Id]),
+        CONSTRAINT FK_PayrollAgreements_Tenants FOREIGN KEY ([TenantId]) REFERENCES ClinicDB.dbo.[Tenants]([Id]),
+        CONSTRAINT FK_PayrollAgreements_Doctors FOREIGN KEY ([DoctorId]) REFERENCES ClinicDB.dbo.[Doctors]([Id]),
+        CONSTRAINT UQ_PayrollAgreements_Doc_Cat UNIQUE ([TenantId], [DoctorId], [Category])
+    );
+    CREATE INDEX IX_PayrollAgreements_Doctor ON ClinicDB.dbo.[PayrollAgreements] ([TenantId], [DoctorId], [IsActive]);
+    PRINT '--> Created table PayrollAgreements.';
+END
+ELSE
+    PRINT '--> PayrollAgreements already exists — skipping CREATE.';
+GO
+
+INSERT INTO ClinicDB.dbo.[PayrollAgreements] ([TenantId], [DoctorId], [Category], [RateType], [Rate], [IsActive], [CreatedAt], [UpdatedAt])
+SELECT
+    1,
+    d.[Id],
+    cats.[Category],
+    1, -- 1=Percentage
+    cats.[Rate],
+    1,
+    GETDATE(),
+    GETDATE()
+FROM ClinicDB.dbo.[Doctors] d
+CROSS JOIN (VALUES
+    ('Consultation',            50.00),
+    ('Facial Aesthetics',       30.00),
+    ('PRP Regenerative',        40.00),
+    ('Intralesional Injection',  40.00),
+    ('Electrotherapy',          35.00),
+    ('Acne & Scarring',         35.00),
+    ('Cryosurgery',             35.00),
+    ('Laser & Pigment',         30.00),
+    ('Hair Restoration',        35.00),
+    ('Minor Procedure',         40.00),
+    ('General Service',         30.00)
+) AS cats([Category], [Rate])
+WHERE NOT EXISTS (
+    SELECT 1 FROM ClinicDB.dbo.[PayrollAgreements] pa
+    WHERE pa.[TenantId] = 1 AND pa.[DoctorId] = d.[Id] AND pa.[Category] = cats.[Category]
+);
+
+DECLARE @paCount INT = (SELECT COUNT(*) FROM ClinicDB.dbo.[PayrollAgreements]);
+INSERT INTO dbo.[MigrationLog] VALUES ('Step 13', 'N/A (seed)', 'PayrollAgreements', 0, @paCount, 'OK', 'Table ensured; standard payroll categories seeded for all doctors', GETDATE());
+PRINT '--> [COMPLETED] Step 13/15: PayrollAgreements total: ' + CAST(@paCount AS VARCHAR);
+RAISERROR('--> [COMPLETED] Step 13/15: PayrollAgreements done (%d rows).', 0, 1, @paCount) WITH NOWAIT;
+GO
+
+-- ============================================================
+-- STEP 14: CHAPA PAYMENT GATEWAY TRANSACTIONS TABLE
+-- Creates ChapaTransactions if it does not exist.
+-- No legacy data to migrate — table is new with this system.
+-- ============================================================
+PRINT '------------------------------------------------------------';
+PRINT 'Step 14/15: ChapaTransactions — ensure table exists...';
+RAISERROR('Step 14/15: ChapaTransactions...', 0, 1) WITH NOWAIT;
+
+IF OBJECT_ID('ClinicDB.dbo.ChapaTransactions', 'U') IS NULL
+BEGIN
+    CREATE TABLE ClinicDB.dbo.[ChapaTransactions] (
+        [Id]             INT             NOT NULL IDENTITY(1,1),
+        [TenantId]       TINYINT         NOT NULL DEFAULT 1,
+        [InvoiceId]      INT             NOT NULL,
+        [TxRef]          VARCHAR(100)    NOT NULL UNIQUE,
+        [Amount]         DECIMAL(12,2)   NOT NULL,
+        [Currency]       VARCHAR(10)     NOT NULL DEFAULT 'ETB',
+        [Email]          VARCHAR(100)    NULL,
+        [FirstName]      NVARCHAR(100)   NULL,
+        [LastName]       NVARCHAR(100)   NULL,
+        [PaymentStatus]  VARCHAR(30)     NOT NULL DEFAULT 'pending',
+        [CheckoutUrl]    NVARCHAR(500)   NULL,
+        [ChapaReference] VARCHAR(100)    NULL,
+        [CreatedAt]      DATETIME2       NOT NULL DEFAULT GETDATE(),
+        [UpdatedAt]      DATETIME2       NULL,
+        CONSTRAINT PK_ChapaTransactions PRIMARY KEY ([Id]),
+        CONSTRAINT FK_ChapaTransactions_Invoices FOREIGN KEY ([InvoiceId]) REFERENCES ClinicDB.dbo.[Invoices]([Id])
+    );
+    CREATE INDEX IX_ChapaTransactions_Invoice ON ClinicDB.dbo.[ChapaTransactions] ([TenantId], [InvoiceId]);
+    CREATE INDEX IX_ChapaTransactions_TxRef   ON ClinicDB.dbo.[ChapaTransactions] ([TxRef]);
+    PRINT '--> Created table ChapaTransactions.';
+END
+ELSE
+    PRINT '--> ChapaTransactions already exists — skipping CREATE.';
+
+DECLARE @chapaCount INT = (SELECT COUNT(*) FROM ClinicDB.dbo.[ChapaTransactions]);
+INSERT INTO dbo.[MigrationLog] VALUES ('Step 14', 'N/A (new table)', 'ChapaTransactions', 0, @chapaCount, 'OK', 'Table ensured; no legacy data to migrate', GETDATE());
+PRINT '--> [COMPLETED] Step 14/15: ChapaTransactions total: ' + CAST(@chapaCount AS VARCHAR);
+RAISERROR('--> [COMPLETED] Step 14/15: ChapaTransactions done (%d rows).', 0, 1, @chapaCount) WITH NOWAIT;
+GO
+
+-- ============================================================
+-- STEP 15: LAB TEST PARAMETERS — ENSURE TABLE + SEED PANELS
+-- Creates LabTestParameters if it does not exist, then seeds
+-- standard sub-parameters for CBC, Lipid Profile, and Glucose.
+-- Idempotent: skips rows that already exist (TestCatalogId, ParameterCode).
+-- ============================================================
+PRINT '------------------------------------------------------------';
+PRINT 'Step 15/15: LabTestParameters — ensure table & seed standard panels...';
+RAISERROR('Step 15/15: LabTestParameters...', 0, 1) WITH NOWAIT;
+
+IF OBJECT_ID('ClinicDB.dbo.LabTestParameters', 'U') IS NULL
+BEGIN
+    CREATE TABLE ClinicDB.dbo.[LabTestParameters] (
+        [Id]                 INT             NOT NULL IDENTITY(1,1),
+        [TestCatalogId]      INT             NOT NULL,
+        [ParameterCode]      VARCHAR(50)     NOT NULL,
+        [ParameterName]      NVARCHAR(100)   NOT NULL,
+        [Unit]               VARCHAR(30)     NULL,
+        [ReferenceLow]       DECIMAL(10,2)   NULL,
+        [ReferenceHigh]      DECIMAL(10,2)   NULL,
+        [TextReferenceRange] NVARCHAR(200)   NULL,
+        [DisplayOrder]       INT             NOT NULL DEFAULT 1,
+        [CreatedAt]          DATETIME2       NOT NULL DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT PK_LabTestParameters PRIMARY KEY ([Id]),
+        CONSTRAINT FK_LabTestParameters_Catalog FOREIGN KEY ([TestCatalogId]) REFERENCES ClinicDB.dbo.[LabTestCatalog]([Id]) ON DELETE CASCADE
+    );
+    CREATE INDEX IX_LabTestParameters_Catalog ON ClinicDB.dbo.[LabTestParameters] ([TestCatalogId], [DisplayOrder]);
+    PRINT '--> Created table LabTestParameters.';
+END
+ELSE
+    PRINT '--> LabTestParameters already exists — skipping CREATE.';
+GO
+
+-- Seed standard panels (Lipid, CBC, Glucose) — idempotent
+;WITH PanelDefs AS (
+    -- Lipid Profile
+    SELECT 'Lipid' AS TestPattern, 'CHOL'  AS PCode, 'Total Cholesterol'        AS PName, 'mg/dL' AS Unit, 125.00 AS RefLow, 200.00  AS RefHigh, 1 AS Ord UNION ALL
+    SELECT 'Lipid',  'HDL',   'HDL Cholesterol',          'mg/dL',  40.00,  60.00, 2 UNION ALL
+    SELECT 'Lipid',  'LDL',   'LDL Cholesterol',          'mg/dL',  50.00, 100.00, 3 UNION ALL
+    SELECT 'Lipid',  'TRIG',  'Triglycerides',            'mg/dL',  10.00, 150.00, 4 UNION ALL
+    -- Complete Blood Count
+    SELECT 'CBC',    'WBC',   'White Blood Cell Count',   '10^3/uL', 4.50,  11.00, 1 UNION ALL
+    SELECT 'CBC',    'RBC',   'Red Blood Cell Count',     '10^6/uL', 4.30,   5.90, 2 UNION ALL
+    SELECT 'CBC',    'HGB',   'Hemoglobin',               'g/dL',   13.50,  17.50, 3 UNION ALL
+    SELECT 'CBC',    'HCT',   'Hematocrit',               '%',      41.00,  53.00, 4 UNION ALL
+    SELECT 'CBC',    'PLT',   'Platelets',                '10^3/uL',150.00, 450.00, 5 UNION ALL
+    -- Blood Glucose
+    SELECT 'Glucose','FBS',   'Fasting Blood Sugar',      'mg/dL',  70.00,  99.00, 1 UNION ALL
+    SELECT 'Glucose','PPBS',  'Postprandial Blood Sugar', 'mg/dL',  70.00, 140.00, 2 UNION ALL
+    SELECT 'Glucose','HBA1C', 'Hemoglobin A1c',           '%',       4.00,   5.60, 3
+)
+INSERT INTO ClinicDB.dbo.[LabTestParameters] ([TestCatalogId], [ParameterCode], [ParameterName], [Unit], [ReferenceLow], [ReferenceHigh], [DisplayOrder], [CreatedAt])
+SELECT
+    tc.[Id],
+    pd.[PCode],
+    pd.[PName],
+    pd.[Unit],
+    pd.[RefLow],
+    pd.[RefHigh],
+    pd.[Ord],
+    SYSUTCDATETIME()
+FROM ClinicDB.dbo.[LabTestCatalog] tc
+JOIN PanelDefs pd ON tc.[TestName] LIKE '%' + pd.[TestPattern] + '%'
+                  OR tc.[TestCode] LIKE '%' + pd.[TestPattern] + '%'
+WHERE NOT EXISTS (
+    SELECT 1 FROM ClinicDB.dbo.[LabTestParameters] p
+    WHERE p.[TestCatalogId] = tc.[Id] AND p.[ParameterCode] = pd.[PCode]
+);
+
+DECLARE @labParamCount INT = (SELECT COUNT(*) FROM ClinicDB.dbo.[LabTestParameters]);
+INSERT INTO dbo.[MigrationLog] VALUES ('Step 15', 'N/A (seed)', 'LabTestParameters', 0, @labParamCount, 'OK', 'Standard CBC/Lipid/Glucose sub-parameters seeded', GETDATE());
+PRINT '--> [COMPLETED] Step 15/15: LabTestParameters total: ' + CAST(@labParamCount AS VARCHAR);
+RAISERROR('--> [COMPLETED] Step 15/15: LabTestParameters done (%d rows).', 0, 1, @labParamCount) WITH NOWAIT;
+GO
+
+-- ============================================================
 -- POST-MIGRATION: Restore Audit Triggers & Temporal Versioning
 -- ============================================================
 PRINT '----------------------------------------------------------------------';
@@ -1474,7 +2407,7 @@ GO
 -- SUMMARY & RECONCILIATION TABLE
 -- ============================================================
 PRINT '======================================================================';
-PRINT '===          ALL 12 STEPS COMPLETED — FINAL RECONCILIATION         ===';
+PRINT '===          ALL 15 STEPS COMPLETED — FINAL RECONCILIATION         ===';
 PRINT '======================================================================';
 GO
 
@@ -1515,7 +2448,11 @@ FROM (VALUES
     ('InvoiceItems',        (SELECT COUNT(*) FROM ClinicDB.dbo.[InvoiceItems])),
     ('MedicalCertificates', (SELECT COUNT(*) FROM ClinicDB.dbo.[MedicalCertificates] WHERE [TenantId] = 1)),
     ('Services',            (SELECT COUNT(*) FROM ClinicDB.dbo.[Services] WHERE [TenantId] = 1)),
-    ('LegacyServices',      (SELECT COUNT(*) FROM ClinicDB.dbo.[LegacyServices]))
+    ('LegacyServices',      (SELECT COUNT(*) FROM ClinicDB.dbo.[LegacyServices])),
+    ('PayrollAgreements',   (SELECT COUNT(*) FROM ClinicDB.dbo.[PayrollAgreements])),
+    ('ChapaTransactions',   (SELECT COUNT(*) FROM ClinicDB.dbo.[ChapaTransactions])),
+    ('LabTestParameters',   (SELECT COUNT(*) FROM ClinicDB.dbo.[LabTestParameters])),
+    ('Invoices[Linked]',    (SELECT COUNT(*) FROM ClinicDB.dbo.[Invoices] WHERE [TenantId] = 1 AND [EncounterId] IS NOT NULL))
 ) T([TargetTable], [TotalRowsInClinicDB])
 ORDER BY T.[TargetTable];
 GO
