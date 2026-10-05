@@ -532,3 +532,17 @@ Error Number:207,State:1,Class:16
 2026-10-06 00:22:47.088 +03:00 [INF] Executed action CMS.API.Controllers.PayrollController.GetDoctors (CMS.API) in 43.488ms
 2026-10-06 00:22:47.102 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.PayrollController.GetDoctors (CMS.API)'
 2026-10-06 00:22:47.106 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/payroll/doctors - 200 null application/json; charset=utf-8 81.3672ms
+2026-10-06 00:23:32.309 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-10-06 00:23:32.320 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-10-06 00:23:32.324 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-10-06 00:23:32.350 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-06 00:23:32.355 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 22.1356ms
+2026-10-06 00:23:32.359 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-10-06 00:23:32.363 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 54.5713ms
+2026-10-06 00:24:32.311 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-10-06 00:24:32.325 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-10-06 00:24:32.331 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-10-06 00:24:32.370 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-06 00:24:32.385 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 46.2362ms
+2026-10-06 00:24:32.401 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-10-06 00:24:32.412 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 101.2382ms
