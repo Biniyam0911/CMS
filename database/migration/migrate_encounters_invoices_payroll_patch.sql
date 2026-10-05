@@ -175,8 +175,7 @@ GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_ChapaTransactions_Invoice' AND object_id = OBJECT_ID('dbo.ChapaTransactions'))
 BEGIN
     CREATE INDEX IX_ChapaTransactions_Invoice ON dbo.[ChapaTransactions] ([TenantId], [InvoiceId]);
-    CREATE INDEX IX_ChapaTransactions_TxRef ON dbo.[ChapaTransactions] ([TxRef]);
-    PRINT '--> Created indexes on ChapaTransactions.';
+    PRINT '--> Created index IX_ChapaTransactions_Invoice.';
 END
 GO
 
@@ -215,10 +214,10 @@ GO
 -- Seed sub-test parameters for standard CBC, Lipid, and Glucose tests if not present
 ;WITH PanelDefs AS (
     -- Lipid Profile
-    SELECT 'Lipid Profile' AS TestPattern, 'CHOL' AS PCode, 'Total Cholesterol' AS PName, 'mg/dL' AS Unit, 125.00 AS RefLow, 200.00 AS RefHigh, 1 AS Ord UNION ALL
-    SELECT 'Lipid Profile', 'HDL', 'HDL Cholesterol', 'mg/dL', 40.00, 60.00, 2 UNION ALL
-    SELECT 'Lipid Profile', 'LDL', 'LDL Cholesterol', 'mg/dL', 50.00, 100.00, 3 UNION ALL
-    SELECT 'Lipid Profile', 'TRIG', 'Triglycerides', 'mg/dL', 10.00, 150.00, 4 UNION ALL
+    SELECT 'Lipid' AS TestPattern, 'CHOL' AS PCode, 'Total Cholesterol' AS PName, 'mg/dL' AS Unit, 125.00 AS RefLow, 200.00 AS RefHigh, 1 AS Ord UNION ALL
+    SELECT 'Lipid', 'HDL', 'HDL Cholesterol', 'mg/dL', 40.00, 60.00, 2 UNION ALL
+    SELECT 'Lipid', 'LDL', 'LDL Cholesterol', 'mg/dL', 50.00, 100.00, 3 UNION ALL
+    SELECT 'Lipid', 'TRIG', 'Triglycerides', 'mg/dL', 10.00, 150.00, 4 UNION ALL
     -- Complete Blood Count (CBC)
     SELECT 'CBC', 'WBC', 'White Blood Cell Count', '10^3/uL', 4.50, 11.00, 1 UNION ALL
     SELECT 'CBC', 'RBC', 'Red Blood Cell Count', '10^6/uL', 4.30, 5.90, 2 UNION ALL
@@ -241,7 +240,7 @@ SELECT
     pd.[Ord],
     SYSUTCDATETIME()
 FROM dbo.[LabTestCatalog] tc
-JOIN PanelDefs pd ON tc.[TestName] LIKE '%' + pd.[TestPattern] '%' OR tc.[TestCode] LIKE '%' + pd.[TestPattern] '%'
+JOIN PanelDefs pd ON tc.[TestName] LIKE '%' + pd.[TestPattern] + '%' OR tc.[TestCode] LIKE '%' + pd.[TestPattern] + '%'
 WHERE NOT EXISTS (
     SELECT 1 FROM dbo.[LabTestParameters] p
     WHERE p.[TestCatalogId] = tc.[Id] AND p.[ParameterCode] = pd.[PCode]
