@@ -45,7 +45,7 @@ BEGIN
         CONSTRAINT PK_Tenants PRIMARY KEY ([Id]),
         CONSTRAINT UQ_Tenants_Code UNIQUE ([Code])
     );
-    INSERT INTO ClinicDB.dbo.[Tenants] ([Code],[Name]) VALUES ('MAIN','Main Clinic');
+    EXEC('INSERT INTO ClinicDB.dbo.[Tenants] ([Code],[Name]) VALUES (''MAIN'',''Main Clinic'')');
     PRINT '--> Created Tenants.';
 END
 
@@ -53,21 +53,22 @@ END
 IF OBJECT_ID('ClinicDB.dbo.Roles','U') IS NULL
 BEGIN
     CREATE TABLE ClinicDB.dbo.[Roles] (
-        [Id]             INT          NOT NULL IDENTITY(1,1),
-        [TenantId]       TINYINT      NOT NULL DEFAULT 1,
-        [Name]           NVARCHAR(100) NOT NULL,
-        [NormalizedName] NVARCHAR(100) NOT NULL,
-        [Description]    NVARCHAR(300) NULL,
-        [IsSystem]       BIT          NOT NULL DEFAULT 0,
-        [CreatedAt]      DATETIME2    NOT NULL DEFAULT GETDATE(),
+        [Id]          SMALLINT        NOT NULL IDENTITY(1,1),
+        [Name]        NVARCHAR(50)    NOT NULL,
+        [Description] NVARCHAR(200)   NULL,
         CONSTRAINT PK_Roles PRIMARY KEY ([Id]),
-        CONSTRAINT UQ_Roles_TenantName UNIQUE ([TenantId],[NormalizedName]),
-        CONSTRAINT FK_Roles_Tenants FOREIGN KEY ([TenantId]) REFERENCES ClinicDB.dbo.[Tenants]([Id])
+        CONSTRAINT UQ_Roles_Name UNIQUE ([Name])
     );
-    INSERT INTO ClinicDB.dbo.[Roles] ([TenantId],[Name],[NormalizedName],[IsSystem]) VALUES
-        (1,'SuperAdmin','SUPERADMIN',1),(1,'Admin','ADMIN',1),(1,'Doctor','DOCTOR',1),
-        (1,'Nurse','NURSE',1),(1,'Receptionist','RECEPTIONIST',1),(1,'LabTechnician','LABTECHNICIAN',1),
-        (1,'Pharmacist','PHARMACIST',1),(1,'BillingOfficer','BILLINGOFFICER',1),(1,'PatientPortal','PATIENTPORTAL',1);
+    EXEC('INSERT INTO ClinicDB.dbo.[Roles] ([Name],[Description]) VALUES
+        (''SuperAdmin'',    ''Full system access''),
+        (''Admin'',         ''Clinic administration''),
+        (''Doctor'',        ''Physician / Medical doctor''),
+        (''Nurse'',         ''Nursing staff''),
+        (''Receptionist'',  ''Front desk / appointment booking''),
+        (''LabTechnician'', ''Laboratory technician''),
+        (''Pathologist'',   ''Lab result verification''),
+        (''Pharmacist'',    ''Pharmacy / dispensing''),
+        (''Patient'',       ''Self-service patient portal'')');
     PRINT '--> Created Roles.';
 END
 
@@ -75,59 +76,55 @@ END
 IF OBJECT_ID('ClinicDB.dbo.Users','U') IS NULL
 BEGIN
     CREATE TABLE ClinicDB.dbo.[Users] (
-        [Id]                  INT           NOT NULL IDENTITY(1,1),
-        [TenantId]            TINYINT       NOT NULL DEFAULT 1,
-        [Username]            NVARCHAR(100) NOT NULL,
-        [NormalizedUsername]  NVARCHAR(100) NOT NULL,
-        [Email]               NVARCHAR(200) NOT NULL,
-        [NormalizedEmail]     NVARCHAR(200) NOT NULL,
-        [PasswordHash]        NVARCHAR(MAX) NOT NULL,
-        [Salt]                NVARCHAR(100) NULL,
-        [FirstName]           NVARCHAR(100) NOT NULL,
-        [LastName]            NVARCHAR(100) NOT NULL,
-        [Phone]               VARCHAR(20)   NULL,
-        [IsActive]            BIT           NOT NULL DEFAULT 1,
-        [IsLocked]            BIT           NOT NULL DEFAULT 0,
-        [FailedLoginAttempts] TINYINT       NOT NULL DEFAULT 0,
-        [LastLoginAt]         DATETIME2     NULL,
-        [MustChangePassword]  BIT           NOT NULL DEFAULT 0,
-        [MfaEnabled]          BIT           NOT NULL DEFAULT 0,
-        [MfaSecret]           NVARCHAR(100) NULL,
-        [CreatedAt]           DATETIME2     NOT NULL DEFAULT GETDATE(),
-        [UpdatedAt]           DATETIME2     NULL,
+        [Id]                  INT             NOT NULL IDENTITY(1,1),
+        [TenantId]            TINYINT         NOT NULL DEFAULT 1,
+        [Username]            NVARCHAR(100)   NOT NULL,
+        [Email]               NVARCHAR(200)   NOT NULL,
+        [PasswordHash]        NVARCHAR(500)   NOT NULL,
+        [Salt]                NVARCHAR(100)   NOT NULL,
+        [FirstName]           NVARCHAR(100)   NOT NULL,
+        [LastName]            NVARCHAR(100)   NOT NULL,
+        [Phone]               VARCHAR(20)     NULL,
+        [IsActive]            BIT             NOT NULL DEFAULT 1,
+        [IsLocked]            BIT             NOT NULL DEFAULT 0,
+        [FailedLoginAttempts] TINYINT         NOT NULL DEFAULT 0,
+        [LockoutEnd]          DATETIME2       NULL,
+        [MfaEnabled]          BIT             NOT NULL DEFAULT 0,
+        [MfaSecret]           NVARCHAR(200)   NULL,
+        [LastLoginAt]         DATETIME2       NULL,
+        [CreatedAt]           DATETIME2       NOT NULL DEFAULT GETDATE(),
+        [UpdatedAt]           DATETIME2       NULL,
         CONSTRAINT PK_Users PRIMARY KEY ([Id]),
-        CONSTRAINT UQ_Users_TenantUsername UNIQUE ([TenantId],[NormalizedUsername]),
-        CONSTRAINT UQ_Users_TenantEmail    UNIQUE ([TenantId],[NormalizedEmail]),
+        CONSTRAINT UQ_Users_Username UNIQUE ([TenantId],[Username]),
+        CONSTRAINT UQ_Users_Email UNIQUE ([TenantId],[Email]),
         CONSTRAINT FK_Users_Tenants FOREIGN KEY ([TenantId]) REFERENCES ClinicDB.dbo.[Tenants]([Id])
     );
     PRINT '--> Created Users.';
 END
 ELSE
 BEGIN
-    -- Add missing columns to existing Users table
     IF COL_LENGTH('ClinicDB.dbo.Users','Salt') IS NULL
         ALTER TABLE ClinicDB.dbo.[Users] ADD [Salt] NVARCHAR(100) NULL;
-    IF COL_LENGTH('ClinicDB.dbo.Users','NormalizedUsername') IS NULL
-        ALTER TABLE ClinicDB.dbo.[Users] ADD [NormalizedUsername] NVARCHAR(100) NOT NULL DEFAULT '';
-    IF COL_LENGTH('ClinicDB.dbo.Users','NormalizedEmail') IS NULL
-        ALTER TABLE ClinicDB.dbo.[Users] ADD [NormalizedEmail] NVARCHAR(200) NOT NULL DEFAULT '';
     IF COL_LENGTH('ClinicDB.dbo.Users','FailedLoginAttempts') IS NULL
         ALTER TABLE ClinicDB.dbo.[Users] ADD [FailedLoginAttempts] TINYINT NOT NULL DEFAULT 0;
     IF COL_LENGTH('ClinicDB.dbo.Users','MfaEnabled') IS NULL
         ALTER TABLE ClinicDB.dbo.[Users] ADD [MfaEnabled] BIT NOT NULL DEFAULT 0;
+    IF COL_LENGTH('ClinicDB.dbo.Users','MfaSecret') IS NULL
+        ALTER TABLE ClinicDB.dbo.[Users] ADD [MfaSecret] NVARCHAR(200) NULL;
+    IF COL_LENGTH('ClinicDB.dbo.Users','LockoutEnd') IS NULL
+        ALTER TABLE ClinicDB.dbo.[Users] ADD [LockoutEnd] DATETIME2 NULL;
 END
 
 -- ─── USER ROLES ──────────────────────────────────────────────
 IF OBJECT_ID('ClinicDB.dbo.UserRoles','U') IS NULL
 BEGIN
     CREATE TABLE ClinicDB.dbo.[UserRoles] (
-        [UserId]     INT       NOT NULL,
-        [RoleId]     INT       NOT NULL,
-        [AssignedAt] DATETIME2 NOT NULL DEFAULT GETDATE(),
-        [AssignedBy] INT       NULL,
+        [UserId]     INT         NOT NULL,
+        [RoleId]     SMALLINT    NOT NULL,
+        [AssignedAt] DATETIME2   NOT NULL DEFAULT GETDATE(),
         CONSTRAINT PK_UserRoles PRIMARY KEY ([UserId],[RoleId]),
         CONSTRAINT FK_UserRoles_Users FOREIGN KEY ([UserId]) REFERENCES ClinicDB.dbo.[Users]([Id]) ON DELETE CASCADE,
-        CONSTRAINT FK_UserRoles_Roles FOREIGN KEY ([RoleId]) REFERENCES ClinicDB.dbo.[Roles]([Id]) ON DELETE CASCADE
+        CONSTRAINT FK_UserRoles_Roles FOREIGN KEY ([RoleId]) REFERENCES ClinicDB.dbo.[Roles]([Id])
     );
     PRINT '--> Created UserRoles.';
 END
@@ -140,10 +137,11 @@ BEGIN
         [UserId]      INT           NOT NULL,
         [Token]       NVARCHAR(500) NOT NULL,
         [ExpiresAt]   DATETIME2     NOT NULL,
-        [RevokedAt]   DATETIME2     NULL,
+        [IsRevoked]   BIT           NOT NULL DEFAULT 0,
         [CreatedAt]   DATETIME2     NOT NULL DEFAULT GETDATE(),
-        [CreatedByIp] VARCHAR(45)   NULL,
+        [RevokedAt]   DATETIME2     NULL,
         CONSTRAINT PK_RefreshTokens PRIMARY KEY ([Id]),
+        CONSTRAINT UQ_RefreshTokens_Token UNIQUE ([Token]),
         CONSTRAINT FK_RefreshTokens_Users FOREIGN KEY ([UserId]) REFERENCES ClinicDB.dbo.[Users]([Id]) ON DELETE CASCADE
     );
     PRINT '--> Created RefreshTokens.';
@@ -155,11 +153,9 @@ BEGIN
     CREATE TABLE ClinicDB.dbo.[Specializations] (
         [Id]       SMALLINT      NOT NULL IDENTITY(1,1),
         [Name]     NVARCHAR(100) NOT NULL,
-        [Code]     VARCHAR(20)   NULL,
-        [IsActive] BIT           NOT NULL DEFAULT 1,
-        CONSTRAINT PK_Specializations PRIMARY KEY ([Id])
+        [Code]     VARCHAR(20)   NULL
     );
-    INSERT INTO ClinicDB.dbo.[Specializations] ([Name],[Code]) VALUES ('General Practice','GEN'),('Pediatrics','PED'),('Surgery','SUR');
+    EXEC('INSERT INTO ClinicDB.dbo.[Specializations] ([Name],[Code]) VALUES (''General Practice'',''GEN''),(''Pediatrics'',''PED''),(''Surgery'',''SUR'')');
     PRINT '--> Created Specializations.';
 END
 
@@ -176,7 +172,7 @@ BEGIN
         CONSTRAINT PK_Departments PRIMARY KEY ([Id]),
         CONSTRAINT FK_Departments_Tenants FOREIGN KEY ([TenantId]) REFERENCES ClinicDB.dbo.[Tenants]([Id])
     );
-    INSERT INTO ClinicDB.dbo.[Departments]([TenantId],[Name],[Code]) VALUES (1,'General Practice','GP'),(1,'Laboratory','LAB'),(1,'Pharmacy','PHA');
+    EXEC('INSERT INTO ClinicDB.dbo.[Departments]([TenantId],[Name],[Code]) VALUES (1,''General Practice'',''GP''),(1,''Laboratory'',''LAB''),(1,''Pharmacy'',''PHA'')');
     PRINT '--> Created Departments.';
 END
 
@@ -322,14 +318,16 @@ BEGIN
         [TenantId]        TINYINT       NOT NULL DEFAULT 1,
         [PatientId]       INT           NOT NULL,
         [DoctorId]        INT           NOT NULL,
-        [AppointmentDate] DATE          NOT NULL,
-        [StartTime]       TIME          NOT NULL,
-        [EndTime]         TIME          NOT NULL,
-        [Type]            TINYINT       NOT NULL DEFAULT 1,
+        [SlotDateTime]    DATETIME2     NOT NULL,
+        [DurationMinutes] TINYINT       NOT NULL DEFAULT 15,
         [StatusId]        TINYINT       NOT NULL DEFAULT 1,
-        [ChiefComplaint]  NVARCHAR(500) NULL,
+        [ReasonForVisit]  NVARCHAR(500) NULL,
         [Notes]           NVARCHAR(500) NULL,
-        [CreatedBy]       INT           NOT NULL DEFAULT 1,
+        [BookedBy]        INT           NOT NULL DEFAULT 1,
+        [BookedAt]        DATETIME2     NOT NULL DEFAULT GETDATE(),
+        [ReminderSent]    BIT           NOT NULL DEFAULT 0,
+        [CancelledAt]     DATETIME2     NULL,
+        [CancelReason]    NVARCHAR(500) NULL,
         [CreatedAt]       DATETIME2     NOT NULL DEFAULT GETDATE(),
         [UpdatedAt]       DATETIME2     NULL,
         CONSTRAINT PK_Appointments PRIMARY KEY ([Id]),
@@ -337,8 +335,8 @@ BEGIN
         CONSTRAINT FK_Appointments_Patients FOREIGN KEY ([PatientId]) REFERENCES ClinicDB.dbo.[Patients]([Id]),
         CONSTRAINT FK_Appointments_Doctors  FOREIGN KEY ([DoctorId])  REFERENCES ClinicDB.dbo.[Doctors]([Id])
     );
-    CREATE INDEX IX_Appointments_Date    ON ClinicDB.dbo.[Appointments] ([DoctorId],[AppointmentDate]);
-    CREATE INDEX IX_Appointments_Patient ON ClinicDB.dbo.[Appointments] ([PatientId],[AppointmentDate] DESC);
+    CREATE INDEX IX_Appointments_Slot    ON ClinicDB.dbo.[Appointments] ([DoctorId],[SlotDateTime]);
+    CREATE INDEX IX_Appointments_Patient ON ClinicDB.dbo.[Appointments] ([PatientId],[SlotDateTime] DESC);
     PRINT '--> Created Appointments.';
 END
 
@@ -357,7 +355,7 @@ BEGIN
         [HistoryOfIllness] NVARCHAR(2000) NULL,
         [PhysicalExam]     NVARCHAR(2000) NULL,
         [Assessment]       NVARCHAR(2000) NULL,
-        [SoapPlan]         NVARCHAR(2000) NULL,
+        [Plan]             NVARCHAR(2000) NULL,
         [VitalSigns]       NVARCHAR(1000) NULL,
         [IsFinalized]      BIT           NOT NULL DEFAULT 0,
         [FinalizedAt]      DATETIME2     NULL,
@@ -378,8 +376,8 @@ ELSE
 BEGIN
     IF COL_LENGTH('ClinicDB.dbo.Encounters','HistoryOfIllness') IS NULL
         ALTER TABLE ClinicDB.dbo.[Encounters] ADD [HistoryOfIllness] NVARCHAR(2000) NULL;
-    IF COL_LENGTH('ClinicDB.dbo.Encounters','SoapPlan') IS NULL
-        ALTER TABLE ClinicDB.dbo.[Encounters] ADD [SoapPlan] NVARCHAR(2000) NULL;
+    IF COL_LENGTH('ClinicDB.dbo.Encounters','Plan') IS NULL
+        ALTER TABLE ClinicDB.dbo.[Encounters] ADD [Plan] NVARCHAR(2000) NULL;
     IF COL_LENGTH('ClinicDB.dbo.Encounters','VitalSigns') IS NULL
         ALTER TABLE ClinicDB.dbo.[Encounters] ADD [VitalSigns] NVARCHAR(1000) NULL;
     IF COL_LENGTH('ClinicDB.dbo.Encounters','FinalizedAt') IS NULL
@@ -559,7 +557,7 @@ BEGIN
         [Name] NVARCHAR(30)  NOT NULL,
         CONSTRAINT PK_InvoiceStatuses PRIMARY KEY ([Id])
     );
-    INSERT INTO ClinicDB.dbo.[InvoiceStatuses] VALUES (1,'Draft'),(2,'Issued'),(3,'PartiallyPaid'),(4,'Paid'),(5,'Void'),(6,'Written Off');
+    EXEC('INSERT INTO ClinicDB.dbo.[InvoiceStatuses] VALUES (1,''Draft''),(2,''Issued''),(3,''PartiallyPaid''),(4,''Paid''),(5,''Void''),(6,''Written Off'')');
     PRINT '--> Created InvoiceStatuses.';
 END
 

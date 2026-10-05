@@ -216,3 +216,6 @@ c:\Users\ASUS\source\repos\CMS\tests\CMS.UnitTests\bin\Debug\net8.0\runtimes\win
 c:\Users\ASUS\source\repos\CMS\tests\CMS.UnitTests\bin\Debug\net8.0\runtimes\win\lib\net6.0\System.Windows.Extensions.dll
 c:\Users\ASUS\source\repos\CMS\tests\CMS.UnitTests\bin\Debug\net8.0\CMS.Infrastructure.dll
 c:\Users\ASUS\source\repos\CMS\tests\CMS.UnitTests\bin\Debug\net8.0\CMS.Infrastructure.pdb
+C:\Users\ASUS\source\repos\CMS\tests\CMS.UnitTests\bin\Debug\net8.0\Microsoft.Extensions.Diagnostics.dll
+C:\Users\ASUS\source\repos\CMS\tests\CMS.UnitTests\bin\Debug\net8.0\Microsoft.Extensions.Http.dll
+C:\Users\ASUS\source\repos\CMS\tests\CMS.UnitTests\bin\Debug\net8.0\Microsoft.Extensions.Options.ConfigurationExtensions.dll

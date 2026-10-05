@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "c:\\Users\\ASUS\\source\\repos\\CMS\\tests\\CMS.E2ETests\\CMS.E2ETests.csproj": {}
+    "C:\\Users\\ASUS\\source\\repos\\CMS\\tests\\CMS.E2ETests\\CMS.E2ETests.csproj": {}
   },
   "projects": {
-    "c:\\Users\\ASUS\\source\\repos\\CMS\\tests\\CMS.E2ETests\\CMS.E2ETests.csproj": {
+    "C:\\Users\\ASUS\\source\\repos\\CMS\\tests\\CMS.E2ETests\\CMS.E2ETests.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "c:\\Users\\ASUS\\source\\repos\\CMS\\tests\\CMS.E2ETests\\CMS.E2ETests.csproj",
+        "projectUniqueName": "C:\\Users\\ASUS\\source\\repos\\CMS\\tests\\CMS.E2ETests\\CMS.E2ETests.csproj",
         "projectName": "CMS.E2ETests",
-        "projectPath": "c:\\Users\\ASUS\\source\\repos\\CMS\\tests\\CMS.E2ETests\\CMS.E2ETests.csproj",
+        "projectPath": "C:\\Users\\ASUS\\source\\repos\\CMS\\tests\\CMS.E2ETests\\CMS.E2ETests.csproj",
         "packagesPath": "C:\\Users\\ASUS\\.nuget\\packages\\",
-        "outputPath": "c:\\Users\\ASUS\\source\\repos\\CMS\\tests\\CMS.E2ETests\\obj\\",
+        "outputPath": "C:\\Users\\ASUS\\source\\repos\\CMS\\tests\\CMS.E2ETests\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files\\DevExpress 24.1\\Components\\Offline Packages",
