@@ -116,8 +116,10 @@ public record LabTestParameterDto(
 
 public record LabTestCatalogDto(
     int Id, string TestCode, string TestName, string? Category, string? SampleType,
-    int TurnaroundMinutes, decimal? NormalRangeLow, decimal? NormalRangeHigh, string? Unit, decimal? Price,
-    List<LabTestParameterDto>? Parameters = null);
+    int TurnaroundMinutes, decimal? NormalRangeLow, decimal? NormalRangeHigh, string? Unit, decimal? Price)
+{
+    public List<LabTestParameterDto> Parameters { get; init; } = new();
+}
 
 public record CreateLabOrderDto(
     byte TenantId, int PatientId, int? EncounterId, int OrderedBy, int Priority, string? ClinicalInfo, int[] TestIds);
