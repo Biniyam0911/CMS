@@ -74,5 +74,57 @@ GO
 
 CREATE INDEX IX_Invoices_PatientId ON Invoices (PatientId, IssueDate DESC);
 CREATE INDEX IX_Invoices_Status ON Invoices (StatusId, TenantId);
+CREATE INDEX IX_Invoices_EncounterId ON Invoices (EncounterId);
 CREATE INDEX IX_Payments_InvoiceId ON Payments (InvoiceId);
 GO
+
+-- ------------------------------------------------------------
+-- Payroll Agreements (Doctor Commission & Fee Splitting)
+-- ------------------------------------------------------------
+CREATE TABLE PayrollAgreements (
+    Id          INT             NOT NULL IDENTITY(1,1),
+    TenantId    TINYINT         NOT NULL DEFAULT 1,
+    DoctorId    INT             NOT NULL,
+    Category    NVARCHAR(100)   NOT NULL,
+    RateType    TINYINT         NOT NULL DEFAULT 1, -- 1=Percentage, 2=Fixed Amount
+    Rate        DECIMAL(10,2)   NOT NULL DEFAULT 0,
+    IsActive    BIT             NOT NULL DEFAULT 1,
+    CreatedAt   DATETIME2       NOT NULL DEFAULT GETDATE(),
+    UpdatedAt   DATETIME2       NOT NULL DEFAULT GETDATE(),
+    CONSTRAINT PK_PayrollAgreements PRIMARY KEY (Id),
+    CONSTRAINT FK_PayrollAgreements_Tenants FOREIGN KEY (TenantId) REFERENCES Tenants(Id),
+    CONSTRAINT FK_PayrollAgreements_Doctors FOREIGN KEY (DoctorId) REFERENCES Doctors(Id),
+    CONSTRAINT UQ_PayrollAgreements_Doc_Cat UNIQUE (TenantId, DoctorId, Category)
+);
+GO
+
+CREATE INDEX IX_PayrollAgreements_Doctor ON PayrollAgreements (TenantId, DoctorId, IsActive);
+GO
+
+-- ------------------------------------------------------------
+-- Chapa Payment Gateway Transactions
+-- ------------------------------------------------------------
+CREATE TABLE ChapaTransactions (
+    Id              INT             NOT NULL IDENTITY(1,1),
+    TenantId        TINYINT         NOT NULL DEFAULT 1,
+    InvoiceId       INT             NOT NULL,
+    TxRef           VARCHAR(100)    NOT NULL UNIQUE,
+    Amount          DECIMAL(12,2)   NOT NULL,
+    Currency        VARCHAR(10)     NOT NULL DEFAULT 'ETB',
+    Email           VARCHAR(100)    NULL,
+    FirstName       NVARCHAR(100)   NULL,
+    LastName        NVARCHAR(100)   NULL,
+    PaymentStatus   VARCHAR(30)     NOT NULL DEFAULT 'pending',
+    CheckoutUrl     NVARCHAR(500)   NULL,
+    ChapaReference  VARCHAR(100)    NULL,
+    CreatedAt       DATETIME2       NOT NULL DEFAULT GETDATE(),
+    UpdatedAt       DATETIME2       NULL,
+    CONSTRAINT PK_ChapaTransactions PRIMARY KEY (Id),
+    CONSTRAINT FK_ChapaTransactions_Invoices FOREIGN KEY (InvoiceId) REFERENCES Invoices(Id)
+);
+GO
+
+CREATE INDEX IX_ChapaTransactions_Invoice ON ChapaTransactions (TenantId, InvoiceId);
+CREATE INDEX IX_ChapaTransactions_TxRef ON ChapaTransactions (TxRef);
+GO
+

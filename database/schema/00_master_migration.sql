@@ -6,6 +6,8 @@
 USE ClinicDB;
 
 -- ─── DROP ALL IN REVERSE ORDER ───────────────────────────────
+IF OBJECT_ID('dbo.ChapaTransactions','U') IS NOT NULL DROP TABLE dbo.ChapaTransactions;
+IF OBJECT_ID('dbo.PayrollAgreements','U') IS NOT NULL DROP TABLE dbo.PayrollAgreements;
 IF OBJECT_ID('dbo.NarcoticsDispenseLogs','U') IS NOT NULL DROP TABLE dbo.NarcoticsDispenseLogs;
 IF OBJECT_ID('dbo.LabChainOfCustody','U') IS NOT NULL DROP TABLE dbo.LabChainOfCustody;
 IF OBJECT_ID('dbo.ConsultationRooms','U') IS NOT NULL DROP TABLE dbo.ConsultationRooms;
@@ -557,7 +559,47 @@ CREATE TABLE Payments (
     CONSTRAINT FK_Payments_Invoices FOREIGN KEY (InvoiceId) REFERENCES Invoices(Id)
 );
 CREATE INDEX IX_Invoices_Patient ON Invoices (PatientId, IssueDate DESC);
-PRINT '08 Billing OK';
+CREATE INDEX IX_Invoices_EncounterId ON Invoices (EncounterId);
+
+CREATE TABLE PayrollAgreements (
+    Id          INT             NOT NULL IDENTITY(1,1),
+    TenantId    TINYINT         NOT NULL DEFAULT 1,
+    DoctorId    INT             NOT NULL,
+    Category    NVARCHAR(100)   NOT NULL,
+    RateType    TINYINT         NOT NULL DEFAULT 1, -- 1=Percentage, 2=Fixed Amount
+    Rate        DECIMAL(10,2)   NOT NULL DEFAULT 0,
+    IsActive    BIT             NOT NULL DEFAULT 1,
+    CreatedAt   DATETIME2       NOT NULL DEFAULT GETDATE(),
+    UpdatedAt   DATETIME2       NOT NULL DEFAULT GETDATE(),
+    CONSTRAINT PK_PayrollAgreements PRIMARY KEY (Id),
+    CONSTRAINT FK_PayrollAgreements_Tenants FOREIGN KEY (TenantId) REFERENCES Tenants(Id),
+    CONSTRAINT FK_PayrollAgreements_Doctors FOREIGN KEY (DoctorId) REFERENCES Doctors(Id),
+    CONSTRAINT UQ_PayrollAgreements_Doc_Cat UNIQUE (TenantId, DoctorId, Category)
+);
+CREATE INDEX IX_PayrollAgreements_Doctor ON PayrollAgreements (TenantId, DoctorId, IsActive);
+
+CREATE TABLE ChapaTransactions (
+    Id              INT             NOT NULL IDENTITY(1,1),
+    TenantId        TINYINT         NOT NULL DEFAULT 1,
+    InvoiceId       INT             NOT NULL,
+    TxRef           VARCHAR(100)    NOT NULL UNIQUE,
+    Amount          DECIMAL(12,2)   NOT NULL,
+    Currency        VARCHAR(10)     NOT NULL DEFAULT 'ETB',
+    Email           VARCHAR(100)    NULL,
+    FirstName       NVARCHAR(100)   NULL,
+    LastName        NVARCHAR(100)   NULL,
+    PaymentStatus   VARCHAR(30)     NOT NULL DEFAULT 'pending',
+    CheckoutUrl     NVARCHAR(500)   NULL,
+    ChapaReference  VARCHAR(100)    NULL,
+    CreatedAt       DATETIME2       NOT NULL DEFAULT GETDATE(),
+    UpdatedAt       DATETIME2       NULL,
+    CONSTRAINT PK_ChapaTransactions PRIMARY KEY (Id),
+    CONSTRAINT FK_ChapaTransactions_Invoices FOREIGN KEY (InvoiceId) REFERENCES Invoices(Id)
+);
+CREATE INDEX IX_ChapaTransactions_Invoice ON ChapaTransactions (TenantId, InvoiceId);
+CREATE INDEX IX_ChapaTransactions_TxRef ON ChapaTransactions (TxRef);
+
+PRINT '08 Billing & Payroll OK';
 
 -- ─── 09 LABORATORY ───────────────────────────────────────────
 CREATE TABLE LabInstruments (
