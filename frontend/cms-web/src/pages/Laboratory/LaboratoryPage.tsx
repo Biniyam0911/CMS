@@ -504,23 +504,33 @@ export default function LaboratoryPage() {
       ]);
 
       if (catalogData && catalogData.length > 0) {
-        const mappedCatalog = catalogData.map((c: any) => ({
-          id: c.id || c.Id,
-          code: c.testCode || c.TestCode,
-          name: c.testName || c.TestName,
-          category: c.category || c.Category || 'Biochemistry',
-          sample: c.sampleType || c.SampleType || 'Serum',
-          price: c.price || c.Price || 150,
-          parameters: c.testCode === 'CBC' ? [
-            { code: 'WBC', name: 'White Blood Cell Count', unit: '10^3/uL', min: 4.5, max: 11.0 },
-            { code: 'RBC', name: 'Red Blood Cell Count', unit: '10^6/uL', min: 4.2, max: 5.8 },
-            { code: 'HGB', name: 'Hemoglobin', unit: 'g/dL', min: 12.0, max: 17.5 },
-            { code: 'HCT', name: 'Hematocrit', unit: '%', min: 37.0, max: 51.0 },
-            { code: 'PLT', name: 'Platelet Count', unit: '10^3/uL', min: 150.0, max: 450.0 }
-          ] : [
-            { code: c.testCode || 'VAL', name: c.testName || 'Result Value', unit: c.unit || 'U/L', min: c.normalRangeLow || 0, max: c.normalRangeHigh || 100 }
-          ]
-        }));
+        const mappedCatalog = catalogData.map((c: any) => {
+          const rawParams: any[] = c.parameters || c.Parameters || [];
+          const hasParams = rawParams && rawParams.length > 0;
+          return {
+            id: c.id || c.Id,
+            code: c.testCode || c.TestCode,
+            name: c.testName || c.TestName,
+            category: c.category || c.Category || 'Biochemistry',
+            sample: c.sampleType || c.SampleType || 'Serum',
+            price: c.price || c.Price || 150,
+            parameters: hasParams ? rawParams.map((p: any) => ({
+              code: p.parameterCode || p.ParameterCode || p.code || '',
+              name: p.parameterName || p.ParameterName || p.name || '',
+              unit: p.unit || p.Unit || '',
+              min: p.referenceLow ?? p.ReferenceLow ?? p.min ?? 0,
+              max: p.referenceHigh ?? p.ReferenceHigh ?? p.max ?? 100
+            })) : (c.testCode === 'CBC' ? [
+              { code: 'WBC', name: 'White Blood Cell Count', unit: '10^3/uL', min: 4.5, max: 11.0 },
+              { code: 'RBC', name: 'Red Blood Cell Count', unit: '10^6/uL', min: 4.2, max: 5.8 },
+              { code: 'HGB', name: 'Hemoglobin', unit: 'g/dL', min: 12.0, max: 17.5 },
+              { code: 'HCT', name: 'Hematocrit', unit: '%', min: 37.0, max: 51.0 },
+              { code: 'PLT', name: 'Platelet Count', unit: '10^3/uL', min: 150.0, max: 450.0 }
+            ] : [
+              { code: c.testCode || 'VAL', name: c.testName || 'Result Value', unit: c.unit || 'U/L', min: c.normalRangeLow || 0, max: c.normalRangeHigh || 100 }
+            ])
+          };
+        });
         setCatalog(mappedCatalog);
       } else {
         setCatalog([
@@ -873,7 +883,14 @@ export default function LaboratoryPage() {
         testName: newCatalogItem.name,
         category: newCatalogItem.category,
         sampleType: newCatalogItem.sample,
-        price: newCatalogItem.price
+        price: newCatalogItem.price,
+        parameters: newParams.map((p, idx) => ({
+          code: p.code || `${newCatalogItem.code}-${idx + 1}`,
+          name: p.name || 'Analyte',
+          unit: p.unit || '',
+          normalRangeLow: parseFloat(p.min) || 0,
+          normalRangeHigh: parseFloat(p.max) || 100
+        }))
       }).catch(() => {});
     } catch (err) {
       console.error('Add test error:', err);

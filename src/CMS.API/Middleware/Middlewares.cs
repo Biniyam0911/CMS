@@ -15,14 +15,29 @@ public class TenantMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
-        // Extract X-Tenant-ID header if present (default: 1 for single-clinic)
         byte tenantId = 1;
-        if (context.Request.Headers.TryGetValue("X-Tenant-ID", out var headerVal) && byte.TryParse(headerVal, out var parsed))
+
+        // Security Priority 1: If user is authenticated via cryptographically signed JWT, use claim
+        var tenantClaim = context.User?.FindFirst("TenantId")?.Value;
+        if (!string.IsNullOrEmpty(tenantClaim) && byte.TryParse(tenantClaim, out var parsedClaim) && parsedClaim > 0)
         {
-            tenantId = parsed;
+            tenantId = parsedClaim;
+        }
+        else if (context.Request.Headers.TryGetValue("X-Tenant-ID", out var headerVal) && byte.TryParse(headerVal, out var parsedHeader) && parsedHeader > 0)
+        {
+            // Security Priority 2: For unauthenticated endpoints (login, registration), use header
+            tenantId = parsedHeader;
         }
 
         context.Items["TenantId"] = tenantId;
+
+        // Also extract and store authenticated UserId if available
+        var userIdClaim = context.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (!string.IsNullOrEmpty(userIdClaim) && int.TryParse(userIdClaim, out var parsedUserId))
+        {
+            context.Items["UserId"] = parsedUserId;
+        }
+
         await _next(context);
     }
 }

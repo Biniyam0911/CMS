@@ -22,6 +22,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
+    [Microsoft.AspNetCore.Authorization.AllowAnonymous]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
         using var conn = _dbFactory.CreateConnection();
@@ -76,7 +77,23 @@ public class AuthController : ControllerBase
         var token = _authService.GenerateJwtToken(userDto);
         var refreshToken = Guid.NewGuid().ToString("N");
 
+        // Set HttpOnly cookie — JS cannot read this, preventing XSS token theft
+        Response.Cookies.Append("cms_access_token", token, new Microsoft.AspNetCore.Http.CookieOptions
+        {
+            HttpOnly = true,
+            Secure = false,            // Set true in production (HTTPS)
+            SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax,
+            Expires = DateTimeOffset.UtcNow.AddHours(2)
+        });
+
         return Ok(ApiResponse<LoginResponse>.Ok(new LoginResponse(token, refreshToken, 120, userDto)));
+    }
+
+    [HttpPost("logout")]
+    public IActionResult Logout()
+    {
+        Response.Cookies.Delete("cms_access_token");
+        return Ok(ApiResponse<string>.Ok("Logged out successfully."));
     }
 
     public record ChangePasswordRequest(
@@ -253,7 +270,52 @@ public class PatientsController : ControllerBase
         });
 
         await _cache.RemoveByPrefixAsync($"tenant:{tenantId}:patients");
+
+        // Audit Logging
+        try
+        {
+            var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
+            int userId = HttpContext.Items["UserId"] is int uid ? uid : 1;
+            await conn.ExecuteAsync(@"
+                INSERT INTO AuditLog (TenantId, TableName, RecordId, Operation, OldValues, NewValues, ChangedBy, ChangedAt, IpAddress)
+                VALUES (@TenantId, 'Patients', @RecordId, 'CREATE_PATIENT', NULL, @NewValues, @ChangedBy, SYSUTCDATETIME(), @IpAddress)",
+                new { TenantId = tenantId, RecordId = newId.ToString(), NewValues = System.Text.Json.JsonSerializer.Serialize(dto), ChangedBy = userId, IpAddress = ip });
+        }
+        catch { }
+
         return Ok(ApiResponse<object>.Ok(new { PatientId = newId, MRN = finalMrn }));
+    }
+
+    [HttpGet("{id:int}")]
+    public async Task<IActionResult> GetById(int id)
+    {
+        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+        using var conn = _dbFactory.CreateConnection();
+
+        var sql = @"
+            SELECT Id, TenantId, MRN, FirstName, MiddleName, LastName, DateOfBirth, Gender,
+                   PrimaryPhone, Email, Address, InsuranceProvider, InsuranceCopayPercent,
+                   Allergies, ChronicConditions, NationalId, BloodGroup, PhotoUrl, IsActive
+            FROM Patients WITH (NOLOCK)
+            WHERE TenantId = @TenantId AND Id = @Id;";
+
+        var patient = await conn.QueryFirstOrDefaultAsync<PatientDto>(sql, new { TenantId = tenantId, Id = id });
+        if (patient == null)
+            return NotFound(ApiResponse<string>.Fail("Patient not found."));
+
+        // Mandatory HIPAA / Clinical Access Logging
+        try
+        {
+            var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
+            int userId = HttpContext.Items["UserId"] is int uid ? uid : 1;
+            await conn.ExecuteAsync(@"
+                INSERT INTO AuditLog (TenantId, TableName, RecordId, Operation, OldValues, NewValues, ChangedBy, ChangedAt, IpAddress)
+                VALUES (@TenantId, 'Patients', @RecordId, 'VIEW_CHART', NULL, NULL, @ChangedBy, SYSUTCDATETIME(), @IpAddress)",
+                new { TenantId = tenantId, RecordId = id.ToString(), ChangedBy = userId, IpAddress = ip });
+        }
+        catch { }
+
+        return Ok(ApiResponse<PatientDto>.Ok(patient));
     }
 
     [HttpPut("{id}")]
@@ -298,6 +360,19 @@ public class PatientsController : ControllerBase
         });
 
         await _cache.RemoveByPrefixAsync($"tenant:{tenantId}:patients");
+
+        // Audit Logging
+        try
+        {
+            var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
+            int userId = HttpContext.Items["UserId"] is int uid ? uid : 1;
+            await conn.ExecuteAsync(@"
+                INSERT INTO AuditLog (TenantId, TableName, RecordId, Operation, OldValues, NewValues, ChangedBy, ChangedAt, IpAddress)
+                VALUES (@TenantId, 'Patients', @RecordId, 'UPDATE_PATIENT', NULL, @NewValues, @ChangedBy, SYSUTCDATETIME(), @IpAddress)",
+                new { TenantId = tenantId, RecordId = id.ToString(), NewValues = System.Text.Json.JsonSerializer.Serialize(dto), ChangedBy = userId, IpAddress = ip });
+        }
+        catch { }
+
         return Ok(ApiResponse<object>.Ok(new { Success = rows > 0, PatientId = id }));
     }
 }
@@ -342,8 +417,33 @@ public class LaboratoryController : ControllerBase
             WHERE TenantId = @TenantId AND IsActive = 1
             ORDER BY Category, TestName";
         var catalog = (await conn.QueryAsync<LabTestCatalogDto>(sql, new { TenantId = tenantId })).ToList();
-        return Ok(ApiResponse<List<LabTestCatalogDto>>.Ok(catalog));
+
+        var sqlParams = @"
+            SELECT p.Id, p.TestCatalogId, p.ParameterCode, p.ParameterName, p.Unit,
+                   p.ReferenceLow, p.ReferenceHigh, p.TextReferenceRange, p.DisplayOrder
+            FROM LabTestParameters p
+            JOIN LabTestCatalog c ON c.Id = p.TestCatalogId
+            WHERE c.TenantId = @TenantId AND c.IsActive = 1
+            ORDER BY p.DisplayOrder, p.Id";
+
+        var allParams = (await conn.QueryAsync<LabTestParameterDto>(sqlParams, new { TenantId = tenantId })).ToList();
+        var paramLookup = allParams.GroupBy(p => p.TestCatalogId).ToDictionary(g => g.Key, g => g.ToList());
+
+        var result = catalog.Select(c => c with {
+            Parameters = paramLookup.TryGetValue(c.Id, out var plist) ? plist : new List<LabTestParameterDto>()
+        }).ToList();
+
+        return Ok(ApiResponse<List<LabTestCatalogDto>>.Ok(result));
     }
+
+    public record CreateLabParameterRequest(
+        string? Code,
+        string Name,
+        string? Unit,
+        decimal? NormalRangeLow = null,
+        decimal? NormalRangeHigh = null,
+        string? TextReferenceRange = null,
+        int DisplayOrder = 1);
 
     public record CreateLabCatalogRequest(
         string TestCode,
@@ -354,7 +454,8 @@ public class LaboratoryController : ControllerBase
         decimal? NormalRangeLow = null,
         decimal? NormalRangeHigh = null,
         string? Unit = null,
-        decimal? Price = 0);
+        decimal? Price = 0,
+        List<CreateLabParameterRequest>? Parameters = null);
 
     public record UpdateLabCatalogRequest(
         string TestCode,
@@ -365,31 +466,69 @@ public class LaboratoryController : ControllerBase
         decimal? NormalRangeLow = null,
         decimal? NormalRangeHigh = null,
         string? Unit = null,
-        decimal? Price = 0);
+        decimal? Price = 0,
+        List<CreateLabParameterRequest>? Parameters = null);
 
     [HttpPost("catalog")]
     public async Task<IActionResult> CreateCatalogItem([FromBody] CreateLabCatalogRequest req)
     {
         byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
         using var conn = _dbFactory.CreateConnection();
-        var sql = @"
-            INSERT INTO LabTestCatalog (TenantId, TestCode, TestName, Category, SampleType, TurnaroundMinutes, NormalRangeLow, NormalRangeHigh, Unit, Price, IsActive, CreatedAt)
-            VALUES (@TenantId, @TestCode, @TestName, @Category, @SampleType, @TurnaroundMinutes, @NormalRangeLow, @NormalRangeHigh, @Unit, @Price, 1, SYSUTCDATETIME());
-            SELECT CAST(SCOPE_IDENTITY() as int);";
-        int id = await conn.ExecuteScalarAsync<int>(sql, new {
-            TenantId = tenantId,
-            req.TestCode,
-            req.TestName,
-            req.Category,
-            req.SampleType,
-            req.TurnaroundMinutes,
-            req.NormalRangeLow,
-            req.NormalRangeHigh,
-            req.Unit,
-            req.Price
-        });
-        await _cache.RemoveAsync($"lab_catalog_{tenantId}");
-        return Ok(ApiResponse<int>.Ok(id, "Lab test created successfully."));
+        conn.Open();
+        using var tx = conn.BeginTransaction();
+        try
+        {
+            var sql = @"
+                INSERT INTO LabTestCatalog (TenantId, TestCode, TestName, Category, SampleType, TurnaroundMinutes, NormalRangeLow, NormalRangeHigh, Unit, Price, IsActive, CreatedAt)
+                VALUES (@TenantId, @TestCode, @TestName, @Category, @SampleType, @TurnaroundMinutes, @NormalRangeLow, @NormalRangeHigh, @Unit, @Price, 1, SYSUTCDATETIME());
+                SELECT CAST(SCOPE_IDENTITY() as int);";
+            int id = await conn.ExecuteScalarAsync<int>(sql, new {
+                TenantId = tenantId,
+                req.TestCode,
+                req.TestName,
+                req.Category,
+                req.SampleType,
+                req.TurnaroundMinutes,
+                req.NormalRangeLow,
+                req.NormalRangeHigh,
+                req.Unit,
+                req.Price
+            }, transaction: tx);
+
+            if (req.Parameters != null && req.Parameters.Count > 0)
+            {
+                var sqlParam = @"
+                    INSERT INTO LabTestParameters (TestCatalogId, ParameterCode, ParameterName, Unit, ReferenceLow, ReferenceHigh, TextReferenceRange, DisplayOrder, CreatedAt)
+                    VALUES (@TestCatalogId, @ParameterCode, @ParameterName, @Unit, @ReferenceLow, @ReferenceHigh, @TextReferenceRange, @DisplayOrder, SYSUTCDATETIME());";
+                
+                int order = 1;
+                foreach (var p in req.Parameters)
+                {
+                    await conn.ExecuteAsync(sqlParam, new {
+                        TestCatalogId = id,
+                        ParameterCode = !string.IsNullOrWhiteSpace(p.Code) ? p.Code : $"{req.TestCode}-{order}",
+                        ParameterName = !string.IsNullOrWhiteSpace(p.Name) ? p.Name : $"Analyte {order}",
+                        Unit = p.Unit ?? "",
+                        ReferenceLow = p.NormalRangeLow,
+                        ReferenceHigh = p.NormalRangeHigh,
+                        TextReferenceRange = p.TextReferenceRange,
+                        DisplayOrder = p.DisplayOrder > 0 ? p.DisplayOrder : order
+                    }, transaction: tx);
+                    order++;
+                }
+            }
+
+            tx.Commit();
+
+            await _cache.RemoveAsync($"lab_catalog_{tenantId}");
+            await _cache.RemoveAsync($"tenant:{tenantId}:lab:catalog");
+            return Ok(ApiResponse<int>.Ok(id, "Lab test created successfully."));
+        }
+        catch
+        {
+            tx.Rollback();
+            throw;
+        }
     }
 
     [HttpPut("catalog/{id:int}")]
@@ -397,33 +536,75 @@ public class LaboratoryController : ControllerBase
     {
         byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
         using var conn = _dbFactory.CreateConnection();
-        var sql = @"
-            UPDATE LabTestCatalog
-            SET TestCode = @TestCode,
-                TestName = @TestName,
-                Category = @Category,
-                SampleType = @SampleType,
-                TurnaroundMinutes = @TurnaroundMinutes,
-                NormalRangeLow = @NormalRangeLow,
-                NormalRangeHigh = @NormalRangeHigh,
-                Unit = @Unit,
-                Price = @Price
-            WHERE Id = @Id AND TenantId = @TenantId";
-        int rows = await conn.ExecuteAsync(sql, new {
-            Id = id,
-            TenantId = tenantId,
-            req.TestCode,
-            req.TestName,
-            req.Category,
-            req.SampleType,
-            req.TurnaroundMinutes,
-            req.NormalRangeLow,
-            req.NormalRangeHigh,
-            req.Unit,
-            req.Price
-        });
-        await _cache.RemoveAsync($"lab_catalog_{tenantId}");
-        return Ok(ApiResponse<bool>.Ok(rows > 0, "Lab test updated successfully."));
+        conn.Open();
+        using var tx = conn.BeginTransaction();
+        try
+        {
+            var sql = @"
+                UPDATE LabTestCatalog
+                SET TestCode = @TestCode,
+                    TestName = @TestName,
+                    Category = @Category,
+                    SampleType = @SampleType,
+                    TurnaroundMinutes = @TurnaroundMinutes,
+                    NormalRangeLow = @NormalRangeLow,
+                    NormalRangeHigh = @NormalRangeHigh,
+                    Unit = @Unit,
+                    Price = @Price
+                WHERE Id = @Id AND TenantId = @TenantId";
+            int rows = await conn.ExecuteAsync(sql, new {
+                Id = id,
+                TenantId = tenantId,
+                req.TestCode,
+                req.TestName,
+                req.Category,
+                req.SampleType,
+                req.TurnaroundMinutes,
+                req.NormalRangeLow,
+                req.NormalRangeHigh,
+                req.Unit,
+                req.Price
+            }, transaction: tx);
+
+            if (req.Parameters != null)
+            {
+                await conn.ExecuteAsync("DELETE FROM LabTestParameters WHERE TestCatalogId = @Id", new { Id = id }, transaction: tx);
+
+                if (req.Parameters.Count > 0)
+                {
+                    var sqlParam = @"
+                        INSERT INTO LabTestParameters (TestCatalogId, ParameterCode, ParameterName, Unit, ReferenceLow, ReferenceHigh, TextReferenceRange, DisplayOrder, CreatedAt)
+                        VALUES (@TestCatalogId, @ParameterCode, @ParameterName, @Unit, @ReferenceLow, @ReferenceHigh, @TextReferenceRange, @DisplayOrder, SYSUTCDATETIME());";
+                    
+                    int order = 1;
+                    foreach (var p in req.Parameters)
+                    {
+                        await conn.ExecuteAsync(sqlParam, new {
+                            TestCatalogId = id,
+                            ParameterCode = !string.IsNullOrWhiteSpace(p.Code) ? p.Code : $"{req.TestCode}-{order}",
+                            ParameterName = !string.IsNullOrWhiteSpace(p.Name) ? p.Name : $"Analyte {order}",
+                            Unit = p.Unit ?? "",
+                            ReferenceLow = p.NormalRangeLow,
+                            ReferenceHigh = p.NormalRangeHigh,
+                            TextReferenceRange = p.TextReferenceRange,
+                            DisplayOrder = p.DisplayOrder > 0 ? p.DisplayOrder : order
+                        }, transaction: tx);
+                        order++;
+                    }
+                }
+            }
+
+            tx.Commit();
+
+            await _cache.RemoveAsync($"lab_catalog_{tenantId}");
+            await _cache.RemoveAsync($"tenant:{tenantId}:lab:catalog");
+            return Ok(ApiResponse<bool>.Ok(rows > 0, "Lab test updated successfully."));
+        }
+        catch
+        {
+            tx.Rollback();
+            throw;
+        }
     }
 
     [HttpDelete("catalog/{id:int}")]

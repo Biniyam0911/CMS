@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   CreditCard, DollarSign, Plus, CheckCircle2, Download, Printer, X, Trash2,
   Loader2, Search, Filter, RefreshCw, ArrowRight, FileText, Check, AlertCircle,
-  Building, User, Calendar, Receipt, ShieldCheck, QrCode, Shield, FileSpreadsheet, Send
+  Building, User, Calendar, Receipt, ShieldCheck, QrCode, Shield, FileSpreadsheet, Send, ExternalLink
 } from 'lucide-react';
 import { api } from '../../api/apiClient';
 
@@ -71,6 +71,13 @@ export default function BillingPage() {
   const [telebirrLoading, setTelebirrLoading] = useState(false);
   const [telebirrSettled, setTelebirrSettled] = useState(false);
   const telebirrPollRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+  // Chapa Online Payment State
+  const [chapaLoading, setChapaLoading] = useState(false);
+  const [showChapaModal, setShowChapaModal] = useState(false);
+  const [chapaTxRef, setChapaTxRef] = useState<string | null>(null);
+  const [chapaCheckoutUrl, setChapaCheckoutUrl] = useState<string | null>(null);
+  const [chapaVerifying, setChapaVerifying] = useState(false);
+  const [chapaVerified, setChapaVerified] = useState(false);
 
   // Free / Waived Invoice State
   const [isFreeInvoice, setIsFreeInvoice] = useState(false);
@@ -497,6 +504,68 @@ export default function BillingPage() {
       alert(`Simulation failed: ${err?.message || 'API error'}`);
     }
   };
+
+  // ── Chapa Online Payment ────────────────────────────────────────────
+  const handlePayWithChapa = async () => {
+    if (!selectedInvoice) return;
+    try {
+      setChapaLoading(true);
+      setChapaVerified(false);
+      setChapaTxRef(null);
+      setChapaCheckoutUrl(null);
+      const res: any = await api.post('/chapa/initialize', {
+        invoiceId: selectedInvoice.id,
+        amount: Math.max(0, selectedInvoice.total - selectedInvoice.paid)
+      });
+      const d = res?.data || res?.Data || res;
+      const checkoutUrl = d?.checkoutUrl || d?.CheckoutUrl;
+      const txRef = d?.txRef || d?.TxRef;
+      if (!checkoutUrl) throw new Error('No checkout URL returned from Chapa.');
+      setChapaTxRef(txRef);
+      setChapaCheckoutUrl(checkoutUrl);
+      setShowChapaModal(true);
+      // Open Chapa hosted checkout in a new tab
+      window.open(checkoutUrl, '_blank', 'noopener,noreferrer');
+    } catch (err: any) {
+      alert(`Failed to initialize Chapa payment: ${err?.message || 'API error'}`);
+    } finally {
+      setChapaLoading(false);
+    }
+  };
+
+  const handleVerifyChapa = async () => {
+    if (!chapaTxRef) return;
+    try {
+      setChapaVerifying(true);
+      const res: any = await api.get(`/chapa/verify/${encodeURIComponent(chapaTxRef)}`);
+      const d = res?.data || res?.Data || res;
+      if (d?.paid || d?.Paid) {
+        setChapaVerified(true);
+        setTimeout(async () => {
+          setShowChapaModal(false);
+          setChapaTxRef(null);
+          setChapaCheckoutUrl(null);
+          setChapaVerified(false);
+          setPayMethod('5');
+          await fetchInvoicesAndPatients();
+        }, 2500);
+      } else {
+        alert(`Payment not yet confirmed. Status: ${d?.status || d?.Status || 'pending'}. Ask the patient to complete payment, then verify again.`);
+      }
+    } catch (err: any) {
+      alert(`Verification failed: ${err?.message || 'API error'}`);
+    } finally {
+      setChapaVerifying(false);
+    }
+  };
+
+  const closeChapaModal = () => {
+    setShowChapaModal(false);
+    setChapaTxRef(null);
+    setChapaCheckoutUrl(null);
+    setChapaVerified(false);
+  };
+  // ────────────────────────────────────────────────────────────────────
 
   const handleProcessPayment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1091,6 +1160,7 @@ export default function BillingPage() {
                             <option value="2">Telebirr / CBE Mobile</option>
                             <option value="3">Insurance Claim / POS</option>
                             <option value="4">Waived / Free Service</option>
+                            <option value="5">Chapa Online Payment</option>
                           </select>
                         </div>
                         <div>
@@ -1130,6 +1200,28 @@ export default function BillingPage() {
                         >
                           {telebirrLoading ? <Loader2 size={14} className="animate-spin" /> : <QrCode size={14} />}
                           Generate Dynamic Telebirr QR
+                        </button>
+                      )}
+
+                      {/* Chapa Online Payment Button */}
+                      {payMethod === '5' && (
+                        <button
+                          type="button"
+                          onClick={handlePayWithChapa}
+                          disabled={chapaLoading}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center',
+                            padding: '10px 14px', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 700,
+                            background: chapaLoading ? '#a3d977' : 'linear-gradient(135deg, #7DC242, #5a9e2f)',
+                            border: 'none', color: '#ffffff', cursor: chapaLoading ? 'not-allowed' : 'pointer',
+                            width: '100%', boxShadow: '0 2px 8px rgba(125, 194, 66, 0.4)',
+                            transition: 'all 0.2s ease'
+                          }}
+                        >
+                          {chapaLoading
+                            ? <><Loader2 size={15} className="animate-spin" /> Initializing...</>
+                            : <><ExternalLink size={15} /> Pay with Chapa</>
+                          }
                         </button>
                       )}
 
@@ -1696,6 +1788,87 @@ export default function BillingPage() {
                 style={{ maxWidth: '100%', maxHeight: '75vh', objectFit: 'contain', borderRadius: '6px' }}
               />
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: CHAPA ONLINE PAYMENT STATUS                                        */}
+      {/* ========================================================================= */}
+      {showChapaModal && selectedInvoice && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(10,15,30,0.88)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, padding: '20px' }}>
+          <div style={{ width: '100%', maxWidth: '440px', background: '#0f1e0a', border: '1px solid rgba(125,194,66,0.45)', borderRadius: '16px', color: '#fff', padding: '28px', boxShadow: '0 20px 60px rgba(125,194,66,0.15)' }}>
+
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <div>
+                <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#7DC242', letterSpacing: '0.14em' }}>CHAPA ONLINE PAYMENT</div>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#fff', marginTop: 3 }}>Awaiting Confirmation</h3>
+              </div>
+              <button onClick={closeChapaModal} style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '6px 10px', color: '#fff', cursor: 'pointer' }}><X size={16} /></button>
+            </div>
+
+            {chapaVerified ? (
+              /* Success state */
+              <div style={{ textAlign: 'center', padding: '24px 0' }}>
+                <CheckCircle2 size={60} color="#7DC242" style={{ margin: '0 auto 16px' }} />
+                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#7DC242' }}>Payment Verified!</div>
+                <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.55)', marginTop: 8 }}>Invoice is being updated…</div>
+              </div>
+            ) : (
+              <>
+                {/* Amount */}
+                <div style={{ textAlign: 'center', marginBottom: 24, padding: '16px', background: 'rgba(125,194,66,0.08)', borderRadius: 12, border: '1px solid rgba(125,194,66,0.2)' }}>
+                  <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)', marginBottom: 6 }}>Amount Due — {selectedInvoice.invoiceNo}</div>
+                  <div style={{ fontSize: '2.4rem', fontWeight: 900, color: '#7DC242', fontFamily: 'monospace' }}>
+                    Br {Math.max(0, selectedInvoice.total - selectedInvoice.paid).toFixed(2)}
+                  </div>
+                </div>
+
+                {/* Instructions */}
+                <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)', lineHeight: 1.7, marginBottom: 20 }}>
+                  <div>1. The Chapa checkout page has opened in a new tab.</div>
+                  <div>2. Ask the patient to complete payment using their preferred method (Telebirr, CBE Birr, bank card, etc.).</div>
+                  <div>3. Once done, click <strong style={{ color: '#7DC242' }}>Verify Payment</strong> to confirm.</div>
+                </div>
+
+                {/* TxRef */}
+                {chapaTxRef && (
+                  <div style={{ fontSize: '0.65rem', fontFamily: 'monospace', color: 'rgba(255,255,255,0.35)', background: 'rgba(0,0,0,0.3)', padding: '6px 10px', borderRadius: 6, marginBottom: 20, wordBreak: 'break-all' }}>
+                    Ref: {chapaTxRef}
+                  </div>
+                )}
+
+                {/* Buttons */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <button
+                    onClick={handleVerifyChapa}
+                    disabled={chapaVerifying}
+                    style={{
+                      padding: '12px', borderRadius: 8, fontWeight: 700, fontSize: '0.9rem',
+                      background: chapaVerifying ? '#5a9e2f' : 'linear-gradient(135deg, #7DC242, #5a9e2f)',
+                      border: 'none', color: '#fff', cursor: chapaVerifying ? 'not-allowed' : 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
+                    }}
+                  >
+                    {chapaVerifying ? <><Loader2 size={16} className="animate-spin" /> Verifying…</> : <><CheckCircle2 size={16} /> Verify Payment</>}
+                  </button>
+
+                  {chapaCheckoutUrl && (
+                    <button
+                      onClick={() => window.open(chapaCheckoutUrl!, '_blank', 'noopener,noreferrer')}
+                      style={{
+                        padding: '10px', borderRadius: 8, fontWeight: 600, fontSize: '0.82rem',
+                        background: 'transparent', border: '1px solid rgba(125,194,66,0.4)',
+                        color: '#7DC242', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
+                      }}
+                    >
+                      <ExternalLink size={14} /> Reopen Checkout Page
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

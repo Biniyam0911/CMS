@@ -228,26 +228,39 @@ export default function ServicesPage() {
 
       const rawLab: any[] = Array.isArray(labData) ? labData : (labData?.data ?? labData?.Data ?? []);
       if (rawLab.length > 0) {
-        setLabTests(rawLab.map((t: any) => ({
-          id: t.id || t.Id,
-          code: t.testCode || t.TestCode || '',
-          name: t.testName || t.TestName || '',
-          category: t.category || t.Category || 'General Diagnostics',
-          sampleType: t.sampleType || t.SampleType || 'Blood / Serum',
-          turnaroundMinutes: t.turnaroundMinutes ?? t.TurnaroundMinutes ?? 60,
-          price: parseFloat(t.price ?? t.Price ?? 0) || 0,
-          fastingRequired: false,
-          isActive: true,
-          parameters: (t.unit || t.Unit || t.normalRangeLow != null || t.normalRangeHigh != null) ? [
-            {
-              code: t.testCode || t.TestCode || 'ANALYTE',
-              name: t.testName || t.TestName || 'Primary Analyte',
-              unit: t.unit || t.Unit || '',
-              normalRangeLow: t.normalRangeLow ?? t.NormalRangeLow ?? 0,
-              normalRangeHigh: t.normalRangeHigh ?? t.NormalRangeHigh ?? 0
-            }
-          ] : []
-        })));
+        setLabTests(rawLab.map((t: any) => {
+          const rawParams: any[] = t.parameters || t.Parameters || [];
+          const params: LabParameter[] = rawParams.map((p: any) => ({
+            code: p.parameterCode || p.ParameterCode || p.code || p.Code || '',
+            name: p.parameterName || p.ParameterName || p.name || p.Name || '',
+            unit: p.unit || p.Unit || '',
+            normalRangeLow: p.referenceLow ?? p.ReferenceLow ?? p.normalRangeLow ?? p.NormalRangeLow ?? 0,
+            normalRangeHigh: p.referenceHigh ?? p.ReferenceHigh ?? p.normalRangeHigh ?? p.NormalRangeHigh ?? 0
+          }));
+
+          return {
+            id: t.id || t.Id,
+            code: t.testCode || t.TestCode || '',
+            name: t.testName || t.TestName || '',
+            category: t.category || t.Category || 'General Diagnostics',
+            sampleType: t.sampleType || t.SampleType || 'Blood / Serum',
+            turnaroundMinutes: t.turnaroundMinutes ?? t.TurnaroundMinutes ?? 60,
+            price: parseFloat(t.price ?? t.Price ?? 0) || 0,
+            fastingRequired: false,
+            isActive: true,
+            parameters: params.length > 0 ? params : (
+              (t.unit || t.Unit || t.normalRangeLow != null || t.normalRangeHigh != null) ? [
+                {
+                  code: t.testCode || t.TestCode || 'ANALYTE',
+                  name: t.testName || t.TestName || 'Primary Analyte',
+                  unit: t.unit || t.Unit || '',
+                  normalRangeLow: t.normalRangeLow ?? t.NormalRangeLow ?? 0,
+                  normalRangeHigh: t.normalRangeHigh ?? t.NormalRangeHigh ?? 0
+                }
+              ] : []
+            )
+          };
+        }));
       }
     } catch (err) {
       console.error('Failed to load services & categories:', err);
@@ -360,7 +373,9 @@ export default function ServicesPage() {
     setLabFormTat(String(t.turnaroundMinutes));
     setLabFormPrice(String(t.price));
     setLabFormFasting(t.fastingRequired);
-    setLabFormParams(t.parameters || []);
+    setLabFormParams(t.parameters && t.parameters.length > 0 
+      ? t.parameters.map(p => ({ ...p })) 
+      : [{ code: `${t.code}-1`, name: t.name, unit: '', normalRangeLow: 0, normalRangeHigh: 100 }]);
     setShowLabModal(true);
   };
 
@@ -381,33 +396,34 @@ export default function ServicesPage() {
     const tatNum = parseInt(labFormTat) || 60;
     const firstParam = labFormParams[0];
 
+    const parametersPayload = labFormParams.map((p, idx) => ({
+      code: p.code || `${labFormCode}-${idx + 1}`,
+      name: p.name || 'Sub-Test Analyte',
+      unit: p.unit || '',
+      normalRangeLow: p.normalRangeLow != null && !isNaN(Number(p.normalRangeLow)) ? Number(p.normalRangeLow) : null,
+      normalRangeHigh: p.normalRangeHigh != null && !isNaN(Number(p.normalRangeHigh)) ? Number(p.normalRangeHigh) : null
+    }));
+
+    const payload = {
+      testCode: labFormCode,
+      testName: labFormName,
+      category: labFormCat,
+      sampleType: labFormSample,
+      turnaroundMinutes: tatNum,
+      price: priceNum,
+      unit: firstParam?.unit || '',
+      normalRangeLow: firstParam?.normalRangeLow != null ? Number(firstParam.normalRangeLow) : null,
+      normalRangeHigh: firstParam?.normalRangeHigh != null ? Number(firstParam.normalRangeHigh) : null,
+      parameters: parametersPayload
+    };
+
     try {
       if (editingLab) {
-        await api.put(`/lab/catalog/${editingLab.id}`, {
-          testCode: labFormCode,
-          testName: labFormName,
-          category: labFormCat,
-          sampleType: labFormSample,
-          turnaroundMinutes: tatNum,
-          price: priceNum,
-          unit: firstParam?.unit || '',
-          normalRangeLow: firstParam?.normalRangeLow != null ? Number(firstParam.normalRangeLow) : null,
-          normalRangeHigh: firstParam?.normalRangeHigh != null ? Number(firstParam.normalRangeHigh) : null
-        });
-        showToast(`Updated Lab Test: "${labFormName}"`);
+        await api.put(`/lab/catalog/${editingLab.id}`, payload);
+        showToast(`Updated Lab Test & Sub-Tests: "${labFormName}"`);
       } else {
-        await api.post('/lab/catalog', {
-          testCode: labFormCode,
-          testName: labFormName,
-          category: labFormCat,
-          sampleType: labFormSample,
-          turnaroundMinutes: tatNum,
-          price: priceNum,
-          unit: firstParam?.unit || '',
-          normalRangeLow: firstParam?.normalRangeLow != null ? Number(firstParam.normalRangeLow) : null,
-          normalRangeHigh: firstParam?.normalRangeHigh != null ? Number(firstParam.normalRangeHigh) : null
-        });
-        showToast(`Created Lab Test: "${labFormName}"`);
+        await api.post('/lab/catalog', payload);
+        showToast(`Created Lab Test & Sub-Tests: "${labFormName}"`);
       }
       await loadBackendServicesAndCategories();
     } catch (err) {

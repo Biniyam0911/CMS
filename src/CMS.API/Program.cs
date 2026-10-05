@@ -111,6 +111,12 @@ builder.Services.AddScoped<SettingsAndApiService>();
 builder.Services.AddScoped<DashboardService>();
 builder.Services.AddScoped<CMS.Application.Notifications.SmsGatewayService>();
 builder.Services.AddScoped<CMS.Application.Billing.TelebirrPaymentService>();
+builder.Services.AddScoped<CMS.Application.Billing.ChapaPaymentService>();
+builder.Services.AddHttpClient("Chapa", client =>
+{
+    client.BaseAddress = new Uri("https://api.chapa.co/");
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
 builder.Services.AddScoped<CMS.Application.Telemedicine.TelemedService>();
 builder.Services.AddHttpClient<CMS.Application.Telemedicine.TelegramBotService>();
 builder.Services.AddHttpClient<CMS.Application.Telemedicine.WhatsAppCloudService>();
@@ -146,19 +152,39 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         {
             OnMessageReceived = context =>
             {
-                var authHeader = context.Request.Headers.Authorization.ToString();
-                if (authHeader.Contains("dummy_signature"))
+                // Priority 1: HttpOnly cookie (secure — JS cannot read this)
+                if (context.Request.Cookies.TryGetValue("cms_access_token", out var cookieToken)
+                    && !string.IsNullOrEmpty(cookieToken))
                 {
-                    // Ignore legacy dummy tokens sent by stale browser sessions so they don't trigger validation failures
-                    context.NoResult();
+                    context.Token = cookieToken;
                     return Task.CompletedTask;
                 }
+
+                // Priority 2: Authorization header (for backward-compat / API clients)
+                var authHeader = context.Request.Headers.Authorization.ToString();
+                if (authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                {
+                    var bearerToken = authHeader["Bearer ".Length..].Trim();
+                    if (!bearerToken.Contains("dummy_signature"))
+                        context.Token = bearerToken;
+                    else
+                        context.NoResult(); // Ignore stale legacy tokens
+                }
+
                 return Task.CompletedTask;
             }
         };
     });
 
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    // Global policy: every endpoint requires authentication by default.
+    // Public endpoints (login) are decorated with [AllowAnonymous].
+    var policy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+    options.Filters.Add(new Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter(policy));
+});
 builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddSwaggerGen(c =>
@@ -197,7 +223,6 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 app.UseMiddleware<ExceptionMiddleware>();
-app.UseMiddleware<TenantMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {
@@ -210,6 +235,7 @@ if (app.Environment.IsDevelopment())
 app.UseStaticFiles();
 app.UseCors("AllowAll");
 app.UseAuthentication();
+app.UseMiddleware<TenantMiddleware>();
 app.UseAuthorization();
 
 app.MapControllers();

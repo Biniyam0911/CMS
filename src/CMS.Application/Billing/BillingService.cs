@@ -77,6 +77,21 @@ public class BillingService
             if (exists > 0) validEncounterId = dto.EncounterId.Value;
         }
 
+        // Auto-link to patient's today encounter if not explicitly provided
+        if (!validEncounterId.HasValue && dto.PatientId > 0)
+        {
+            var todayEncId = await conn.ExecuteScalarAsync<int?>(@"
+                SELECT TOP 1 Id FROM Encounters 
+                WHERE PatientId = @PatientId AND TenantId = @TenantId
+                  AND CAST(EncounterDate AS DATE) = CAST(GETDATE() AS DATE)
+                ORDER BY Id DESC",
+                new { dto.PatientId, dto.TenantId });
+            if (todayEncId.HasValue && todayEncId.Value > 0)
+            {
+                validEncounterId = todayEncId.Value;
+            }
+        }
+
         var sqlHeader = @"
             INSERT INTO Invoices (TenantId, InvoiceNumber, PatientId, EncounterId, StatusId, IssueDate, SubTotal, TaxAmt, TotalAmount, PaidAmount, DiscountAmt, InsuranceClaim, InsuranceProviderId, InsuranceCoPayPercent, InsuranceClaimAmount, PatientPayAmount, PreAuthCode, ClaimStatusId, CreatedBy, CreatedAt)
             OUTPUT INSERTED.Id

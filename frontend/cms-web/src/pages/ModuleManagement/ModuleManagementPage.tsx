@@ -275,6 +275,14 @@ export default function ModuleManagementPage() {
     if (!target || target.isCore) return;
     const newState = !target.isEnabled;
 
+    // Require explicit confirmation before DISABLING a module
+    if (!newState) {
+      const confirmed = window.confirm(
+        `⚠️ Disable "${target.name}"?\n\nAll users who currently have this module open will see a "Module Disabled" screen and lose access until it is re-enabled.\n\nAre you sure you want to proceed?`
+      );
+      if (!confirmed) return;
+    }
+
     try {
       await api.post('/modules/toggle', { moduleId: id, isEnabled: newState });
     } catch (err) {

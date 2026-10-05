@@ -26,6 +26,7 @@ import SettingsPage from './pages/Settings/SettingsPage';
 import IntegrationsPage from './pages/Integrations/IntegrationsPage';
 import TelemedQueuePage from './pages/Telemedicine/TelemedQueuePage';
 import ChangePasswordPage from './pages/Auth/ChangePasswordPage';
+import ChapaPaymentReturnPage from './pages/Billing/ChapaPaymentReturnPage';
 import BottomNav from './components/BottomNav';
 import PwaInstallBanner from './components/PwaInstallBanner';
 import { initRolePermissions, hasModuleAccess } from './utils/permissions';
@@ -33,7 +34,8 @@ import { initRolePermissions, hasModuleAccess } from './utils/permissions';
 export default function App() {
   const [user, setUser] = useState<{ id?: number; username: string; roles: string[]; tenantId: number; doctorId?: number; staffId?: number; name?: string; firstName?: string; lastName?: string } | null>(() => {
     try {
-      const saved = localStorage.getItem('current_user');
+      // Use sessionStorage — cleared on tab/browser close, not accessible cross-tab
+      const saved = sessionStorage.getItem('current_user') || localStorage.getItem('current_user');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed && !parsed.name && (parsed.firstName || parsed.username)) {
@@ -44,7 +46,12 @@ export default function App() {
     } catch {}
     return null;
   });
-  const [token, setToken] = useState<string | null>(localStorage.getItem('auth_token'));
+  // Token is now an HttpOnly cookie managed by the server. We keep a minimal in-memory
+  // indicator so App.tsx knows whether to show login or not.
+  const [token, setToken] = useState<string | null>(() => {
+    // If we have a saved user, assume the cookie is still valid (server will 401 if not)
+    return sessionStorage.getItem('current_user') || localStorage.getItem('current_user') ? 'cookie' : null;
+  });
   const [activeModule, setActiveModule] = useState<ModuleKey>('DASHBOARD');
   const [selectedEmrPatientId, setSelectedEmrPatientId] = useState<number | null>(null);
   const [disabledModules, setDisabledModules] = useState<Set<string>>(() => {
@@ -61,12 +68,16 @@ export default function App() {
   const [timeoutSecondsRemaining, setTimeoutSecondsRemaining] = useState(60);
 
   const handleLogout = (reason?: string) => {
+    // Tell backend to clear the HttpOnly cookie
+    fetch('/api/v1/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
     setUser(null);
-    setToken('');
+    setToken(null);
     setActiveModule('DASHBOARD');
     setSelectedEmrPatientId(null);
-    localStorage.removeItem('auth_token');
+    // Clear both storage locations
+    sessionStorage.removeItem('current_user');
     localStorage.removeItem('current_user');
+    localStorage.removeItem('auth_token'); // Legacy cleanup
     applyUserTheme('default');
     setShowTimeoutWarning(false);
     if (reason) {
@@ -78,6 +89,13 @@ export default function App() {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Listen for session expiry from apiClient (401 response)
+  useEffect(() => {
+    const onExpired = () => handleLogout('Your session has expired. Please log in again.');
+    window.addEventListener('cms_session_expired', onExpired);
+    return () => window.removeEventListener('cms_session_expired', onExpired);
   }, []);
 
   const [clinicName, setClinicName] = useState('AethelCMS');
@@ -242,6 +260,11 @@ export default function App() {
     };
   }, [user, token]);
 
+  // Public route: Chapa payment return / receipt page (accessible without login)
+  if (typeof window !== 'undefined' && window.location.pathname.startsWith('/payment/chapa/return')) {
+    return <ChapaPaymentReturnPage />;
+  }
+
   if (!user || !token) {
     return (
       <LoginPage
@@ -251,9 +274,13 @@ export default function App() {
             name: u.name || (u.firstName ? `${u.firstName} ${u.lastName || ''}`.trim() : u.username)
           };
           setUser(normalizedUser);
-          setToken(t);
-          localStorage.setItem('auth_token', t);
+          // Token is in the HttpOnly cookie set by the server — we use 'cookie' as a presence indicator
+          setToken('cookie');
+          // Store user profile in sessionStorage and localStorage for multi-tab support
+          sessionStorage.setItem('current_user', JSON.stringify(normalizedUser));
           localStorage.setItem('current_user', JSON.stringify(normalizedUser));
+          // Clean up any legacy localStorage auth token
+          localStorage.removeItem('auth_token');
           initRolePermissions();
           loadBranding();
           applyUserTheme(normalizedUser.username);

@@ -18,42 +18,24 @@ function unwrapResponse<T>(json: any): T {
 
 class ApiClient {
   private getHeaders(): HeadersInit {
-    const token = localStorage.getItem('auth_token');
+    // NOTE: The access token is now delivered via HttpOnly cookie (set by the server on login).
+    // The browser sends it automatically with credentials:'include'. We still send X-Tenant-ID
+    // as a convenience header for the login endpoint (before JWT is verified).
     const tenantId = localStorage.getItem('tenant_id') || '1';
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'x-tenant-id': tenantId
     };
-
-    if (token) {
-      // If client has legacy dummy token, purge it so it's never transmitted
-      if (token.includes('dummy_signature')) {
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('current_user');
-      } else if (token.split('.').length === 3) {
-        try {
-          const payload = JSON.parse(atob(token.split('.')[1]));
-          if (payload.exp && payload.exp * 1000 < Date.now()) {
-            localStorage.removeItem('auth_token');
-            localStorage.removeItem('current_user');
-          } else {
-            headers['Authorization'] = `Bearer ${token}`;
-          }
-        } catch {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
-      }
-    }
-
     return headers;
   }
 
   private async handleResponse(res: Response, endpoint: string, method: string): Promise<any> {
-    // On 401 Unauthorized, the token is invalid/expired — clear it and force login
+    // On 401 Unauthorized, the session cookie has expired — clear user state and force login
     if (res.status === 401) {
-      localStorage.removeItem('auth_token');
+      sessionStorage.removeItem('current_user');
       localStorage.removeItem('current_user');
-      window.location.reload();
+      // Don't reload immediately — let App.tsx state handle this via user = null
+      window.dispatchEvent(new CustomEvent('cms_session_expired'));
       throw new Error('Session expired. Please log in again.');
     }
 
@@ -114,7 +96,8 @@ class ApiClient {
 
     const res = await fetch(url, {
       method: 'GET',
-      headers: this.getHeaders()
+      headers: this.getHeaders(),
+      credentials: 'include'   // Send HttpOnly auth cookie automatically
     });
 
     return this.handleResponse(res, endpoint, 'GET');
@@ -125,7 +108,8 @@ class ApiClient {
     const res = await fetch(url, {
       method: 'POST',
       headers: this.getHeaders(),
-      body: body ? JSON.stringify(body) : undefined
+      body: body ? JSON.stringify(body) : undefined,
+      credentials: 'include'
     });
 
     return this.handleResponse(res, endpoint, 'POST');
@@ -136,7 +120,8 @@ class ApiClient {
     const res = await fetch(url, {
       method: 'PUT',
       headers: this.getHeaders(),
-      body: body ? JSON.stringify(body) : undefined
+      body: body ? JSON.stringify(body) : undefined,
+      credentials: 'include'
     });
 
     return this.handleResponse(res, endpoint, 'PUT');
@@ -146,7 +131,8 @@ class ApiClient {
     const url = this.resolveUrl(endpoint);
     const res = await fetch(url, {
       method: 'DELETE',
-      headers: this.getHeaders()
+      headers: this.getHeaders(),
+      credentials: 'include'
     });
 
     return this.handleResponse(res, endpoint, 'DELETE');

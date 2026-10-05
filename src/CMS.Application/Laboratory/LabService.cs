@@ -30,8 +30,24 @@ public class LabService
             ORDER BY Category, TestName";
 
         var catalog = (await conn.QueryAsync<LabTestCatalogDto>(sql, new { TenantId = tenantId })).ToList();
-        await _cache.SetAsync(cacheKey, catalog, TimeSpan.FromHours(2));
-        return catalog;
+
+        var sqlParams = @"
+            SELECT p.Id, p.TestCatalogId, p.ParameterCode, p.ParameterName, p.Unit,
+                   p.ReferenceLow, p.ReferenceHigh, p.TextReferenceRange, p.DisplayOrder
+            FROM LabTestParameters p
+            JOIN LabTestCatalog c ON c.Id = p.TestCatalogId
+            WHERE c.TenantId = @TenantId AND c.IsActive = 1
+            ORDER BY p.DisplayOrder, p.Id";
+
+        var allParams = (await conn.QueryAsync<LabTestParameterDto>(sqlParams, new { TenantId = tenantId })).ToList();
+        var paramLookup = allParams.GroupBy(p => p.TestCatalogId).ToDictionary(g => g.Key, g => g.ToList());
+
+        var result = catalog.Select(c => c with {
+            Parameters = paramLookup.TryGetValue(c.Id, out var plist) ? plist : new List<LabTestParameterDto>()
+        }).ToList();
+
+        await _cache.SetAsync(cacheKey, result, TimeSpan.FromHours(2));
+        return result;
     }
 
     public async Task<int> CreateLabOrderAsync(CreateLabOrderDto dto)

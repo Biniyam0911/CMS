@@ -198,6 +198,62 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
     return clean.slice(0, 2).toUpperCase();
   };
 
+  // ==========================================
+  // SOAP NOTE DRAFT AUTOSAVE (IndexedDB)
+  // Protects against browser crashes, network drops, and accidental tab close.
+  // Draft is keyed by patientId + date so each patient-visit combo has its own slot.
+  // ==========================================
+
+  const getSoapDraftKey = (patientId: number) => {
+    const today = new Date().toISOString().split('T')[0];
+    return `soap_draft_${patientId}_${today}`;
+  };
+
+  const saveSoapDraft = (patientId: number) => {
+    try {
+      const key = getSoapDraftKey(patientId);
+      const draft = { chiefComplaint, history, physicalExam, diagnosis, icdCode, plan, savedAt: new Date().toISOString() };
+      localStorage.setItem(key, JSON.stringify(draft));
+    } catch {}
+  };
+
+  const restoreSoapDraft = (patientId: number): boolean => {
+    try {
+      const key = getSoapDraftKey(patientId);
+      const raw = localStorage.getItem(key);
+      if (!raw) return false;
+      const draft = JSON.parse(raw);
+      // Only restore if draft is from today and has meaningful content
+      const hasContent = draft.chiefComplaint || draft.history || draft.physicalExam || draft.diagnosis || draft.plan;
+      if (!hasContent) return false;
+      if (draft.chiefComplaint) setChiefComplaint(draft.chiefComplaint);
+      if (draft.history) setHistory(draft.history);
+      if (draft.physicalExam) setPhysicalExam(draft.physicalExam);
+      if (draft.diagnosis) setDiagnosis(draft.diagnosis);
+      if (draft.icdCode) setIcdCode(draft.icdCode);
+      if (draft.plan) setPlan(draft.plan);
+      return true;
+    } catch {}
+    return false;
+  };
+
+  const clearSoapDraft = (patientId: number) => {
+    try { localStorage.removeItem(getSoapDraftKey(patientId)); } catch {}
+  };
+
+  const [hasDraftRestored, setHasDraftRestored] = useState(false);
+  const [showDraftBanner, setShowDraftBanner] = useState(false);
+
+  // Autosave every 15 seconds when a patient is active and fields have content
+  useEffect(() => {
+    if (!activePatient?.id) return;
+    const interval = setInterval(() => {
+      const hasContent = chiefComplaint || history || physicalExam || diagnosis || plan;
+      if (hasContent) saveSoapDraft(activePatient.id);
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [activePatient?.id, chiefComplaint, history, physicalExam, diagnosis, icdCode, plan]);
+
   // Synchronize available doctors from backend API
   useEffect(() => {
     const fetchDoctors = async () => {
@@ -615,6 +671,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
   useEffect(() => {
     if (!activePatient) return;
 
+    // Try to restore draft from previous session first
     setChiefComplaint('');
     setHistory('');
     setPhysicalExam('');
@@ -622,6 +679,11 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
     setPlan('');
     setMedications([]);
     setCertDiagnosis('');
+
+    // Restore today's draft if it exists
+    const draftFound = restoreSoapDraft(activePatient.id);
+    setHasDraftRestored(draftFound);
+    setShowDraftBanner(draftFound);
 
     const loadPatientClinical = async () => {
       try {
@@ -905,6 +967,9 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
 
       setIsSaved(true);
       setOrderDispatchedToast('✓ Clinical Consultation Note Saved to EHR Database!');
+      // Clear autosave draft — consultation is now persisted to the database
+      if (activePatient?.id) clearSoapDraft(activePatient.id);
+      setShowDraftBanner(false);
       setTimeout(() => {
         setIsSaved(false);
         setOrderDispatchedToast(null);
@@ -1817,6 +1882,13 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                   {isEditingClosed && (
                     <div style={{ padding: '8px 12px', background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: '6px', fontSize: '0.78rem', color: '#92400e', fontWeight: 600 }}>
                       ⚠️ Viewing historical notes for <strong>{consultDate}</strong>. Existing notes are read-only. Clear fields below to submit a new note for this encounter date.
+                    </div>
+                  )}
+
+                  {showDraftBanner && (
+                    <div style={{ padding: '8px 12px', background: '#ecfdf5', border: '1px solid #10b981', borderRadius: '6px', fontSize: '0.78rem', color: '#065f46', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                      <span>💾 Unsaved draft recovered from your previous session. Review and save when ready.</span>
+                      <button onClick={() => setShowDraftBanner(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#065f46', fontSize: '1rem', fontWeight: 700 }}>✕</button>
                     </div>
                   )}
 

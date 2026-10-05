@@ -195,7 +195,7 @@ public class PayrollController : ControllerBase
             JOIN Staff st WITH (NOLOCK) ON st.Id = d.StaffId
             LEFT JOIN Users u WITH (NOLOCK) ON u.Id = st.UserId
             JOIN Patients p WITH (NOLOCK) ON p.Id = e.PatientId
-            JOIN Invoices i WITH (NOLOCK) ON i.PatientId = e.PatientId AND i.IssueDate = e.EncounterDate
+            JOIN Invoices i WITH (NOLOCK) ON (i.EncounterId = e.Id OR (i.EncounterId IS NULL AND i.PatientId = e.PatientId AND CAST(i.IssueDate AS DATE) = CAST(e.EncounterDate AS DATE)))
             JOIN InvoiceItems ii WITH (NOLOCK) ON ii.InvoiceId = i.Id
             LEFT JOIN PayrollAgreements pa WITH (NOLOCK) ON pa.DoctorId = d.Id 
                 AND pa.TenantId = @TenantId 
