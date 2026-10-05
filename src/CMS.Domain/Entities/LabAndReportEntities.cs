@@ -28,6 +28,7 @@ public class LabTestCatalog : BaseEntity
     public string Unit { get; set; } = string.Empty;
     public byte ResultType { get; set; } = 1; // 1=Numeric, 2=Text, 3=PosNeg
     public decimal Price { get; set; }
+    public int DisplayOrder { get; set; } = 1;
     public int? InstrumentId { get; set; }
     public List<LabTestParameter> Parameters { get; set; } = new();
 }

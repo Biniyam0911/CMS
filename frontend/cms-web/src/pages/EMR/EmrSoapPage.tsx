@@ -442,8 +442,9 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
             category: t.category || t.Category || 'Laboratory',
             department: t.sampleType || t.SampleType || 'Laboratory',
             price: parseFloat(t.price ?? t.Price ?? 0) || 0,
+            displayOrder: t.displayOrder ?? t.DisplayOrder ?? 1,
             description: `Specimen: ${t.sampleType || t.SampleType || 'Blood'} · TAT: ${t.turnaroundMinutes ?? t.TurnaroundMinutes ?? 60} min`
-          })));
+          })).sort((a: any, b: any) => (a.displayOrder ?? 1) - (b.displayOrder ?? 1)));
         }
       } catch (err) {
         console.warn('Failed to load lab catalog:', err);

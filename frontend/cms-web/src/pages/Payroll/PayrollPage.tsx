@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  DollarSign, Calendar, Users, ChevronDown, ChevronRight,
+  DollarSign, Calendar, Users, ChevronDown, ChevronUp, ChevronRight,
   Save, RefreshCw, CheckCircle2, AlertCircle, Percent,
-  Coins, Filter, Layers, Download, Check, Sparkles
+  Coins, Filter, Layers, Download, Check, Sparkles, ShieldCheck
 } from 'lucide-react';
 import { api } from '../../api/apiClient';
 
@@ -89,6 +89,10 @@ export default function PayrollPage() {
 
   // Tab 2: Agreement Setup State
   const [setupDoctorId, setSetupDoctorId] = useState<number | ''>('');
+  const [doctorSelectionMode, setDoctorSelectionMode] = useState<'ALL' | 'MULTI' | 'SINGLE'>('SINGLE');
+  const [selectedDoctorIds, setSelectedDoctorIds] = useState<number[]>([]);
+  const [categoryServicesMap, setCategoryServicesMap] = useState<Record<string, { id: number; code: string; name: string; price: number }[]>>({});
+  const [expandedCatServices, setExpandedCatServices] = useState<Record<string, boolean>>({});
   const [agreementsList, setAgreementsList] = useState<AgreementItemState[]>([]);
   const [loadingAgreements, setLoadingAgreements] = useState(false);
   const [savingAgreements, setSavingAgreements] = useState(false);
@@ -115,29 +119,31 @@ export default function PayrollPage() {
     }
   };
 
-  // Load Categories
+  // Load Categories (Consultation, Procedure, Facial from Services table)
   const loadCategories = async () => {
     try {
-      const catsRes = await api.get<string[]>('/api/v1/payroll/categories');
+      const catsRes = await api.get<any>('/api/v1/payroll/categories');
       const rawCats = (catsRes as any)?.data || (catsRes as any)?.Data || catsRes || [];
       if (Array.isArray(rawCats) && rawCats.length > 0) {
-        setCategories(rawCats);
+        if (typeof rawCats[0] === 'string') {
+          setCategories(rawCats);
+        } else {
+          // Object with { category, services }
+          const catNames = rawCats.map((item: any) => item.category ?? item.Category);
+          const srvMap: Record<string, any[]> = {};
+          rawCats.forEach((item: any) => {
+            const name = item.category ?? item.Category;
+            srvMap[name] = item.services ?? item.Services ?? [];
+          });
+          setCategories(catNames);
+          setCategoryServicesMap(srvMap);
+        }
       } else {
-        setCategories([
-          'Consultation', 'Facial Aesthetics', 'PRP Regenerative',
-          'Intralesional Injection', 'Electrotherapy', 'Acne & Scarring',
-          'Cryosurgery', 'Laser & Pigment', 'Hair Restoration',
-          'Minor Procedure', 'General Service'
-        ]);
+        setCategories(['Consultation', 'Procedure', 'Facial']);
       }
     } catch (err) {
       console.error('Failed to load categories:', err);
-      setCategories([
-        'Consultation', 'Facial Aesthetics', 'PRP Regenerative',
-        'Intralesional Injection', 'Electrotherapy', 'Acne & Scarring',
-        'Cryosurgery', 'Laser & Pigment', 'Hair Restoration',
-        'Minor Procedure', 'General Service'
-      ]);
+      setCategories(['Consultation', 'Procedure', 'Facial']);
     }
   };
 
@@ -247,9 +253,23 @@ export default function PayrollPage() {
     setExpandedCategories({});
   };
 
-  // Tab 2: Load Agreements when Doctor is selected
+  // Tab 2: Load Agreements when Doctor is selected or in ALL/MULTI mode
   useEffect(() => {
-    if (activeTab !== 'AGREEMENTS' || !setupDoctorId) return;
+    if (activeTab !== 'AGREEMENTS') return;
+
+    if (doctorSelectionMode === 'ALL' || doctorSelectionMode === 'MULTI') {
+      // In ALL or MULTI mode, initialize list with standard categories
+      const initializedList: AgreementItemState[] = categories.map(cat => ({
+        category: cat,
+        rateType: 1,
+        rate: 30,
+        isSelected: true
+      }));
+      setAgreementsList(initializedList);
+      return;
+    }
+
+    if (!setupDoctorId) return;
 
     const loadDoctorAgreements = async () => {
       setLoadingAgreements(true);
@@ -289,7 +309,7 @@ export default function PayrollPage() {
     };
 
     loadDoctorAgreements();
-  }, [setupDoctorId, activeTab, categories]);
+  }, [setupDoctorId, doctorSelectionMode, activeTab, categories]);
 
   // Update Agreement Row
   const updateAgreementRow = (category: string, field: keyof AgreementItemState, value: any) => {
@@ -325,28 +345,55 @@ export default function PayrollPage() {
     setCustomCategoryInput('');
   };
 
+  // Toggle Doctor in Multi-select mode
+  const toggleDoctorSelection = (docId: number) => {
+    setSelectedDoctorIds(prev =>
+      prev.includes(docId) ? prev.filter(id => id !== docId) : [...prev, docId]
+    );
+  };
+
   // Save Doctor Agreements
   const handleSaveAgreements = async () => {
-    if (!setupDoctorId) {
+    if (doctorSelectionMode === 'SINGLE' && !setupDoctorId) {
       alert('Please select a doctor first.');
+      return;
+    }
+
+    if (doctorSelectionMode === 'MULTI' && selectedDoctorIds.length === 0) {
+      alert('Please select at least one doctor.');
       return;
     }
 
     setSavingAgreements(true);
     setSaveSuccessMsg(null);
     try {
-      const payload = {
-        doctorId: Number(setupDoctorId),
-        agreements: agreementsList.map(a => ({
-          category: a.category,
-          rateType: a.rateType,
-          rate: Number(a.rate) || 0,
-          isActive: a.isSelected
-        }))
+      const agreementsPayload = agreementsList.map(a => ({
+        category: a.category,
+        rateType: a.rateType,
+        rate: Number(a.rate) || 0,
+        isActive: a.isSelected
+      }));
+
+      const payload: any = {
+        agreements: agreementsPayload,
+        applyToAllDoctors: doctorSelectionMode === 'ALL'
       };
 
+      if (doctorSelectionMode === 'ALL') {
+        payload.applyToAllDoctors = true;
+      } else if (doctorSelectionMode === 'MULTI') {
+        payload.doctorIds = selectedDoctorIds;
+      } else {
+        payload.doctorId = Number(setupDoctorId);
+      }
+
       await api.post('/api/v1/payroll/agreements', payload);
-      setSaveSuccessMsg('Doctor agreements saved successfully! Future calculations will apply these rates.');
+      const targetDesc = doctorSelectionMode === 'ALL'
+        ? 'all doctors'
+        : doctorSelectionMode === 'MULTI'
+        ? `${selectedDoctorIds.length} selected doctors`
+        : 'the selected doctor';
+      setSaveSuccessMsg(`Payroll agreements applied successfully to ${targetDesc}!`);
       setTimeout(() => setSaveSuccessMsg(null), 5000);
     } catch (err) {
       console.error('Failed to save agreements:', err);
@@ -1046,63 +1093,191 @@ export default function PayrollPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {/* Doctor Selection Card */}
           <div className="glass-panel" style={{ padding: '20px 24px', borderRadius: '14px', border: '1px solid var(--border-color)', background: 'var(--bg-card)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-              <div>
-                <h3 style={{ margin: '0 0 6px 0', fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Users size={20} color="#0071e3" />
-                  Select Doctor for Agreement Setup
-                </h3>
-                <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                  Configure commission percentage or fixed fee for each procedure category or service
-                </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+                <div>
+                  <h3 style={{ margin: '0 0 6px 0', fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Users size={20} color="#0071e3" />
+                    Doctor Agreement Scope &amp; Category Rates
+                  </h3>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                    Set commission percentage or fixed fee for Consultation, Procedure, and Facial services across all doctors or specific doctors
+                  </p>
+                </div>
+
+                {/* Mode Selector Tabs */}
+                <div style={{ display: 'flex', background: 'rgba(0,0,0,0.05)', borderRadius: '10px', padding: '3px', gap: '3px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setDoctorSelectionMode('ALL')}
+                    style={{
+                      padding: '7px 14px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: doctorSelectionMode === 'ALL' ? '#0071e3' : 'transparent',
+                      color: doctorSelectionMode === 'ALL' ? '#fff' : 'var(--text-main)',
+                      fontWeight: 700,
+                      fontSize: '0.82rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    ⚡ All Doctors
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDoctorSelectionMode('MULTI')}
+                    style={{
+                      padding: '7px 14px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: doctorSelectionMode === 'MULTI' ? '#0071e3' : 'transparent',
+                      color: doctorSelectionMode === 'MULTI' ? '#fff' : 'var(--text-main)',
+                      fontWeight: 700,
+                      fontSize: '0.82rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    ☑ Multiple Doctors ({selectedDoctorIds.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDoctorSelectionMode('SINGLE')}
+                    style={{
+                      padding: '7px 14px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: doctorSelectionMode === 'SINGLE' ? '#0071e3' : 'transparent',
+                      color: doctorSelectionMode === 'SINGLE' ? '#fff' : 'var(--text-main)',
+                      fontWeight: 700,
+                      fontSize: '0.82rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    👤 Single Doctor
+                  </button>
+                </div>
               </div>
 
-              <div style={{ minWidth: '300px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <select
-                  value={setupDoctorId}
-                  onChange={e => setSetupDoctorId(e.target.value ? Number(e.target.value) : '')}
-                  style={{
-                    flex: 1,
-                    padding: '10px 14px',
-                    borderRadius: '10px',
-                    border: '2px solid #0071e3',
-                    background: 'var(--bg-card)',
-                    color: 'var(--text-main)',
-                    fontSize: '0.95rem',
-                    fontWeight: 700,
-                    outline: 'none',
-                    boxShadow: '0 2px 8px rgba(0, 113, 227, 0.15)'
-                  }}
-                >
-                  <option value="">
-                    {loadingDoctors ? 'Loading doctors list...' : `-- Choose a Doctor to Configure (${doctors.length} available) --`}
-                  </option>
-                  {doctors.map(doc => (
-                    <option key={doc.doctorId} value={doc.doctorId}>
-                      {doc.doctorName} {doc.specialty ? `• ${doc.specialty}` : ''}
+              {/* Mode-Specific Selector Area */}
+              {doctorSelectionMode === 'ALL' && (
+                <div style={{ padding: '10px 16px', borderRadius: '10px', background: 'rgba(0, 113, 227, 0.08)', border: '1px solid rgba(0, 113, 227, 0.25)', display: 'flex', alignItems: 'center', gap: '10px', color: '#0071e3', fontSize: '0.88rem', fontWeight: 600 }}>
+                  <ShieldCheck size={18} />
+                  <span>
+                    <strong>Global Rule:</strong> Agreement rates configured below will be applied to <strong>all {doctors.length} active doctors</strong> in the clinic.
+                  </span>
+                </div>
+              )}
+
+              {doctorSelectionMode === 'MULTI' && (
+                <div style={{ padding: '12px 16px', borderRadius: '10px', background: 'rgba(0,0,0,0.02)', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                      Select Doctors to Apply Agreement ({selectedDoctorIds.length} of {doctors.length} selected):
+                    </span>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedDoctorIds(doctors.map(d => d.doctorId))}
+                        style={{ padding: '3px 10px', borderRadius: '6px', border: '1px solid #0071e3', color: '#0071e3', background: 'transparent', fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer' }}
+                      >
+                        Select All
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedDoctorIds([])}
+                        style={{ padding: '3px 10px', borderRadius: '6px', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', background: 'transparent', fontSize: '0.74rem', fontWeight: 600, cursor: 'pointer' }}
+                      >
+                        Deselect All
+                      </button>
+                    </div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '8px', maxHeight: '160px', overflowY: 'auto' }}>
+                    {doctors.map(doc => {
+                      const isChecked = selectedDoctorIds.includes(doc.doctorId);
+                      return (
+                        <label
+                          key={doc.doctorId}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            padding: '6px 10px',
+                            borderRadius: '7px',
+                            border: isChecked ? '1px solid #0071e3' : '1px solid var(--border-color)',
+                            background: isChecked ? 'rgba(0, 113, 227, 0.08)' : 'transparent',
+                            cursor: 'pointer',
+                            fontSize: '0.82rem',
+                            fontWeight: isChecked ? 700 : 500
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => toggleDoctorSelection(doc.doctorId)}
+                            style={{ width: '15px', height: '15px', accentColor: '#0071e3' }}
+                          />
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {doc.doctorName}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {doctorSelectionMode === 'SINGLE' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <select
+                    value={setupDoctorId}
+                    onChange={e => setSetupDoctorId(e.target.value ? Number(e.target.value) : '')}
+                    style={{
+                      flex: 1,
+                      maxWidth: '450px',
+                      padding: '10px 14px',
+                      borderRadius: '10px',
+                      border: '2px solid #0071e3',
+                      background: 'var(--bg-card)',
+                      color: 'var(--text-main)',
+                      fontSize: '0.92rem',
+                      fontWeight: 700,
+                      outline: 'none',
+                      boxShadow: '0 2px 8px rgba(0, 113, 227, 0.15)'
+                    }}
+                  >
+                    <option value="">
+                      {loadingDoctors ? 'Loading doctors list...' : `-- Choose a Doctor to Configure (${doctors.length} available) --`}
                     </option>
-                  ))}
-                </select>
+                    {doctors.map(doc => (
+                      <option key={doc.doctorId} value={doc.doctorId}>
+                        {doc.doctorName} {doc.specialty ? `• ${doc.specialty}` : ''}
+                      </option>
+                    ))}
+                  </select>
 
-                <button
-                  type="button"
-                  onClick={loadDoctors}
-                  title="Reload Doctors List"
-                  disabled={loadingDoctors}
-                  style={{
-                    padding: '9px 12px',
-                    borderRadius: '10px',
-                    border: '1px solid var(--border-color)',
-                    background: 'var(--bg-card)',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                >
-                  <RefreshCw size={16} className={loadingDoctors ? 'animate-spin' : ''} color="#0071e3" />
-                </button>
-              </div>
+                  <button
+                    type="button"
+                    onClick={loadDoctors}
+                    title="Reload Doctors List"
+                    disabled={loadingDoctors}
+                    style={{
+                      padding: '9px 12px',
+                      borderRadius: '10px',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-card)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    <RefreshCw size={16} className={loadingDoctors ? 'animate-spin' : ''} color="#0071e3" />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -1115,20 +1290,30 @@ export default function PayrollPage() {
           )}
 
           {/* Category Configuration Table */}
-          {!setupDoctorId ? (
+          {doctorSelectionMode === 'SINGLE' && !setupDoctorId ? (
             <div className="glass-panel" style={{ padding: '60px 20px', textAlign: 'center', borderRadius: '14px', border: '1px dashed var(--border-color)' }}>
               <Users size={48} style={{ margin: '0 auto 14px auto', color: '#0071e3', opacity: 0.5 }} />
               <h3 style={{ margin: '0 0 6px 0', fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-main)' }}>
                 No Doctor Selected
               </h3>
               <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
-                Please select a doctor from the dropdown above to view and customize their payroll agreements.
+                Please select a doctor from the dropdown above, or choose "All Doctors" or "Multiple Doctors" to configure in bulk.
+              </p>
+            </div>
+          ) : doctorSelectionMode === 'MULTI' && selectedDoctorIds.length === 0 ? (
+            <div className="glass-panel" style={{ padding: '60px 20px', textAlign: 'center', borderRadius: '14px', border: '1px dashed var(--border-color)' }}>
+              <Users size={48} style={{ margin: '0 auto 14px auto', color: '#0071e3', opacity: 0.5 }} />
+              <h3 style={{ margin: '0 0 6px 0', fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                No Doctors Selected
+              </h3>
+              <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
+                Please check at least one doctor above to set their commission agreements.
               </p>
             </div>
           ) : loadingAgreements ? (
             <div className="glass-panel" style={{ padding: '60px 20px', textAlign: 'center', borderRadius: '14px' }}>
               <RefreshCw size={32} className="animate-spin" style={{ margin: '0 auto 12px auto', color: '#0071e3' }} />
-              <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>Loading doctor's agreement profile...</div>
+              <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>Loading agreement profile...</div>
             </div>
           ) : (
             <div className="glass-panel" style={{ borderRadius: '14px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', overflow: 'hidden' }}>
@@ -1181,7 +1366,7 @@ export default function PayrollPage() {
                   <thead>
                     <tr style={{ background: 'rgba(0,0,0,0.03)', borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                       <th style={{ padding: '12px 18px', width: '48px', textAlign: 'center' }}>Active</th>
-                      <th style={{ padding: '12px 18px', fontWeight: 700 }}>Service Category / Procedure</th>
+                      <th style={{ padding: '12px 18px', fontWeight: 700 }}>Service Category &amp; Included Services</th>
                       <th style={{ padding: '12px 18px', fontWeight: 700, width: '220px' }}>Agreement Type</th>
                       <th style={{ padding: '12px 18px', fontWeight: 700, width: '220px' }}>Rate Value</th>
                       <th style={{ padding: '12px 18px', fontWeight: 700, width: '260px' }}>Sample Calculation</th>
@@ -1195,35 +1380,62 @@ export default function PayrollPage() {
                         ? (Number(row.rate || 0) / 100) * samplePrice
                         : Number(row.rate || 0);
 
-                      return (
-                        <tr
-                          key={row.category}
-                          style={{
-                            borderBottom: idx < agreementsList.length - 1 ? '1px solid var(--border-color)' : 'none',
-                            background: isSelected ? 'transparent' : 'rgba(0,0,0,0.02)',
-                            opacity: isSelected ? 1 : 0.65,
-                            transition: 'all 0.2s'
-                          }}
-                        >
-                          {/* Checkbox */}
-                          <td style={{ padding: '12px 18px', textAlign: 'center' }}>
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={e => updateAgreementRow(row.category, 'isSelected', e.target.checked)}
-                              style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#0071e3' }}
-                            />
-                          </td>
+                      const servicesUnderCat = categoryServicesMap[row.category] || [];
+                      const isServicesExpanded = expandedCatServices[row.category];
 
-                          {/* Category Name */}
-                          <td style={{ padding: '12px 18px' }}>
-                            <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '0.92rem' }}>
-                              {row.category}
-                            </div>
-                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                              Standard clinical category
-                            </div>
-                          </td>
+                      return (
+                        <React.Fragment key={row.category}>
+                          <tr
+                            style={{
+                              borderBottom: (idx < agreementsList.length - 1 && !isServicesExpanded) ? '1px solid var(--border-color)' : 'none',
+                              background: isSelected ? 'transparent' : 'rgba(0,0,0,0.02)',
+                              opacity: isSelected ? 1 : 0.65,
+                              transition: 'all 0.2s'
+                            }}
+                          >
+                            {/* Checkbox */}
+                            <td style={{ padding: '12px 18px', textAlign: 'center' }}>
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={e => updateAgreementRow(row.category, 'isSelected', e.target.checked)}
+                                style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#0071e3' }}
+                              />
+                            </td>
+
+                            {/* Category Name + Included Services Trigger */}
+                            <td style={{ padding: '12px 18px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{ fontWeight: 800, color: 'var(--text-main)', fontSize: '0.95rem' }}>
+                                  {row.category}
+                                </span>
+                                {servicesUnderCat.length > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setExpandedCatServices(prev => ({ ...prev, [row.category]: !prev[row.category] }))}
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '4px',
+                                      padding: '2px 8px',
+                                      borderRadius: '12px',
+                                      border: '1px solid #bfdbfe',
+                                      background: '#eff6ff',
+                                      color: '#1d4ed8',
+                                      fontSize: '0.72rem',
+                                      fontWeight: 700,
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    {servicesUnderCat.length} service{servicesUnderCat.length !== 1 ? 's' : ''}
+                                    {isServicesExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                                  </button>
+                                )}
+                              </div>
+                              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                                All services classified under {row.category} will inherit this rate rule
+                              </div>
+                            </td>
 
                           {/* Rate Type Selector */}
                           <td style={{ padding: '12px 18px' }}>
@@ -1316,6 +1528,47 @@ export default function PayrollPage() {
                             )}
                           </td>
                         </tr>
+
+                          {/* Expandable Services Drawer for this Category */}
+                          {isServicesExpanded && servicesUnderCat.length > 0 && (
+                            <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--border-color)' }}>
+                              <td colSpan={5} style={{ padding: '12px 24px 14px 56px' }}>
+                                <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#1e40af', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '8px' }}>
+                                  Clinical Services governed by this {row.category} agreement ({servicesUnderCat.length}):
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '8px', maxHeight: '180px', overflowY: 'auto' }}>
+                                  {servicesUnderCat.map(svc => (
+                                    <div
+                                      key={svc.id || svc.code}
+                                      style={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        padding: '6px 10px',
+                                        borderRadius: '6px',
+                                        background: '#ffffff',
+                                        border: '1px solid #e2e8f0',
+                                        fontSize: '0.78rem'
+                                      }}
+                                    >
+                                      <div>
+                                        <span style={{ fontWeight: 600, color: '#1e293b' }}>{svc.name}</span>
+                                        {svc.code && (
+                                          <span style={{ marginLeft: '6px', fontFamily: 'monospace', color: '#64748b', fontSize: '0.7rem' }}>
+                                            {svc.code}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <strong style={{ color: '#059669', fontSize: '0.8rem', flexShrink: 0, marginLeft: '8px' }}>
+                                        ETB {Number(svc.price || 0).toFixed(2)}
+                                      </strong>
+                                    </div>
+                                  ))}
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
                       );
                     })}
                   </tbody>
@@ -1387,7 +1640,13 @@ export default function PayrollPage() {
                   }}
                 >
                   <Save size={18} />
-                  {savingAgreements ? 'Saving Agreements...' : 'Save Doctor Agreements'}
+                  {savingAgreements
+                    ? 'Saving Agreements...'
+                    : doctorSelectionMode === 'ALL'
+                    ? `Save Agreements for All Doctors (${doctors.length})`
+                    : doctorSelectionMode === 'MULTI'
+                    ? `Save Agreements for ${selectedDoctorIds.length} Selected Doctor(s)`
+                    : 'Save Doctor Agreements'}
                 </button>
               </div>
             </div>

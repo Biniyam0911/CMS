@@ -485,3 +485,17 @@
 2026-10-05 22:21:26.107 +03:00 [INF] Application started. Press Ctrl+C to shut down.
 2026-10-05 22:21:26.110 +03:00 [INF] Hosting environment: Development
 2026-10-05 22:21:26.113 +03:00 [INF] Content root path: C:\Users\ASUS\source\repos\CMS\src\CMS.ServiceManager
+2026-10-05 22:22:26.108 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-10-05T22:22:26.1082486+03:00"
+2026-10-05 22:23:26.128 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-10-05T22:23:26.1284145+03:00"
+2026-10-05 22:24:26.148 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-10-05T22:24:26.1482033+03:00"
+2026-10-05 22:25:26.162 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-10-05T22:25:26.1621425+03:00"
+2026-10-05 22:26:26.169 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-10-05T22:26:26.1692716+03:00"
+2026-10-05 22:27:26.183 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-10-05T22:27:26.1836616+03:00"
+2026-10-05 22:28:26.202 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-10-05T22:28:26.2027694+03:00"
+2026-10-05 22:29:26.219 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-10-05T22:29:26.2192698+03:00"
+2026-10-05 22:30:26.241 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-10-05T22:30:26.2417685+03:00"
+2026-10-05 22:31:26.257 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-10-05T22:31:26.2571595+03:00"
+2026-10-05 22:32:26.274 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-10-05T22:32:26.2746071+03:00"
+2026-10-05 22:33:26.295 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-10-05T22:33:26.2955429+03:00"
+2026-10-05 22:34:26.317 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-10-05T22:34:26.3173143+03:00"
+2026-10-05 22:35:25.148 +03:00 [INF] Application is shutting down...

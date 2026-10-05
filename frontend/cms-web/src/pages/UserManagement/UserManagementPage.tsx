@@ -243,6 +243,26 @@ export default function UserManagementPage() {
     }
   };
 
+  const handleDeleteUser = async (u: any) => {
+    const isSuperAdmin = (u.roles || []).some((r: any) =>
+      (typeof r === 'string' ? r : r.name || '').toLowerCase() === 'superadmin'
+    );
+    if (isSuperAdmin) {
+      alert(`Cannot delete SuperAdmin user "${u.username}".`);
+      return;
+    }
+    if (!window.confirm(`Are you sure you want to delete user "${u.username || u.name}"? This will deactivate the user account and revoke access.`)) return;
+
+    try {
+      await api.delete(`/users/${u.id}`);
+      setUsers(prev => prev.filter(item => item.id !== u.id));
+      setSaveSuccessToast(`✓ User "${u.username || u.name}" deleted successfully.`);
+      setTimeout(() => setSaveSuccessToast(null), 4000);
+    } catch (err: any) {
+      alert(err?.response?.data?.message || err?.message || 'Failed to delete user');
+    }
+  };
+
   const fetchUsersAndRoles = async () => {
     try {
       setLoading(true);
@@ -876,6 +896,14 @@ export default function UserManagementPage() {
                         </button>
                         <button onClick={() => setShowResetPasswordModal(u)} className="btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem', color: '#c2410c' }}>
                           <Lock size={12} /> Reset
+                        </button>
+                        <button
+                          onClick={() => handleDeleteUser(u)}
+                          className="btn-secondary"
+                          style={{ padding: '4px 8px', fontSize: '0.75rem', color: '#b91c1c', display: 'flex', alignItems: 'center', gap: '3px' }}
+                          title="Delete User"
+                        >
+                          <Trash2 size={12} /> Delete
                         </button>
                       </div>
                     </td>

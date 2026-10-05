@@ -24,10 +24,10 @@ public class LabService
         using var conn = _dbFactory.CreateConnection();
         var sql = @"
             SELECT Id, TestCode, TestName, Category, SampleType, TurnaroundMinutes,
-                   NormalRangeLow, NormalRangeHigh, Unit, Price
+                   NormalRangeLow, NormalRangeHigh, Unit, Price, DisplayOrder
             FROM LabTestCatalog
             WHERE TenantId = @TenantId AND IsActive = 1
-            ORDER BY Category, TestName";
+            ORDER BY DisplayOrder ASC, Category ASC, TestName ASC";
 
         var catalog = (await conn.QueryAsync<LabTestCatalogDto>(sql, new { TenantId = tenantId })).ToList();
 

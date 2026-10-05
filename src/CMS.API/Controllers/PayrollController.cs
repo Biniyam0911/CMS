@@ -42,31 +42,70 @@ public class PayrollController : ControllerBase
     [HttpGet("categories")]
     public async Task<IActionResult> GetCategories()
     {
-        var standardCategories = new List<string>
-        {
-            "Consultation",
-            "Facial Aesthetics",
-            "PRP Regenerative",
-            "Intralesional Injection",
-            "Electrotherapy",
-            "Acne & Scarring",
-            "Cryosurgery",
-            "Laser & Pigment",
-            "Hair Restoration",
-            "Minor Procedure",
-            "General Service"
-        };
-
+        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
         using var conn = _dbFactory.CreateConnection();
-        var distinctInAgreements = await conn.QueryAsync<string>(
-            "SELECT DISTINCT Category FROM PayrollAgreements WHERE LEN(Category) > 0");
 
-        var all = standardCategories
-            .Union(distinctInAgreements)
-            .OrderBy(c => c)
+        // Fetch distinct payroll-relevant categories and their services from the Services table
+        var servicesSql = @"
+            SELECT Id, Code, Name, Category, StandardFee AS Price
+            FROM Services
+            WHERE TenantId = @TenantId
+              AND IsActive = 1
+              AND Category IN ('Consultation', 'Procedure', 'Facial')
+            ORDER BY Category, Name";
+
+        var services = (await conn.QueryAsync<dynamic>(servicesSql, new { TenantId = tenantId })).ToList();
+
+        var grouped = services
+            .GroupBy(s => (string)s.Category)
+            .Select(g => new
+            {
+                Category = g.Key,
+                Services = g.Select(s => new { s.Id, s.Code, s.Name, s.Price }).ToList()
+            })
+            .OrderBy(g => g.Category)
             .ToList();
 
-        return Ok(ApiResponse<List<string>>.Ok(all));
+        var allCategories = new[] { "Consultation", "Procedure", "Facial" };
+        var result = new List<object>();
+
+        foreach (var cat in allCategories)
+        {
+            var match = grouped.FirstOrDefault(g => g.Category == cat);
+            if (match != null)
+            {
+                result.Add(match);
+            }
+            else
+            {
+                result.Add(new
+                {
+                    Category = cat,
+                    Services = new List<object>()
+                });
+            }
+        }
+
+        return Ok(ApiResponse<object>.Ok(result));
+    }
+
+    // GET /api/v1/payroll/services-by-category?category=Consultation
+    [HttpGet("services-by-category")]
+    public async Task<IActionResult> GetServicesByCategory([FromQuery] string category)
+    {
+        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+        using var conn = _dbFactory.CreateConnection();
+
+        var sql = @"
+            SELECT Id, Code, Name, Category, StandardFee AS Price
+            FROM Services
+            WHERE TenantId = @TenantId
+              AND IsActive = 1
+              AND Category = @Category
+            ORDER BY Name";
+
+        var services = await conn.QueryAsync<dynamic>(sql, new { TenantId = tenantId, Category = category });
+        return Ok(ApiResponse<object>.Ok(services));
     }
 
     // GET /api/v1/payroll/agreements?doctorId=124
@@ -103,44 +142,75 @@ public class PayrollController : ControllerBase
     [HttpPost("agreements")]
     public async Task<IActionResult> SaveAgreements([FromBody] SaveDoctorAgreementsRequest request)
     {
-        if (request == null || request.DoctorId <= 0)
-        {
-            return BadRequest(ApiResponse<string>.Fail("DoctorId is required."));
-        }
+        if (request == null || request.Agreements == null || request.Agreements.Count == 0)
+            return BadRequest(ApiResponse<string>.Fail("Agreements list is required."));
 
         byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
         using var conn = _dbFactory.CreateConnection();
 
-        foreach (var item in request.Agreements)
+        // Determine which doctors to apply the agreements to
+        List<int> doctorIds;
+        if (request.ApplyToAllDoctors)
         {
-            if (string.IsNullOrWhiteSpace(item.Category)) continue;
-
-            var upsertSql = @"
-                MERGE INTO PayrollAgreements AS target
-                USING (SELECT @TenantId AS TenantId, @DoctorId AS DoctorId, @Category AS Category) AS source
-                ON (target.TenantId = source.TenantId AND target.DoctorId = source.DoctorId AND target.Category = source.Category)
-                WHEN MATCHED THEN
-                    UPDATE SET 
-                        RateType = @RateType,
-                        Rate = @Rate,
-                        IsActive = @IsActive,
-                        UpdatedAt = GETDATE()
-                WHEN NOT MATCHED THEN
-                    INSERT (TenantId, DoctorId, Category, RateType, Rate, IsActive, CreatedAt, UpdatedAt)
-                    VALUES (@TenantId, @DoctorId, @Category, @RateType, @Rate, @IsActive, GETDATE(), GETDATE());";
-
-            await conn.ExecuteAsync(upsertSql, new
-            {
-                TenantId = tenantId,
-                DoctorId = request.DoctorId,
-                Category = item.Category.Trim(),
-                RateType = item.RateType == 2 ? (byte)2 : (byte)1,
-                Rate = item.Rate,
-                IsActive = item.IsActive
-            });
+            var allDoctors = await conn.QueryAsync<int>(@"
+                SELECT d.Id FROM Doctors d
+                JOIN Staff st ON st.Id = d.StaffId
+                WHERE st.IsActive = 1");
+            doctorIds = allDoctors.ToList();
+        }
+        else if (request.DoctorIds != null && request.DoctorIds.Count > 0)
+        {
+            doctorIds = request.DoctorIds;
+        }
+        else if (request.DoctorId > 0)
+        {
+            doctorIds = new List<int> { request.DoctorId };
+        }
+        else
+        {
+            return BadRequest(ApiResponse<string>.Fail("Either DoctorId, DoctorIds, or ApplyToAllDoctors=true is required."));
         }
 
-        return Ok(ApiResponse<object>.Ok(new { Message = "Payroll agreements saved successfully.", request.DoctorId }));
+        var upsertSql = @"
+            MERGE INTO PayrollAgreements AS target
+            USING (SELECT @TenantId AS TenantId, @DoctorId AS DoctorId, @Category AS Category) AS source
+            ON (target.TenantId = source.TenantId AND target.DoctorId = source.DoctorId AND target.Category = source.Category)
+            WHEN MATCHED THEN
+                UPDATE SET 
+                    RateType = @RateType,
+                    Rate = @Rate,
+                    IsActive = @IsActive,
+                    UpdatedAt = GETDATE()
+            WHEN NOT MATCHED THEN
+                INSERT (TenantId, DoctorId, Category, RateType, Rate, IsActive, CreatedAt, UpdatedAt)
+                VALUES (@TenantId, @DoctorId, @Category, @RateType, @Rate, @IsActive, GETDATE(), GETDATE());";
+
+        int savedCount = 0;
+        foreach (var docId in doctorIds)
+        {
+            foreach (var item in request.Agreements)
+            {
+                if (string.IsNullOrWhiteSpace(item.Category)) continue;
+
+                await conn.ExecuteAsync(upsertSql, new
+                {
+                    TenantId = tenantId,
+                    DoctorId = docId,
+                    Category = item.Category.Trim(),
+                    RateType = item.RateType == 2 ? (byte)2 : (byte)1,
+                    Rate = item.Rate,
+                    IsActive = item.IsActive
+                });
+                savedCount++;
+            }
+        }
+
+        return Ok(ApiResponse<object>.Ok(new
+        {
+            Message = $"Payroll agreements saved for {doctorIds.Count} doctor(s). {savedCount} rules applied.",
+            DoctorIds = doctorIds,
+            AppliedToAll = request.ApplyToAllDoctors
+        }));
     }
 
     // DELETE /api/v1/payroll/agreements/{id}
@@ -171,19 +241,15 @@ public class PayrollController : ControllerBase
                 d.Id AS DoctorId,
                 ISNULL(u.FirstName + ' ' + u.LastName, ISNULL(st.FirstName + ' ' + st.LastName, 'Dr. #' + CAST(d.Id AS NVARCHAR))) AS DoctorName,
                 CAST(i.IssueDate AS DATE) AS ServiceDate,
-                CASE 
-                    WHEN ii.Description LIKE '%Consultation%' OR ii.ItemType = 1 THEN 'Consultation'
-                    WHEN ii.Description LIKE '%FACIAL%' THEN 'Facial Aesthetics'
-                    WHEN ii.Description LIKE '%PRP%' THEN 'PRP Regenerative'
-                    WHEN ii.Description LIKE '%Steroid%' THEN 'Intralesional Injection'
-                    WHEN ii.Description LIKE '%Electro%' THEN 'Electrotherapy'
-                    WHEN ii.Description LIKE '%Acne%' OR ii.Description LIKE '%Scar%' THEN 'Acne & Scarring'
-                    WHEN ii.Description LIKE '%Cryo%' THEN 'Cryosurgery'
-                    WHEN ii.Description LIKE '%pigment%' THEN 'Laser & Pigment'
-                    WHEN ii.Description LIKE '%Finasteride%' OR ii.Description LIKE '%Minoxidil%' THEN 'Hair Restoration'
-                    WHEN ii.ItemType = 4 THEN 'Minor Procedure'
-                    ELSE 'General Service'
-                END AS Category,
+                COALESCE(
+                    NULLIF(s.Category, ''),
+                    CASE 
+                        WHEN ii.Description LIKE '%Consultation%' OR ii.ItemType = 1 THEN 'Consultation'
+                        WHEN ii.Description LIKE '%FACIAL%' THEN 'Facial'
+                        WHEN ii.Description LIKE '%PRP%' OR ii.Description LIKE '%Steroid%' OR ii.Description LIKE '%Biopsy%' OR ii.Description LIKE '%Cryo%' OR ii.ItemType = 4 THEN 'Procedure'
+                        ELSE 'Procedure'
+                    END
+                ) AS Category,
                 ii.Description AS ServiceName,
                 ISNULL(ii.Total, 0) AS ServicePrice,
                 ISNULL(p.FirstName + ' ' + ISNULL(p.LastName, ''), 'Patient #' + CAST(p.Id AS NVARCHAR)) AS PatientName,
@@ -197,22 +263,16 @@ public class PayrollController : ControllerBase
             JOIN Patients p WITH (NOLOCK) ON p.Id = e.PatientId
             JOIN Invoices i WITH (NOLOCK) ON (i.EncounterId = e.Id OR (i.EncounterId IS NULL AND i.PatientId = e.PatientId AND CAST(i.IssueDate AS DATE) = CAST(e.EncounterDate AS DATE)))
             JOIN InvoiceItems ii WITH (NOLOCK) ON ii.InvoiceId = i.Id
+            LEFT JOIN Services s WITH (NOLOCK) ON s.Id = ii.RefId
             LEFT JOIN PayrollAgreements pa WITH (NOLOCK) ON pa.DoctorId = d.Id 
                 AND pa.TenantId = @TenantId 
                 AND pa.IsActive = 1
-                AND pa.Category = (
+                AND pa.Category = COALESCE(
+                    NULLIF(s.Category, ''),
                     CASE 
                         WHEN ii.Description LIKE '%Consultation%' OR ii.ItemType = 1 THEN 'Consultation'
-                        WHEN ii.Description LIKE '%FACIAL%' THEN 'Facial Aesthetics'
-                        WHEN ii.Description LIKE '%PRP%' THEN 'PRP Regenerative'
-                        WHEN ii.Description LIKE '%Steroid%' THEN 'Intralesional Injection'
-                        WHEN ii.Description LIKE '%Electro%' THEN 'Electrotherapy'
-                        WHEN ii.Description LIKE '%Acne%' OR ii.Description LIKE '%Scar%' THEN 'Acne & Scarring'
-                        WHEN ii.Description LIKE '%Cryo%' THEN 'Cryosurgery'
-                        WHEN ii.Description LIKE '%pigment%' THEN 'Laser & Pigment'
-                        WHEN ii.Description LIKE '%Finasteride%' OR ii.Description LIKE '%Minoxidil%' THEN 'Hair Restoration'
-                        WHEN ii.ItemType = 4 THEN 'Minor Procedure'
-                        ELSE 'General Service'
+                        WHEN ii.Description LIKE '%FACIAL%' THEN 'Facial'
+                        ELSE 'Procedure'
                     END
                 )
             WHERE e.TenantId = @TenantId
@@ -333,7 +393,12 @@ public class PayrollController : ControllerBase
 
 public class SaveDoctorAgreementsRequest
 {
+    /// <summary>Single doctor (legacy). Use DoctorIds for multi-select.</summary>
     public int DoctorId { get; set; }
+    /// <summary>List of specific doctor IDs for multi-doctor agreement.</summary>
+    public List<int>? DoctorIds { get; set; }
+    /// <summary>When true, agreement applies to ALL active doctors ignoring DoctorId/DoctorIds.</summary>
+    public bool ApplyToAllDoctors { get; set; } = false;
     public List<SavePayrollAgreementItemDto> Agreements { get; set; } = new();
 }
 

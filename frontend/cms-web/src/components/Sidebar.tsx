@@ -4,7 +4,7 @@ import {
   Pill, CreditCard, BarChart3, FileSpreadsheet, Globe, ShieldCheck,
   Boxes, Key, Settings, Plug, LogOut, LucideIcon, HeartPulse, Layers,
   ChevronLeft, ChevronRight, Stethoscope, Activity, Cross, Building, Bed, Video, X, KeyRound,
-  DollarSign, Coins
+  DollarSign, Coins, Palette
 } from 'lucide-react';
 
 import { hasModuleAccess } from '../utils/permissions';
@@ -14,7 +14,7 @@ export type ModuleKey =
   | 'LAB' | 'PHARMACY' | 'BILLING' | 'PAYROLL' | 'REPORTS' | 'REPORT_BUILDER'
   | 'REPORT_SALES' | 'REPORT_AGE_STRATIFIED' | 'REPORT_SEX_STRATIFIED' | 'REPORT_DOCTOR_PERFORMANCE' | 'REPORT_DIAGNOSIS' | 'REPORT_PROCEDURE'
   | 'PATIENT_PORTAL' | 'USER_MGMT' | 'SERVICE_MGMT' | 'MODULE_MGMT' | 'API_MGMT'
-  | 'SETTINGS' | 'INTEGRATIONS' | 'TELEMED' | 'CHANGE_PASSWORD';
+  | 'SETTINGS' | 'APPEARANCE' | 'INTEGRATIONS' | 'TELEMED' | 'CHANGE_PASSWORD';
 
 interface SidebarProps {
   activeModule: ModuleKey;
@@ -53,6 +53,7 @@ export const MODULE_ITEMS: { key: ModuleKey; label: string; category: string; ic
   { key: 'MODULE_MGMT', label: 'Module Manager', category: 'Admin', icon: Boxes },
   { key: 'API_MGMT', label: 'API & Webhooks', category: 'Admin', icon: Key },
   { key: 'SETTINGS', label: 'Clinic Settings', category: 'Admin', icon: Settings },
+  { key: 'APPEARANCE', label: 'Theme & Appearance', category: 'Admin', icon: Palette },
   { key: 'INTEGRATIONS', label: 'Integrations', category: 'Admin', icon: Plug },
   { key: 'CHANGE_PASSWORD', label: 'Change Password', category: 'Account', icon: KeyRound },
 ];

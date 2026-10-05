@@ -91,8 +91,7 @@ const _savedFont = loadFontFromStorage();
 document.documentElement.style.setProperty('--font-family', _savedFont);
 document.documentElement.style.setProperty('--font-heading', _savedFont);
 
-type SettingsTab = 'clinic' | 'theme' | 'backup';
-type ThemeSection = 'background' | 'typography' | 'colors' | 'cards' | 'controls' | 'header' | 'sidebar';
+type SettingsTab = 'clinic' | 'backup';
 
 export default function SettingsPage() {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
@@ -131,7 +130,6 @@ export default function SettingsPage() {
   const [selectedFont, setSelectedFont] = useState(() => loadFontFromStorage());
   const [themeSavedAlert, setThemeSavedAlert] = useState(false);
   const [activePreset, setActivePreset] = useState<string | null>(null);
-  const [themeSection, setThemeSection] = useState<ThemeSection>('background');
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -279,24 +277,11 @@ export default function SettingsPage() {
     </div>
   );
 
-  const themeSectionItems: { key: ThemeSection; label: string; Icon: any }[] = [
-    { key: 'background', label: 'System Background', Icon: Monitor },
-    { key: 'typography', label: 'Typography', Icon: Type },
-    { key: 'colors', label: 'Colors', Icon: Palette },
-    { key: 'cards', label: 'Cards & Glass', Icon: Layers },
-    { key: 'controls', label: 'Controls', Icon: ToggleLeft },
-    { key: 'header', label: 'Header', Icon: Monitor },
-    { key: 'sidebar', label: 'Sidebar', Icon: Sidebar },
-  ];
-
   return (
     <div style={{ maxWidth: '880px' }}>
       <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '4px' }}>
         <button onClick={() => setActiveTab('clinic')} className={activeTab === 'clinic' ? 'btn-primary' : 'btn-secondary'} style={{ whiteSpace: 'nowrap' }}>
           <Settings size={15} /> Clinic Settings
-        </button>
-        <button onClick={() => setActiveTab('theme')} className={activeTab === 'theme' ? 'btn-primary' : 'btn-secondary'} style={{ whiteSpace: 'nowrap' }}>
-          <Palette size={15} /> Theme &amp; Appearance
         </button>
         <button onClick={() => { setActiveTab('backup'); loadBackups(); }} className={activeTab === 'backup' ? 'btn-primary' : 'btn-secondary'} style={{ whiteSpace: 'nowrap' }}>
           <Database size={15} /> Database Backup &amp; Maintenance
@@ -354,226 +339,6 @@ export default function SettingsPage() {
               <Save size={16} /> Save Clinic Settings
             </button>
           </form>
-        </div>
-      )}
-
-      {activeTab === 'theme' && (
-        <div>
-          <div className="glass-panel" style={{ padding: '20px 24px', marginBottom: '18px', display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', flexWrap: 'wrap', gap: '12px', flexDirection: isMobile ? 'column' : 'row' }}>
-            <div>
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Palette color="#af52de" size={18} /> Personal Theme & Appearance Customization
-              </h3>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                Preferences are saved per-user for <strong>{currentUserDisplay}</strong>. Your customized colors and typography will not affect other clinic users.
-              </p>
-            </div>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              {themeSavedAlert && <span className="badge badge-normal"><CheckCircle2 size={12} /> Theme Saved</span>}
-              <button onClick={handleResetTheme} className="btn-secondary" style={{ fontSize: '0.78rem' }}>Reset to Default</button>
-              <button onClick={handleSaveTheme} className="btn-primary" style={{ background: '#af52de', borderColor: '#af52de' }}>
-                <Save size={15} /> Save Theme
-              </button>
-            </div>
-          </div>
-
-          {/* Presets */}
-          <div className="glass-panel" style={{ padding: '20px 24px', marginBottom: '18px' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '12px' }}>Quick Presets</div>
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-              {[
-                { key: 'apple', label: 'Apple Light', bg: '#f5f5f7', accent: '#0071e3' },
-                { key: 'slate', label: 'Slate Dark', bg: '#0f172a', accent: '#3b82f6' },
-                { key: 'teal', label: 'Clinical Teal', bg: '#f0fdfa', accent: '#0d9488' },
-                { key: 'midnight', label: 'Midnight', bg: '#09090b', accent: '#818cf8' },
-              ].map(p => (
-                <button key={p.key} onClick={() => applyPreset(p.key)} style={{
-                  display: 'flex', flexDirection: 'column', gap: '8px', padding: '14px 18px',
-                  borderRadius: '10px', cursor: 'pointer', minWidth: '110px',
-                  border: activePreset === p.key ? `2px solid ${p.accent}` : '1px solid var(--border-color)',
-                  background: p.bg, color: p.accent, transition: 'all 0.15s ease',
-                  boxShadow: activePreset === p.key ? `0 0 0 3px ${p.accent}22` : 'none'
-                }}>
-                  <div style={{ display: 'flex', gap: '4px' }}>
-                    <div style={{ width: 12, height: 12, borderRadius: '50%', background: p.accent }} />
-                    <div style={{ width: 12, height: 12, borderRadius: '50%', background: p.accent + '55' }} />
-                    <div style={{ width: 12, height: 12, borderRadius: '50%', background: p.accent + '22' }} />
-                  </div>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{p.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Section Tabs */}
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '16px' }}>
-            {themeSectionItems.map(({ key, label, Icon }) => (
-              <button key={key} onClick={() => setThemeSection(key)}
-                className={themeSection === key ? 'btn-primary' : 'btn-secondary'}
-                style={{ fontSize: '0.78rem', padding: '6px 12px' }}>
-                <Icon size={13} /> {label}
-              </button>
-            ))}
-          </div>
-
-          <div className="glass-panel" style={{ padding: '24px' }}>
-
-            {themeSection === 'background' && (
-              <div>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '16px' }}>System Background Colors</div>
-                <ColorRow label="Page Background" varKey="--bg-dark" description="Main app canvas behind all panels" />
-                <ColorRow label="Card / Panel Background" varKey="--bg-card" description="Glass panels, modals, tables" />
-                <ColorRow label="Sidebar Background" varKey="--bg-sidebar" description="Left navigation sidebar background" />
-                <div style={{ marginTop: '16px', padding: '14px', background: 'rgba(0,113,227,0.04)', borderRadius: '10px', border: '1px solid rgba(0,113,227,0.12)' }}>
-                  <div style={{ fontSize: '0.73rem', fontWeight: 600, color: '#0071e3', marginBottom: '8px' }}>Live Preview</div>
-                  <div style={{ display: 'flex', gap: '10px' }}>
-                    <div style={{ flex: 1, height: '52px', borderRadius: '8px', background: themeVars['--bg-dark'], border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', color: 'var(--text-muted)' }}>Page BG</div>
-                    <div style={{ flex: 1, height: '52px', borderRadius: '8px', background: themeVars['--bg-card'], border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', color: 'var(--text-muted)' }}>Card BG</div>
-                    <div style={{ width: '80px', height: '52px', borderRadius: '8px', background: themeVars['--bg-sidebar'], border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', color: 'var(--text-muted)' }}>Sidebar</div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {themeSection === 'typography' && (
-              <div>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '16px' }}>Typography & Font Settings</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
-                  {FONT_OPTIONS.map(opt => (
-                    <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '10px',
-                      border: selectedFont === opt.value ? '2px solid var(--accent-blue)' : '1px solid var(--border-color)',
-                      cursor: 'pointer', background: selectedFont === opt.value ? 'rgba(0,113,227,0.04)' : 'transparent' }}>
-                      <input type="radio" name="font" checked={selectedFont === opt.value} onChange={() => handleFontChange(opt.value)} style={{ width: 'auto' }} />
-                      <div>
-                        <div style={{ fontWeight: 600, fontSize: '0.85rem', fontFamily: opt.value }}>{opt.label}</div>
-                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: opt.value, marginTop: '2px' }}>
-                          The quick brown fox — MRN-000123 — Br 250.00
-                        </div>
-                      </div>
-                    </label>
-                  ))}
-                </div>
-                <div style={{ padding: '14px 16px', background: 'rgba(0,113,227,0.04)', borderRadius: '10px', border: '1px solid rgba(0,113,227,0.12)' }}>
-                  <div style={{ fontSize: '0.73rem', fontWeight: 600, color: '#0071e3', marginBottom: '8px' }}>Live Type Preview</div>
-                  <div style={{ fontFamily: selectedFont }}>
-                    <div style={{ fontSize: '1.1rem', fontWeight: 700 }}>Patient Health Records</div>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '4px' }}>Encounter notes, prescriptions, and billing documents use this typeface.</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '6px' }}>MRN-000123 · Addis Ababa · 2026-09-11 · Br 250.00</div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {themeSection === 'colors' && (
-              <div>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '16px' }}>System Accent Colors</div>
-                <ColorRow label="Primary Blue (Buttons & Links)" varKey="--accent-blue" description="Main CTA color: buttons, active tabs, focus rings" />
-                <ColorRow label="Success Green" varKey="--accent-emerald" description="Paid, Dispensed, Completed status indicators" />
-                <ColorRow label="Warning Amber" varKey="--accent-amber" description="Pending, In-Progress, Warning states" />
-                <ColorRow label="Danger Red" varKey="--accent-rose" description="Critical alerts, delete actions, emergency indicators" />
-                <ColorRow label="Main Text Color" varKey="--text-main" description="Primary text on headings and content" />
-                <ColorRow label="Secondary Text Color" varKey="--text-secondary" description="Labels, supporting information" />
-                <ColorRow label="Border Color" varKey="--border-color" description="Table dividers, card borders, input outlines" />
-              </div>
-            )}
-
-            {themeSection === 'cards' && (
-              <div>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '16px' }}>Cards & Glass Panel Style</div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--border-color)' }}>
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>Border Radius</div>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>Corner rounding for cards, modals, panels</div>
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    {['6px', '10px', '14px', '18px', '24px'].map(r => (
-                      <button key={r} onClick={() => updateThemeVar('--card-radius', r)}
-                        style={{ padding: '6px 10px', borderRadius: r, fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer',
-                          border: themeVars['--card-radius'] === r ? '2px solid var(--accent-blue)' : '1px solid var(--border-color)',
-                          background: themeVars['--card-radius'] === r ? 'rgba(0,113,227,0.08)' : 'var(--bg-card)',
-                          color: themeVars['--card-radius'] === r ? 'var(--accent-blue)' : 'var(--text-main)' }}>
-                        {r}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <ColorRow label="Card / Panel Background" varKey="--bg-card" description="Glass panel fill color" />
-                <div style={{ marginTop: '16px', padding: '14px', background: 'rgba(0,113,227,0.04)', borderRadius: '10px', border: '1px solid rgba(0,113,227,0.12)' }}>
-                  <div style={{ fontSize: '0.73rem', fontWeight: 600, color: '#0071e3', marginBottom: '10px' }}>Live Card Preview</div>
-                  <div style={{ background: themeVars['--bg-card'], border: `1px solid ${themeVars['--border-color']}`, borderRadius: themeVars['--card-radius'] || '14px', padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-                    <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: '6px' }}>Sample Panel</div>
-                    <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>This is how glass panels will appear throughout the app.</div>
-                    <div style={{ marginTop: '12px', display: 'flex', gap: '6px' }}>
-                      <span className="badge badge-normal">Active</span>
-                      <span className="badge badge-warning">Pending</span>
-                      <span className="badge badge-critical">Alert</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {themeSection === 'controls' && (
-              <div>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '16px' }}>Input & Button Controls</div>
-                <ColorRow label="Primary Button Color" varKey="--accent-blue" description="Background for btn-primary buttons" />
-                <ColorRow label="Input Background" varKey="--bg-card" description="Input fields, dropdowns, and textarea backgrounds" />
-                <div style={{ marginTop: '16px', padding: '14px', background: 'rgba(0,113,227,0.04)', borderRadius: '10px', border: '1px solid rgba(0,113,227,0.12)' }}>
-                  <div style={{ fontSize: '0.73rem', fontWeight: 600, color: '#0071e3', marginBottom: '10px' }}>Live Controls Preview</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    <input type="text" placeholder="Sample text input..." style={{ maxWidth: '300px' }} readOnly />
-                    <div style={{ display: 'flex', gap: '8px' }}><button className="btn-primary">Primary Button</button><button className="btn-secondary">Secondary Button</button></div>
-                    <select style={{ maxWidth: '220px' }}><option>Sample Dropdown Option</option></select>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {themeSection === 'header' && (
-              <div>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '16px' }}>Header / Navigation Bar</div>
-                <ColorRow label="Header Background" varKey="--bg-card" description="Topbar backdrop (uses card background with glass blur)" />
-                <ColorRow label="Header Border" varKey="--border-color" description="Bottom separator line of the header" />
-                <ColorRow label="Accent / Badge Color" varKey="--accent-blue" description="Clinic icon badge and active state highlights" />
-                <div style={{ marginTop: '16px', padding: '14px', background: 'rgba(0,113,227,0.04)', borderRadius: '10px', border: '1px solid rgba(0,113,227,0.12)' }}>
-                  <div style={{ fontSize: '0.73rem', fontWeight: 600, color: '#0071e3', marginBottom: '10px' }}>Live Header Preview</div>
-                  <div style={{ background: themeVars['--bg-card'] || '#ffffff', borderBottom: `1px solid ${themeVars['--border-color'] || '#e5e5ea'}`, borderRadius: '10px', padding: '12px 20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ width: 32, height: 32, borderRadius: '8px', background: themeVars['--accent-blue'] || '#0071e3', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <HeartPulse size={16} color="#fff" />
-                    </div>
-                    <div>
-                      <div style={{ fontWeight: 700, fontSize: '0.9rem', color: themeVars['--text-main'] || '#1d1d1f' }}>Clinic Name</div>
-                      <div style={{ fontSize: '0.7rem', color: themeVars['--text-secondary'] || '#6e6e73' }}>Patient Records</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {themeSection === 'sidebar' && (
-              <div>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '16px' }}>Sidebar Navigation</div>
-                <ColorRow label="Sidebar Background" varKey="--bg-sidebar" description="Left navigation sidebar background color" />
-                <ColorRow label="Active Nav Item Accent" varKey="--accent-blue" description="Selected menu item highlight color" />
-                <ColorRow label="Divider / Border Color" varKey="--border-color" description="Category separators and item hover borders" />
-                <div style={{ marginTop: '16px', padding: '14px', background: 'rgba(0,113,227,0.04)', borderRadius: '10px', border: '1px solid rgba(0,113,227,0.12)' }}>
-                  <div style={{ fontSize: '0.73rem', fontWeight: 600, color: '#0071e3', marginBottom: '10px' }}>Live Sidebar Preview</div>
-                  <div style={{ width: '180px', background: themeVars['--bg-sidebar'] || '#ffffff', border: `1px solid ${themeVars['--border-color'] || '#e5e5ea'}`, borderRadius: '10px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    {['Dashboard', 'Patients', 'Pharmacy', 'Laboratory'].map((item, i) => (
-                      <div key={item} style={{ padding: '8px 10px', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 600,
-                        background: i === 0 ? `${themeVars['--accent-blue'] || '#0071e3'}18` : 'transparent',
-                        color: i === 0 ? (themeVars['--accent-blue'] || '#0071e3') : (themeVars['--text-secondary'] || '#6e6e73'),
-                        display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: i === 0 ? (themeVars['--accent-blue'] || '#0071e3') : 'transparent' }} />
-                        {item}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-          </div>
         </div>
       )}
 

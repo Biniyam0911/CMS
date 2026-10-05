@@ -117,6 +117,27 @@ public class UsersController : ControllerBase
 
         return Ok(ApiResponse<string>.Ok(message));
     }
+    [HttpDelete("{userId:int}")]
+    public async Task<IActionResult> DeleteUser(int userId)
+    {
+        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+        using var conn = _authService.CreateDbConnection();
+
+        var isSuperAdmin = await conn.ExecuteScalarAsync<int>(@"
+            SELECT COUNT(1) FROM Roles r
+            JOIN UserRoles ur ON ur.RoleId = r.Id
+            WHERE ur.UserId = @UserId AND r.Name = 'SuperAdmin'", new { UserId = userId });
+        if (isSuperAdmin > 0)
+            return BadRequest(ApiResponse<object>.Fail("Cannot delete SuperAdmin user."));
+
+        int rows = await conn.ExecuteAsync(@"
+            UPDATE Users SET IsActive = 0, LockoutEnd = DATEADD(year, 100, SYSUTCDATETIME()) WHERE Id = @UserId AND TenantId = @TenantId;
+            UPDATE Staff SET IsActive = 0 WHERE UserId = @UserId AND TenantId = @TenantId;
+            DELETE FROM RefreshTokens WHERE UserId = @UserId;",
+            new { UserId = userId, TenantId = tenantId });
+
+        return Ok(ApiResponse<object>.Ok(new { Success = rows > 0, UserId = userId, Message = "User deleted successfully." }));
+    }
 }
 
 [ApiController]

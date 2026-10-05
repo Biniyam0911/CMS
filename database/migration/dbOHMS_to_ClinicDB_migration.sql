@@ -492,6 +492,7 @@ BEGIN
         [ResultType]        TINYINT       NOT NULL DEFAULT 1,
         [Price]             DECIMAL(10,2) NULL,
         [ParentTestId]      INT           NULL,
+        [DisplayOrder]      INT           NOT NULL DEFAULT 1,
         [IsActive]          BIT           NOT NULL DEFAULT 1,
         [CreatedAt]         DATETIME2     NOT NULL DEFAULT GETDATE(),
         CONSTRAINT PK_LabTestCatalog PRIMARY KEY ([Id]),
@@ -506,6 +507,8 @@ BEGIN
         ALTER TABLE ClinicDB.dbo.[LabTestCatalog] ADD [ParentTestId] INT NULL;
     IF COL_LENGTH('ClinicDB.dbo.LabTestCatalog','Price') IS NULL
         ALTER TABLE ClinicDB.dbo.[LabTestCatalog] ADD [Price] DECIMAL(10,2) NULL;
+    IF COL_LENGTH('ClinicDB.dbo.LabTestCatalog','DisplayOrder') IS NULL
+        ALTER TABLE ClinicDB.dbo.[LabTestCatalog] ADD [DisplayOrder] INT NOT NULL DEFAULT 1;
 END
 
 -- ─── LAB ORDERS ───────────────────────────────────────────────

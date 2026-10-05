@@ -35,6 +35,7 @@ interface LabParameter {
   unit: string;
   normalRangeLow: number;
   normalRangeHigh: number;
+  displayOrder?: number;
 }
 
 interface LabTestMaster {
@@ -45,6 +46,7 @@ interface LabTestMaster {
   sampleType: string;
   turnaroundMinutes: number;
   price: number;
+  displayOrder: number;
   fastingRequired: boolean;
   isActive: boolean;
   parameters: LabParameter[];
@@ -176,8 +178,9 @@ export default function ServicesPage() {
   const [labFormPrice, setLabFormPrice] = useState('300.0');
   const [labFormFasting, setLabFormFasting] = useState(false);
   const [labFormParams, setLabFormParams] = useState<LabParameter[]>([
-    { code: 'PARAM-1', name: 'Primary Analyte', unit: 'mg/dL', normalRangeLow: 10, normalRangeHigh: 50 }
+    { code: 'PARAM-1', name: 'Primary Analyte', unit: 'mg/dL', normalRangeLow: 10, normalRangeHigh: 50, displayOrder: 1 }
   ]);
+  const [labFormDisplayOrder, setLabFormDisplayOrder] = useState(1);
 
   // Form State for Category
   const [formCatName, setFormCatName] = useState('');
@@ -230,13 +233,16 @@ export default function ServicesPage() {
       if (rawLab.length > 0) {
         setLabTests(rawLab.map((t: any) => {
           const rawParams: any[] = t.parameters || t.Parameters || [];
-          const params: LabParameter[] = rawParams.map((p: any) => ({
-            code: p.parameterCode || p.ParameterCode || p.code || p.Code || '',
-            name: p.parameterName || p.ParameterName || p.name || p.Name || '',
-            unit: p.unit || p.Unit || '',
-            normalRangeLow: p.referenceLow ?? p.ReferenceLow ?? p.normalRangeLow ?? p.NormalRangeLow ?? 0,
-            normalRangeHigh: p.referenceHigh ?? p.ReferenceHigh ?? p.normalRangeHigh ?? p.NormalRangeHigh ?? 0
-          }));
+          const params: LabParameter[] = rawParams
+            .map((p: any) => ({
+              code: p.parameterCode || p.ParameterCode || p.code || p.Code || '',
+              name: p.parameterName || p.ParameterName || p.name || p.Name || '',
+              unit: p.unit || p.Unit || '',
+              normalRangeLow: p.referenceLow ?? p.ReferenceLow ?? p.normalRangeLow ?? p.NormalRangeLow ?? 0,
+              normalRangeHigh: p.referenceHigh ?? p.ReferenceHigh ?? p.normalRangeHigh ?? p.NormalRangeHigh ?? 0,
+              displayOrder: p.displayOrder ?? p.DisplayOrder ?? 1
+            }))
+            .sort((a: LabParameter, b: LabParameter) => (a.displayOrder ?? 1) - (b.displayOrder ?? 1));
 
           return {
             id: t.id || t.Id,
@@ -246,6 +252,7 @@ export default function ServicesPage() {
             sampleType: t.sampleType || t.SampleType || 'Blood / Serum',
             turnaroundMinutes: t.turnaroundMinutes ?? t.TurnaroundMinutes ?? 60,
             price: parseFloat(t.price ?? t.Price ?? 0) || 0,
+            displayOrder: t.displayOrder ?? t.DisplayOrder ?? 1,
             fastingRequired: false,
             isActive: true,
             parameters: params.length > 0 ? params : (
@@ -255,12 +262,13 @@ export default function ServicesPage() {
                   name: t.testName || t.TestName || 'Primary Analyte',
                   unit: t.unit || t.Unit || '',
                   normalRangeLow: t.normalRangeLow ?? t.NormalRangeLow ?? 0,
-                  normalRangeHigh: t.normalRangeHigh ?? t.NormalRangeHigh ?? 0
+                  normalRangeHigh: t.normalRangeHigh ?? t.NormalRangeHigh ?? 0,
+                  displayOrder: 1
                 }
               ] : []
             )
           };
-        }));
+        }).sort((a: LabTestMaster, b: LabTestMaster) => a.displayOrder - b.displayOrder));
       }
     } catch (err) {
       console.error('Failed to load services & categories:', err);
@@ -358,8 +366,9 @@ export default function ServicesPage() {
     setLabFormTat('60');
     setLabFormPrice('300.0');
     setLabFormFasting(false);
+    setLabFormDisplayOrder(1);
     setLabFormParams([
-      { code: 'PARAM-1', name: 'Primary Analyte', unit: 'mg/dL', normalRangeLow: 10, normalRangeHigh: 50 }
+      { code: 'PARAM-1', name: 'Primary Analyte', unit: 'mg/dL', normalRangeLow: 10, normalRangeHigh: 50, displayOrder: 1 }
     ]);
     setShowLabModal(true);
   };
@@ -373,16 +382,17 @@ export default function ServicesPage() {
     setLabFormTat(String(t.turnaroundMinutes));
     setLabFormPrice(String(t.price));
     setLabFormFasting(t.fastingRequired);
+    setLabFormDisplayOrder(t.displayOrder ?? 1);
     setLabFormParams(t.parameters && t.parameters.length > 0 
       ? t.parameters.map(p => ({ ...p })) 
-      : [{ code: `${t.code}-1`, name: t.name, unit: '', normalRangeLow: 0, normalRangeHigh: 100 }]);
+      : [{ code: `${t.code}-1`, name: t.name, unit: '', normalRangeLow: 0, normalRangeHigh: 100, displayOrder: 1 }]);
     setShowLabModal(true);
   };
 
   const handleAddParamRow = () => {
     setLabFormParams([
       ...labFormParams,
-      { code: `PARAM-${labFormParams.length + 1}`, name: 'New Sub-Parameter', unit: 'U/L', normalRangeLow: 0, normalRangeHigh: 100 }
+      { code: `PARAM-${labFormParams.length + 1}`, name: 'New Sub-Parameter', unit: 'U/L', normalRangeLow: 0, normalRangeHigh: 100, displayOrder: labFormParams.length + 1 }
     ]);
   };
 
@@ -401,7 +411,8 @@ export default function ServicesPage() {
       name: p.name || 'Sub-Test Analyte',
       unit: p.unit || '',
       normalRangeLow: p.normalRangeLow != null && !isNaN(Number(p.normalRangeLow)) ? Number(p.normalRangeLow) : null,
-      normalRangeHigh: p.normalRangeHigh != null && !isNaN(Number(p.normalRangeHigh)) ? Number(p.normalRangeHigh) : null
+      normalRangeHigh: p.normalRangeHigh != null && !isNaN(Number(p.normalRangeHigh)) ? Number(p.normalRangeHigh) : null,
+      displayOrder: p.displayOrder ?? (idx + 1)
     }));
 
     const payload = {
@@ -411,6 +422,7 @@ export default function ServicesPage() {
       sampleType: labFormSample,
       turnaroundMinutes: tatNum,
       price: priceNum,
+      displayOrder: labFormDisplayOrder,
       unit: firstParam?.unit || '',
       normalRangeLow: firstParam?.normalRangeLow != null ? Number(firstParam.normalRangeLow) : null,
       normalRangeHigh: firstParam?.normalRangeHigh != null ? Number(firstParam.normalRangeHigh) : null,
@@ -786,7 +798,7 @@ export default function ServicesPage() {
                           {test.fastingRequired && <span className="badge badge-warning" style={{ fontSize: '0.65rem' }}>Fasting Req.</span>}
                         </div>
                         <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                          Specimen: <strong>{test.sampleType}</strong> • Turnaround: <strong>{test.turnaroundMinutes} Mins</strong> • Sub-Tests: <strong>{test.parameters?.length || 1}</strong>
+                          Specimen: <strong>{test.sampleType}</strong> • Turnaround: <strong>{test.turnaroundMinutes} Mins</strong> • Sub-Tests: <strong>{test.parameters?.length || 1}</strong> • Order: <strong>#{test.displayOrder ?? 1}</strong>
                         </div>
                       </div>
                     </div>
@@ -824,6 +836,7 @@ export default function ServicesPage() {
                         <table className="cms-table" style={{ background: '#ffffff' }}>
                           <thead>
                             <tr>
+                              <th style={{ width: '40px', textAlign: 'center' }}>#</th>
                               <th>Parameter Code</th>
                               <th>Analyte / Sub-Test Name</th>
                               <th>Measurement Unit</th>
@@ -834,6 +847,7 @@ export default function ServicesPage() {
                           <tbody>
                             {(test.parameters || []).map((p, idx) => (
                               <tr key={idx}>
+                                <td style={{ textAlign: 'center', color: '#94a3b8', fontSize: '0.75rem' }}>{p.displayOrder ?? (idx + 1)}</td>
                                 <td><span style={{ fontFamily: 'monospace', fontWeight: 700 }}>{p.code}</span></td>
                                 <td><strong>{p.name}</strong></td>
                                 <td>{p.unit}</td>
@@ -908,7 +922,7 @@ export default function ServicesPage() {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: '10px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr 80px', gap: '10px' }}>
                 <div>
                   <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Category</label>
                   <select value={labFormCat} onChange={e => setLabFormCat(e.target.value)}>
@@ -927,6 +941,10 @@ export default function ServicesPage() {
                   <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Price Tariff (Br) *</label>
                   <input type="number" step="0.5" value={labFormPrice} onChange={e => setLabFormPrice(e.target.value)} required />
                 </div>
+                <div>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Display Order</label>
+                  <input type="number" min={1} value={labFormDisplayOrder} onChange={e => setLabFormDisplayOrder(parseInt(e.target.value) || 1)} title="Controls the order tests appear in lists. Lower numbers appear first." />
+                </div>
               </div>
 
               {/* Sub-Parameters Section */}
@@ -941,9 +959,10 @@ export default function ServicesPage() {
                 </div>
 
                 <div style={{ overflowX: 'auto', maxHeight: '200px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: isMobile ? '520px' : 'auto' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: isMobile ? '600px' : 'auto' }}>
                     {labFormParams.map((p, idx) => (
-                      <div key={idx} style={{ display: 'grid', gridTemplateColumns: '90px 1.4fr 70px 70px 70px auto', gap: '6px', alignItems: 'center' }}>
+                      <div key={idx} style={{ display: 'grid', gridTemplateColumns: '40px 90px 1.4fr 70px 70px 70px auto', gap: '6px', alignItems: 'center' }}>
+                        <input type="number" min={1} placeholder="#" value={p.displayOrder ?? (idx + 1)} onChange={e => { const u = [...labFormParams]; u[idx].displayOrder = parseInt(e.target.value) || idx + 1; setLabFormParams(u); }} style={{ fontSize: '0.72rem', textAlign: 'center' }} title="Display order for this analyte" />
                         <input type="text" placeholder="Code" value={p.code} onChange={e => { const u = [...labFormParams]; u[idx].code = e.target.value; setLabFormParams(u); }} style={{ fontSize: '0.72rem' }} />
                         <input type="text" placeholder="Analyte Name" value={p.name} onChange={e => { const u = [...labFormParams]; u[idx].name = e.target.value; setLabFormParams(u); }} style={{ fontSize: '0.72rem' }} />
                         <input type="text" placeholder="Unit" value={p.unit} onChange={e => { const u = [...labFormParams]; u[idx].unit = e.target.value; setLabFormParams(u); }} style={{ fontSize: '0.72rem' }} />

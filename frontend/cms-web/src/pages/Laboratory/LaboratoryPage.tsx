@@ -514,13 +514,17 @@ export default function LaboratoryPage() {
             category: c.category || c.Category || 'Biochemistry',
             sample: c.sampleType || c.SampleType || 'Serum',
             price: c.price || c.Price || 150,
-            parameters: hasParams ? rawParams.map((p: any) => ({
-              code: p.parameterCode || p.ParameterCode || p.code || '',
-              name: p.parameterName || p.ParameterName || p.name || '',
-              unit: p.unit || p.Unit || '',
-              min: p.referenceLow ?? p.ReferenceLow ?? p.min ?? 0,
-              max: p.referenceHigh ?? p.ReferenceHigh ?? p.max ?? 100
-            })) : (c.testCode === 'CBC' ? [
+            displayOrder: c.displayOrder ?? c.DisplayOrder ?? 1,
+            parameters: hasParams ? rawParams
+              .map((p: any) => ({
+                code: p.parameterCode || p.ParameterCode || p.code || '',
+                name: p.parameterName || p.ParameterName || p.name || '',
+                unit: p.unit || p.Unit || '',
+                min: p.referenceLow ?? p.ReferenceLow ?? p.min ?? 0,
+                max: p.referenceHigh ?? p.ReferenceHigh ?? p.max ?? 100,
+                displayOrder: p.displayOrder ?? p.DisplayOrder ?? 1
+              }))
+              .sort((a: any, b: any) => (a.displayOrder - b.displayOrder)) : (c.testCode === 'CBC' ? [
               { code: 'WBC', name: 'White Blood Cell Count', unit: '10^3/uL', min: 4.5, max: 11.0 },
               { code: 'RBC', name: 'Red Blood Cell Count', unit: '10^6/uL', min: 4.2, max: 5.8 },
               { code: 'HGB', name: 'Hemoglobin', unit: 'g/dL', min: 12.0, max: 17.5 },
@@ -531,7 +535,7 @@ export default function LaboratoryPage() {
             ])
           };
         });
-        setCatalog(mappedCatalog);
+        setCatalog(mappedCatalog.sort((a: any, b: any) => (a.displayOrder ?? 1) - (b.displayOrder ?? 1)));
       } else {
         setCatalog([
           {

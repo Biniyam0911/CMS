@@ -23,6 +23,7 @@ import ServicesPage from './pages/Services/ServicesPage';
 import ModuleManagementPage from './pages/ModuleManagement/ModuleManagementPage';
 import ApiManagementPage from './pages/ApiManagement/ApiManagementPage';
 import SettingsPage from './pages/Settings/SettingsPage';
+import AppearancePage from './pages/Appearance/AppearancePage';
 import IntegrationsPage from './pages/Integrations/IntegrationsPage';
 import TelemedQueuePage from './pages/Telemedicine/TelemedQueuePage';
 import ChangePasswordPage from './pages/Auth/ChangePasswordPage';
@@ -167,6 +168,17 @@ export default function App() {
   };
   const DEFAULT_FONT = "'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
 
+  // Watermark background state (image URL + opacity)
+  const [watermarkUrl, setWatermarkUrl] = useState<string>(() => {
+    return localStorage.getItem('cms_watermark_url') || '';
+  });
+  const [watermarkOpacity, setWatermarkOpacity] = useState<number>(() => {
+    return parseFloat(localStorage.getItem('cms_watermark_opacity') || '0.10');
+  });
+  const [watermarkSize, setWatermarkSize] = useState<number>(() => {
+    return parseInt(localStorage.getItem('cms_watermark_size') || '35');
+  });
+
   const applyUserTheme = (username?: string) => {
     const uKey = username ? username.toLowerCase().trim() : (function() {
       try {
@@ -182,10 +194,15 @@ export default function App() {
     let theme = DEFAULT_THEME_VARS;
     let font = DEFAULT_FONT;
     try {
-      const rawTheme = localStorage.getItem(`cms_theme_user_${uKey}`);
+      // User-specific theme takes priority over global
+      const userThemeRaw = localStorage.getItem(`cms_theme_user_${uKey}`);
+      const globalThemeRaw = localStorage.getItem('cms_theme_global');
+      const rawTheme = userThemeRaw || globalThemeRaw;
       if (rawTheme) theme = { ...DEFAULT_THEME_VARS, ...JSON.parse(rawTheme) };
-      const savedFont = localStorage.getItem(`cms_font_user_${uKey}`);
-      if (savedFont) font = savedFont;
+
+      const userFont = localStorage.getItem(`cms_font_user_${uKey}`);
+      const globalFont = localStorage.getItem('cms_font_global');
+      font = userFont || globalFont || DEFAULT_FONT;
     } catch {}
 
     const root = document.documentElement;
@@ -197,6 +214,24 @@ export default function App() {
     root.style.setProperty('--text-muted', theme['--text-secondary'] || '#6e6e73');
     root.style.setProperty('--font-family', font);
     root.style.setProperty('--font-heading', font);
+
+    // Load watermark preferences (user-specific → global → none)
+    const userWatermark = localStorage.getItem(`cms_watermark_user_${uKey}`);
+    const globalWatermark = localStorage.getItem('cms_watermark_global');
+    const userBgMode = localStorage.getItem(`cms_bg_mode_user_${uKey}`);
+    const globalBgMode = localStorage.getItem('cms_bg_mode_global');
+    const effectiveBgMode = userBgMode || globalBgMode || localStorage.getItem('cms_bg_mode') || 'color';
+    const effectiveWatermark = userWatermark ?? globalWatermark ?? localStorage.getItem('cms_watermark_url') ?? '';
+    const effectiveOpacity = parseFloat(localStorage.getItem('cms_watermark_opacity') || '0.10');
+    const effectiveSize = parseInt(localStorage.getItem('cms_watermark_size') || '35');
+
+    if (effectiveBgMode === 'image' && effectiveWatermark) {
+      setWatermarkUrl(effectiveWatermark);
+    } else {
+      setWatermarkUrl('');
+    }
+    setWatermarkOpacity(isNaN(effectiveOpacity) ? 0.10 : effectiveOpacity);
+    setWatermarkSize(isNaN(effectiveSize) ? 35 : effectiveSize);
   };
 
   // Sync role permissions, branding and per-user theme on startup
@@ -206,7 +241,19 @@ export default function App() {
     applyUserTheme(user?.username);
 
     const handleBrandingChange = () => loadBranding();
-    const handleUserThemeChange = () => applyUserTheme(user?.username);
+    const handleUserThemeChange = (e: Event) => {
+      const detail = (e as CustomEvent)?.detail;
+      if (detail?.watermarkUrl !== undefined) {
+        if (detail?.bgMode === 'image' && detail.watermarkUrl) {
+          setWatermarkUrl(detail.watermarkUrl);
+        } else {
+          setWatermarkUrl('');
+        }
+        if (detail?.watermarkOpacity !== undefined) setWatermarkOpacity(detail.watermarkOpacity);
+        if (detail?.watermarkSize !== undefined) setWatermarkSize(detail.watermarkSize);
+      }
+      applyUserTheme(user?.username);
+    };
     const handleModuleStateChange = () => {
       try {
         const saved = localStorage.getItem('cms_disabled_modules');
@@ -331,6 +378,25 @@ export default function App() {
             minWidth: 0
           }}
         >
+          {/* Watermark Background Overlay (when image mode is active) */}
+          {watermarkUrl && (
+            <div
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundImage: `url(${watermarkUrl})`,
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'center center',
+                backgroundSize: `${watermarkSize}% auto`,
+                opacity: watermarkOpacity,
+                pointerEvents: 'none',
+                zIndex: 0
+              }}
+            />
+          )}
           <Header
             title={currentModuleItem?.label || 'Executive Operations'}
             subtitle={`Module: ${currentModuleItem?.category || 'Core'} | Clinic Tenant #1 | On-Premise MSSQL Server Express`}
@@ -387,6 +453,7 @@ export default function App() {
           {activeModule === 'MODULE_MGMT' && <ModuleManagementPage />}
           {!disabledModules.has(activeModule) && activeModule === 'API_MGMT' && <ApiManagementPage />}
           {activeModule === 'SETTINGS' && <SettingsPage />}
+          {!disabledModules.has(activeModule) && activeModule === 'APPEARANCE' && <AppearancePage />}
           {!disabledModules.has(activeModule) && activeModule === 'INTEGRATIONS' && <IntegrationsPage />}
           {!disabledModules.has(activeModule) && activeModule === 'TELEMED' && <TelemedQueuePage />}
           {activeModule === 'CHANGE_PASSWORD' && <ChangePasswordPage currentUser={user} />}
