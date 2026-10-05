@@ -25,6 +25,29 @@ public class AuthManagementService
 
     public System.Data.IDbConnection CreateDbConnection() => _dbFactory.CreateConnection();
 
+    private sealed class UserLoginRecord
+    {
+        public int Id { get; set; }
+        public byte TenantId { get; set; }
+        public string Username { get; set; } = "";
+        public string? Email { get; set; }
+        public string? PasswordHash { get; set; }
+        public string? Salt { get; set; }
+        public string? FirstName { get; set; }
+        public string? LastName { get; set; }
+        public bool IsActive { get; set; }
+        public bool IsLocked { get; set; }
+        public bool MfaEnabled { get; set; }
+        public string? MfaSecret { get; set; }
+        public string? Roles { get; set; }
+    }
+
+    private sealed class StaffDoctorIdRecord
+    {
+        public int? StaffId { get; set; }
+        public int? DoctorId { get; set; }
+    }
+
     public async Task<LoginResponse?> LoginAsync(LoginRequest request)
     {
         using var conn = _dbFactory.CreateConnection();
@@ -39,19 +62,19 @@ public class AuthManagementService
             GROUP BY u.Id, u.TenantId, u.Username, u.Email, u.PasswordHash, u.Salt,
                      u.FirstName, u.LastName, u.IsActive, u.IsLocked, u.MfaEnabled, u.MfaSecret";
 
-        var user = await conn.QueryFirstOrDefaultAsync<dynamic>(sql, new { request.TenantId, request.Username });
-        if (user == null || (bool)user.IsActive == false || (bool)user.IsLocked == true)
+        var user = await conn.QueryFirstOrDefaultAsync<UserLoginRecord>(sql, new { request.TenantId, request.Username });
+        if (user == null || !user.IsActive || user.IsLocked)
             return null;
 
         // Verify password
-        string salt = (string)(user.Salt ?? "");
-        string expectedHash = (string)(user.PasswordHash ?? "");
-        string uname = (string)(user.Username ?? request.Username);
+        string salt = user.Salt ?? "";
+        string expectedHash = user.PasswordHash ?? "";
+        string uname = !string.IsNullOrEmpty(user.Username) ? user.Username : request.Username;
 
         if (!VerifyPassword(request.Password, expectedHash, salt, uname))
             return null;
 
-        var roles = ((string)(user.Roles ?? "Staff")).Split(',');
+        var roles = (user.Roles ?? "Staff").Split(',');
 
         // Resolve DoctorId and StaffId so the frontend correctly identifies the logged-in doctor
         var sqlIds = @"
@@ -59,24 +82,19 @@ public class AuthManagementService
             FROM Staff s
             LEFT JOIN Doctors d ON d.StaffId = s.Id
             WHERE s.UserId = @UserId";
-        var ids = await conn.QueryFirstOrDefaultAsync<dynamic>(sqlIds, new { UserId = (int)user.Id });
-        int? resolvedDoctorId = null;
-        int? resolvedStaffId = null;
-        if (ids != null)
-        {
-            try { resolvedDoctorId = (ids.DoctorId == null || ids.DoctorId is DBNull) ? null : (int?)Convert.ToInt32(ids.DoctorId); } catch { }
-            try { resolvedStaffId = (ids.StaffId == null || ids.StaffId is DBNull) ? null : (int?)Convert.ToInt32(ids.StaffId); } catch { }
-        }
+        var ids = await conn.QueryFirstOrDefaultAsync<StaffDoctorIdRecord>(sqlIds, new { UserId = user.Id });
+        int? resolvedDoctorId = ids?.DoctorId;
+        int? resolvedStaffId = ids?.StaffId;
 
         var userDto = new UserDto(
-            (int)user.Id,
-            (byte)user.TenantId,
-            (string)user.Username,
-            (string)user.Email,
-            (string)user.FirstName,
-            (string)user.LastName,
+            user.Id,
+            user.TenantId,
+            user.Username,
+            user.Email ?? "",
+            user.FirstName ?? "",
+            user.LastName ?? "",
             roles,
-            (bool)user.MfaEnabled,
+            user.MfaEnabled,
             DoctorId: resolvedDoctorId,
             StaffId: resolvedStaffId
         );

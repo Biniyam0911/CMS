@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Text.RegularExpressions;
 using CMS.Domain.Interfaces;
 using CMS.Shared.DTOs;
@@ -161,7 +161,7 @@ public class ReportsController : ControllerBase
                 return Ok(ApiResponse<object>.Ok(grouped));
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             // Fallback to static catalog if catalog query fails
         }

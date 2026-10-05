@@ -331,24 +331,24 @@ public class TelemedService
         }
         else
         {
-            var identity = await conn.QueryFirstOrDefaultAsync<dynamic>(
+            var identityPatientId = await conn.QueryFirstOrDefaultAsync<int?>(
                 "SELECT PatientId FROM PatientSocialIdentities WHERE Platform = @Platform AND ExternalPlatformId = @ChatId AND TenantId = @TenantId",
                 new { Platform = platform, ChatId = platformChatId, TenantId = tenantId });
 
-            if (identity != null && identity.PatientId != null)
+            if (identityPatientId.HasValue && identityPatientId.Value > 0)
             {
-                patientId = (int)identity.PatientId;
+                patientId = identityPatientId.Value;
             }
             else
             {
-                var p = await conn.QueryFirstOrDefaultAsync<dynamic>("SELECT TOP 1 Id FROM Patients WHERE TenantId = @TenantId ORDER BY Id ASC", new { TenantId = tenantId });
-                patientId = p != null ? (int)p.Id : 1;
+                var pId = await conn.QueryFirstOrDefaultAsync<int?>("SELECT TOP 1 Id FROM Patients WHERE TenantId = @TenantId ORDER BY Id ASC", new { TenantId = tenantId });
+                patientId = pId ?? 1;
             }
         }
 
         decimal consultationFee = await GetTelemedConsultationFeeAsync(tenantId);
 
-        var session = await conn.QueryFirstOrDefaultAsync<dynamic>(@"
+        var session = await conn.QueryFirstOrDefaultAsync<TelemedExistingSessionDto>(@"
             SELECT TOP 1 Id, StatusId, DoctorId 
             FROM TelemedSessions 
             WHERE TenantId = @TenantId AND PatientId = @PatientId AND StatusId IN (1, 2, 3)
@@ -358,10 +358,10 @@ public class TelemedService
         int sessionId;
         if (session != null)
         {
-            sessionId = (int)session.Id;
-            if (selectedDoctorId.HasValue && selectedDoctorId.Value > 0 && session.DoctorId != selectedDoctorId.Value)
+            sessionId = session.Id;
+            if (selectedDoctorId is int docId && docId > 0 && session.DoctorId != docId)
             {
-                await conn.ExecuteAsync("UPDATE TelemedSessions SET DoctorId = @DoctorId WHERE Id = @Id", new { DoctorId = selectedDoctorId.Value, Id = sessionId });
+                await conn.ExecuteAsync("UPDATE TelemedSessions SET DoctorId = @DoctorId WHERE Id = @Id", new { DoctorId = docId, Id = sessionId });
             }
         }
         else
@@ -370,7 +370,7 @@ public class TelemedService
             string sessNum = $"TEL-{DateTime.UtcNow:yyyyMMdd}-{new Random().Next(1000, 9999)}";
 
             // Check if an invoice already exists for this patient today
-            var existingInvoice = await conn.QueryFirstOrDefaultAsync<dynamic>(@"
+            var existingInvoice = await conn.QueryFirstOrDefaultAsync<TelemedExistingInvoiceDto>(@"
                 SELECT TOP 1 Id, StatusId, TotalAmount, InvoiceNumber FROM Invoices
                 WHERE TenantId = @TenantId AND PatientId = @PatientId 
                   AND Notes LIKE '%Telemedicine%'
@@ -378,9 +378,9 @@ public class TelemedService
                 ORDER BY Id DESC",
                 new { TenantId = tenantId, PatientId = patientId });
 
-            int? invId = existingInvoice != null ? (int?)existingInvoice.Id : null;
-            bool isPaid = existingInvoice != null && (int)existingInvoice.StatusId == 4;
-            string? payRef = isPaid ? (string)existingInvoice.InvoiceNumber : null;
+            int? invId = existingInvoice?.Id;
+            bool isPaid = existingInvoice != null && existingInvoice.StatusId == 4;
+            string? payRef = isPaid ? existingInvoice?.InvoiceNumber : null;
 
             sessionId = await conn.QuerySingleAsync<int>(@"
                 INSERT INTO TelemedSessions (
@@ -602,5 +602,20 @@ public class TelemedService
 
         await SendTelegramNotificationAsync(tenantId, chatId, confirmMsg);
         return true;
+    }
+
+    private sealed class TelemedExistingSessionDto
+    {
+        public int Id { get; set; }
+        public int StatusId { get; set; }
+        public int? DoctorId { get; set; }
+    }
+
+    private sealed class TelemedExistingInvoiceDto
+    {
+        public int Id { get; set; }
+        public int StatusId { get; set; }
+        public decimal TotalAmount { get; set; }
+        public string? InvoiceNumber { get; set; }
     }
 }

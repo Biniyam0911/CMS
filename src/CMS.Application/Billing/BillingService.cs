@@ -176,11 +176,12 @@ public class BillingService
                         });
 
                     // Try to match an existing LabTestCatalog entry by name/code in the description
+                    string keyword = !string.IsNullOrWhiteSpace(item.Description) ? item.Description.Split('(')[0].Trim() : "";
                     var testId = await conn.ExecuteScalarAsync<int?>(@"
                         SELECT TOP 1 Id FROM LabTestCatalog 
                         WHERE TenantId = @TenantId AND IsActive = 1
                           AND (TestName LIKE '%' + @Keyword + '%' OR TestCode LIKE '%' + @Keyword + '%')",
-                        new { dto.TenantId, Keyword = item.Description.Split('(')[0].Trim() });
+                        new { dto.TenantId, Keyword = keyword });
 
                     if (!testId.HasValue || testId <= 0)
                         testId = await conn.ExecuteScalarAsync<int>(

@@ -473,7 +473,7 @@ public class TelegramBotService
                 decimal fee = await _telemedService.GetTelemedConsultationFeeAsync(tenantId);
 
                 // Check if an open/pending telemedicine session or invoice already exists for this patient
-                var existingPending = await conn.QueryFirstOrDefaultAsync<dynamic>(@"
+                var existingPending = await conn.QueryFirstOrDefaultAsync<PendingSessionDto>(@"
                     SELECT TOP 1 s.Id AS SessionId, s.SessionNumber, s.InvoiceId, i.StatusId AS InvoiceStatusId
                     FROM TelemedSessions s
                     LEFT JOIN Invoices i ON i.Id = s.InvoiceId
@@ -485,11 +485,11 @@ public class TelegramBotService
                 int sessionId;
                 string sessNum;
 
-                if (existingPending != null && existingPending.InvoiceId != null && (int?)existingPending.InvoiceStatusId != 4)
+                if (existingPending != null && existingPending.InvoiceId.HasValue && existingPending.InvoiceStatusId != 4)
                 {
-                    invoiceId = (int)existingPending.InvoiceId;
-                    sessionId = (int)existingPending.SessionId;
-                    sessNum = (string)existingPending.SessionNumber;
+                    invoiceId = existingPending.InvoiceId.Value;
+                    sessionId = existingPending.SessionId;
+                    sessNum = existingPending.SessionNumber ?? $"TEL-{DateTime.UtcNow:yyyyMMdd}-{new Random().Next(1000, 9999)}";
                     await conn.ExecuteAsync("UPDATE TelemedSessions SET DoctorId = @DoctorId, UpdatedAt = GETDATE() WHERE Id = @Id", new { DoctorId = selectedDoctorId, Id = sessionId });
                 }
                 else
@@ -666,5 +666,13 @@ public class TelegramBotService
         {
             Console.WriteLine($"[TELEGRAM INBOUND ERROR] {ex}");
         }
+    }
+
+    private sealed class PendingSessionDto
+    {
+        public int SessionId { get; set; }
+        public string? SessionNumber { get; set; }
+        public int? InvoiceId { get; set; }
+        public int? InvoiceStatusId { get; set; }
     }
 }
