@@ -412,7 +412,7 @@ public class LaboratoryController : ControllerBase
         using var conn = _dbFactory.CreateConnection();
         var sql = @"
             SELECT Id, TestCode, TestName, Category, SampleType, TurnaroundMinutes,
-                   NormalRangeLow, NormalRangeHigh, TextReferenceRange, Unit, Price, DisplayOrder
+                   NormalRangeLow, NormalRangeHigh, Unit, Price, DisplayOrder, TextReferenceRange
             FROM LabTestCatalog
             WHERE TenantId = @TenantId AND IsActive = 1
             ORDER BY DisplayOrder ASC, Category ASC, TestName ASC";
