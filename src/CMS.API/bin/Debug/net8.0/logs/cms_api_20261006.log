@@ -6256,3 +6256,16 @@ DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
 2026-10-06 21:51:58.300 +03:00 [INF] Application started. Press Ctrl+C to shut down.
 2026-10-06 21:51:58.301 +03:00 [INF] Hosting environment: Development
 2026-10-06 21:51:58.301 +03:00 [INF] Content root path: C:\Users\ASUS\source\repos\CMS\src\CMS.API
+2026-10-06 22:13:58.184 +03:00 [WRN] Cache: Redis unavailable (It was not possible to connect to the redis server(s). Error connecting right now. To allow this multiplexer to continue retrying until it's able to connect, use abortConnect=false in your connection string or AbortOnConnectFail=false; in your code.). Using MemoryCacheService fallback
+2026-10-06 22:13:58.999 +03:00 [INF] CMS API Host starting...
+2026-10-06 22:13:59.062 +03:00 [INF] User profile is available. Using 'C:\Users\ASUS\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
+2026-10-06 22:13:59.108 +03:00 [INF] [2026-10-06 22:13:59.095] LISTENER STARTED: Passively waiting for analyzer connections on 0.0.0.0:8004...
+2026-10-06 22:13:59.116 +03:00 [INF] [2026-10-06 22:13:59.115] LISTENER STARTED: Passively waiting for analyzer connections on 0.0.0.0:10001...
+2026-10-06 22:13:59.123 +03:00 [INF] [2026-10-06 22:13:59.123] LISTENER STARTED: Passively waiting for analyzer connections on 0.0.0.0:10002...
+2026-10-06 22:13:59.288 +03:00 [INF] Now listening on: http://localhost:5010
+2026-10-06 22:13:59.294 +03:00 [INF] Application started. Press Ctrl+C to shut down.
+2026-10-06 22:13:59.297 +03:00 [INF] Hosting environment: Development
+2026-10-06 22:13:59.300 +03:00 [INF] Content root path: C:\Users\ASUS\source\repos\CMS\src\CMS.API
+2026-10-06 22:14:01.394 +03:00 [INF] Application is shutting down...
+2026-10-06 22:14:01.425 +03:00 [INF] [2026-10-06 22:14:01.425] LISTENER STOPPED: Port 10001
+2026-10-06 22:14:01.429 +03:00 [INF] [2026-10-06 22:14:01.429] LISTENER STOPPED: All LIS listeners stopped.
