@@ -1196,3 +1196,59 @@ DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
 2026-10-06 13:26:34.742 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SmsController.GetSmsLogs (CMS.API)'
 2026-10-06 13:26:34.748 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/integrations - 200 null application/json; charset=utf-8 151.8541ms
 2026-10-06 13:26:34.756 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/sms/logs - 200 null application/json; charset=utf-8 154.966ms
+2026-10-06 13:26:48.419 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/laboratory/instruments/db - application/json null
+2026-10-06 13:26:48.429 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/laboratory/instruments/listener-status - application/json null
+2026-10-06 13:26:48.513 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.LaboratoryController.GetDbInstruments (CMS.API)'
+2026-10-06 13:26:48.533 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.LaboratoryController.GetListenerStatus (CMS.API)'
+2026-10-06 13:26:48.540 +03:00 [INF] Route matched with {action = "GetDbInstruments", controller = "Laboratory"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetDbInstruments() on controller CMS.API.Controllers.LaboratoryController (CMS.API).
+2026-10-06 13:26:48.540 +03:00 [INF] Route matched with {action = "GetListenerStatus", controller = "Laboratory"}. Executing controller action with signature Microsoft.AspNetCore.Mvc.IActionResult GetListenerStatus() on controller CMS.API.Controllers.LaboratoryController (CMS.API).
+2026-10-06 13:26:48.579 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.IEnumerable`1[[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-06 13:26:48.585 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[CMS.Domain.Interfaces.LisListenerStatusDto, CMS.Domain, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]'.
+2026-10-06 13:26:48.591 +03:00 [INF] Executed action CMS.API.Controllers.LaboratoryController.GetDbInstruments (CMS.API) in 38.9457ms
+2026-10-06 13:26:48.598 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.LaboratoryController.GetDbInstruments (CMS.API)'
+2026-10-06 13:26:48.601 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/laboratory/instruments/db - application/json null
+2026-10-06 13:26:48.603 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/laboratory/instruments/db - 200 null application/json; charset=utf-8 183.1408ms
+2026-10-06 13:26:48.611 +03:00 [INF] Executed action CMS.API.Controllers.LaboratoryController.GetListenerStatus (CMS.API) in 40.9022ms
+2026-10-06 13:26:48.614 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.LaboratoryController.GetDbInstruments (CMS.API)'
+2026-10-06 13:26:48.625 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/laboratory/instruments/listener-status - application/json null
+2026-10-06 13:26:48.635 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.LaboratoryController.GetListenerStatus (CMS.API)'
+2026-10-06 13:26:48.641 +03:00 [INF] Route matched with {action = "GetDbInstruments", controller = "Laboratory"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetDbInstruments() on controller CMS.API.Controllers.LaboratoryController (CMS.API).
+2026-10-06 13:26:48.651 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.LaboratoryController.GetListenerStatus (CMS.API)'
+2026-10-06 13:26:48.655 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/laboratory/instruments/listener-status - 200 null application/json; charset=utf-8 225.4392ms
+2026-10-06 13:26:48.667 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.IEnumerable`1[[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-06 13:26:48.668 +03:00 [INF] Route matched with {action = "GetListenerStatus", controller = "Laboratory"}. Executing controller action with signature Microsoft.AspNetCore.Mvc.IActionResult GetListenerStatus() on controller CMS.API.Controllers.LaboratoryController (CMS.API).
+2026-10-06 13:26:48.686 +03:00 [INF] Executed action CMS.API.Controllers.LaboratoryController.GetDbInstruments (CMS.API) in 22.8114ms
+2026-10-06 13:26:48.695 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[CMS.Domain.Interfaces.LisListenerStatusDto, CMS.Domain, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]'.
+2026-10-06 13:26:48.699 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.LaboratoryController.GetDbInstruments (CMS.API)'
+2026-10-06 13:26:48.705 +03:00 [INF] Executed action CMS.API.Controllers.LaboratoryController.GetListenerStatus (CMS.API) in 11.0939ms
+2026-10-06 13:26:48.730 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/laboratory/instruments/db - 200 null application/json; charset=utf-8 128.9655ms
+2026-10-06 13:26:48.870 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.LaboratoryController.GetListenerStatus (CMS.API)'
+2026-10-06 13:26:48.928 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/laboratory/instruments/listener-status - 200 null application/json; charset=utf-8 303.2574ms
+2026-10-06 13:26:52.399 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/laboratory/instruments/listener-status - application/json null
+2026-10-06 13:26:52.413 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.LaboratoryController.GetListenerStatus (CMS.API)'
+2026-10-06 13:26:52.639 +03:00 [INF] Route matched with {action = "GetListenerStatus", controller = "Laboratory"}. Executing controller action with signature Microsoft.AspNetCore.Mvc.IActionResult GetListenerStatus() on controller CMS.API.Controllers.LaboratoryController (CMS.API).
+2026-10-06 13:26:52.678 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[CMS.Domain.Interfaces.LisListenerStatusDto, CMS.Domain, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]'.
+2026-10-06 13:26:52.686 +03:00 [INF] Executed action CMS.API.Controllers.LaboratoryController.GetListenerStatus (CMS.API) in 8.9398ms
+2026-10-06 13:26:52.697 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.LaboratoryController.GetListenerStatus (CMS.API)'
+2026-10-06 13:26:52.701 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/laboratory/instruments/listener-status - 200 null application/json; charset=utf-8 301.8228ms
+2026-10-06 13:26:56.415 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/laboratory/instruments/listener-status - application/json null
+2026-10-06 13:26:58.028 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.LaboratoryController.GetListenerStatus (CMS.API)'
+2026-10-06 13:26:58.300 +03:00 [INF] Route matched with {action = "GetListenerStatus", controller = "Laboratory"}. Executing controller action with signature Microsoft.AspNetCore.Mvc.IActionResult GetListenerStatus() on controller CMS.API.Controllers.LaboratoryController (CMS.API).
+2026-10-06 13:26:59.420 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-10-06 13:26:59.687 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[CMS.Domain.Interfaces.LisListenerStatusDto, CMS.Domain, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]'.
+2026-10-06 13:26:59.736 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-10-06 13:26:59.786 +03:00 [INF] Executed action CMS.API.Controllers.LaboratoryController.GetListenerStatus (CMS.API) in 103.5888ms
+2026-10-06 13:26:59.861 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.LaboratoryController.GetListenerStatus (CMS.API)'
+2026-10-06 13:26:59.826 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-10-06 13:26:59.871 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/laboratory/instruments/listener-status - 200 null application/json; charset=utf-8 3456.5408ms
+2026-10-06 13:26:59.955 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-06 13:26:59.971 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 41.2669ms
+2026-10-06 13:26:59.984 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-10-06 13:26:59.988 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 567.5125ms
+2026-10-06 13:27:00.412 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/laboratory/instruments/listener-status - application/json null
+2026-10-06 13:27:01.335 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.LaboratoryController.GetListenerStatus (CMS.API)'
+2026-10-06 13:27:01.989 +03:00 [INF] Route matched with {action = "GetListenerStatus", controller = "Laboratory"}. Executing controller action with signature Microsoft.AspNetCore.Mvc.IActionResult GetListenerStatus() on controller CMS.API.Controllers.LaboratoryController (CMS.API).
+2026-10-06 13:27:02.012 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[CMS.Domain.Interfaces.LisListenerStatusDto, CMS.Domain, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]'.
+2026-10-06 13:27:02.034 +03:00 [INF] Executed action CMS.API.Controllers.LaboratoryController.GetListenerStatus (CMS.API) in 22.3189ms
+2026-10-06 13:27:02.059 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.LaboratoryController.GetListenerStatus (CMS.API)'
+2026-10-06 13:27:02.065 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/laboratory/instruments/listener-status - 200 null application/json; charset=utf-8 1652.8148ms
