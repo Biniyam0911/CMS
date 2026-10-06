@@ -1068,7 +1068,7 @@ public class LaboratoryController : ControllerBase
             SELECT 
                 r.Id, r.OrderId, r.OrderItemId, r.TestId, r.PatientId,
                 r.NumericValue, r.TextValue, r.Unit, r.Flag, r.ReferenceRange,
-                r.IsCritical, r.EnteredAt, r.IsVerified, r.VerifiedAt,
+                r.IsCritical, r.EnteredAt, r.IsVerified, r.VerifiedAt, r.RawMessage,
                 t.TestCode, t.TestName, t.Category,
                 o.OrderNumber, o.OrderedAt
             FROM LabResults r
@@ -1077,8 +1077,51 @@ public class LaboratoryController : ControllerBase
             WHERE r.PatientId = @PatientId AND o.TenantId = @TenantId
             ORDER BY r.EnteredAt DESC, r.Id DESC";
 
-        var results = await conn.QueryAsync(sql, new { PatientId = patientId, TenantId = tenantId });
-        return Ok(ApiResponse<object>.Ok(results));
+        var results = (await conn.QueryAsync<dynamic>(sql, new { PatientId = patientId, TenantId = tenantId })).ToList();
+
+        var testIds = results.Select(r => (int)r.TestId).Distinct().ToList();
+        var paramLookup = new Dictionary<int, List<dynamic>>();
+        if (testIds.Count > 0)
+        {
+            var pSql = @"
+                SELECT p.Id, p.TestCatalogId, p.ParameterCode, p.ParameterName, p.Unit,
+                       p.ReferenceLow, p.ReferenceHigh, p.TextReferenceRange, p.DisplayOrder
+                FROM LabTestParameters p
+                WHERE p.TestCatalogId IN @TestIds
+                ORDER BY p.DisplayOrder, p.Id";
+            var allParams = (await conn.QueryAsync<dynamic>(pSql, new { TestIds = testIds })).ToList();
+            paramLookup = allParams.GroupBy(p => (int)p.TestCatalogId).ToDictionary(g => g.Key, g => g.ToList());
+        }
+
+        var enriched = results.Select(r => {
+            int tid = (int)r.TestId;
+            var plist = paramLookup.TryGetValue(tid, out var list) ? list : new List<dynamic>();
+            return new {
+                r.Id,
+                r.OrderId,
+                r.OrderItemId,
+                r.TestId,
+                r.PatientId,
+                r.NumericValue,
+                r.TextValue,
+                r.Unit,
+                r.Flag,
+                r.ReferenceRange,
+                r.IsCritical,
+                r.EnteredAt,
+                r.IsVerified,
+                r.VerifiedAt,
+                r.RawMessage,
+                r.TestCode,
+                r.TestName,
+                r.Category,
+                r.OrderNumber,
+                r.OrderedAt,
+                Parameters = plist
+            };
+        });
+
+        return Ok(ApiResponse<object>.Ok(enriched));
     }
 
     public record SaveLabResultItemDto(

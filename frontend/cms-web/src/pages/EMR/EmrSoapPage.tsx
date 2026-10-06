@@ -77,6 +77,165 @@ interface BasketItem {
   details: any;
 }
 
+export interface SubTestParameter {
+  code: string;
+  name: string;
+  value: string | number;
+  unit?: string;
+  referenceRange?: string;
+  flag?: string;
+  isCritical?: boolean;
+}
+
+/**
+ * Extracts subtests / parameters for a lab result from HL7 OBX segments, pipe-delimited text summaries, or DB catalog parameters.
+ */
+export const extractSubtests = (result: any): SubTestParameter[] => {
+  const subtests: SubTestParameter[] = [];
+  const seenCodes = new Set<string>();
+
+  // 1. Parse HL7 OBX segments from rawMessage if available
+  const raw = result?.rawMessage || result?.RawMessage;
+  if (raw && typeof raw === 'string' && raw.includes('OBX|')) {
+    const lines = raw.split(/[\r\n]+/);
+    for (const line of lines) {
+      if (line.startsWith('OBX|')) {
+        const parts = line.split('|');
+        if (parts.length > 5) {
+          const ident = parts[3] || '';
+          const identParts = ident.split('^');
+          const pCode = identParts[0]?.trim() || '';
+          const pName = identParts[1]?.trim() || pCode || 'Analyte';
+          const pVal = parts[5]?.trim() || '';
+          const pUnit = parts[6]?.trim() || '';
+          const pRef = parts[7]?.trim() || '';
+          const pFlag = parts[8]?.trim() || 'Normal';
+          if (pCode && pVal && !seenCodes.has(pCode.toUpperCase())) {
+            seenCodes.add(pCode.toUpperCase());
+            const isCrit = pFlag.includes('HH') || pFlag.includes('LL') || pFlag.toLowerCase().includes('crit');
+            subtests.push({
+              code: pCode,
+              name: pName,
+              value: pVal,
+              unit: pUnit,
+              referenceRange: pRef,
+              flag: pFlag === 'N' ? 'Normal' : pFlag,
+              isCritical: isCrit
+            });
+          }
+        }
+      }
+    }
+  }
+
+  // 2. Parse pipe-separated parameters from textValue (or numericValue if stored as pipe string)
+  const textVal = result?.textValue || result?.TextValue || (typeof result?.numericValue === 'string' && result.numericValue.includes('|') ? result.numericValue : '');
+  if (subtests.length === 0 && textVal && typeof textVal === 'string' && textVal.includes('|')) {
+    const segments = textVal.split('|').map((s: string) => s.trim()).filter(Boolean);
+    for (const seg of segments) {
+      const colonIdx = seg.indexOf(':');
+      if (colonIdx > 0) {
+        const rawNameOrCode = seg.substring(0, colonIdx).trim();
+        let rest = seg.substring(colonIdx + 1).trim();
+
+        // Extract flag if inside [brackets] or (parentheses)
+        let flag = 'Normal';
+        const bracketMatch = rest.match(/\[([^\]]+)\]$/);
+        if (bracketMatch) {
+          flag = bracketMatch[1].trim();
+          rest = rest.substring(0, bracketMatch.index).trim();
+        } else {
+          const parenMatch = rest.match(/\(([^\)]+)\)$/);
+          if (parenMatch) {
+            flag = parenMatch[1].trim();
+            rest = rest.substring(0, parenMatch.index).trim();
+          }
+        }
+
+        // Extract ref range if present e.g. "Ref: 4.5-11.0"
+        let refRange = '';
+        const refMatch = rest.match(/Ref:\s*([0-9\.\-\s]+(?:\w+)?)/i);
+        if (refMatch) {
+          refRange = refMatch[1].trim();
+          rest = rest.replace(refMatch[0], '').trim();
+        }
+
+        // Separate value from unit: e.g. "7.2 10^3/uL" -> "7.2", "10^3/uL"
+        const vm = rest.match(/^([0-9\.]+|Positive|Negative|Reactive|Non-Reactive|Trace|\+|\+\+|\+\+\+)\s*(.*)$/i);
+        const val = vm ? vm[1].trim() : rest;
+        const unit = vm && vm[2] ? vm[2].trim() : '';
+
+        const codeKey = rawNameOrCode.toUpperCase();
+        if (rawNameOrCode && val && !seenCodes.has(codeKey)) {
+          seenCodes.add(codeKey);
+          const isCrit = flag === 'HH' || flag === 'LL' || flag.toLowerCase().includes('crit');
+          subtests.push({
+            code: rawNameOrCode,
+            name: rawNameOrCode,
+            value: val,
+            unit: unit,
+            referenceRange: refRange,
+            flag: flag || 'Normal',
+            isCritical: isCrit
+          });
+        }
+      }
+    }
+  }
+
+  // 3. Parse JSON formatted parameter results if present
+  if (subtests.length === 0 && textVal && typeof textVal === 'string' && textVal.startsWith('{') && textVal.endsWith('}')) {
+    try {
+      const obj = JSON.parse(textVal);
+      for (const [k, v] of Object.entries(obj)) {
+        if (v !== null && v !== undefined && v !== '') {
+          subtests.push({
+            code: k,
+            name: k,
+            value: String(v),
+            flag: 'Normal'
+          });
+        }
+      }
+    } catch {}
+  }
+
+  // 4. Enrich subtests with database catalog parameters if available
+  const catalogParams = result?.parameters || result?.Parameters;
+  if (Array.isArray(catalogParams) && catalogParams.length > 0) {
+    if (subtests.length > 0) {
+      subtests.forEach(st => {
+        const match = catalogParams.find((cp: any) => {
+          const cpCode = (cp.parameterCode || cp.ParameterCode || '').toUpperCase();
+          const cpName = (cp.parameterName || cp.ParameterName || '').toUpperCase();
+          const stUpper = st.code.toUpperCase();
+          const stNameUpper = st.name.toUpperCase();
+          return (cpCode && (cpCode === stUpper || cpCode === stNameUpper)) ||
+                 (cpName && (cpName === stNameUpper || cpName.includes(stUpper)));
+        });
+        if (match) {
+          if (match.parameterName || match.ParameterName) {
+            st.name = match.parameterName || match.ParameterName;
+          }
+          if (!st.unit && (match.unit || match.Unit)) {
+            st.unit = match.unit || match.Unit;
+          }
+          if (!st.referenceRange) {
+            if (match.textReferenceRange || match.TextReferenceRange) {
+              st.referenceRange = match.textReferenceRange || match.TextReferenceRange;
+            } else if ((match.referenceLow !== null && match.referenceLow !== undefined) &&
+                       (match.referenceHigh !== null && match.referenceHigh !== undefined)) {
+              st.referenceRange = `${match.referenceLow} - ${match.referenceHigh} ${st.unit || ''}`.trim();
+            }
+          }
+        }
+      });
+    }
+  }
+
+  return subtests;
+};
+
 export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapPageProps) {
   // Only 4 subtabs: consultation, cert, history, results
   const [activeSubTab, setActiveSubTab] = useState<'consultation' | 'cert' | 'history' | 'results'>('consultation');
@@ -826,10 +985,16 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
 
       const mappedResults = (results || []).map((r: any) => ({
         id: r.id || r.Id,
+        orderId: r.orderId || r.OrderId,
+        testId: r.testId || r.TestId,
+        testCode: r.testCode || r.TestCode || '',
         testName: r.testName || r.TestName || r.clinicalInfo || 'Lab Test',
-        orderNumber: r.orderNumber || r.OrderNumber || `LAB-${r.orderId}`,
+        orderNumber: r.orderNumber || r.OrderNumber || `LAB-${r.orderId || r.OrderId}`,
         enteredAt: r.enteredAt || r.EnteredAt || r.orderedAt || new Date().toISOString(),
-        numericValue: r.numericValue || r.NumericValue || r.textValue || r.TextValue || '—',
+        numericValue: r.numericValue !== null && r.numericValue !== undefined && r.numericValue !== '' ? r.numericValue : (r.NumericValue !== null && r.NumericValue !== undefined && r.NumericValue !== '' ? r.NumericValue : (r.textValue && !String(r.textValue).includes('|') ? r.textValue : '')),
+        textValue: r.textValue || r.TextValue || '',
+        rawMessage: r.rawMessage || r.RawMessage || '',
+        parameters: r.parameters || r.Parameters || [],
         unit: r.unit || r.Unit || '',
         flag: r.flag || r.Flag || '',
         referenceRange: r.referenceRange || r.ReferenceRange || '',
@@ -859,10 +1024,16 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
       const results = await api.get<any[]>(`/laboratory/patient/${patId}/results`).catch(() => []);
       const mapped = (results || []).map((r: any) => ({
         id: r.id || r.Id,
+        orderId: r.orderId || r.OrderId,
+        testId: r.testId || r.TestId,
+        testCode: r.testCode || r.TestCode || '',
         testName: r.testName || r.TestName || r.clinicalInfo || 'Lab Test',
-        orderNumber: r.orderNumber || r.OrderNumber || `LAB-${r.orderId}`,
+        orderNumber: r.orderNumber || r.OrderNumber || `LAB-${r.orderId || r.OrderId}`,
         enteredAt: r.enteredAt || r.EnteredAt || r.orderedAt || new Date().toISOString(),
-        numericValue: r.numericValue || r.NumericValue || r.textValue || r.TextValue || '—',
+        numericValue: r.numericValue !== null && r.numericValue !== undefined && r.numericValue !== '' ? r.numericValue : (r.NumericValue !== null && r.NumericValue !== undefined && r.NumericValue !== '' ? r.NumericValue : (r.textValue && !String(r.textValue).includes('|') ? r.textValue : '')),
+        textValue: r.textValue || r.TextValue || '',
+        rawMessage: r.rawMessage || r.RawMessage || '',
+        parameters: r.parameters || r.Parameters || [],
         unit: r.unit || r.Unit || '',
         flag: r.flag || r.Flag || '',
         referenceRange: r.referenceRange || r.ReferenceRange || '',
@@ -2726,8 +2897,8 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
               {(historyFilter === 'ALL' || historyFilter === 'LABS') && historyLabOrders.map((lab, idx) => {
                 // Match results from patientLabResults that belong to this order
                 const orderResults = patientLabResults.filter(r =>
-                  r.orderNumber === lab.orderNumber ||
-                  String(r.orderNumber) === String(lab.orderNumber)
+                  (r.orderNumber && lab.orderNumber && (r.orderNumber === lab.orderNumber || String(r.orderNumber) === String(lab.orderNumber))) ||
+                  (r.orderId && lab.id && Number(r.orderId) === Number(lab.id))
                 );
                 return (
                   <div key={`lab-${idx}`} style={{ borderRadius: '8px', background: '#f0fdf4', border: '1px solid #bbf7d0', overflow: 'hidden' }}>
@@ -2755,7 +2926,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
                           <thead>
                             <tr style={{ background: '#dcfce7' }}>
-                              <th style={{ padding: '6px 12px', textAlign: 'left', fontWeight: 700, color: '#166534', borderBottom: '1px solid #bbf7d0' }}>Test Name</th>
+                              <th style={{ padding: '6px 12px', textAlign: 'left', fontWeight: 700, color: '#166534', borderBottom: '1px solid #bbf7d0' }}>Test / Parameter</th>
                               <th style={{ padding: '6px 12px', textAlign: 'center', fontWeight: 700, color: '#166534', borderBottom: '1px solid #bbf7d0' }}>Result</th>
                               <th style={{ padding: '6px 12px', textAlign: 'center', fontWeight: 700, color: '#166534', borderBottom: '1px solid #bbf7d0' }}>Unit</th>
                               <th style={{ padding: '6px 12px', textAlign: 'center', fontWeight: 700, color: '#166534', borderBottom: '1px solid #bbf7d0' }}>Reference Range</th>
@@ -2764,33 +2935,107 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                           </thead>
                           <tbody>
                             {orderResults.map((r, ri) => {
+                              const subtests = extractSubtests(r);
+                              const hasSubtests = subtests.length > 0;
                               const flagColor = r.flag === 'H' || r.flag === 'HH' ? '#dc2626' :
                                                r.flag === 'L' || r.flag === 'LL' ? '#2563eb' : '#059669';
                               const rowBg = r.isCritical ? '#fef2f2' : (ri % 2 === 0 ? '#f0fdf4' : '#ffffff');
+
+                              if (!hasSubtests) {
+                                // Standalone test without subtests: display result directly with the test itself
+                                return (
+                                  <tr key={`r-${ri}`} style={{ background: rowBg }}>
+                                    <td style={{ padding: '7px 12px', fontWeight: 600, borderBottom: '1px solid #e2f5e8' }}>
+                                      {r.testName}
+                                      {r.isCritical && <span style={{ marginLeft: '6px', fontSize: '0.65rem', padding: '1px 4px', background: '#fee2e2', color: '#991b1b', borderRadius: '3px', fontWeight: 700 }}>CRITICAL</span>}
+                                      {r.isVerified && <span style={{ marginLeft: '4px', fontSize: '0.65rem', color: '#059669' }}>✓</span>}
+                                    </td>
+                                    <td style={{ padding: '7px 12px', textAlign: 'center', fontWeight: 700, color: r.flag ? flagColor : 'var(--text-main)', borderBottom: '1px solid #e2f5e8' }}>
+                                      {r.numericValue || '—'}
+                                    </td>
+                                    <td style={{ padding: '7px 12px', textAlign: 'center', color: 'var(--text-muted)', borderBottom: '1px solid #e2f5e8' }}>
+                                      {r.unit || '—'}
+                                    </td>
+                                    <td style={{ padding: '7px 12px', textAlign: 'center', color: 'var(--text-muted)', borderBottom: '1px solid #e2f5e8' }}>
+                                      {r.referenceRange || '—'}
+                                    </td>
+                                    <td style={{ padding: '7px 12px', textAlign: 'center', borderBottom: '1px solid #e2f5e8' }}>
+                                      {r.flag ? (
+                                        <span style={{ padding: '2px 7px', borderRadius: '4px', background: r.flag === 'H' || r.flag === 'HH' ? '#fee2e2' : r.flag === 'L' || r.flag === 'LL' ? '#dbeafe' : '#dcfce7', color: flagColor, fontWeight: 700, fontSize: '0.72rem' }}>
+                                          {r.flag}
+                                        </span>
+                                      ) : <span style={{ color: '#059669', fontSize: '0.72rem' }}>Normal</span>}
+                                    </td>
+                                  </tr>
+                                );
+                              }
+
+                              // Has subtests / parameters: Show test name header row, then indented subtests
                               return (
-                                <tr key={ri} style={{ background: rowBg }}>
-                                  <td style={{ padding: '6px 12px', fontWeight: 600, borderBottom: '1px solid #e2f5e8' }}>
-                                    {r.testName}
-                                    {r.isCritical && <span style={{ marginLeft: '6px', fontSize: '0.65rem', padding: '1px 4px', background: '#fee2e2', color: '#991b1b', borderRadius: '3px', fontWeight: 700 }}>CRITICAL</span>}
-                                    {r.isVerified && <span style={{ marginLeft: '4px', fontSize: '0.65rem', color: '#059669' }}>✓</span>}
-                                  </td>
-                                  <td style={{ padding: '6px 12px', textAlign: 'center', fontWeight: 700, color: r.flag ? flagColor : 'var(--text-main)', borderBottom: '1px solid #e2f5e8' }}>
-                                    {r.numericValue || '—'}
-                                  </td>
-                                  <td style={{ padding: '6px 12px', textAlign: 'center', color: 'var(--text-muted)', borderBottom: '1px solid #e2f5e8' }}>
-                                    {r.unit || '—'}
-                                  </td>
-                                  <td style={{ padding: '6px 12px', textAlign: 'center', color: 'var(--text-muted)', borderBottom: '1px solid #e2f5e8' }}>
-                                    {r.referenceRange || '—'}
-                                  </td>
-                                  <td style={{ padding: '6px 12px', textAlign: 'center', borderBottom: '1px solid #e2f5e8' }}>
-                                    {r.flag ? (
-                                      <span style={{ padding: '2px 7px', borderRadius: '4px', background: r.flag === 'H' || r.flag === 'HH' ? '#fee2e2' : r.flag === 'L' || r.flag === 'LL' ? '#dbeafe' : '#dcfce7', color: flagColor, fontWeight: 700, fontSize: '0.72rem' }}>
-                                        {r.flag}
-                                      </span>
-                                    ) : <span style={{ color: '#059669', fontSize: '0.72rem' }}>Normal</span>}
-                                  </td>
-                                </tr>
+                                <React.Fragment key={`r-${ri}`}>
+                                  <tr style={{ background: '#ecfdf5', borderTop: '1px solid #bbf7d0', borderBottom: '1px solid #bbf7d0' }}>
+                                    <td colSpan={5} style={{ padding: '8px 12px', fontWeight: 700, color: '#166534', fontSize: '0.82rem' }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                          <span style={{ display: 'inline-block', width: '7px', height: '7px', borderRadius: '50%', background: '#059669' }}></span>
+                                          <strong>{r.testName}</strong>
+                                          <span className="badge badge-normal" style={{ fontSize: '0.62rem', padding: '1px 6px', background: '#dcfce7', color: '#15803d', fontWeight: 600 }}>
+                                            Panel ({subtests.length} parameters)
+                                          </span>
+                                          {r.isCritical && <span style={{ fontSize: '0.65rem', padding: '1px 4px', background: '#fee2e2', color: '#991b1b', borderRadius: '3px', fontWeight: 700 }}>CRITICAL</span>}
+                                          {r.isVerified && <span style={{ fontSize: '0.65rem', color: '#059669', fontWeight: 700 }}>✓ Verified</span>}
+                                        </div>
+                                        <span style={{ fontSize: '0.7rem', color: '#047857', fontWeight: 600 }}>
+                                          {subtests.length} Parameters
+                                        </span>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                  {subtests.map((st, si) => {
+                                    const stFlagColor = st.flag === 'H' || st.flag === 'HH' || st.flag?.toLowerCase().includes('high') ? '#dc2626' :
+                                                        st.flag === 'L' || st.flag === 'LL' || st.flag?.toLowerCase().includes('low') ? '#2563eb' : '#059669';
+                                    const stRowBg = st.isCritical ? '#fef2f2' : (si % 2 === 0 ? '#fafffa' : '#ffffff');
+                                    return (
+                                      <tr key={`st-${ri}-${si}`} style={{ background: stRowBg }}>
+                                        <td style={{ padding: '6px 12px 6px 32px', fontSize: '0.76rem', borderBottom: '1px solid #e2f5e8' }}>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <span style={{ color: '#059669', fontWeight: 700, fontSize: '0.85rem' }}>↳</span>
+                                            <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{st.name}</span>
+                                            {st.code && st.code !== st.name && (
+                                              <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>({st.code})</span>
+                                            )}
+                                            {st.isCritical && <span style={{ fontSize: '0.6rem', padding: '0 4px', background: '#fee2e2', color: '#991b1b', borderRadius: '2px', fontWeight: 700 }}>CRIT</span>}
+                                          </div>
+                                        </td>
+                                        <td style={{ padding: '6px 12px', textAlign: 'center', fontWeight: 700, color: st.flag && st.flag !== 'Normal' ? stFlagColor : 'var(--text-main)', borderBottom: '1px solid #e2f5e8' }}>
+                                          {st.value ?? '—'}
+                                        </td>
+                                        <td style={{ padding: '6px 12px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.72rem', borderBottom: '1px solid #e2f5e8' }}>
+                                          {st.unit || '—'}
+                                        </td>
+                                        <td style={{ padding: '6px 12px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.72rem', borderBottom: '1px solid #e2f5e8' }}>
+                                          {st.referenceRange || '—'}
+                                        </td>
+                                        <td style={{ padding: '6px 12px', textAlign: 'center', borderBottom: '1px solid #e2f5e8' }}>
+                                          {st.flag && st.flag !== 'Normal' ? (
+                                            <span style={{
+                                              padding: '1px 6px',
+                                              borderRadius: '3px',
+                                              background: st.flag === 'H' || st.flag === 'HH' || st.flag?.toLowerCase().includes('high') ? '#fee2e2' : '#dbeafe',
+                                              color: stFlagColor,
+                                              fontWeight: 700,
+                                              fontSize: '0.7rem'
+                                            }}>
+                                              {st.flag}
+                                            </span>
+                                          ) : (
+                                            <span style={{ color: '#059669', fontSize: '0.7rem', fontWeight: 500 }}>Normal</span>
+                                          )}
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                </React.Fragment>
                               );
                             })}
                           </tbody>
@@ -2948,48 +3193,149 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {patientLabResults.map((r, idx) => {
+                const subtests = extractSubtests(r);
+                const hasSubtests = subtests.length > 0;
                 const flagColor = r.flag === 'H' || r.flag === 'HH' ? '#dc2626' :
                                   r.flag === 'L' || r.flag === 'LL' ? '#2563eb' : '#059669';
                 const entryDate = r.enteredAt ? new Date(r.enteredAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
                 const entryTime = r.enteredAt ? new Date(r.enteredAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
+
+                if (!hasSubtests) {
+                  // Standalone test without subtests: display result directly with the test itself
+                  return (
+                    <div
+                      key={idx}
+                      style={{
+                        padding: '12px 14px',
+                        borderRadius: '8px',
+                        background: r.isCritical ? '#fef2f2' : '#fdfcf9',
+                        border: `1px solid ${r.isCritical ? '#fca5a5' : 'var(--border-color)'}`,
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        gap: '12px'
+                      }}
+                    >
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
+                          <span style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--text-main)' }}>{r.testName}</span>
+                          {r.isCritical && <span className="badge badge-critical" style={{ fontSize: '0.62rem' }}>⚠ CRITICAL</span>}
+                          {r.isVerified && <span className="badge badge-normal" style={{ fontSize: '0.62rem' }}>✓ Verified</span>}
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                          {r.orderNumber} • {entryDate} {entryTime}
+                        </div>
+                        {r.referenceRange && (
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                            Ref: {r.referenceRange}
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ textAlign: 'right', minWidth: '80px' }}>
+                        <div style={{ fontSize: '1.1rem', fontWeight: 800, color: r.flag ? flagColor : 'var(--text-main)' }}>
+                          {r.numericValue || '—'} {r.unit}
+                        </div>
+                        {r.flag && (
+                          <div style={{ fontSize: '0.72rem', fontWeight: 700, color: flagColor }}>
+                            {r.flag === 'H' ? '↑ HIGH' : r.flag === 'HH' ? '↑↑ CRITICAL HIGH' : r.flag === 'L' ? '↓ LOW' : r.flag === 'LL' ? '↓↓ CRITICAL LOW' : r.flag}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                }
+
+                // Has subtests / parameters: Show test header, and indented subtests underneath
                 return (
                   <div
                     key={idx}
                     style={{
-                      padding: '12px 14px',
                       borderRadius: '8px',
-                      background: r.isCritical ? '#fef2f2' : '#fdfcf9',
-                      border: `1px solid ${r.isCritical ? '#fca5a5' : 'var(--border-color)'}`,
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      gap: '12px'
+                      background: '#ffffff',
+                      border: '1px solid #cbd5e1',
+                      overflow: 'hidden',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
                     }}
                   >
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
-                        <span style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--text-main)' }}>{r.testName}</span>
+                    <div style={{
+                      padding: '10px 14px',
+                      background: '#f8fafc',
+                      borderBottom: '1px solid #e2e8f0',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <FlaskConical size={16} color="#0284c7" />
+                        <div>
+                          <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}>{r.testName}</span>
+                          <span style={{ marginLeft: '8px', fontSize: '0.68rem', padding: '2px 7px', borderRadius: '4px', background: '#e0f2fe', color: '#0369a1', fontWeight: 600 }}>
+                            Panel ({subtests.length} parameters)
+                          </span>
+                        </div>
                         {r.isCritical && <span className="badge badge-critical" style={{ fontSize: '0.62rem' }}>⚠ CRITICAL</span>}
                         {r.isVerified && <span className="badge badge-normal" style={{ fontSize: '0.62rem' }}>✓ Verified</span>}
                       </div>
                       <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
                         {r.orderNumber} • {entryDate} {entryTime}
                       </div>
-                      {r.referenceRange && (
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                          Ref: {r.referenceRange}
-                        </div>
-                      )}
                     </div>
-                    <div style={{ textAlign: 'right', minWidth: '80px' }}>
-                      <div style={{ fontSize: '1.1rem', fontWeight: 800, color: r.flag ? flagColor : 'var(--text-main)' }}>
-                        {r.numericValue} {r.unit}
-                      </div>
-                      {r.flag && (
-                        <div style={{ fontSize: '0.72rem', fontWeight: 700, color: flagColor }}>
-                          {r.flag === 'H' ? '↑ HIGH' : r.flag === 'HH' ? '↑↑ CRITICAL HIGH' : r.flag === 'L' ? '↓ LOW' : r.flag === 'LL' ? '↓↓ CRITICAL LOW' : r.flag}
-                        </div>
-                      )}
+
+                    <div style={{ padding: '8px 12px' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
+                        <thead>
+                          <tr style={{ background: '#f1f5f9', color: '#475569' }}>
+                            <th style={{ padding: '6px 10px', textAlign: 'left', fontWeight: 600, borderRadius: '4px 0 0 4px' }}>Subtest / Parameter</th>
+                            <th style={{ padding: '6px 10px', textAlign: 'center', fontWeight: 600 }}>Result Value</th>
+                            <th style={{ padding: '6px 10px', textAlign: 'center', fontWeight: 600 }}>Unit</th>
+                            <th style={{ padding: '6px 10px', textAlign: 'center', fontWeight: 600 }}>Reference Range</th>
+                            <th style={{ padding: '6px 10px', textAlign: 'center', fontWeight: 600, borderRadius: '0 4px 4px 0' }}>Flag</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {subtests.map((st, si) => {
+                            const stFlagColor = st.flag === 'H' || st.flag === 'HH' || st.flag?.toLowerCase().includes('high') ? '#dc2626' :
+                                                st.flag === 'L' || st.flag === 'LL' || st.flag?.toLowerCase().includes('low') ? '#2563eb' : '#059669';
+                            return (
+                              <tr key={si} style={{ borderBottom: si === subtests.length - 1 ? 'none' : '1px solid #f1f5f9' }}>
+                                <td style={{ padding: '6px 10px 6px 24px', fontWeight: 600 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <span style={{ color: '#0284c7', fontWeight: 700 }}>↳</span>
+                                    <span>{st.name}</span>
+                                    {st.code && st.code !== st.name && <span style={{ color: 'var(--text-muted)', fontSize: '0.68rem' }}>({st.code})</span>}
+                                    {st.isCritical && <span style={{ fontSize: '0.6rem', padding: '0 3px', background: '#fee2e2', color: '#991b1b', borderRadius: '2px', fontWeight: 700 }}>CRIT</span>}
+                                  </div>
+                                </td>
+                                <td style={{ padding: '6px 10px', textAlign: 'center', fontWeight: 700, color: st.flag && st.flag !== 'Normal' ? stFlagColor : 'var(--text-main)' }}>
+                                  {st.value ?? '—'}
+                                </td>
+                                <td style={{ padding: '6px 10px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                  {st.unit || '—'}
+                                </td>
+                                <td style={{ padding: '6px 10px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                  {st.referenceRange || '—'}
+                                </td>
+                                <td style={{ padding: '6px 10px', textAlign: 'center' }}>
+                                  {st.flag && st.flag !== 'Normal' ? (
+                                    <span style={{
+                                      padding: '1px 6px',
+                                      borderRadius: '3px',
+                                      background: st.flag === 'H' || st.flag === 'HH' || st.flag?.toLowerCase().includes('high') ? '#fee2e2' : '#dbeafe',
+                                      color: stFlagColor,
+                                      fontWeight: 700,
+                                      fontSize: '0.68rem'
+                                    }}>
+                                      {st.flag}
+                                    </span>
+                                  ) : (
+                                    <span style={{ color: '#059669', fontSize: '0.68rem', fontWeight: 500 }}>Normal</span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 );

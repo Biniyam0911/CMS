@@ -2440,9 +2440,11 @@ GO
 PRINT '----------------------------------------------------------------------';
 PRINT 'Restoring system: Re-enabling audit triggers & temporal versioning...';
 
--- 1. Drop temporary linkage column FIRST so Encounters column count matches EncountersHistory (20 columns)
+-- 1. Drop temporary linkage column from BOTH tables so column counts match before SYSTEM_VERSIONING = ON
 IF COL_LENGTH('ClinicDB.dbo.Encounters', 'OldConsultId') IS NOT NULL
     ALTER TABLE ClinicDB.dbo.[Encounters] DROP COLUMN [OldConsultId];
+IF COL_LENGTH('ClinicDB.dbo.EncountersHistory', 'OldConsultId') IS NOT NULL
+    ALTER TABLE ClinicDB.dbo.[EncountersHistory] DROP COLUMN [OldConsultId];
 
 -- 2. Re-enable audit triggers
 IF OBJECT_ID('dbo.trg_Patients_Audit', 'TR') IS NOT NULL
