@@ -4,23 +4,42 @@
 USE ClinicDB;
 GO
 
--- Lab instruments (HL7 / ASTM)
+-- Lab instruments (HL7 / ASTM / TCP)
 CREATE TABLE LabInstruments (
     Id              INT             NOT NULL IDENTITY(1,1),
     TenantId        TINYINT         NOT NULL DEFAULT 1,
     Name            NVARCHAR(100)   NOT NULL,
     Model           NVARCHAR(100)   NULL,
     SerialNumber    VARCHAR(50)     NULL,
-    Protocol        VARCHAR(10)     NOT NULL,  -- 'HL7' | 'ASTM'
+    Protocol        VARCHAR(50)     NOT NULL,  -- 'HL7 v2.3.1 MLLP' | 'HL7 v2.5.1 MLLP' | 'ASTM 1394 / E1381' | etc.
     IpAddress       VARCHAR(45)     NULL,
     Port            INT             NULL,
-    Category        NVARCHAR(50)    NULL,       -- Hematology, Biochemistry, Urinalysis, etc.
+    Category        NVARCHAR(50)    NULL,       -- Hematology, Clinical Chemistry, Hormone, etc.
+    Department      NVARCHAR(80)    NULL,
+    StationId       VARCHAR(50)     NULL,
+    Description     NVARCHAR(500)   NULL,
+    ConnectionMode  VARCHAR(20)     NOT NULL DEFAULT 'PASSIVE',  -- 'PASSIVE' (inbound) | 'ACTIVE' (outbound)
+    RemoteIp        VARCHAR(45)     NULL,
+    RemotePort      INT             NULL,
     IsActive        BIT             NOT NULL DEFAULT 1,
     CreatedAt       DATETIME2       NOT NULL DEFAULT GETDATE(),
     CONSTRAINT PK_LabInstruments PRIMARY KEY (Id),
-    CONSTRAINT FK_LabInstruments_Tenants FOREIGN KEY (TenantId) REFERENCES Tenants(Id),
-    CONSTRAINT CHK_LabInstruments_Protocol CHECK (Protocol IN ('HL7','ASTM'))
+    CONSTRAINT FK_LabInstruments_Tenants FOREIGN KEY (TenantId) REFERENCES Tenants(Id)
 );
+GO
+
+-- Seed default lab instruments
+IF NOT EXISTS (SELECT 1 FROM LabInstruments WHERE Name LIKE '%ZYBIO%')
+BEGIN
+    INSERT INTO LabInstruments (
+        TenantId, Name, Model, SerialNumber, Protocol, IpAddress, Port,
+        Category, Department, StationId, Description, ConnectionMode, RemoteIp, RemotePort, IsActive, CreatedAt
+    ) VALUES
+    (1, 'ZYBIO Z3 Hematology Analyzer', 'ZYBIO Hematology Analyzer model z3', 'HEM-ZYBIO-Z3', 'HL7 v2.3.1 MLLP', '192.168.1.41', 5100, 'Hematology', 'Hematology', 'HEM-ZYBIO-Z3', 'ZYBIO Z3 automated 3-part / 5-part hematology analyzer. Machine initiates TCP connection to server port 5100 and sends HL7 ORU^R01 CBC panels with sample ID.', 'PASSIVE', '192.168.1.41', 5100, 1, SYSUTCDATETIME()),
+    (1, 'Linear TEMIS Chemistry Analyzer', 'Linear Chemistry analyzer model: TEMIS', 'CHM-LINEAR-TEMIS', 'ASTM 1394 / E1381', '192.168.1.115', 5200, 'Clinical Chemistry', 'Clinical Chemistry', 'CHM-LINEAR-TEMIS', 'Linear TEMIS automated clinical chemistry analyzer for biochemistry panels and electrolytes', 'PASSIVE', '192.168.1.115', 5200, 1, SYSUTCDATETIME()),
+    (1, 'Finecare Wondfo Immunoassay', 'Finecare immunoassay analyzer wondofa', 'IMM-FINECARE-WOND', 'HL7 v2.5.1 MLLP', '192.168.8.60', 8004, 'Hormone / Immunoassay', 'Hormone / Immunoassay', 'IMM-FINECARE-WOND', 'Finecare Wondfo fluorescence immunoassay analyzer (192.168.8.x subnet). Machine listens on port 8004 — server actively dials out to connect.', 'ACTIVE', '192.168.8.60', 8004, 1, SYSUTCDATETIME()),
+    (1, 'Sysmex XN-550 (Main Hematology)', 'Sysmex XN-550 (Automated 5-Part Diff Hematology Analyzer)', 'HEM-SYSMEX-01', 'HL7 v2.5.1 MLLP', '192.168.1.140', 2575, 'Hematology', 'Hematology', 'HEM-SYSMEX-01', 'Sysmex automated 5-part differential hematology workcell with barcode pre-analytical scanner', 'PASSIVE', '192.168.1.140', 2575, 1, SYSUTCDATETIME());
+END
 GO
 
 -- Master test catalog

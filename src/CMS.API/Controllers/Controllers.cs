@@ -804,6 +804,26 @@ public class LaboratoryController : ControllerBase
         int? RemotePort
     );
 
+    public record LabInstrumentDto(
+        int Id,
+        byte TenantId,
+        string Name,
+        string? Model,
+        string? SerialNumber,
+        string Protocol,
+        string? IpAddress,
+        int? Port,
+        string? Category,
+        bool IsActive,
+        string? StationId,
+        string? Department,
+        string? Description,
+        string ConnectionMode,
+        string? RemoteIp,
+        int? RemotePort,
+        DateTime CreatedAt
+    );
+
     [HttpGet("instruments/db")]
     public async Task<IActionResult> GetDbInstruments()
     {
@@ -816,8 +836,8 @@ public class LaboratoryController : ControllerBase
                    RemoteIp, RemotePort, CreatedAt
             FROM LabInstruments WHERE TenantId = @TenantId AND IsActive = 1
             ORDER BY Id";
-        var rows = await conn.QueryAsync<dynamic>(sql, new { TenantId = tenantId });
-        return Ok(ApiResponse<IEnumerable<dynamic>>.Ok(rows));
+        var rows = await conn.QueryAsync<LabInstrumentDto>(sql, new { TenantId = tenantId });
+        return Ok(ApiResponse<IEnumerable<LabInstrumentDto>>.Ok(rows));
     }
 
     [HttpPost("instruments/db")]

@@ -180,19 +180,13 @@ export default function MachineIntegrationTab() {
       const saved = localStorage.getItem('lab_integrated_machines_v2');
       if (saved) {
         const parsed = JSON.parse(saved);
-        return parsed.map((m: LabMachine) => {
-          if (m.name.includes('ZYBIO') || m.model?.includes('z3')) {
-            return {
-              ...m,
-              protocol: 'HL7 v2.3.1 MLLP',
-              port: 5100,
-              mode: 'Unidirectional (Results Only)',
-              stationId: 'HEM-ZYBIO-Z3',
-              description: 'ZYBIO Z3 automated 3-part / 5-part hematology analyzer. Machine initiates TCP connection to server port 5100 and sends HL7 ORU^R01 CBC panels with sample ID.'
-            };
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // If all saved machines have identical names (e.g. ZYBIO repeated), discard stale localStorage
+          const distinctNames = new Set(parsed.map(m => m.name));
+          if (distinctNames.size > 1 || parsed.length === 1) {
+            return parsed;
           }
-          return m;
-        });
+        }
       }
     } catch {}
     return DEFAULT_LAB_MACHINES;
@@ -284,38 +278,47 @@ export default function MachineIntegrationTab() {
 
   const loadDbInstruments = async () => {
     try {
-      const dbRows = await api.get<any[]>('/laboratory/instruments/db');
-      if (dbRows && Array.isArray(dbRows) && dbRows.length > 0) {
-        setMachines(prev => {
-          const merged = [...prev];
-          dbRows.forEach(row => {
-            const existingIndex = merged.findIndex(m => m.dbId === row.id || m.stationId === row.stationId || m.name === row.name);
-            const mapped: LabMachine = {
-              id: existingIndex >= 0 ? merged[existingIndex].id : `MCH-DB-${row.id}`,
-              dbId: row.id,
-              name: row.name,
-              department: row.department || row.category || 'Hematology',
-              model: row.model || row.name,
-              protocol: row.protocol || 'HL7 v2.5.1 MLLP',
-              ipAddress: row.ipAddress || '127.0.0.1',
-              port: row.port || 8004,
-              mode: (row.connectionMode === 'ACTIVE' || row.protocol?.includes('HL7 v2.5')) ? 'Bidirectional (Query + Results)' : 'Unidirectional (Results Only)',
-              connectionMode: (row.connectionMode === 'ACTIVE' ? 'ACTIVE' : 'PASSIVE'),
-              remoteIp: row.remoteIp || row.ipAddress,
-              remotePort: row.remotePort || row.port || 8004,
-              stationId: row.stationId || row.serialNumber || `ST-${row.id}`,
-              status: 'OFFLINE',
-              description: row.description || ''
-            };
-            if (existingIndex >= 0) {
-              merged[existingIndex] = { ...merged[existingIndex], ...mapped };
-            } else {
-              merged.push(mapped);
-            }
-          });
-          localStorage.setItem('lab_integrated_machines_v2', JSON.stringify(merged));
-          return merged;
+      const res: any = await api.get('/laboratory/instruments/db');
+      const dbRows = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : []);
+      if (dbRows && dbRows.length > 0) {
+        const fromDb: LabMachine[] = dbRows.map((row: any) => {
+          const id = row.id ?? row.Id;
+          const name = row.name ?? row.Name ?? 'Analyzer';
+          const dept = row.department ?? row.Department ?? row.category ?? row.Category ?? 'Hematology';
+          const model = row.model ?? row.Model ?? name;
+          const proto = row.protocol ?? row.Protocol ?? 'HL7 v2.5.1 MLLP';
+          const ip = row.ipAddress ?? row.IpAddress ?? '127.0.0.1';
+          const port = row.port ?? row.Port ?? 8004;
+          const connMode = ((row.connectionMode ?? row.ConnectionMode) === 'ACTIVE' ? 'ACTIVE' : 'PASSIVE');
+          const remoteIp = row.remoteIp ?? row.RemoteIp ?? ip;
+          const remotePort = row.remotePort ?? row.RemotePort ?? port;
+          const stationId = row.stationId ?? row.StationId ?? row.serialNumber ?? row.SerialNumber ?? `ST-${id}`;
+          const desc = row.description ?? row.Description ?? '';
+
+          return {
+            id: `MCH-DB-${id}`,
+            dbId: id,
+            name,
+            department: dept,
+            model,
+            protocol: proto,
+            ipAddress: ip,
+            port,
+            mode: (connMode === 'ACTIVE' || proto.includes('HL7 v2.5') || proto.includes('ASTM'))
+              ? 'Bidirectional (Query + Results)'
+              : 'Unidirectional (Results Only)',
+            connectionMode: connMode,
+            remoteIp,
+            remotePort,
+            stationId,
+            status: 'OFFLINE',
+            lastPing: 'Loaded from Database',
+            description: desc
+          };
         });
+
+        setMachines(fromDb);
+        localStorage.setItem('lab_integrated_machines_v2', JSON.stringify(fromDb));
       }
     } catch (e) {
       console.warn('Could not load instruments from DB:', e);
