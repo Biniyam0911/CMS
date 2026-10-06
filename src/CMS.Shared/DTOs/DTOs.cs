@@ -117,7 +117,7 @@ public record LabTestParameterDto(
 public record LabTestCatalogDto(
     int Id, string TestCode, string TestName, string? Category, string? SampleType,
     int TurnaroundMinutes, decimal? NormalRangeLow, decimal? NormalRangeHigh, string? Unit, decimal? Price,
-    int DisplayOrder = 1)
+    int DisplayOrder = 1, string? TextReferenceRange = null)
 {
     public List<LabTestParameterDto> Parameters { get; init; } = new();
 }

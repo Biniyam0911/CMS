@@ -759,7 +759,8 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
             const isInjectable = formName.toLowerCase().includes('inj') || formName.toLowerCase().includes('amp');
             const isSuspension = formName.toLowerCase().includes('susp') || formName.toLowerCase().includes('syrup');
             const route = isTopical ? 'Topical' : isInjectable ? 'IV/IM' : 'Oral';
-            const price = parseFloat(d.sellingPrice || d.SellingPrice || d.unitPrice || d.UnitPrice) || 15.0;
+            const rawPrice = d.sellingPrice ?? d.SellingPrice ?? d.unitPrice ?? d.UnitPrice;
+            const price = rawPrice != null && !isNaN(parseFloat(rawPrice)) ? Math.max(0, parseFloat(rawPrice)) : 0;
             const stock = d.stockQuantity ?? d.currentStock ?? d.StockQuantity ?? 0;
 
             return {
@@ -4269,8 +4270,8 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                                 </div>
 
                                 <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '12px' }}>
-                                  <div style={{ fontWeight: 700, color: '#059669', fontSize: '0.82rem', fontFamily: 'monospace' }}>
-                                    Br {item.unitPrice.toFixed(2)}
+                                  <div style={{ fontWeight: 700, color: item.unitPrice > 0 ? '#059669' : '#64748b', fontSize: '0.82rem', fontFamily: 'monospace' }}>
+                                    {item.unitPrice > 0 ? `Br ${item.unitPrice.toFixed(2)}` : 'Unset (Br 0.00)'}
                                   </div>
                                   <span style={{
                                     fontSize: '0.68rem',

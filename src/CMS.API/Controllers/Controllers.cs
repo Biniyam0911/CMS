@@ -412,7 +412,7 @@ public class LaboratoryController : ControllerBase
         using var conn = _dbFactory.CreateConnection();
         var sql = @"
             SELECT Id, TestCode, TestName, Category, SampleType, TurnaroundMinutes,
-                   NormalRangeLow, NormalRangeHigh, Unit, Price, DisplayOrder
+                   NormalRangeLow, NormalRangeHigh, TextReferenceRange, Unit, Price, DisplayOrder
             FROM LabTestCatalog
             WHERE TenantId = @TenantId AND IsActive = 1
             ORDER BY DisplayOrder ASC, Category ASC, TestName ASC";
@@ -456,6 +456,7 @@ public class LaboratoryController : ControllerBase
         string? Unit = null,
         decimal? Price = 0,
         int DisplayOrder = 1,
+        string? TextReferenceRange = null,
         List<CreateLabParameterRequest>? Parameters = null);
 
     public record UpdateLabCatalogRequest(
@@ -469,6 +470,7 @@ public class LaboratoryController : ControllerBase
         string? Unit = null,
         decimal? Price = 0,
         int DisplayOrder = 1,
+        string? TextReferenceRange = null,
         List<CreateLabParameterRequest>? Parameters = null);
 
     [HttpPost("catalog")]
@@ -481,8 +483,8 @@ public class LaboratoryController : ControllerBase
         try
         {
             var sql = @"
-                INSERT INTO LabTestCatalog (TenantId, TestCode, TestName, Category, SampleType, TurnaroundMinutes, NormalRangeLow, NormalRangeHigh, Unit, Price, DisplayOrder, IsActive, CreatedAt)
-                VALUES (@TenantId, @TestCode, @TestName, @Category, @SampleType, @TurnaroundMinutes, @NormalRangeLow, @NormalRangeHigh, @Unit, @Price, @DisplayOrder, 1, SYSUTCDATETIME());
+                INSERT INTO LabTestCatalog (TenantId, TestCode, TestName, Category, SampleType, TurnaroundMinutes, NormalRangeLow, NormalRangeHigh, TextReferenceRange, Unit, Price, DisplayOrder, IsActive, CreatedAt)
+                VALUES (@TenantId, @TestCode, @TestName, @Category, @SampleType, @TurnaroundMinutes, @NormalRangeLow, @NormalRangeHigh, @TextReferenceRange, @Unit, @Price, @DisplayOrder, 1, SYSUTCDATETIME());
                 SELECT CAST(SCOPE_IDENTITY() as int);";
             int id = await conn.ExecuteScalarAsync<int>(sql, new {
                 TenantId = tenantId,
@@ -493,6 +495,7 @@ public class LaboratoryController : ControllerBase
                 req.TurnaroundMinutes,
                 req.NormalRangeLow,
                 req.NormalRangeHigh,
+                req.TextReferenceRange,
                 req.Unit,
                 req.Price,
                 req.DisplayOrder
@@ -552,6 +555,7 @@ public class LaboratoryController : ControllerBase
                     TurnaroundMinutes = @TurnaroundMinutes,
                     NormalRangeLow = @NormalRangeLow,
                     NormalRangeHigh = @NormalRangeHigh,
+                    TextReferenceRange = @TextReferenceRange,
                     Unit = @Unit,
                     Price = @Price,
                     DisplayOrder = @DisplayOrder
@@ -566,6 +570,7 @@ public class LaboratoryController : ControllerBase
                 req.TurnaroundMinutes,
                 req.NormalRangeLow,
                 req.NormalRangeHigh,
+                req.TextReferenceRange,
                 req.Unit,
                 req.Price,
                 req.DisplayOrder

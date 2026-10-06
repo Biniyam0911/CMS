@@ -1004,8 +1004,12 @@ export default function PharmacyPage() {
                               {isLow && <small style={{ marginLeft: '4px', color: '#f87171' }}>(Low)</small>}
                             </span>
                           </td>
-                          <td style={{ color: 'var(--text-muted)' }}>Br {Number(d.costPrice).toFixed(2)}</td>
-                          <td style={{ fontWeight: 700, color: '#38bdf8' }}>Br {Number(d.sellingPrice).toFixed(2)}</td>
+                          <td style={{ color: Number(d.costPrice) > 0 ? 'var(--text-muted)' : '#b45309', fontStyle: Number(d.costPrice) > 0 ? 'normal' : 'italic' }}>
+                            {Number(d.costPrice) > 0 ? `Br ${Number(d.costPrice).toFixed(2)}` : 'Unset'}
+                          </td>
+                          <td style={{ fontWeight: 700, color: Number(d.sellingPrice) > 0 ? '#38bdf8' : '#b45309', fontStyle: Number(d.sellingPrice) > 0 ? 'normal' : 'italic' }}>
+                            {Number(d.sellingPrice) > 0 ? `Br ${Number(d.sellingPrice).toFixed(2)}` : 'Unset (Br 0.00)'}
+                          </td>
                           <td>
                             {d.isControlled ? (
                               <span className="badge badge-critical">Controlled</span>
@@ -1304,7 +1308,7 @@ export default function PharmacyPage() {
                   <option value="">-- Choose Drug --</option>
                   {drugs.map(d => (
                     <option key={d.id} value={d.id}>
-                      {d.generic} {d.strength} ({d.form}) — In Stock: {d.stock} — Br {d.sellingPrice?.toFixed(2)}
+                      {d.generic} {d.strength} ({d.form}) — In Stock: {d.stock} — {(d.sellingPrice ?? 0) > 0 ? `Br ${d.sellingPrice?.toFixed(2)}` : 'Price Unset'}
                     </option>
                   ))}
                 </select>
@@ -1328,7 +1332,7 @@ export default function PharmacyPage() {
                   <input
                     type="text"
                     readOnly
-                    value={doSelectedDrug ? `Br ${doSelectedDrug.sellingPrice?.toFixed(2)}` : '—'}
+                    value={doSelectedDrug ? ((doSelectedDrug.sellingPrice ?? 0) > 0 ? `Br ${doSelectedDrug.sellingPrice?.toFixed(2)}` : 'Unset (Br 0.00)') : '—'}
                     style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-dark)', fontSize: '0.85rem', color: 'var(--text-muted)' }}
                   />
                 </div>

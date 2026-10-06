@@ -33,8 +33,9 @@ interface LabParameter {
   code: string;
   name: string;
   unit: string;
-  normalRangeLow: number;
-  normalRangeHigh: number;
+  normalRangeLow?: number | null;
+  normalRangeHigh?: number | null;
+  textReferenceRange?: string;
   displayOrder?: number;
 }
 
@@ -49,6 +50,7 @@ interface LabTestMaster {
   displayOrder: number;
   fastingRequired: boolean;
   isActive: boolean;
+  textReferenceRange?: string;
   parameters: LabParameter[];
 }
 
@@ -238,8 +240,9 @@ export default function ServicesPage() {
               code: p.parameterCode || p.ParameterCode || p.code || p.Code || '',
               name: p.parameterName || p.ParameterName || p.name || p.Name || '',
               unit: p.unit || p.Unit || '',
-              normalRangeLow: p.referenceLow ?? p.ReferenceLow ?? p.normalRangeLow ?? p.NormalRangeLow ?? 0,
-              normalRangeHigh: p.referenceHigh ?? p.ReferenceHigh ?? p.normalRangeHigh ?? p.NormalRangeHigh ?? 0,
+              normalRangeLow: p.referenceLow ?? p.ReferenceLow ?? p.normalRangeLow ?? p.NormalRangeLow ?? null,
+              normalRangeHigh: p.referenceHigh ?? p.ReferenceHigh ?? p.normalRangeHigh ?? p.NormalRangeHigh ?? null,
+              textReferenceRange: p.textReferenceRange ?? p.TextReferenceRange ?? '',
               displayOrder: p.displayOrder ?? p.DisplayOrder ?? 1
             }))
             .sort((a: LabParameter, b: LabParameter) => (a.displayOrder ?? 1) - (b.displayOrder ?? 1));
@@ -255,14 +258,16 @@ export default function ServicesPage() {
             displayOrder: t.displayOrder ?? t.DisplayOrder ?? 1,
             fastingRequired: false,
             isActive: true,
+            textReferenceRange: t.textReferenceRange ?? t.TextReferenceRange ?? '',
             parameters: params.length > 0 ? params : (
-              (t.unit || t.Unit || t.normalRangeLow != null || t.normalRangeHigh != null) ? [
+              (t.unit || t.Unit || t.normalRangeLow != null || t.normalRangeHigh != null || t.textReferenceRange || t.TextReferenceRange) ? [
                 {
                   code: t.testCode || t.TestCode || 'ANALYTE',
                   name: t.testName || t.TestName || 'Primary Analyte',
                   unit: t.unit || t.Unit || '',
-                  normalRangeLow: t.normalRangeLow ?? t.NormalRangeLow ?? 0,
-                  normalRangeHigh: t.normalRangeHigh ?? t.NormalRangeHigh ?? 0,
+                  normalRangeLow: t.normalRangeLow ?? t.NormalRangeLow ?? null,
+                  normalRangeHigh: t.normalRangeHigh ?? t.NormalRangeHigh ?? null,
+                  textReferenceRange: t.textReferenceRange ?? t.TextReferenceRange ?? '',
                   displayOrder: 1
                 }
               ] : []
@@ -368,7 +373,7 @@ export default function ServicesPage() {
     setLabFormFasting(false);
     setLabFormDisplayOrder(1);
     setLabFormParams([
-      { code: 'PARAM-1', name: 'Primary Analyte', unit: 'mg/dL', normalRangeLow: 10, normalRangeHigh: 50, displayOrder: 1 }
+      { code: 'PARAM-1', name: 'Primary Analyte', unit: 'mg/dL', normalRangeLow: 10, normalRangeHigh: 50, textReferenceRange: '', displayOrder: 1 }
     ]);
     setShowLabModal(true);
   };
@@ -385,14 +390,14 @@ export default function ServicesPage() {
     setLabFormDisplayOrder(t.displayOrder ?? 1);
     setLabFormParams(t.parameters && t.parameters.length > 0 
       ? t.parameters.map(p => ({ ...p })) 
-      : [{ code: `${t.code}-1`, name: t.name, unit: '', normalRangeLow: 0, normalRangeHigh: 100, displayOrder: 1 }]);
+      : [{ code: `${t.code}-1`, name: t.name, unit: '', normalRangeLow: null, normalRangeHigh: null, textReferenceRange: t.textReferenceRange || '', displayOrder: 1 }]);
     setShowLabModal(true);
   };
 
   const handleAddParamRow = () => {
     setLabFormParams([
       ...labFormParams,
-      { code: `PARAM-${labFormParams.length + 1}`, name: 'New Sub-Parameter', unit: 'U/L', normalRangeLow: 0, normalRangeHigh: 100, displayOrder: labFormParams.length + 1 }
+      { code: `PARAM-${labFormParams.length + 1}`, name: 'New Sub-Parameter', unit: '', normalRangeLow: null, normalRangeHigh: null, textReferenceRange: '', displayOrder: labFormParams.length + 1 }
     ]);
   };
 
@@ -410,8 +415,9 @@ export default function ServicesPage() {
       code: p.code || `${labFormCode}-${idx + 1}`,
       name: p.name || 'Sub-Test Analyte',
       unit: p.unit || '',
-      normalRangeLow: p.normalRangeLow != null && !isNaN(Number(p.normalRangeLow)) ? Number(p.normalRangeLow) : null,
-      normalRangeHigh: p.normalRangeHigh != null && !isNaN(Number(p.normalRangeHigh)) ? Number(p.normalRangeHigh) : null,
+      normalRangeLow: p.normalRangeLow != null && p.normalRangeLow !== ('' as any) && !isNaN(Number(p.normalRangeLow)) ? Number(p.normalRangeLow) : null,
+      normalRangeHigh: p.normalRangeHigh != null && p.normalRangeHigh !== ('' as any) && !isNaN(Number(p.normalRangeHigh)) ? Number(p.normalRangeHigh) : null,
+      textReferenceRange: p.textReferenceRange?.trim() || null,
       displayOrder: p.displayOrder ?? (idx + 1)
     }));
 
@@ -424,8 +430,9 @@ export default function ServicesPage() {
       price: priceNum,
       displayOrder: labFormDisplayOrder,
       unit: firstParam?.unit || '',
-      normalRangeLow: firstParam?.normalRangeLow != null ? Number(firstParam.normalRangeLow) : null,
-      normalRangeHigh: firstParam?.normalRangeHigh != null ? Number(firstParam.normalRangeHigh) : null,
+      normalRangeLow: firstParam?.normalRangeLow != null && firstParam?.normalRangeLow !== ('' as any) ? Number(firstParam.normalRangeLow) : null,
+      normalRangeHigh: firstParam?.normalRangeHigh != null && firstParam?.normalRangeHigh !== ('' as any) ? Number(firstParam.normalRangeHigh) : null,
+      textReferenceRange: firstParam?.textReferenceRange?.trim() || null,
       parameters: parametersPayload
     };
 
@@ -840,21 +847,35 @@ export default function ServicesPage() {
                               <th>Parameter Code</th>
                               <th>Analyte / Sub-Test Name</th>
                               <th>Measurement Unit</th>
-                              <th>Normal Range Low</th>
-                              <th>Normal Range High</th>
+                              <th>Reference Range</th>
                             </tr>
                           </thead>
                           <tbody>
-                            {(test.parameters || []).map((p, idx) => (
-                              <tr key={idx}>
-                                <td style={{ textAlign: 'center', color: '#94a3b8', fontSize: '0.75rem' }}>{p.displayOrder ?? (idx + 1)}</td>
-                                <td><span style={{ fontFamily: 'monospace', fontWeight: 700 }}>{p.code}</span></td>
-                                <td><strong>{p.name}</strong></td>
-                                <td>{p.unit}</td>
-                                <td><span style={{ color: '#059669', fontWeight: 600 }}>{p.normalRangeLow}</span></td>
-                                <td><span style={{ color: '#059669', fontWeight: 600 }}>{p.normalRangeHigh}</span></td>
-                              </tr>
-                            ))}
+                            {(test.parameters || []).map((p, idx) => {
+                              const hasText = !!p.textReferenceRange?.trim();
+                              const hasNumeric = (p.normalRangeLow != null || p.normalRangeHigh != null);
+                              return (
+                                <tr key={idx}>
+                                  <td style={{ textAlign: 'center', color: '#94a3b8', fontSize: '0.75rem' }}>{p.displayOrder ?? (idx + 1)}</td>
+                                  <td><span style={{ fontFamily: 'monospace', fontWeight: 700 }}>{p.code}</span></td>
+                                  <td><strong>{p.name}</strong></td>
+                                  <td>{p.unit || '—'}</td>
+                                  <td>
+                                    {hasText ? (
+                                      <span style={{ color: '#0369a1', fontWeight: 700, background: '#e0f2fe', padding: '2px 8px', borderRadius: '4px', fontSize: '0.74rem' }}>
+                                        {p.textReferenceRange}
+                                      </span>
+                                    ) : hasNumeric ? (
+                                      <span style={{ color: '#059669', fontWeight: 600 }}>
+                                        {p.normalRangeLow != null ? p.normalRangeLow : '0'} – {p.normalRangeHigh != null ? p.normalRangeHigh : '∞'}
+                                      </span>
+                                    ) : (
+                                      <span style={{ color: 'var(--text-muted)' }}>—</span>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })}
                           </tbody>
                         </table>
                       </div>
@@ -958,19 +979,102 @@ export default function ServicesPage() {
                   </button>
                 </div>
 
-                <div style={{ overflowX: 'auto', maxHeight: '200px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: isMobile ? '600px' : 'auto' }}>
-                    {labFormParams.map((p, idx) => (
-                      <div key={idx} style={{ display: 'grid', gridTemplateColumns: '40px 90px 1.4fr 70px 70px 70px auto', gap: '6px', alignItems: 'center' }}>
-                        <input type="number" min={1} placeholder="#" value={p.displayOrder ?? (idx + 1)} onChange={e => { const u = [...labFormParams]; u[idx].displayOrder = parseInt(e.target.value) || idx + 1; setLabFormParams(u); }} style={{ fontSize: '0.72rem', textAlign: 'center' }} title="Display order for this analyte" />
-                        <input type="text" placeholder="Code" value={p.code} onChange={e => { const u = [...labFormParams]; u[idx].code = e.target.value; setLabFormParams(u); }} style={{ fontSize: '0.72rem' }} />
-                        <input type="text" placeholder="Analyte Name" value={p.name} onChange={e => { const u = [...labFormParams]; u[idx].name = e.target.value; setLabFormParams(u); }} style={{ fontSize: '0.72rem' }} />
-                        <input type="text" placeholder="Unit" value={p.unit} onChange={e => { const u = [...labFormParams]; u[idx].unit = e.target.value; setLabFormParams(u); }} style={{ fontSize: '0.72rem' }} />
-                        <input type="number" placeholder="Min" value={p.normalRangeLow} onChange={e => { const u = [...labFormParams]; u[idx].normalRangeLow = parseFloat(e.target.value) || 0; setLabFormParams(u); }} style={{ fontSize: '0.72rem' }} />
-                        <input type="number" placeholder="Max" value={p.normalRangeHigh} onChange={e => { const u = [...labFormParams]; u[idx].normalRangeHigh = parseFloat(e.target.value) || 0; setLabFormParams(u); }} style={{ fontSize: '0.72rem' }} />
-                        <button type="button" onClick={() => handleRemoveParamRow(idx)} style={{ background: 'none', border: 'none', color: '#b91c1c', cursor: 'pointer' }}><Trash2 size={13} /></button>
-                      </div>
-                    ))}
+                <div style={{ overflowX: 'auto', maxHeight: '250px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: '720px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '40px 90px 1.3fr 70px 100px 1.4fr auto', gap: '6px', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', paddingBottom: '2px', borderBottom: '1px solid #e2e8f0' }}>
+                      <span style={{ textAlign: 'center' }}>#</span>
+                      <span>Code</span>
+                      <span>Analyte Name *</span>
+                      <span>Unit</span>
+                      <span>Ref Type</span>
+                      <span>Reference Range</span>
+                      <span></span>
+                    </div>
+                    {labFormParams.map((p, idx) => {
+                      const isTextType = !!p.textReferenceRange?.trim() || (p.normalRangeLow == null && p.normalRangeHigh == null && p.textReferenceRange !== undefined);
+                      return (
+                        <div key={idx} style={{ display: 'grid', gridTemplateColumns: '40px 90px 1.3fr 70px 100px 1.4fr auto', gap: '6px', alignItems: 'center', background: '#ffffff', padding: '4px', borderRadius: '6px', border: '1px solid #f1f5f9' }}>
+                          <input type="number" min={1} placeholder="#" value={p.displayOrder ?? (idx + 1)} onChange={e => { const u = [...labFormParams]; u[idx].displayOrder = parseInt(e.target.value) || idx + 1; setLabFormParams(u); }} style={{ fontSize: '0.72rem', textAlign: 'center', padding: '4px' }} title="Display order" />
+                          <input type="text" placeholder="Code" value={p.code} onChange={e => { const u = [...labFormParams]; u[idx].code = e.target.value; setLabFormParams(u); }} style={{ fontSize: '0.72rem', padding: '4px' }} />
+                          <input type="text" placeholder="Analyte Name" value={p.name} onChange={e => { const u = [...labFormParams]; u[idx].name = e.target.value; setLabFormParams(u); }} style={{ fontSize: '0.72rem', padding: '4px' }} required />
+                          <input type="text" placeholder="Unit" value={p.unit} onChange={e => { const u = [...labFormParams]; u[idx].unit = e.target.value; setLabFormParams(u); }} style={{ fontSize: '0.72rem', padding: '4px' }} />
+                          
+                          {/* Ref Type Selector */}
+                          <select
+                            value={isTextType ? 'text' : 'numeric'}
+                            onChange={e => {
+                              const u = [...labFormParams];
+                              if (e.target.value === 'text') {
+                                u[idx].textReferenceRange = u[idx].textReferenceRange || 'Negative';
+                                u[idx].normalRangeLow = null;
+                                u[idx].normalRangeHigh = null;
+                              } else {
+                                u[idx].textReferenceRange = '';
+                                u[idx].normalRangeLow = 0;
+                                u[idx].normalRangeHigh = 100;
+                              }
+                              setLabFormParams(u);
+                            }}
+                            style={{ fontSize: '0.72rem', padding: '3px 4px', borderRadius: '4px', border: '1px solid var(--border-color)', background: isTextType ? '#f0f9ff' : '#f0fdf4', color: isTextType ? '#0369a1' : '#15803d', fontWeight: 700 }}
+                          >
+                            <option value="numeric">Numeric</option>
+                            <option value="text">Text / Value</option>
+                          </select>
+
+                          {/* Range Inputs */}
+                          {isTextType ? (
+                            <input
+                              type="text"
+                              placeholder="e.g. Negative, Non-Reactive, >28, Normal"
+                              value={p.textReferenceRange || ''}
+                              onChange={e => {
+                                const u = [...labFormParams];
+                                u[idx].textReferenceRange = e.target.value;
+                                u[idx].normalRangeLow = null;
+                                u[idx].normalRangeHigh = null;
+                                setLabFormParams(u);
+                              }}
+                              style={{ fontSize: '0.72rem', padding: '4px 8px', borderColor: '#0284c7', background: '#f8fafc', fontWeight: 600 }}
+                              title="Enter qualitative or custom reference text (e.g. Negative, Positive, >28, Trace)"
+                            />
+                          ) : (
+                            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                              <input
+                                type="number"
+                                step="any"
+                                placeholder="Low"
+                                value={p.normalRangeLow ?? ''}
+                                onChange={e => {
+                                  const u = [...labFormParams];
+                                  u[idx].normalRangeLow = e.target.value !== '' ? parseFloat(e.target.value) : null;
+                                  setLabFormParams(u);
+                                }}
+                                style={{ fontSize: '0.72rem', padding: '4px', width: '50%' }}
+                                title="Normal low boundary"
+                              />
+                              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>–</span>
+                              <input
+                                type="number"
+                                step="any"
+                                placeholder="High"
+                                value={p.normalRangeHigh ?? ''}
+                                onChange={e => {
+                                  const u = [...labFormParams];
+                                  u[idx].normalRangeHigh = e.target.value !== '' ? parseFloat(e.target.value) : null;
+                                  setLabFormParams(u);
+                                }}
+                                style={{ fontSize: '0.72rem', padding: '4px', width: '50%' }}
+                                title="Normal high boundary"
+                              />
+                            </div>
+                          )}
+
+                          <button type="button" onClick={() => handleRemoveParamRow(idx)} style={{ background: 'none', border: 'none', color: '#b91c1c', cursor: 'pointer', padding: '4px' }} title="Remove Analyte">
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
