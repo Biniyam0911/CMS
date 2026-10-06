@@ -254,7 +254,7 @@ export default function TriagePage() {
       setBloodGlucose(bg ? String(bg) : '');
       setPainScale(ps || 0);
       setTriageCat(tc || 'Yellow');
-      setChiefComplaint(cc || '');
+      setChiefComplaint((cc && cc !== 'Nurse Triage Walk-in Intake') ? cc : '');
       setNurseNotes(nn || '');
     } else {
       setSysBP('');
@@ -566,7 +566,7 @@ export default function TriagePage() {
         patientId: newSelectedPatient.id,
         triageCategory: 'Yellow',
         priorityLevel: 3,
-        chiefComplaint: 'Nurse Triage Walk-in Intake',
+        chiefComplaint: '',
         triagedBy: 1
       });
       setShowNewTriageModal(false);

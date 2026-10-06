@@ -77,7 +77,7 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
   const [exportedAlert, setExportedAlert] = useState<string | null>(null);
 
   // Filter Dropdowns
-  const [datePreset, setDatePreset] = useState<'this_month' | 'last_30_days' | 'today' | 'yesterday' | 'last_7_days' | 'last_month' | 'this_year' | 'all_time' | 'custom'>('all_time');
+  const [datePreset, setDatePreset] = useState<'this_month' | 'last_30_days' | 'today' | 'yesterday' | 'last_7_days' | 'last_month' | 'this_year' | 'custom'>('this_month');
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
 
@@ -128,9 +128,6 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
     if (datePreset === 'this_year') {
       const startYear = new Date(now.getFullYear(), 0, 1);
       return { dateFrom: toISO(startYear), dateTo: toISO(now) };
-    }
-    if (datePreset === 'all_time') {
-      return { dateFrom: '2020-01-01', dateTo: toISO(now) };
     }
     if (datePreset === 'custom') {
       return {
@@ -442,7 +439,6 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
               <option value="last_7_days">Last 7 Days</option>
               <option value="last_month">Last Month</option>
               <option value="this_year">This Year (YTD)</option>
-              <option value="all_time">All Time</option>
               <option value="custom">Custom Date Range...</option>
             </select>
           </div>

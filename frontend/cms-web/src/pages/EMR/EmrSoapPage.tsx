@@ -568,6 +568,38 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
   const [orderRxQty, setOrderRxQty] = useState(14);
   const [orderRxTiming, setOrderRxTiming] = useState('Take after meals');
 
+  // ==========================================
+  // DEDICATED PRESCRIBE MODAL STATE
+  // ==========================================
+  const [showPrescribeModal, setShowPrescribeModal] = useState(false);
+  const [prescribeSearch, setPrescribeSearch] = useState('');
+  const [prescribeCategoryFilter, setPrescribeCategoryFilter] = useState('ALL');
+  const [prescribeActiveTab, setPrescribeActiveTab] = useState<'catalog' | 'custom'>('catalog');
+  const [prescribeBasket, setPrescribeBasket] = useState<{
+    id: string;
+    drugId?: number;
+    drugName: string;
+    isCustom: boolean;
+    dosage: string;
+    route: string;
+    frequency: string;
+    duration: string;
+    qty: number;
+    unitPrice: number;
+    instructions: string;
+  }[]>([]);
+
+  // Custom medication state
+  const [customDrugName, setCustomDrugName] = useState('');
+  const [customDosage, setCustomDosage] = useState('1 Tablet');
+  const [customRoute, setCustomRoute] = useState('Oral');
+  const [customFreq, setCustomFreq] = useState('Twice Daily (BID)');
+  const [customDuration, setCustomDuration] = useState('7 Days');
+  const [customQty, setCustomQty] = useState<number>(10);
+  const [customInstructions, setCustomInstructions] = useState('Take after meals');
+  const [customPrice, setCustomPrice] = useState<number>(0);
+  const [isSubmittingPrescription, setIsSubmittingPrescription] = useState(false);
+
   // DYNAMIC SERVICES CATALOG FROM DATABASE (Services Table — excludes Lab categories)
   const [servicesCatalog, setServicesCatalog] = useState<ServiceCatalogItem[]>([]);
   const [loadingServices, setLoadingServices] = useState(false);
@@ -786,7 +818,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
           name: p.patientName || p.PatientName || 'Assigned Patient',
           age: p.dateOfBirth ? (new Date().getFullYear() - new Date(p.dateOfBirth).getFullYear()) : 30,
           gender: p.gender === 1 || p.Gender === 1 ? 'Male' : 'Female',
-          blood: p.bloodGroup || p.BloodGroup || 'O+',
+          blood: p.bloodGroup || p.BloodGroup || '',
           allergies: p.allergies || p.Allergies || 'None',
           insurance: p.insuranceProvider || p.InsuranceProvider || 'Cash'
         }));
@@ -1726,6 +1758,162 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
     }
   };
 
+  // ==========================================
+  // DEDICATED PRESCRIBE HANDLERS
+  // ==========================================
+  const handleAddMedicationToPrescribeBasket = (item: MedicationItem) => {
+    const key = `FORMULARY-${item.id}`;
+    if (prescribeBasket.some(b => b.id === key)) {
+      setPrescribeBasket(prev => prev.filter(b => b.id !== key));
+      return;
+    }
+    setPrescribeBasket(prev => [
+      ...prev,
+      {
+        id: key,
+        drugId: !isNaN(Number(item.id)) ? Number(item.id) : undefined,
+        drugName: item.name,
+        isCustom: false,
+        dosage: item.defaultDosage || '1 Tablet',
+        route: item.defaultRoute || 'Oral',
+        frequency: item.defaultFreq || 'Twice Daily (BID)',
+        duration: item.defaultDuration || '7 Days',
+        qty: item.defaultQty || 10,
+        unitPrice: item.unitPrice || 0,
+        instructions: item.instructions || 'Take as directed'
+      }
+    ]);
+  };
+
+  const handleAddCustomMedicationToBasket = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!customDrugName.trim()) return;
+
+    const newId = `CUSTOM-${Date.now()}`;
+    setPrescribeBasket(prev => [
+      ...prev,
+      {
+        id: newId,
+        drugId: undefined,
+        drugName: customDrugName.trim(),
+        isCustom: true,
+        dosage: customDosage.trim() || '1 Tablet',
+        route: customRoute || 'Oral',
+        frequency: customFreq || 'Twice Daily (BID)',
+        duration: customDuration || '7 Days',
+        qty: Number(customQty) || 1,
+        unitPrice: Number(customPrice) || 0,
+        instructions: customInstructions.trim() || 'Take as directed'
+      }
+    ]);
+
+    // Reset custom inputs
+    setCustomDrugName('');
+    setCustomDosage('1 Tablet');
+    setCustomQty(10);
+    setCustomPrice(0);
+    setCustomInstructions('Take after meals');
+  };
+
+  const handleRemoveFromPrescribeBasket = (id: string) => {
+    setPrescribeBasket(prev => prev.filter(b => b.id !== id));
+  };
+
+  const handleUpdatePrescribeItem = (id: string, field: string, val: any) => {
+    setPrescribeBasket(prev => prev.map(b => (b.id === id ? { ...b, [field]: val } : b)));
+  };
+
+  const handlePrescribeSubmit = async () => {
+    if (!activePatient || prescribeBasket.length === 0) return;
+    setIsSubmittingPrescription(true);
+    try {
+      const patId = activePatient.id;
+      const diagText = diagnosis || 'Clinical Consultation';
+
+      // 1. Backend dispatch to /pharmacy/prescriptions
+      let createdPresId: number | null = null;
+      try {
+        const rxRes: any = await api.post('/pharmacy/prescriptions', {
+          tenantId: 1,
+          patientId: patId,
+          doctorId: selectedDoctorId || currentUser?.doctorId || 1,
+          encounterId: null,
+          diagnosis: diagText,
+          items: prescribeBasket.map(item => ({
+            drugId: item.drugId && item.drugId > 0 ? item.drugId : 1,
+            dosage: item.dosage,
+            frequency: item.frequency,
+            duration: item.duration,
+            quantity: item.qty,
+            instructions: `${item.drugName} - ${item.instructions || item.route || 'Take as directed'}`
+          }))
+        });
+        const presId = rxRes?.prescriptionId || rxRes?.PrescriptionId || rxRes?.data?.prescriptionId || rxRes?.data?.PrescriptionId;
+        if (presId && Number(presId) > 0) createdPresId = Number(presId);
+      } catch (err) {
+        console.warn('Backend prescription dispatch error:', err);
+      }
+
+      // 2. Add to billing invoice if any items have a price > 0
+      try {
+        const billedItems = prescribeBasket.filter(b => b.unitPrice > 0).map(b => ({
+          itemType: 'Pharmacy',
+          description: `${b.drugName} (${b.dosage} - ${b.qty} pcs)`,
+          quantity: b.qty,
+          unitPrice: b.unitPrice,
+          discount: 0
+        }));
+        if (billedItems.length > 0) {
+          await api.post('/billing/invoices', {
+            patientId: patId,
+            paymentMethod: 'Cash',
+            items: billedItems
+          }).catch(() => {});
+        }
+      } catch {}
+
+      // 3. Immediately reflect in 6. Medication Details (Prescriptions) of clinical entry area
+      setMedications(prev => [
+        ...prev,
+        ...prescribeBasket.map(b => ({
+          drugName: b.drugName,
+          dosage: b.dosage,
+          qty: b.qty,
+          frequency: b.frequency,
+          duration: b.duration
+        }))
+      ]);
+
+      // 4. Immediately reflect in Patient History Prescription (RX) category
+      setHistoryPrescriptions(prev => [
+        {
+          id: createdPresId || Date.now(),
+          patientId: patId,
+          prescribedAt: new Date().toISOString(),
+          doctorName: certDoctorName,
+          items: prescribeBasket.map(b => ({
+            drugName: b.drugName,
+            dosage: b.dosage,
+            frequency: b.frequency,
+            duration: b.duration,
+            quantity: b.qty
+          }))
+        },
+        ...prev
+      ]);
+
+      // 5. Toast & Reset
+      setOrderDispatchedToast(`✓ Successfully prescribed ${prescribeBasket.length} medication(s) for ${activePatient.name}! Live in Section 6 & Patient History.`);
+      setTimeout(() => setOrderDispatchedToast(null), 5000);
+      setPrescribeBasket([]);
+      setShowPrescribeModal(false);
+    } catch (err) {
+      console.error('Prescribe submit error:', err);
+    } finally {
+      setIsSubmittingPrescription(false);
+    }
+  };
+
   const handleIssueCertificateDirect = async (e: React.FormEvent) => {
     e.preventDefault();
     const newCert = {
@@ -1796,7 +1984,23 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button
+              onClick={() => setShowPrescribeModal(true)}
+              className="btn-primary"
+              style={{
+                background: 'linear-gradient(135deg, #059669, #047857)',
+                fontWeight: 700,
+                fontSize: '0.835rem',
+                padding: '8px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '7px',
+                boxShadow: '0 2px 6px rgba(5, 150, 105, 0.25)'
+              }}
+            >
+              <Pill size={16} /> + Prescribe
+            </button>
             <button
               onClick={() => setShowOrderModal(true)}
               className="btn-primary"
@@ -1810,7 +2014,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                 gap: '7px'
               }}
             >
-              <ShoppingCart size={16} /> + Order (Lab, Rx, Procedures, Certificate)
+              <ShoppingCart size={16} /> + Order (Lab &amp; Procedures)
             </button>
           </div>
         </div>
@@ -1821,7 +2025,9 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
             <div><span style={{ color: 'var(--text-muted)' }}>Card No:</span> <strong style={{ color: '#0369a1', fontFamily: 'monospace' }}>{activePatient.mrn}</strong></div>
             <div><span style={{ color: 'var(--text-muted)' }}>Patient Name:</span> <strong style={{ color: 'var(--text-main)' }}>{activePatient.name}</strong></div>
             <div><span style={{ color: 'var(--text-muted)' }}>Age/Gender:</span> <strong>{activePatient.age} yrs / {activePatient.gender}</strong></div>
-            <div><span style={{ color: 'var(--text-muted)' }}>Blood:</span> <strong style={{ color: '#e11d48' }}>{activePatient.blood}</strong></div>
+            {activePatient.blood ? (
+              <div><span style={{ color: 'var(--text-muted)' }}>Blood:</span> <strong style={{ color: '#e11d48' }}>{activePatient.blood}</strong></div>
+            ) : null}
             <div><span style={{ color: 'var(--text-muted)' }}>Allergies:</span> <span className="badge badge-critical">{activePatient.allergies}</span></div>
             <div><span style={{ color: 'var(--text-muted)' }}>Payment:</span> <span className="badge badge-info">{activePatient.insurance}</span></div>
           </div>
@@ -2296,8 +2502,13 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                 <label style={{ fontSize: '0.78rem', color: '#0369a1', fontWeight: 700 }}>
                   6. Medication Details (Prescriptions)
                 </label>
-                <button onClick={() => setShowOrderModal(true)} className="btn-secondary" style={{ padding: '4px 8px', fontSize: '0.72rem' }}>
-                  <ShoppingCart size={13} /> Open Full Order Hub
+                <button
+                  type="button"
+                  onClick={() => setShowPrescribeModal(true)}
+                  className="btn-primary"
+                  style={{ padding: '5px 12px', fontSize: '0.74rem', background: '#059669', borderColor: '#059669', display: 'inline-flex', alignItems: 'center', gap: '5px', fontWeight: 700 }}
+                >
+                  <Pill size={14} /> + Prescribe Medications
                 </button>
               </div>
 
@@ -2317,7 +2528,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                   {medications.length === 0 ? (
                     <tr>
                       <td colSpan={6} style={{ textAlign: 'center', padding: '14px', color: 'var(--text-muted)', fontSize: '0.78rem', fontStyle: 'italic' }}>
-                        No medications prescribed yet. Add below or click Open Full Order Hub.
+                        No medications prescribed yet. Add below or click + Prescribe Medications.
                       </td>
                     </tr>
                   ) : (
@@ -3370,14 +3581,6 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
           middlePanelItems = (filteredLabCatalogItems || []).filter(item => 
             !q || (item.name || '').toLowerCase().includes(q) || (item.code || '').toLowerCase().includes(q)
           );
-        } else if (activeOrderCategory === 'RX') {
-          middlePanelTitle = 'Prescriptions / E-Rx';
-          middlePanelIcon = Pill;
-          middlePanelColor = '#059669';
-          middlePanelType = 'RX';
-          middlePanelItems = (medicationCatalogue || []).filter(item =>
-            !q || (item.name || '').toLowerCase().includes(q) || (item.class || '').toLowerCase().includes(q)
-          );
         } else {
           // Dynamic category from groupedServices
           const catMeta = getCategoryMeta(activeOrderCategory);
@@ -3469,40 +3672,6 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                           </span>
                         )}
                         <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>{filteredLabCatalogItems?.length || 0}</span>
-                      </div>
-                    </button>
-
-                    {/* Prescriptions / E-Rx Category */}
-                    <button
-                      type="button"
-                      onClick={() => { setActiveOrderCategory('RX'); setOrderModalCategorySearch(''); }}
-                      style={{
-                        width: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '9px 10px',
-                        borderRadius: '8px',
-                        border: 'none',
-                        background: activeOrderCategory === 'RX' ? '#dcfce7' : 'transparent',
-                        color: activeOrderCategory === 'RX' ? '#15803d' : '#334155',
-                        fontWeight: activeOrderCategory === 'RX' ? 700 : 500,
-                        fontSize: '0.78rem',
-                        cursor: 'pointer',
-                        textAlign: 'left'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Pill size={15} color="#059669" />
-                        <span>Prescriptions (Rx)</span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        {rxSelectedCount > 0 && (
-                          <span style={{ background: '#059669', color: '#fff', padding: '1px 5px', borderRadius: '8px', fontSize: '0.62rem', fontWeight: 700 }}>
-                            {rxSelectedCount}
-                          </span>
-                        )}
-                        <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>{medicationCatalogue?.length || 0}</span>
                       </div>
                     </button>
 
@@ -3629,7 +3798,6 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                               </div>
                               <div style={{ fontSize: '0.67rem', color: '#64748b', marginTop: '1px' }}>
                                 {item.code ? `${item.code} · ` : ''}
-                                {middlePanelType === 'RX' ? `${item.class || 'Rx'} · ` : ''}
                                 <strong style={{ color: '#0369a1' }}>Br {parseFloat(item.price ?? item.unitPrice ?? 0).toFixed(2)}</strong>
                               </div>
                             </div>
@@ -3898,6 +4066,534 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
         );
       })()}
 
+      {/* ========================================================================= */}
+      {/* DEDICATED PRESCRIBE MODAL (Pharmacy Formulary + Custom Medications)       */}
+      {/* ========================================================================= */}
+      {showPrescribeModal && (() => {
+        const q = prescribeSearch.trim().toLowerCase();
+        const filteredFormulary = medicationCatalogue.filter(item => {
+          const matchQ = !q || (item.name || '').toLowerCase().includes(q) || (item.class || '').toLowerCase().includes(q);
+          const matchCat = prescribeCategoryFilter === 'ALL' || (item.class || '').toLowerCase().includes(prescribeCategoryFilter.toLowerCase());
+          return matchQ && matchCat;
+        });
+
+        const formularyClasses = Array.from(new Set(medicationCatalogue.map(m => m.class).filter(Boolean)));
+        const totalEstimatedCost = prescribeBasket.reduce((sum, item) => sum + (item.unitPrice * (item.qty || 1)), 0);
+
+        return (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,15,15,0.7)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}>
+            <div style={{ width: '1160px', maxWidth: '98vw', height: '90vh', display: 'flex', flexDirection: 'column', background: '#ffffff', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 25px 65px rgba(0,0,0,0.35)', border: '1px solid #cbd5e1' }}>
+              
+              {/* HEADER */}
+              <div style={{ flexShrink: 0, padding: '14px 22px', background: 'linear-gradient(135deg,#047857,#059669)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Pill size={20} color="#fff" />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '1.08rem', fontWeight: 800, color: '#fff' }}>Prescribe Medications — {activePatient?.name}</div>
+                    <div style={{ fontSize: '0.73rem', color: 'rgba(255,255,255,0.88)' }}>Card: <strong>{activePatient?.mrn}</strong> · Select from Pharmacy Category or enter custom medications</div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  {prescribeBasket.length > 0 && (
+                    <span style={{ padding: '4px 12px', borderRadius: '20px', background: '#f59e0b', color: '#fff', fontSize: '0.76rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <Check size={13} /> {prescribeBasket.length} Meds Selected · Br {totalEstimatedCost.toFixed(2)}
+                    </span>
+                  )}
+                  <button onClick={() => setShowPrescribeModal(false)} style={{ background: 'rgba(255,255,255,0.18)', border: 'none', borderRadius: '7px', padding: '7px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                    <X size={18} color="#fff" />
+                  </button>
+                </div>
+              </div>
+
+              {/* TABS BAR (Formulary vs Custom) */}
+              <div style={{ flexShrink: 0, background: '#f8fafc', borderBottom: '1px solid #e2e8f0', padding: '8px 20px', display: 'flex', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setPrescribeActiveTab('catalog')}
+                  className={prescribeActiveTab === 'catalog' ? 'btn-primary' : 'btn-secondary'}
+                  style={{
+                    fontSize: '0.78rem',
+                    padding: '6px 16px',
+                    borderRadius: '8px',
+                    fontWeight: 700,
+                    background: prescribeActiveTab === 'catalog' ? '#059669' : '#fff',
+                    borderColor: prescribeActiveTab === 'catalog' ? '#059669' : '#cbd5e1',
+                    color: prescribeActiveTab === 'catalog' ? '#fff' : '#334155',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <Pill size={14} /> Pharmacy Category ({medicationCatalogue.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPrescribeActiveTab('custom')}
+                  className={prescribeActiveTab === 'custom' ? 'btn-primary' : 'btn-secondary'}
+                  style={{
+                    fontSize: '0.78rem',
+                    padding: '6px 16px',
+                    borderRadius: '8px',
+                    fontWeight: 700,
+                    background: prescribeActiveTab === 'custom' ? '#059669' : '#fff',
+                    borderColor: prescribeActiveTab === 'custom' ? '#059669' : '#cbd5e1',
+                    color: prescribeActiveTab === 'custom' ? '#fff' : '#334155',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <Plus size={14} /> + Write Custom Medication
+                </button>
+              </div>
+
+              {/* BODY: 2-PANEL LAYOUT */}
+              <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
+                
+                {/* LEFT / CENTER PANEL: Items selection or Custom form */}
+                <div style={{ flex: 1, borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', background: '#ffffff', minWidth: '400px', overflow: 'hidden' }}>
+                  
+                  {prescribeActiveTab === 'catalog' ? (
+                    <>
+                      {/* Search & Category Filter Toolbar */}
+                      <div style={{ padding: '12px 16px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ position: 'relative' }}>
+                          <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                          <input
+                            value={prescribeSearch}
+                            onChange={e => setPrescribeSearch(e.target.value)}
+                            placeholder="Search medication name, active ingredient, brand or dosage form..."
+                            style={{ width: '100%', boxSizing: 'border-box', padding: '7px 10px 7px 32px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem' }}
+                          />
+                        </div>
+
+                        {/* Category filter pills */}
+                        <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '4px' }}>
+                          <button
+                            type="button"
+                            onClick={() => setPrescribeCategoryFilter('ALL')}
+                            style={{
+                              fontSize: '0.7rem',
+                              padding: '3px 10px',
+                              borderRadius: '12px',
+                              border: '1px solid',
+                              borderColor: prescribeCategoryFilter === 'ALL' ? '#059669' : '#e2e8f0',
+                              background: prescribeCategoryFilter === 'ALL' ? '#ecfdf5' : '#fff',
+                              color: prescribeCategoryFilter === 'ALL' ? '#047857' : '#64748b',
+                              fontWeight: prescribeCategoryFilter === 'ALL' ? 700 : 500,
+                              cursor: 'pointer',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            All ({medicationCatalogue.length})
+                          </button>
+                          {formularyClasses.slice(0, 8).map(cls => (
+                            <button
+                              key={cls}
+                              type="button"
+                              onClick={() => setPrescribeCategoryFilter(cls)}
+                              style={{
+                                fontSize: '0.7rem',
+                                padding: '3px 10px',
+                                borderRadius: '12px',
+                                border: '1px solid',
+                                borderColor: prescribeCategoryFilter === cls ? '#059669' : '#e2e8f0',
+                                background: prescribeCategoryFilter === cls ? '#ecfdf5' : '#fff',
+                                color: prescribeCategoryFilter === cls ? '#047857' : '#64748b',
+                                fontWeight: prescribeCategoryFilter === cls ? 700 : 500,
+                                cursor: 'pointer',
+                                whiteSpace: 'nowrap'
+                              }}
+                            >
+                              {cls}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Formulary Drug Cards */}
+                      <div style={{ flex: 1, overflowY: 'auto', padding: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {filteredFormulary.length === 0 ? (
+                          <div style={{ textAlign: 'center', padding: '40px 20px', color: '#94a3b8', fontSize: '0.85rem' }}>
+                            <p>No medications found matching "{prescribeSearch}".</p>
+                            <button
+                              type="button"
+                              onClick={() => { setPrescribeActiveTab('custom'); setCustomDrugName(prescribeSearch); }}
+                              className="btn-primary"
+                              style={{ marginTop: '10px', background: '#059669', borderColor: '#059669', fontSize: '0.78rem' }}
+                            >
+                              <Plus size={14} /> Write "{prescribeSearch}" as Custom Medication
+                            </button>
+                          </div>
+                        ) : (
+                          filteredFormulary.map(item => {
+                            const isSelected = prescribeBasket.some(b => b.id === `FORMULARY-${item.id}`);
+                            return (
+                              <div
+                                key={item.id}
+                                onClick={() => handleAddMedicationToPrescribeBasket(item)}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  padding: '10px 14px',
+                                  borderRadius: '8px',
+                                  border: isSelected ? '1.5px solid #059669' : '1px solid #e2e8f0',
+                                  background: isSelected ? '#ecfdf5' : '#ffffff',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.15s ease'
+                                }}
+                              >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    onChange={() => handleAddMedicationToPrescribeBasket(item)}
+                                    onClick={e => e.stopPropagation()}
+                                    style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#059669' }}
+                                  />
+                                  <div>
+                                    <div style={{ fontWeight: 700, fontSize: '0.82rem', color: isSelected ? '#065f46' : 'var(--text-main)' }}>
+                                      {item.name}
+                                    </div>
+                                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                      <span style={{ background: '#f1f5f9', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>{item.class}</span>
+                                      <span>{item.defaultDosage} · {item.defaultFreq}</span>
+                                      <span>•</span>
+                                      <span style={{ color: '#0369a1' }}>{item.instructions}</span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '12px' }}>
+                                  <div style={{ fontWeight: 700, color: '#059669', fontSize: '0.82rem', fontFamily: 'monospace' }}>
+                                    Br {item.unitPrice.toFixed(2)}
+                                  </div>
+                                  <span style={{
+                                    fontSize: '0.68rem',
+                                    color: isSelected ? '#059669' : '#64748b',
+                                    fontWeight: isSelected ? 700 : 500
+                                  }}>
+                                    {isSelected ? '✓ Added' : '+ Add'}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    /* CUSTOM MEDICATION FORM */
+                    <div style={{ flex: 1, overflowY: 'auto', padding: '24px', maxWidth: '640px' }}>
+                      <div style={{ marginBottom: '16px' }}>
+                        <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)', margin: '0 0 4px 0' }}>
+                          Prescribe Custom / Unlisted Medication
+                        </h4>
+                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>
+                          If a medication is not currently registered in the clinic's pharmacy category formulary, enter the prescription specifications directly.
+                        </p>
+                      </div>
+
+                      <form onSubmit={handleAddCustomMedicationToBasket} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                        <div>
+                          <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                            Medication Name &amp; Strength <span style={{ color: '#dc2626' }}>*</span>
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. Ciprofloxacin 500mg, Multivitamin Syrup, Hydrocortisone 1%..."
+                            value={customDrugName}
+                            onChange={e => setCustomDrugName(e.target.value)}
+                            style={{ width: '100%', padding: '8px 12px', fontSize: '0.82rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                            autoFocus
+                          />
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                          <div>
+                            <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>Dosage Unit</label>
+                            <input
+                              type="text"
+                              value={customDosage}
+                              onChange={e => setCustomDosage(e.target.value)}
+                              placeholder="e.g. 1 Tablet, 500mg, 5ml"
+                              style={{ width: '100%', padding: '7px 10px', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                            />
+                          </div>
+
+                          <div>
+                            <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>Route of Admin</label>
+                            <select
+                              value={customRoute}
+                              onChange={e => setCustomRoute(e.target.value)}
+                              style={{ width: '100%', padding: '7px 10px', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff' }}
+                            >
+                              <option value="Oral">Oral</option>
+                              <option value="Topical">Topical</option>
+                              <option value="IV / IM Injection">IV / IM Injection</option>
+                              <option value="Inhalation">Inhalation</option>
+                              <option value="Ophthalmic">Ophthalmic (Eye)</option>
+                              <option value="Otic">Otic (Ear)</option>
+                              <option value="Sublingual">Sublingual</option>
+                              <option value="Rectal">Rectal</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                          <div>
+                            <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>Frequency</label>
+                            <select
+                              value={customFreq}
+                              onChange={e => setCustomFreq(e.target.value)}
+                              style={{ width: '100%', padding: '7px 10px', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff' }}
+                            >
+                              <option value="Once Daily (OD)">Once Daily (OD)</option>
+                              <option value="Twice Daily (BID)">Twice Daily (BID)</option>
+                              <option value="Three Times Daily (TID)">Three Times Daily (TID)</option>
+                              <option value="Four Times Daily (QID)">Four Times Daily (QID)</option>
+                              <option value="Every 8 Hours (Q8H)">Every 8 Hours (Q8H)</option>
+                              <option value="Every 12 Hours (Q12H)">Every 12 Hours (Q12H)</option>
+                              <option value="At Bedtime (HS)">At Bedtime (HS)</option>
+                              <option value="As Needed (PRN)">As Needed (PRN)</option>
+                              <option value="Once Weekly">Once Weekly</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>Duration</label>
+                            <select
+                              value={customDuration}
+                              onChange={e => setCustomDuration(e.target.value)}
+                              style={{ width: '100%', padding: '7px 10px', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff' }}
+                            >
+                              <option value="3 Days">3 Days</option>
+                              <option value="5 Days">5 Days</option>
+                              <option value="7 Days">7 Days</option>
+                              <option value="10 Days">10 Days</option>
+                              <option value="14 Days">14 Days</option>
+                              <option value="21 Days">21 Days</option>
+                              <option value="1 Month">1 Month</option>
+                              <option value="2 Months">2 Months</option>
+                              <option value="3 Months">3 Months</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                          <div>
+                            <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>Total Dispense Qty</label>
+                            <input
+                              type="number"
+                              min={1}
+                              value={customQty}
+                              onChange={e => setCustomQty(parseInt(e.target.value) || 1)}
+                              style={{ width: '100%', padding: '7px 10px', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                            />
+                          </div>
+
+                          <div>
+                            <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>Price / Unit (ETB, Optional)</label>
+                            <input
+                              type="number"
+                              min={0}
+                              step="0.01"
+                              value={customPrice}
+                              onChange={e => setCustomPrice(parseFloat(e.target.value) || 0)}
+                              style={{ width: '100%', padding: '7px 10px', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>Instructions &amp; Warnings</label>
+                          <input
+                            type="text"
+                            value={customInstructions}
+                            onChange={e => setCustomInstructions(e.target.value)}
+                            placeholder="e.g. Take after meals with plenty of water. Avoid sun exposure."
+                            style={{ width: '100%', padding: '7px 10px', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                          />
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
+                          <button
+                            type="submit"
+                            disabled={!customDrugName.trim()}
+                            className="btn-primary"
+                            style={{ background: '#059669', borderColor: '#059669', padding: '8px 18px', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+                          >
+                            <Plus size={15} /> Add Custom Medication to Prescription
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  )}
+                </div>
+
+                {/* RIGHT PANEL (420px): Prescription Basket Review */}
+                <div style={{ width: '420px', flexShrink: 0, background: '#f8fafc', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                  
+                  {/* Basket Header */}
+                  <div style={{ padding: '12px 18px', borderBottom: '1px solid #e2e8f0', background: '#f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ fontWeight: 800, fontSize: '0.84rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Pill size={16} color="#059669" />
+                      <span>Prescription Basket ({prescribeBasket.length})</span>
+                    </div>
+                    {prescribeBasket.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setPrescribeBasket([])}
+                        style={{ background: 'none', border: 'none', color: '#b91c1c', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer' }}
+                      >
+                        Clear All
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Basket Items List */}
+                  <div style={{ flex: 1, overflowY: 'auto', padding: '10px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {prescribeBasket.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '50px 20px', color: '#94a3b8', fontSize: '0.8rem' }}>
+                        <Pill size={32} color="#cbd5e1" style={{ margin: '0 auto 10px', display: 'block' }} />
+                        <p style={{ margin: '0 0 4px 0', fontWeight: 700, color: '#64748b' }}>No medications in prescription</p>
+                        <p style={{ margin: 0, fontSize: '0.72rem' }}>Check items from Pharmacy category or write custom medications on the left.</p>
+                      </div>
+                    ) : (
+                      prescribeBasket.map((item, idx) => (
+                        <div
+                          key={item.id}
+                          style={{
+                            background: '#ffffff',
+                            borderRadius: '10px',
+                            border: '1px solid #e2e8f0',
+                            padding: '12px',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                            <div>
+                              <div style={{ fontWeight: 700, fontSize: '0.82rem', color: '#0f172a' }}>
+                                {item.drugName}
+                              </div>
+                              <span style={{
+                                fontSize: '0.66rem',
+                                padding: '1px 6px',
+                                borderRadius: '4px',
+                                fontWeight: 700,
+                                background: item.isCustom ? '#fef3c7' : '#ecfdf5',
+                                color: item.isCustom ? '#b45309' : '#047857'
+                              }}>
+                                {item.isCustom ? 'Custom Prescription' : 'Pharmacy Formulary'}
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveFromPrescribeBasket(item.id)}
+                              style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '2px' }}
+                            >
+                              <X size={15} />
+                            </button>
+                          </div>
+
+                          {/* Editable fields */}
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', fontSize: '0.72rem', marginBottom: '6px' }}>
+                            <div>
+                              <span style={{ color: '#64748b' }}>Dosage:</span>
+                              <input
+                                type="text"
+                                value={item.dosage}
+                                onChange={e => handleUpdatePrescribeItem(item.id, 'dosage', e.target.value)}
+                                style={{ width: '100%', boxSizing: 'border-box', padding: '3px 6px', fontSize: '0.72rem', borderRadius: '4px', border: '1px solid #cbd5e1', marginTop: '2px' }}
+                              />
+                            </div>
+                            <div>
+                              <span style={{ color: '#64748b' }}>Frequency:</span>
+                              <select
+                                value={item.frequency}
+                                onChange={e => handleUpdatePrescribeItem(item.id, 'frequency', e.target.value)}
+                                style={{ width: '100%', boxSizing: 'border-box', padding: '3px 6px', fontSize: '0.72rem', borderRadius: '4px', border: '1px solid #cbd5e1', background: '#fff', marginTop: '2px' }}
+                              >
+                                <option value="Once Daily (OD)">Once Daily (OD)</option>
+                                <option value="Twice Daily (BID)">Twice Daily (BID)</option>
+                                <option value="Three Times Daily (TID)">Three Times Daily (TID)</option>
+                                <option value="Four Times Daily (QID)">Four Times Daily (QID)</option>
+                                <option value="Every 8 Hours (Q8H)">Every 8 Hours (Q8H)</option>
+                                <option value="Every 12 Hours (Q12H)">Every 12 Hours (Q12H)</option>
+                                <option value="At Bedtime (HS)">At Bedtime (HS)</option>
+                                <option value="As Needed (PRN)">As Needed (PRN)</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', fontSize: '0.72rem' }}>
+                            <div>
+                              <span style={{ color: '#64748b' }}>Duration:</span>
+                              <input
+                                type="text"
+                                value={item.duration}
+                                onChange={e => handleUpdatePrescribeItem(item.id, 'duration', e.target.value)}
+                                style={{ width: '100%', boxSizing: 'border-box', padding: '3px 6px', fontSize: '0.72rem', borderRadius: '4px', border: '1px solid #cbd5e1', marginTop: '2px' }}
+                              />
+                            </div>
+                            <div>
+                              <span style={{ color: '#64748b' }}>Quantity:</span>
+                              <input
+                                type="number"
+                                min={1}
+                                value={item.qty}
+                                onChange={e => handleUpdatePrescribeItem(item.id, 'qty', parseInt(e.target.value) || 1)}
+                                style={{ width: '100%', boxSizing: 'border-box', padding: '3px 6px', fontSize: '0.72rem', borderRadius: '4px', border: '1px solid #cbd5e1', marginTop: '2px' }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Basket Footer with Submit Button */}
+                  <div style={{ padding: '14px 18px', borderTop: '1px solid #e2e8f0', background: '#ffffff', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem' }}>
+                      <span style={{ color: '#64748b' }}>Total Prescribed:</span>
+                      <strong style={{ color: '#0f172a' }}>{prescribeBasket.length} Medication(s)</strong>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handlePrescribeSubmit}
+                      disabled={prescribeBasket.length === 0 || isSubmittingPrescription}
+                      className="btn-primary"
+                      style={{
+                        width: '100%',
+                        padding: '10px',
+                        background: prescribeBasket.length === 0 ? '#94a3b8' : 'linear-gradient(135deg,#059669,#047857)',
+                        borderColor: '#059669',
+                        fontWeight: 700,
+                        fontSize: '0.84rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px'
+                      }}
+                    >
+                      <Send size={15} />
+                      {isSubmittingPrescription ? 'Submitting Prescription...' : `Submit Prescription (${prescribeBasket.length} Meds)`}
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Print Modal */}
       {showPrintModal && (

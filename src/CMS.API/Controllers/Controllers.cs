@@ -983,6 +983,7 @@ public class LaboratoryController : ControllerBase
                 r.VerifiedBy,
                 r.VerifiedAt,
                 r.EnteredAt AS ResultEnteredAt,
+                r.SourceType,
                 r.RawMessage
             FROM LabOrders o
             JOIN LabOrderItems oi ON oi.OrderId = o.Id
@@ -1033,6 +1034,7 @@ public class LaboratoryController : ControllerBase
                 r.VerifiedBy,
                 r.VerifiedAt,
                 r.EnteredAt AS ResultEnteredAt,
+                r.SourceType,
                 r.RawMessage
             FROM LabOrders o
             JOIN LabOrderItems oi ON oi.OrderId = o.Id
@@ -1226,12 +1228,35 @@ public class LaboratoryController : ControllerBase
                 bool isCritical = res.IsCritical ?? (flag == "HH" || flag == "LL");
 
                 // Check if result already exists for this order item
-                var existingResultId = await conn.QueryFirstOrDefaultAsync<int?>(
-                    "SELECT Id FROM LabResults WHERE OrderItemId = @OrderItemId AND OrderId = @OrderId",
+                var existingResult = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                    "SELECT Id, NumericValue, TextValue, Unit, Flag, ReferenceRange, IsVerified, SourceType FROM LabResults WHERE OrderItemId = @OrderItemId AND OrderId = @OrderId",
                     new { OrderItemId = orderItemId, req.OrderId });
 
-                if (existingResultId.HasValue && existingResultId.Value > 0)
+                string safeUnit = string.IsNullOrWhiteSpace(unit) ? "" : (unit.Length > 30 ? unit[..30] : unit);
+                string safeFlag = string.IsNullOrWhiteSpace(flag) ? "Normal" : (flag.Length > 20 ? flag[..20] : flag);
+                string safeRefRange = string.IsNullOrWhiteSpace(refRange) ? "" : (refRange.Length > 100 ? refRange[..100] : refRange);
+
+                if (existingResult != null)
                 {
+                    int resId = (int)existingResult.Id;
+                    byte currentSourceType = (byte)(existingResult.SourceType ?? 1);
+
+                    // If source is machine (2), preserve machine's existing values if incoming is empty or default placeholder
+                    decimal? numVal = res.NumericValue ?? (decimal?)existingResult.NumericValue;
+                    string incomingText = (res.TextValue ?? "").Trim();
+                    string dbText = (string)(existingResult.TextValue ?? "");
+                    string txtVal = (!string.IsNullOrWhiteSpace(incomingText) && incomingText != "Results recorded")
+                        ? incomingText
+                        : (!string.IsNullOrWhiteSpace(dbText) ? dbText : (string.IsNullOrWhiteSpace(incomingText) ? "Results recorded" : incomingText));
+
+                    string finalUnit = !string.IsNullOrWhiteSpace(res.Unit) ? res.Unit : ((string)(existingResult.Unit ?? "") ?? safeUnit);
+                    string finalFlag = !string.IsNullOrWhiteSpace(res.Flag) ? res.Flag : ((string)(existingResult.Flag ?? "") ?? safeFlag);
+                    string finalRef = !string.IsNullOrWhiteSpace(res.ReferenceRange) ? res.ReferenceRange : ((string)(existingResult.ReferenceRange ?? "") ?? safeRefRange);
+
+                    safeUnit = finalUnit.Length > 30 ? finalUnit[..30] : finalUnit;
+                    safeFlag = finalFlag.Length > 20 ? finalFlag[..20] : finalFlag;
+                    safeRefRange = finalRef.Length > 100 ? finalRef[..100] : finalRef;
+
                     await conn.ExecuteAsync(@"
                         UPDATE LabResults
                         SET NumericValue = @NumericValue,
@@ -1246,12 +1271,12 @@ public class LaboratoryController : ControllerBase
                             EnteredAt = GETDATE()
                         WHERE Id = @ResultId",
                         new {
-                            ResultId = existingResultId.Value,
-                            res.NumericValue,
-                            res.TextValue,
-                            Unit = unit,
-                            Flag = flag,
-                            ReferenceRange = refRange,
+                            ResultId = resId,
+                            NumericValue = numVal,
+                            TextValue = txtVal,
+                            Unit = safeUnit,
+                            Flag = safeFlag,
+                            ReferenceRange = safeRefRange,
                             IsCritical = isCritical,
                             req.IsVerified
                         });
@@ -1277,9 +1302,9 @@ public class LaboratoryController : ControllerBase
                             PatientId = patientId,
                             res.NumericValue,
                             res.TextValue,
-                            Unit = unit,
-                            Flag = flag,
-                            ReferenceRange = refRange,
+                            Unit = safeUnit,
+                            Flag = safeFlag,
+                            ReferenceRange = safeRefRange,
                             IsCritical = isCritical,
                             req.IsVerified
                         });
@@ -1291,6 +1316,22 @@ public class LaboratoryController : ControllerBase
                     "UPDATE LabOrderItems SET StatusId = @StatusId WHERE Id = @OrderItemId",
                     new { StatusId = itemStatus, OrderItemId = orderItemId });
             }
+        }
+
+        // When verifying/approving, ensure ALL existing results and items for this order are marked verified
+        if (req.IsVerified)
+        {
+            await conn.ExecuteAsync(@"
+                UPDATE LabResults
+                SET IsVerified = 1,
+                    VerifiedBy = ISNULL(VerifiedBy, 1),
+                    VerifiedAt = ISNULL(VerifiedAt, GETDATE())
+                WHERE OrderId = @OrderId",
+                new { req.OrderId });
+
+            await conn.ExecuteAsync(
+                "UPDATE LabOrderItems SET StatusId = 5 WHERE OrderId = @OrderId",
+                new { req.OrderId });
         }
 
         // Update overall Order status (5 = Completed/Approved, 4 = Resulted, 3 = InProcess)

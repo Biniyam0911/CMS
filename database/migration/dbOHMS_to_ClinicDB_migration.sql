@@ -557,6 +557,7 @@ BEGIN
     IF EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CHK_LabInstruments_Protocol')
         ALTER TABLE ClinicDB.dbo.[LabInstruments] DROP CONSTRAINT CHK_LabInstruments_Protocol;
 END
+GO
 
 -- Seed default lab instruments if missing
 IF NOT EXISTS (SELECT 1 FROM ClinicDB.dbo.[LabInstruments] WHERE [Name] LIKE '%ZYBIO%')

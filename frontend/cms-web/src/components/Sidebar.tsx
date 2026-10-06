@@ -12,7 +12,7 @@ import { hasModuleAccess } from '../utils/permissions';
 export type ModuleKey =
   | 'DASHBOARD' | 'PATIENTS' | 'TRIAGE' | 'EMR' | 'INPATIENT' | 'APPOINTMENTS' | 'QUEUE'
   | 'LAB' | 'PHARMACY' | 'BILLING' | 'PAYROLL' | 'REPORTS' | 'REPORT_BUILDER'
-  | 'REPORT_SALES' | 'REPORT_AGE_STRATIFIED' | 'REPORT_SEX_STRATIFIED' | 'REPORT_DOCTOR_PERFORMANCE' | 'REPORT_DIAGNOSIS' | 'REPORT_PROCEDURE'
+  | 'REPORT_SALES' | 'REPORT_AGE_STRATIFIED' | 'REPORT_SEX_STRATIFIED' | 'REPORT_DOCTOR_PERFORMANCE' | 'REPORT_DIAGNOSIS' | 'REPORT_PROCEDURE' | 'REPORT_MY_PATIENT_SUMMARY'
   | 'PATIENT_PORTAL' | 'USER_MGMT' | 'SERVICE_MGMT' | 'MODULE_MGMT' | 'API_MGMT'
   | 'SETTINGS' | 'APPEARANCE' | 'INTEGRATIONS' | 'TELEMED' | 'CHANGE_PASSWORD';
 
@@ -44,6 +44,7 @@ export const MODULE_ITEMS: { key: ModuleKey; label: string; category: string; ic
   { key: 'REPORT_AGE_STRATIFIED', label: 'Age Stratified Report', category: 'Reports', icon: BarChart3 },
   { key: 'REPORT_SEX_STRATIFIED', label: 'Sex Stratified Report', category: 'Reports', icon: Users },
   { key: 'REPORT_DOCTOR_PERFORMANCE', label: 'Doctor Performance', category: 'Reports', icon: Stethoscope },
+  { key: 'REPORT_MY_PATIENT_SUMMARY', label: 'My Patient Summary', category: 'Reports', icon: FileHeart },
   { key: 'REPORT_DIAGNOSIS', label: 'Diagnosis Report', category: 'Reports', icon: FileHeart },
   { key: 'REPORT_PROCEDURE', label: 'Procedure Report', category: 'Reports', icon: Activity },
   { key: 'REPORT_BUILDER', label: 'Report Builder', category: 'Reports', icon: FileSpreadsheet },

@@ -558,4 +558,109 @@ public class ReportsController : ControllerBase
         var rows = await conn.QueryAsync<dynamic>(sql);
         return Ok(ApiResponse<object>.Ok(rows));
     }
+    [HttpGet("my-patient-summary")]
+    public async Task<IActionResult> GetMyPatientSummary(
+        [FromQuery] DateTime? dateFrom = null,
+        [FromQuery] DateTime? dateTo = null,
+        [FromQuery] int? doctorId = null)
+    {
+        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+        using var conn = _dbFactory.CreateConnection();
+
+        // 1. Resolve target Doctor ID
+        int? targetDoctorId = doctorId;
+        if (!targetDoctorId.HasValue || targetDoctorId.Value <= 0)
+        {
+            int? currentUserId = null;
+            var claimVal = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (int.TryParse(claimVal, out int parsedId))
+                currentUserId = parsedId;
+
+            string? currentUsername = User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value;
+
+            targetDoctorId = await conn.QueryFirstOrDefaultAsync<int?>(@"
+                SELECT TOP 1 d.Id
+                FROM Doctors d WITH (NOLOCK)
+                JOIN Staff st WITH (NOLOCK) ON st.Id = d.StaffId
+                LEFT JOIN Users u WITH (NOLOCK) ON u.Id = st.UserId
+                WHERE (@UserId IS NOT NULL AND st.UserId = @UserId)
+                   OR (@Username IS NOT NULL AND u.Username = @Username)",
+                new { UserId = currentUserId, Username = currentUsername });
+        }
+
+        if (!targetDoctorId.HasValue)
+        {
+            targetDoctorId = await conn.QueryFirstOrDefaultAsync<int?>("SELECT TOP 1 Id FROM Doctors ORDER BY Id ASC");
+        }
+
+        if (!targetDoctorId.HasValue)
+            return Ok(ApiResponse<object>.Ok(new List<object>()));
+
+        // 2. Fetch doctor procedures and consultations
+        var sql = @"
+            WITH DocConsultations AS (
+                SELECT 
+                    e.Id AS EncounterId,
+                    e.PatientId,
+                    p.MRN,
+                    p.FirstName + ' ' + p.LastName AS PatientName,
+                    CASE p.Gender WHEN 1 THEN 'Male' WHEN 2 THEN 'Female' ELSE 'Other' END AS Gender,
+                    DATEDIFF(YEAR, p.DateOfBirth, GETDATE()) - 
+                    CASE WHEN DATEADD(YEAR, DATEDIFF(YEAR, p.DateOfBirth, GETDATE()), p.DateOfBirth) > GETDATE() THEN 1 ELSE 0 END AS Age,
+                    FORMAT(CAST(e.EncounterDate AS DATE), 'yyyy-MM-dd') AS VisitDate,
+                    'Consultation' AS ActivityType,
+                    ISNULL(e.ChiefComplaint, 'General Consultation') AS ServiceOrDetails,
+                    ISNULL(d.DiagnosisText, ISNULL(e.Assessment, 'Completed')) AS DiagnosisOrNotes,
+                    ISNULL(inv.TotalAmount, 0) AS Fee,
+                    ISNULL(invS.Name, 'Completed') AS Status
+                FROM Encounters e WITH (NOLOCK)
+                JOIN Patients p WITH (NOLOCK) ON p.Id = e.PatientId
+                LEFT JOIN Diagnoses d WITH (NOLOCK) ON d.EncounterId = e.Id
+                LEFT JOIN Invoices inv WITH (NOLOCK) ON inv.PatientId = e.PatientId AND CAST(inv.IssueDate AS DATE) = CAST(e.EncounterDate AS DATE)
+                LEFT JOIN InvoiceStatuses invS WITH (NOLOCK) ON invS.Id = inv.StatusId
+                WHERE e.TenantId = @TenantId
+                  AND e.DoctorId = @TargetDoctorId
+                  AND (@DateFrom IS NULL OR CAST(e.EncounterDate AS DATE) >= @DateFrom)
+                  AND (@DateTo IS NULL OR CAST(e.EncounterDate AS DATE) <= @DateTo)
+            ),
+            DocProcedures AS (
+                SELECT 
+                    po.Id AS EncounterId,
+                    po.PatientId,
+                    p.MRN,
+                    p.FirstName + ' ' + p.LastName AS PatientName,
+                    CASE p.Gender WHEN 1 THEN 'Male' WHEN 2 THEN 'Female' ELSE 'Other' END AS Gender,
+                    DATEDIFF(YEAR, p.DateOfBirth, GETDATE()) - 
+                    CASE WHEN DATEADD(YEAR, DATEDIFF(YEAR, p.DateOfBirth, GETDATE()), p.DateOfBirth) > GETDATE() THEN 1 ELSE 0 END AS Age,
+                    FORMAT(CAST(po.OrderedAt AS DATE), 'yyyy-MM-dd') AS VisitDate,
+                    'Procedure' AS ActivityType,
+                    po.ProcedureName AS ServiceOrDetails,
+                    ISNULL(NULLIF(po.ClinicalNotes, ''), 'Clinical Procedure') AS DiagnosisOrNotes,
+                    ISNULL(ii.Total, 0) AS Fee,
+                    CASE po.StatusId WHEN 2 THEN 'Completed' WHEN 3 THEN 'Cancelled' ELSE 'Ordered' END AS Status
+                FROM ProcedureOrders po WITH (NOLOCK)
+                JOIN Patients p WITH (NOLOCK) ON p.Id = po.PatientId
+                LEFT JOIN Invoices inv WITH (NOLOCK) ON inv.PatientId = po.PatientId AND CAST(inv.IssueDate AS DATE) = CAST(po.OrderedAt AS DATE)
+                LEFT JOIN InvoiceItems ii WITH (NOLOCK) ON ii.InvoiceId = inv.Id AND ii.ItemType = 4 AND (ii.Description LIKE '%' + po.ProcedureName + '%' OR po.ProcedureName LIKE '%' + ii.Description + '%')
+                WHERE po.TenantId = @TenantId
+                  AND po.DoctorId = @TargetDoctorId
+                  AND (@DateFrom IS NULL OR CAST(po.OrderedAt AS DATE) >= @DateFrom)
+                  AND (@DateTo IS NULL OR CAST(po.OrderedAt AS DATE) <= @DateTo)
+            )
+            SELECT * FROM (
+                SELECT * FROM DocConsultations
+                UNION ALL
+                SELECT * FROM DocProcedures
+            ) combined
+            ORDER BY VisitDate DESC";
+
+        var rows = await conn.QueryAsync<dynamic>(sql, new {
+            TenantId = tenantId,
+            TargetDoctorId = targetDoctorId.Value,
+            DateFrom = dateFrom?.Date,
+            DateTo = dateTo?.Date
+        });
+
+        return Ok(ApiResponse<object>.Ok(rows));
+    }
 }
