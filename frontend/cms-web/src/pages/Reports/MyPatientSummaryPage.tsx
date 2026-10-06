@@ -14,8 +14,7 @@ interface PatientSummaryRecord {
   age: number;
   visitDate: string;
   activityType: 'Consultation' | 'Procedure';
-  serviceOrDetails: string;
-  diagnosisOrNotes: string;
+  serviceName: string;
   fee: number;
   status: string;
 }
@@ -23,18 +22,17 @@ interface PatientSummaryRecord {
 /** Normalise a raw API row (PascalCase dynamic) to our camelCase interface */
 function normalizeRow(r: any): PatientSummaryRecord {
   return {
-    encounterId:      r.EncounterId      ?? r.encounterId      ?? 0,
-    patientId:        r.PatientId        ?? r.patientId        ?? 0,
-    mrn:              r.MRN              ?? r.Mrn              ?? r.mrn              ?? '',
-    patientName:      r.PatientName      ?? r.patientName      ?? '',
-    gender:           r.Gender           ?? r.gender           ?? '',
-    age:              r.Age              ?? r.age              ?? 0,
-    visitDate:        r.VisitDate        ?? r.visitDate        ?? '',
-    activityType:     (r.ActivityType    ?? r.activityType     ?? 'Consultation') as 'Consultation' | 'Procedure',
-    serviceOrDetails: r.ServiceOrDetails ?? r.serviceOrDetails ?? '',
-    diagnosisOrNotes: r.DiagnosisOrNotes ?? r.diagnosisOrNotes ?? '',
-    fee:              Number(r.Fee       ?? r.fee              ?? 0),
-    status:           r.Status           ?? r.status           ?? '',
+    encounterId:  r.EncounterId  ?? r.encounterId  ?? 0,
+    patientId:    r.PatientId    ?? r.patientId    ?? 0,
+    mrn:          r.MRN          ?? r.Mrn          ?? r.mrn          ?? '',
+    patientName:  r.PatientName  ?? r.patientName  ?? '',
+    gender:       r.Gender       ?? r.gender       ?? '',
+    age:          r.Age          ?? r.age          ?? 0,
+    visitDate:    r.VisitDate    ?? r.visitDate    ?? '',
+    activityType: (r.ActivityType ?? r.activityType ?? 'Consultation') as 'Consultation' | 'Procedure',
+    serviceName:  r.ServiceName  ?? r.serviceName  ?? r.ServiceOrDetails ?? r.serviceOrDetails ?? '—',
+    fee:          Number(r.Fee   ?? r.fee          ?? 0),
+    status:       r.Status       ?? r.status       ?? '',
   };
 }
 
@@ -120,8 +118,7 @@ export default function MyPatientSummaryPage() {
       const matchQuery = !q ||
         r.patientName.toLowerCase().includes(q) ||
         r.mrn.toLowerCase().includes(q) ||
-        (r.serviceOrDetails || '').toLowerCase().includes(q) ||
-        (r.diagnosisOrNotes || '').toLowerCase().includes(q);
+        (r.serviceName || '').toLowerCase().includes(q);
       return matchActivity && matchQuery;
     });
   }, [data, activityFilter, searchQuery]);
@@ -139,13 +136,12 @@ export default function MyPatientSummaryPage() {
   // CSV export
   const handleExportCSV = () => {
     if (filteredData.length === 0) return;
-    const headers = ['ID', 'MRN', 'Patient Name', 'Gender', 'Age', 'Visit Date', 'Type', 'Service / Details', 'Diagnosis / Notes', 'Fee (ETB)', 'Status'];
+    const headers = ['ID', 'MRN', 'Patient Name', 'Gender', 'Age', 'Visit Date', 'Type', 'Service Name', 'Fee (ETB)', 'Status'];
     const rows = filteredData.map(r => [
       r.encounterId, r.mrn,
       `"${r.patientName.replace(/"/g, '""')}"`,
       r.gender, r.age, r.visitDate, r.activityType,
-      `"${(r.serviceOrDetails || '').replace(/"/g, '""')}"`,
-      `"${(r.diagnosisOrNotes || '').replace(/"/g, '""')}"`,
+      `"${(r.serviceName || '').replace(/"/g, '""')}"`,
       r.fee, r.status,
     ]);
     const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
@@ -218,7 +214,7 @@ export default function MyPatientSummaryPage() {
         </div>
         <div style={{ position: 'relative', width: '280px' }}>
           <Search size={14} color="var(--text-muted)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
-          <input type="text" placeholder="Search patient, MRN, complaint..." value={searchQuery}
+          <input type="text" placeholder="Search patient, MRN, service name..." value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             style={{ width: '100%', padding: '6px 10px 6px 30px', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid var(--border-color)' }} />
         </div>
@@ -227,9 +223,9 @@ export default function MyPatientSummaryPage() {
       {/* KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', marginBottom: '22px' }}>
         {[
-          { label: 'Total Visits',    value: metrics.totalVisits,   icon: <Users size={18} color="#0284c7" />,  color: '#0284c7',  sub: 'Total visits in period',           border: 'none' },
-          { label: 'Consultations',   value: metrics.consultations,  icon: <FileHeart size={18} color="#059669" />, color: '#059669', sub: 'Clinical encounter notes',       border: '4px solid #059669' },
-          { label: 'Procedures',      value: metrics.procedures,     icon: <Activity size={18} color="#d97706" />,  color: '#d97706', sub: 'Clinical procedures performed', border: '4px solid #d97706' },
+          { label: 'Total Visits',      value: metrics.totalVisits,   icon: <Users size={18} color="#0284c7" />,  color: '#0284c7',  sub: 'Total visits in period',           border: 'none' },
+          { label: 'Consultations',     value: metrics.consultations,  icon: <FileHeart size={18} color="#059669" />, color: '#059669', sub: 'Clinical consultations',         border: '4px solid #059669' },
+          { label: 'Procedures',        value: metrics.procedures,     icon: <Activity size={18} color="#d97706" />,  color: '#d97706', sub: 'Clinical procedures performed', border: '4px solid #d97706' },
           { label: 'Total Value (ETB)', value: `${metrics.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
             icon: <DollarSign size={18} color="#7c3aed" />, color: '#7c3aed', sub: 'Billed services total', border: '4px solid #7c3aed' },
         ].map(card => (
@@ -273,7 +269,7 @@ export default function MyPatientSummaryPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '2px solid var(--border-color)', textAlign: 'left' }}>
-                  {['Date', 'Patient', 'MRN', 'Age / Sex', 'Type', 'Service / Chief Complaint', 'Clinical Assessment / Notes', 'Fee (ETB)', 'Status'].map(h => (
+                  {['Date', 'Patient', 'MRN', 'Age / Sex', 'Type', 'Service Name', 'Fee (ETB)', 'Status'].map(h => (
                     <th key={h} style={{ padding: '10px 14px', fontWeight: 700, fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', whiteSpace: 'nowrap',
                       textAlign: h === 'Fee (ETB)' ? 'right' : h === 'Status' ? 'center' : 'left' }}>{h}</th>
                   ))}
@@ -297,10 +293,9 @@ export default function MyPatientSummaryPage() {
                         border:     row.activityType === 'Consultation' ? '1px solid #a7f3d0' : '1px solid #fde68a',
                       }}>{row.activityType}</span>
                     </td>
-                    <td style={{ padding: '9px 14px', fontWeight: 600, color: 'var(--text-main)', maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                      title={row.serviceOrDetails}>{row.serviceOrDetails}</td>
-                    <td style={{ padding: '9px 14px', color: '#475569', maxWidth: '260px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                      title={row.diagnosisOrNotes}>{row.diagnosisOrNotes}</td>
+                    <td style={{ padding: '9px 14px', fontWeight: 600, color: 'var(--text-main)', maxWidth: '300px' }}>
+                      {row.serviceName}
+                    </td>
                     <td style={{ padding: '9px 14px', textAlign: 'right', fontWeight: 700, fontFamily: 'monospace' }}>
                       {Number(row.fee) > 0 ? Number(row.fee).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
                     </td>

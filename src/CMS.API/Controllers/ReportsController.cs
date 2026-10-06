@@ -609,14 +609,13 @@ public class ReportsController : ControllerBase
                     CASE WHEN DATEADD(YEAR, DATEDIFF(YEAR, p.DateOfBirth, GETDATE()), p.DateOfBirth) > GETDATE() THEN 1 ELSE 0 END AS Age,
                     FORMAT(CAST(e.EncounterDate AS DATE), 'yyyy-MM-dd') AS VisitDate,
                     'Consultation' AS ActivityType,
-                    ISNULL(e.ChiefComplaint, 'General Consultation') AS ServiceOrDetails,
-                    ISNULL(d.DiagnosisText, ISNULL(e.Assessment, 'Completed')) AS DiagnosisOrNotes,
-                    ISNULL(inv.TotalAmount, 0) AS Fee,
+                    ISNULL(ci.Description, 'Consultation') AS ServiceName,
+                    ISNULL(ci.Total, ISNULL(inv.TotalAmount, 0)) AS Fee,
                     ISNULL(invS.Name, 'Completed') AS Status
                 FROM Encounters e WITH (NOLOCK)
                 JOIN Patients p WITH (NOLOCK) ON p.Id = e.PatientId
-                LEFT JOIN Diagnoses d WITH (NOLOCK) ON d.EncounterId = e.Id
-                LEFT JOIN Invoices inv WITH (NOLOCK) ON inv.PatientId = e.PatientId AND CAST(inv.IssueDate AS DATE) = CAST(e.EncounterDate AS DATE)
+                LEFT JOIN Invoices inv WITH (NOLOCK) ON inv.EncounterId = e.Id
+                LEFT JOIN InvoiceItems ci WITH (NOLOCK) ON ci.InvoiceId = inv.Id AND ci.ItemType = 1
                 LEFT JOIN InvoiceStatuses invS WITH (NOLOCK) ON invS.Id = inv.StatusId
                 WHERE e.TenantId = @TenantId
                   AND e.DoctorId = @TargetDoctorId
@@ -624,6 +623,34 @@ public class ReportsController : ControllerBase
                   AND (@DateTo IS NULL OR CAST(e.EncounterDate AS DATE) <= @DateTo)
             ),
             DocProcedures AS (
+                -- Procedures from InvoiceItems (ItemType = 4) linked to doctor's encounters
+                SELECT 
+                    e.Id AS EncounterId,
+                    e.PatientId,
+                    p.MRN,
+                    p.FirstName + ' ' + p.LastName AS PatientName,
+                    CASE p.Gender WHEN 1 THEN 'Male' WHEN 2 THEN 'Female' ELSE 'Other' END AS Gender,
+                    DATEDIFF(YEAR, p.DateOfBirth, GETDATE()) - 
+                    CASE WHEN DATEADD(YEAR, DATEDIFF(YEAR, p.DateOfBirth, GETDATE()), p.DateOfBirth) > GETDATE() THEN 1 ELSE 0 END AS Age,
+                    FORMAT(CAST(COALESCE(inv.IssueDate, e.EncounterDate) AS DATE), 'yyyy-MM-dd') AS VisitDate,
+                    'Procedure' AS ActivityType,
+                    pii.Description AS ServiceName,
+                    pii.Total AS Fee,
+                    ISNULL(invS.Name, 'Completed') AS Status
+                FROM InvoiceItems pii WITH (NOLOCK)
+                JOIN Invoices inv WITH (NOLOCK) ON inv.Id = pii.InvoiceId
+                JOIN Encounters e WITH (NOLOCK) ON e.Id = inv.EncounterId
+                JOIN Patients p WITH (NOLOCK) ON p.Id = e.PatientId
+                LEFT JOIN InvoiceStatuses invS WITH (NOLOCK) ON invS.Id = inv.StatusId
+                WHERE pii.ItemType = 4
+                  AND e.TenantId = @TenantId
+                  AND e.DoctorId = @TargetDoctorId
+                  AND (@DateFrom IS NULL OR CAST(COALESCE(inv.IssueDate, e.EncounterDate) AS DATE) >= @DateFrom)
+                  AND (@DateTo IS NULL OR CAST(COALESCE(inv.IssueDate, e.EncounterDate) AS DATE) <= @DateTo)
+
+                UNION ALL
+
+                -- Procedures from ProcedureOrders table if any are recorded there
                 SELECT 
                     po.Id AS EncounterId,
                     po.PatientId,
@@ -634,14 +661,11 @@ public class ReportsController : ControllerBase
                     CASE WHEN DATEADD(YEAR, DATEDIFF(YEAR, p.DateOfBirth, GETDATE()), p.DateOfBirth) > GETDATE() THEN 1 ELSE 0 END AS Age,
                     FORMAT(CAST(po.CreatedAt AS DATE), 'yyyy-MM-dd') AS VisitDate,
                     'Procedure' AS ActivityType,
-                    po.ProcedureName AS ServiceOrDetails,
-                    ISNULL(NULLIF(po.ClinicalNotes, ''), 'Clinical Procedure') AS DiagnosisOrNotes,
-                    ISNULL(ii.Total, 0) AS Fee,
+                    po.ProcedureName AS ServiceName,
+                    0 AS Fee,
                     CASE po.StatusId WHEN 2 THEN 'Completed' WHEN 3 THEN 'Cancelled' ELSE 'Ordered' END AS Status
                 FROM ProcedureOrders po WITH (NOLOCK)
                 JOIN Patients p WITH (NOLOCK) ON p.Id = po.PatientId
-                LEFT JOIN Invoices inv WITH (NOLOCK) ON inv.PatientId = po.PatientId AND CAST(inv.IssueDate AS DATE) = CAST(po.CreatedAt AS DATE)
-                LEFT JOIN InvoiceItems ii WITH (NOLOCK) ON ii.InvoiceId = inv.Id AND ii.ItemType = 4 AND (ii.Description LIKE '%' + po.ProcedureName + '%' OR po.ProcedureName LIKE '%' + ii.Description + '%')
                 WHERE po.TenantId = @TenantId
                   AND po.OrderedBy = @TargetDoctorId
                   AND (@DateFrom IS NULL OR CAST(po.CreatedAt AS DATE) >= @DateFrom)

@@ -6281,3 +6281,14 @@ DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
 2026-10-06 22:46:31.939 +03:00 [INF] Hosting environment: Development
 2026-10-06 22:46:31.939 +03:00 [INF] Content root path: C:\Users\ASUS\source\repos\CMS\src\CMS.API
 2026-10-06 22:56:53.645 +03:00 [WRN] Cache: Redis unavailable (It was not possible to connect to the redis server(s). Error connecting right now. To allow this multiplexer to continue retrying until it's able to connect, use abortConnect=false in your connection string or AbortOnConnectFail=false; in your code.). Using MemoryCacheService fallback
+2026-10-06 23:11:29.692 +03:00 [WRN] Cache: Redis unavailable (It was not possible to connect to the redis server(s). Error connecting right now. To allow this multiplexer to continue retrying until it's able to connect, use abortConnect=false in your connection string or AbortOnConnectFail=false; in your code.). Using MemoryCacheService fallback
+2026-10-06 23:11:30.371 +03:00 [INF] CMS API Host starting...
+2026-10-06 23:11:30.460 +03:00 [INF] User profile is available. Using 'C:\Users\ASUS\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
+2026-10-06 23:11:30.503 +03:00 [INF] [2026-10-06 23:11:30.491] LISTENER STARTED: Passively waiting for analyzer connections on 0.0.0.0:8004...
+2026-10-06 23:11:30.507 +03:00 [INF] [2026-10-06 23:11:30.507] LISTENER STARTED: Passively waiting for analyzer connections on 0.0.0.0:10001...
+2026-10-06 23:11:30.508 +03:00 [INF] [2026-10-06 23:11:30.508] LISTENER STARTED: Passively waiting for analyzer connections on 0.0.0.0:10002...
+2026-10-06 23:11:30.833 +03:00 [INF] Now listening on: http://0.0.0.0:5010
+2026-10-06 23:11:30.833 +03:00 [INF] Now listening on: http://localhost:5010
+2026-10-06 23:11:30.833 +03:00 [INF] Application started. Press Ctrl+C to shut down.
+2026-10-06 23:11:30.833 +03:00 [INF] Hosting environment: Development
+2026-10-06 23:11:30.833 +03:00 [INF] Content root path: C:\Users\ASUS\source\repos\CMS\src\CMS.API
