@@ -785,6 +785,155 @@ public class LaboratoryController : ControllerBase
         }));
     }
 
+    // ─── Instrument CRUD (DB-persisted) ─────────────────────────────────────────
+
+    public record SaveInstrumentRequest(
+        int? Id,
+        string Name,
+        string? Model,
+        string? SerialNumber,
+        string Protocol,
+        string? IpAddress,
+        int? Port,
+        string? Category,
+        string? StationId,
+        string? Department,
+        string? Description,
+        string ConnectionMode,   // "PASSIVE" or "ACTIVE"
+        string? RemoteIp,        // filled when ConnectionMode=ACTIVE
+        int? RemotePort
+    );
+
+    [HttpGet("instruments/db")]
+    public async Task<IActionResult> GetDbInstruments()
+    {
+        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+        using var conn = _dbFactory.CreateConnection();
+        var sql = @"
+            SELECT Id, TenantId, Name, Model, SerialNumber, Protocol, IpAddress, Port,
+                   Category, IsActive, StationId, Department, Description,
+                   ISNULL(ConnectionMode,'PASSIVE') AS ConnectionMode,
+                   RemoteIp, RemotePort, CreatedAt
+            FROM LabInstruments WHERE TenantId = @TenantId AND IsActive = 1
+            ORDER BY Id";
+        var rows = await conn.QueryAsync<dynamic>(sql, new { TenantId = tenantId });
+        return Ok(ApiResponse<IEnumerable<dynamic>>.Ok(rows));
+    }
+
+    [HttpPost("instruments/db")]
+    public async Task<IActionResult> SaveDbInstrument([FromBody] SaveInstrumentRequest req)
+    {
+        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+        using var conn = _dbFactory.CreateConnection();
+
+        if (req.Id.HasValue && req.Id > 0)
+        {
+            var sql = @"
+                UPDATE LabInstruments SET
+                    Name=@Name, Model=@Model, SerialNumber=@SerialNumber, Protocol=@Protocol,
+                    IpAddress=@IpAddress, Port=@Port, Category=@Category,
+                    StationId=@StationId, Department=@Department, Description=@Description,
+                    ConnectionMode=@ConnectionMode, RemoteIp=@RemoteIp, RemotePort=@RemotePort
+                WHERE Id=@Id AND TenantId=@TenantId";
+            await conn.ExecuteAsync(sql, new {
+                req.Name, req.Model, req.SerialNumber, req.Protocol,
+                req.IpAddress, req.Port, req.Category,
+                req.StationId, req.Department, req.Description,
+                ConnectionMode = req.ConnectionMode ?? "PASSIVE",
+                req.RemoteIp, req.RemotePort,
+                req.Id, TenantId = tenantId
+            });
+            return Ok(ApiResponse<object>.Ok(new { Id = req.Id }, "Instrument updated."));
+        }
+        else
+        {
+            var sql = @"
+                INSERT INTO LabInstruments
+                    (TenantId, Name, Model, SerialNumber, Protocol, IpAddress, Port, Category,
+                     StationId, Department, Description, ConnectionMode, RemoteIp, RemotePort, IsActive, CreatedAt)
+                VALUES
+                    (@TenantId, @Name, @Model, @SerialNumber, @Protocol, @IpAddress, @Port, @Category,
+                     @StationId, @Department, @Description, @ConnectionMode, @RemoteIp, @RemotePort, 1, SYSUTCDATETIME());
+                SELECT SCOPE_IDENTITY();";
+            int newId = await conn.ExecuteScalarAsync<int>(sql, new {
+                TenantId = tenantId,
+                req.Name, req.Model, req.SerialNumber, req.Protocol,
+                req.IpAddress, req.Port, req.Category,
+                req.StationId, req.Department, req.Description,
+                ConnectionMode = req.ConnectionMode ?? "PASSIVE",
+                req.RemoteIp, req.RemotePort
+            });
+            return Ok(ApiResponse<object>.Ok(new { Id = newId }, "Instrument saved."));
+        }
+    }
+
+    [HttpDelete("instruments/db/{id:int}")]
+    public async Task<IActionResult> DeleteDbInstrument(int id)
+    {
+        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+        using var conn = _dbFactory.CreateConnection();
+        await conn.ExecuteAsync("UPDATE LabInstruments SET IsActive=0 WHERE Id=@Id AND TenantId=@TenantId",
+            new { Id = id, TenantId = tenantId });
+        return Ok(ApiResponse<bool>.Ok(true, "Instrument deleted."));
+    }
+
+    // ─── Active Connect: server dials out to machine ─────────────────────────────
+
+    public record ActiveConnectRequest(string IpAddress, int Port, int TimeoutMs = 3000, string? InstrumentName = null);
+
+    [HttpPost("instruments/connect")]
+    public async Task<IActionResult> ActiveConnectToMachine([FromBody] ActiveConnectRequest req)
+    {
+        if (string.IsNullOrWhiteSpace(req.IpAddress) || req.Port <= 0)
+            return BadRequest(ApiResponse<object>.Fail("Invalid IP or port."));
+
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        try
+        {
+            using var client = new System.Net.Sockets.TcpClient();
+            var connectTask = client.ConnectAsync(req.IpAddress, req.Port);
+            var timeoutTask = Task.Delay(req.TimeoutMs > 0 ? req.TimeoutMs : 3000);
+            var done = await Task.WhenAny(connectTask, timeoutTask);
+            sw.Stop();
+
+            if (done == timeoutTask || !client.Connected)
+            {
+                _lisListener.LogEvent($"ACTIVE CONNECT FAILED: {req.InstrumentName ?? req.IpAddress}:{req.Port} — timeout after {sw.ElapsedMilliseconds}ms.");
+                return Ok(ApiResponse<object>.Ok(new {
+                    Success = false,
+                    LatencyMs = (int)sw.ElapsedMilliseconds,
+                    Message = $"Active connect timed out after {sw.ElapsedMilliseconds}ms. Machine {req.IpAddress}:{req.Port} not reachable."
+                }));
+            }
+
+            _lisListener.LogEvent($"ACTIVE CONNECTED: {req.InstrumentName ?? req.IpAddress} at {req.IpAddress}:{req.Port} — latency {sw.ElapsedMilliseconds}ms.");
+            return Ok(ApiResponse<object>.Ok(new {
+                Success = true,
+                LatencyMs = (int)sw.ElapsedMilliseconds,
+                Message = $"✓ Active connection established to {req.IpAddress}:{req.Port} in {sw.ElapsedMilliseconds}ms."
+            }));
+        }
+        catch (System.Net.Sockets.SocketException ex)
+        {
+            sw.Stop();
+            _lisListener.LogEvent($"ACTIVE CONNECT ERROR: {req.IpAddress}:{req.Port} — {ex.SocketErrorCode}.");
+            return Ok(ApiResponse<object>.Ok(new {
+                Success = false,
+                LatencyMs = (int)sw.ElapsedMilliseconds,
+                Message = $"Socket error ({ex.SocketErrorCode}): {req.IpAddress}:{req.Port} unreachable."
+            }));
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            return Ok(ApiResponse<object>.Ok(new {
+                Success = false,
+                LatencyMs = (int)sw.ElapsedMilliseconds,
+                Message = $"Connect failed: {ex.Message}"
+            }));
+        }
+    }
+
     [HttpGet("worklist")]
     public async Task<IActionResult> GetWorklist([FromQuery] DateTime? date = null, [FromQuery] byte? statusId = null)
     {

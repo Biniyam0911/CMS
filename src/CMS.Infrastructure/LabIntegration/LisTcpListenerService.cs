@@ -333,7 +333,12 @@ public class LisTcpListenerService : BackgroundService, ILisTcpListenerService
 
                     string rawHl7 = Encoding.UTF8.GetString(msgBytes);
 
-                    LogEvent($"FROM {remoteEndPoint} | {msgBytes.Length} bytes | UTF-8");
+                    // Strip MLLP wrapper bytes (VT=0x0B, FS=0x1C, CR=0x0D) for display
+                    string displayRaw = rawHl7
+                        .TrimStart((char)0x0B)
+                        .TrimEnd((char)0x0D, (char)0x1C)
+                        .Replace("\r", "\n");
+                    LogEvent($"RAW DATA FROM {remoteEndPoint}:\n{displayRaw}");
 
                     // Ingest into database
                     bool inserted = await _ingestionService.IngestHl7ResultAsync(rawHl7, remoteEndPoint);

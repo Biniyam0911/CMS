@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import {
   Server, Zap, Plus, Loader2, Square, Play, Sliders,
   RefreshCw, Save, Activity, Search, Cpu, CheckCircle,
-  AlertTriangle, WifiOff, Wifi, Edit3, Trash2, X
+  AlertTriangle, WifiOff, Wifi, Edit3, Trash2, X, ArrowRightLeft, Radio
 } from 'lucide-react';
 import { api } from '../../api/apiClient';
 
 export interface LabMachine {
   id: string;
+  dbId?: number;           // DB primary key (LabInstruments.Id) — set after first save
   name: string;
   department: string;
   model: string;
@@ -15,6 +16,11 @@ export interface LabMachine {
   ipAddress: string;
   port: number;
   mode: 'Bidirectional (Query + Results)' | 'Unidirectional (Results Only)';
+  /** PASSIVE = machine dials in to server listener (default).
+   *  ACTIVE  = server dials out to machine IP:remotePort.   */
+  connectionMode: 'PASSIVE' | 'ACTIVE';
+  remoteIp?: string;       // target IP when ACTIVE (usually same as ipAddress)
+  remotePort?: number;     // target port when ACTIVE (e.g. 8004)
   stationId: string;
   status: 'CONNECTED' | 'LISTENING' | 'OFFLINE' | 'STANDBY';
   lastPing?: string;
@@ -113,6 +119,7 @@ export const DEFAULT_LAB_MACHINES: LabMachine[] = [
     ipAddress: '192.168.1.41',
     port: 5100,
     mode: 'Unidirectional (Results Only)',
+    connectionMode: 'PASSIVE',
     stationId: 'HEM-ZYBIO-Z3',
     status: 'LISTENING',
     lastPing: 'Server passively listening on port 5100',
@@ -127,6 +134,7 @@ export const DEFAULT_LAB_MACHINES: LabMachine[] = [
     ipAddress: '192.168.1.115',
     port: 5200,
     mode: 'Bidirectional (Query + Results)',
+    connectionMode: 'PASSIVE',
     stationId: 'CHM-LINEAR-TEMIS',
     status: 'OFFLINE',
     lastPing: 'Not connected',
@@ -138,13 +146,16 @@ export const DEFAULT_LAB_MACHINES: LabMachine[] = [
     department: 'Hormone / Immunoassay',
     model: 'Finecare immunoassay analyzer wondofa',
     protocol: 'HL7 v2.5.1 MLLP',
-    ipAddress: '192.168.1.118',
-    port: 5300,
+    ipAddress: '192.168.8.60',
+    port: 8004,
     mode: 'Bidirectional (Query + Results)',
+    connectionMode: 'ACTIVE',
+    remoteIp: '192.168.8.60',
+    remotePort: 8004,
     stationId: 'IMM-FINECARE-WOND',
     status: 'OFFLINE',
     lastPing: 'Not connected',
-    description: 'Finecare Wondfo fluorescence immunoassay analyzer for quantitative hormones, cardiac markers & inflammation'
+    description: 'Finecare Wondfo fluorescence immunoassay analyzer (192.168.8.x subnet). Machine listens on port 8004 — server actively dials out to connect.'
   },
   {
     id: 'MCH-04',
@@ -155,6 +166,7 @@ export const DEFAULT_LAB_MACHINES: LabMachine[] = [
     ipAddress: '192.168.1.140',
     port: 2575,
     mode: 'Bidirectional (Query + Results)',
+    connectionMode: 'PASSIVE',
     stationId: 'HEM-SYSMEX-01',
     status: 'OFFLINE',
     lastPing: 'Not connected',
@@ -202,6 +214,8 @@ export default function MachineIntegrationTab() {
   const [showAddMachineModal, setShowAddMachineModal] = useState(false);
   const [editingMachineId, setEditingMachineId] = useState<string | null>(null);
   const [pingStatus, setPingStatus] = useState<Record<string, { testing: boolean; message: string; success: boolean }>>({});
+  // Per-machine active-connect feedback (ACTIVE mode "Connect" button)
+  const [activeConnectStatus, setActiveConnectStatus] = useState<Record<string, { connecting: boolean; message: string; success: boolean }>>({});
 
   // Notification Toast
   const [toastMsg, setToastMsg] = useState<{ text: string; type: 'success' | 'info' | 'error' } | null>(null);
@@ -237,6 +251,9 @@ export default function MachineIntegrationTab() {
   const [formStationId, setFormStationId] = useState<string>('HEM-01');
   const [formBaudRate, setFormBaudRate] = useState<number>(9600);
   const [formDescription, setFormDescription] = useState<string>('');
+  const [formConnectionMode, setFormConnectionMode] = useState<'PASSIVE' | 'ACTIVE'>('PASSIVE');
+  const [formRemoteIp, setFormRemoteIp] = useState<string>('192.168.8.60');
+  const [formRemotePort, setFormRemotePort] = useState<number>(8004);
 
   const fetchLisListenerStatus = async () => {
     try {
@@ -265,7 +282,48 @@ export default function MachineIntegrationTab() {
     }
   };
 
+  const loadDbInstruments = async () => {
+    try {
+      const dbRows = await api.get<any[]>('/laboratory/instruments/db');
+      if (dbRows && Array.isArray(dbRows) && dbRows.length > 0) {
+        setMachines(prev => {
+          const merged = [...prev];
+          dbRows.forEach(row => {
+            const existingIndex = merged.findIndex(m => m.dbId === row.id || m.stationId === row.stationId || m.name === row.name);
+            const mapped: LabMachine = {
+              id: existingIndex >= 0 ? merged[existingIndex].id : `MCH-DB-${row.id}`,
+              dbId: row.id,
+              name: row.name,
+              department: row.department || row.category || 'Hematology',
+              model: row.model || row.name,
+              protocol: row.protocol || 'HL7 v2.5.1 MLLP',
+              ipAddress: row.ipAddress || '127.0.0.1',
+              port: row.port || 8004,
+              mode: (row.connectionMode === 'ACTIVE' || row.protocol?.includes('HL7 v2.5')) ? 'Bidirectional (Query + Results)' : 'Unidirectional (Results Only)',
+              connectionMode: (row.connectionMode === 'ACTIVE' ? 'ACTIVE' : 'PASSIVE'),
+              remoteIp: row.remoteIp || row.ipAddress,
+              remotePort: row.remotePort || row.port || 8004,
+              stationId: row.stationId || row.serialNumber || `ST-${row.id}`,
+              status: 'OFFLINE',
+              description: row.description || ''
+            };
+            if (existingIndex >= 0) {
+              merged[existingIndex] = { ...merged[existingIndex], ...mapped };
+            } else {
+              merged.push(mapped);
+            }
+          });
+          localStorage.setItem('lab_integrated_machines_v2', JSON.stringify(merged));
+          return merged;
+        });
+      }
+    } catch (e) {
+      console.warn('Could not load instruments from DB:', e);
+    }
+  };
+
   useEffect(() => {
+    loadDbInstruments();
     fetchLisListenerStatus();
     const interval = setInterval(fetchLisListenerStatus, 4000);
     return () => clearInterval(interval);
@@ -366,13 +424,118 @@ export default function MachineIntegrationTab() {
     });
   };
 
-  const handleDeleteMachine = (mId: string) => {
+  const handleActiveConnect = async (m: LabMachine) => {
+    const targetIp = m.remoteIp || m.ipAddress;
+    const targetPort = m.remotePort || m.port || 8004;
+
+    setActiveConnectStatus(prev => ({
+      ...prev,
+      [m.id]: { connecting: true, message: `Connecting to ${targetIp}:${targetPort}...`, success: false }
+    }));
+
+    try {
+      const res = await api.post<any>('/laboratory/instruments/connect', {
+        ipAddress: targetIp,
+        port: Number(targetPort),
+        timeoutMs: 3500,
+        instrumentName: m.name
+      });
+
+      const success = res?.success === true;
+      const latency = res?.latencyMs || 0;
+      const msg = res?.message || (success ? `Connected in ${latency}ms` : `Connection failed`);
+
+      setActiveConnectStatus(prev => ({
+        ...prev,
+        [m.id]: { connecting: false, message: msg, success }
+      }));
+
+      setMachines(prev => {
+        const updated = prev.map(item => item.id === m.id ? {
+          ...item,
+          status: success ? ('CONNECTED' as const) : ('OFFLINE' as const),
+          latencyMs: latency > 0 ? latency : undefined,
+          lastPing: success ? `Active connection established (${latency}ms)` : `Connect failed ${new Date().toLocaleTimeString()}`
+        } : item);
+        localStorage.setItem('lab_integrated_machines_v2', JSON.stringify(updated));
+        return updated;
+      });
+
+      if (success) {
+        showToast(`✓ Active connection established to ${m.name} (${targetIp}:${targetPort})`, 'success');
+      } else {
+        showToast(msg, 'error');
+      }
+    } catch (err: any) {
+      const errMsg = err?.response?.data?.message || err?.message || 'Active connect failed';
+      setActiveConnectStatus(prev => ({
+        ...prev,
+        [m.id]: { connecting: false, message: `✕ ${errMsg}`, success: false }
+      }));
+      showToast(`✕ ${errMsg}`, 'error');
+    }
+  };
+
+  const handleToggleConnectionMode = async (m: LabMachine) => {
+    const nextMode: 'PASSIVE' | 'ACTIVE' = m.connectionMode === 'ACTIVE' ? 'PASSIVE' : 'ACTIVE';
+    const updated = machines.map(item => item.id === m.id ? {
+      ...item,
+      connectionMode: nextMode,
+      remoteIp: item.remoteIp || item.ipAddress,
+      remotePort: item.remotePort || item.port || 8004
+    } : item);
+
+    setMachines(updated);
+    localStorage.setItem('lab_integrated_machines_v2', JSON.stringify(updated));
+
+    // Persist to DB if dbId exists or save as new
+    try {
+      const targetMachine = updated.find(item => item.id === m.id);
+      if (targetMachine) {
+        const res: any = await api.post('/laboratory/instruments/db', {
+          id: targetMachine.dbId,
+          name: targetMachine.name,
+          model: targetMachine.model,
+          serialNumber: targetMachine.stationId,
+          protocol: targetMachine.protocol,
+          ipAddress: targetMachine.ipAddress,
+          port: targetMachine.port,
+          category: targetMachine.department,
+          stationId: targetMachine.stationId,
+          department: targetMachine.department,
+          description: targetMachine.description,
+          connectionMode: nextMode,
+          remoteIp: targetMachine.remoteIp,
+          remotePort: targetMachine.remotePort
+        });
+        if (res?.id && !targetMachine.dbId) {
+          targetMachine.dbId = res.id;
+          localStorage.setItem('lab_integrated_machines_v2', JSON.stringify(updated));
+        }
+      }
+      showToast(`Switched ${m.name} to ${nextMode} mode and saved to DB.`, 'success');
+    } catch (e: any) {
+      console.warn('Could not save connection mode to database:', e);
+      showToast(`Mode set to ${nextMode} (saved locally).`, 'info');
+    }
+  };
+
+  const handleDeleteMachine = async (mId: string) => {
     if (!window.confirm('Are you sure you want to remove this lab machine integration?')) return;
+    const target = machines.find(m => m.id === mId);
+    if (target?.dbId) {
+      try {
+        await api.delete(`/laboratory/instruments/db/${target.dbId}`);
+      } catch (e) {
+        console.warn('Could not delete instrument from DB:', e);
+      }
+    }
     setMachines(prev => {
       const updated = prev.filter(m => m.id !== mId);
       localStorage.setItem('lab_integrated_machines_v2', JSON.stringify(updated));
       return updated;
     });
+    showToast('Machine integration removed.', 'info');
   };
 
   const handleStartLisListener = async () => {
@@ -440,6 +603,9 @@ export default function MachineIntegrationTab() {
     setFormIp('192.168.1.140');
     setFormPort(2575);
     setFormMode('Bidirectional (Query + Results)');
+    setFormConnectionMode('PASSIVE');
+    setFormRemoteIp('192.168.1.140');
+    setFormRemotePort(2575);
     setFormStationId('HEM-01');
     setFormBaudRate(9600);
     setFormDescription('Standard laboratory analyzer network connection');
@@ -456,35 +622,44 @@ export default function MachineIntegrationTab() {
     setFormIp(m.ipAddress);
     setFormPort(m.port);
     setFormMode(m.mode);
+    setFormConnectionMode(m.connectionMode || 'PASSIVE');
+    setFormRemoteIp(m.remoteIp || m.ipAddress);
+    setFormRemotePort(m.remotePort || m.port || 8004);
     setFormStationId(m.stationId);
     setFormBaudRate(m.baudRate || 9600);
     setFormDescription(m.description || '');
     setShowAddMachineModal(true);
   };
 
-  const handleSaveMachine = (e: React.FormEvent) => {
+  const handleSaveMachine = async (e: React.FormEvent) => {
     e.preventDefault();
     const finalModel = formModel === 'CUSTOM' ? (customModelName || 'Custom Analyzer Model') : formModel;
 
+    let targetDbId: number | undefined;
+
     if (editingMachineId) {
-      setMachines(prev => {
-        const updated = prev.map(m => m.id === editingMachineId ? {
-          ...m,
-          name: formName,
-          department: formDept,
-          model: finalModel,
-          protocol: formProtocol,
-          ipAddress: formIp,
-          port: formPort,
-          mode: formMode,
-          stationId: formStationId,
-          baudRate: formBaudRate,
-          description: formDescription,
-          lastPing: 'Updated just now'
-        } : m);
-        localStorage.setItem('lab_integrated_machines_v2', JSON.stringify(updated));
-        return updated;
-      });
+      const existing = machines.find(m => m.id === editingMachineId);
+      targetDbId = existing?.dbId;
+
+      const updated = machines.map(m => m.id === editingMachineId ? {
+        ...m,
+        name: formName,
+        department: formDept,
+        model: finalModel,
+        protocol: formProtocol,
+        ipAddress: formIp,
+        port: formPort,
+        mode: formMode,
+        connectionMode: formConnectionMode,
+        remoteIp: formRemoteIp || formIp,
+        remotePort: formRemotePort || formPort,
+        stationId: formStationId,
+        baudRate: formBaudRate,
+        description: formDescription,
+        lastPing: 'Updated just now'
+      } : m);
+      setMachines(updated);
+      localStorage.setItem('lab_integrated_machines_v2', JSON.stringify(updated));
     } else {
       const newMachine: LabMachine = {
         id: `MCH-${Date.now().toString().slice(-4)}`,
@@ -495,6 +670,9 @@ export default function MachineIntegrationTab() {
         ipAddress: formIp,
         port: formPort,
         mode: formMode,
+        connectionMode: formConnectionMode,
+        remoteIp: formRemoteIp || formIp,
+        remotePort: formRemotePort || formPort,
         stationId: formStationId,
         status: 'OFFLINE',
         lastPing: 'Not connected',
@@ -502,11 +680,36 @@ export default function MachineIntegrationTab() {
         description: formDescription
       };
 
-      setMachines(prev => {
-        const updated = [newMachine, ...prev];
-        localStorage.setItem('lab_integrated_machines_v2', JSON.stringify(updated));
-        return updated;
+      const updated = [newMachine, ...machines];
+      setMachines(updated);
+      localStorage.setItem('lab_integrated_machines_v2', JSON.stringify(updated));
+    }
+
+    // Persist to Database so service restart preserves settings
+    try {
+      const res: any = await api.post('/laboratory/instruments/db', {
+        id: targetDbId,
+        name: formName,
+        model: finalModel,
+        serialNumber: formStationId,
+        protocol: formProtocol,
+        ipAddress: formIp,
+        port: formPort,
+        category: formDept,
+        stationId: formStationId,
+        department: formDept,
+        description: formDescription,
+        connectionMode: formConnectionMode,
+        remoteIp: formRemoteIp || formIp,
+        remotePort: formRemotePort || formPort
       });
+      if (res?.id) {
+        setMachines(prev => prev.map(m => (m.id === (editingMachineId || prev[0]?.id)) ? { ...m, dbId: res.id } : m));
+      }
+      showToast('Machine configuration saved to database successfully.', 'success');
+    } catch (err: any) {
+      console.warn('Saved locally; DB sync error:', err);
+      showToast('Machine saved locally.', 'info');
     }
 
     setShowAddMachineModal(false);
@@ -711,20 +914,42 @@ export default function MachineIntegrationTab() {
         )}
 
         {/* Real-Time Terminal Log Box */}
-        <div style={{ background: '#0f172a', borderRadius: '8px', padding: '12px 14px', fontFamily: 'monospace', fontSize: '0.75rem', color: '#e2e8f0', maxHeight: '180px', overflowY: 'auto' }}>
+        <div style={{ background: '#0f172a', borderRadius: '8px', padding: '12px 14px', fontFamily: 'monospace', fontSize: '0.75rem', color: '#e2e8f0', maxHeight: '280px', overflowY: 'auto' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #334155', paddingBottom: '6px', marginBottom: '8px', color: '#94a3b8', fontSize: '0.7rem' }}>
-            <span>ANALYZER TCP SOCKET EVENT LOG (HL7 / MLLP)</span>
+            <span>ANALYZER TCP SOCKET EVENT LOG & RAW PAYLOAD CONSOLE</span>
             <span>Auto-refreshing every 4s</span>
           </div>
           {lisServerStatus?.recentLogs && lisServerStatus.recentLogs.length > 0 ? (
-            lisServerStatus.recentLogs.slice(-10).map((log, lIdx) => (
-              <div key={lIdx} style={{ padding: '2px 0', color: log.includes('CONNECTED') ? '#4ade80' : log.includes('FROM') ? '#38bdf8' : log.includes('INSERTED') ? '#facc15' : log.includes('ACK') ? '#a78bfa' : '#cbd5e1' }}>
-                {log}
-              </div>
-            ))
+            lisServerStatus.recentLogs.slice(-25).map((log, lIdx) => {
+              const isRaw = log.includes('RAW DATA');
+              const color = log.includes('ACTIVE CONNECTED') || log.includes('CONNECTED:') ? '#4ade80'
+                : isRaw ? '#38bdf8'
+                : log.includes('RESULT INSERTED') ? '#facc15'
+                : log.includes('ACK') ? '#a78bfa'
+                : log.includes('ERROR') || log.includes('FAILED') ? '#f87171'
+                : '#cbd5e1';
+
+              return (
+                <div
+                  key={lIdx}
+                  style={{
+                    padding: isRaw ? '6px 8px' : '2px 0',
+                    margin: isRaw ? '4px 0' : 0,
+                    background: isRaw ? 'rgba(56, 189, 248, 0.08)' : 'transparent',
+                    borderLeft: isRaw ? '3px solid #38bdf8' : 'none',
+                    borderRadius: isRaw ? '4px' : 0,
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-all',
+                    color
+                  }}
+                >
+                  {log}
+                </div>
+              );
+            })
           ) : (
             <div style={{ color: '#64748b', fontStyle: 'italic' }}>
-              [System] LIS Server listening on ports 8004, 10001, and 10002. Waiting for incoming analyzer connections (e.g. ZYBIO Z3 at 192.168.1.41)...
+              [System] LIS Server listening on ports 8004, 10001, and 10002. Waiting for incoming analyzer connections or active outbound dials...
             </div>
           )}
         </div>
@@ -787,6 +1012,7 @@ export default function MachineIntegrationTab() {
             const isConnected = m.status === 'CONNECTED';
             const isListening = m.status === 'LISTENING';
             const isPassive = m.mode.includes('Unidirectional') || m.port === 5100;
+            const activeConn = activeConnectStatus[m.id];
 
             return (
               <div
@@ -859,12 +1085,58 @@ export default function MachineIntegrationTab() {
                       <span style={{ color: 'var(--text-muted)' }}>Mode:</span>{' '}
                       <strong style={{ color: '#7c3aed' }}>{m.mode.split(' ')[0]}</strong>
                     </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Connection:</span>{' '}
+                      <button
+                        type="button"
+                        onClick={() => handleToggleConnectionMode(m)}
+                        title="Click to toggle between PASSIVE (machine dials in) and ACTIVE (server dials out). Persisted to database."
+                        style={{
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: '2px 8px',
+                          borderRadius: '12px',
+                          fontSize: '0.7rem',
+                          fontWeight: 700,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          background: m.connectionMode === 'ACTIVE' ? '#fef3c7' : '#e0e7ff',
+                          color: m.connectionMode === 'ACTIVE' ? '#92400e' : '#3730a3'
+                        }}
+                      >
+                        <ArrowRightLeft size={10} />
+                        {m.connectionMode === 'ACTIVE' ? 'ACTIVE (Outbound)' : 'PASSIVE (Inbound)'}
+                      </button>
+                    </div>
                   </div>
 
                   {m.description && (
                     <p style={{ fontSize: '0.76rem', color: 'var(--text-muted)', marginTop: '8px', fontStyle: 'italic', marginBottom: 0 }}>
                       {m.description}
                     </p>
+                  )}
+
+                  {/* Active-Connect Feedback Alert Banner */}
+                  {activeConn && (
+                    <div
+                      style={{
+                        marginTop: '10px',
+                        padding: '8px 12px',
+                        borderRadius: '6px',
+                        fontSize: '0.76rem',
+                        fontWeight: 600,
+                        background: activeConn.success ? '#ecfdf5' : '#fef2f2',
+                        color: activeConn.success ? '#047857' : '#b91c1c',
+                        border: `1px solid ${activeConn.success ? '#a7f3d0' : '#fecaca'}`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      {activeConn.success ? <CheckCircle size={14} /> : <AlertTriangle size={14} />}
+                      {activeConn.message}
+                    </div>
                   )}
 
                   {/* Ping Feedback Alert Banner */}
@@ -896,17 +1168,40 @@ export default function MachineIntegrationTab() {
                     Heartbeat: {m.lastPing || 'Never'}
                   </span>
 
-                  <div style={{ display: 'flex', gap: '8px' }}>
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    {/* Active Mode Outbound Connect Button */}
+                    {m.connectionMode === 'ACTIVE' && (
+                      <button
+                        type="button"
+                        onClick={() => handleActiveConnect(m)}
+                        disabled={activeConn?.connecting}
+                        className="btn-primary"
+                        style={{
+                          padding: '4px 10px',
+                          fontSize: '0.74rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          background: '#0284c7',
+                          color: '#ffffff'
+                        }}
+                        title={`Actively connect from server to ${m.remoteIp || m.ipAddress}:${m.remotePort || m.port}`}
+                      >
+                        <Radio size={12} className={activeConn?.connecting ? 'animate-pulse' : ''} />
+                        {activeConn?.connecting ? 'Connecting...' : 'Connect Now'}
+                      </button>
+                    )}
+
                     <button
                       type="button"
                       onClick={() => handlePingMachine(m.id, m.ipAddress, m.port, m.protocol)}
                       disabled={isPingTesting}
                       className="btn-secondary"
                       style={{ padding: '4px 10px', fontSize: '0.74rem', display: 'flex', alignItems: 'center', gap: '5px', background: '#ffffff' }}
-                      title={isPassive ? "Verify LIS server passive listener status for this analyzer" : "Ping Analyzer and verify MLLP/ASTM socket handshake"}
+                      title={isPassive ? "Verify LIS server passive listener status for this analyzer" : "Ping Analyzer and verify socket handshake"}
                     >
                       <Activity size={13} className={isPingTesting ? 'animate-spin' : ''} color="#0284c7" />
-                      {isPingTesting ? 'Checking...' : (isPassive ? 'Check Listener' : 'Test Connection')}
+                      {isPingTesting ? 'Checking...' : (isPassive ? 'Check Listener' : 'Test Ping')}
                     </button>
 
                     <button
@@ -914,7 +1209,7 @@ export default function MachineIntegrationTab() {
                       onClick={() => handleToggleMachineStatus(m.id)}
                       className="btn-secondary"
                       style={{ padding: '4px 8px', fontSize: '0.74rem', background: '#ffffff' }}
-                      title={isConnected ? 'Disconnect analyzer' : 'Connect analyzer'}
+                      title={isConnected ? 'Disconnect analyzer' : 'Toggle connected status'}
                     >
                       {isConnected ? <WifiOff size={13} color="#dc2626" /> : <Wifi size={13} color="#16a34a" />}
                     </button>
@@ -1167,6 +1462,99 @@ export default function MachineIntegrationTab() {
                       value="VT [0x0B] ... FS [0x1C] CR [0x0D]"
                       style={{ width: '100%', padding: '8px 12px', fontSize: '0.8rem', color: 'var(--text-muted)', background: 'rgba(0,0,0,0.3)', border: '1px solid #374151', borderRadius: '6px' }}
                     />
+                  </div>
+                )}
+              </div>
+
+              {/* Connection Mode Selection: Passive vs Active */}
+              <div style={{ padding: '12px 14px', background: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#93c5fd', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <ArrowRightLeft size={14} /> Connection Mode (Persisted to Database)
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '8px',
+                      padding: '10px',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      background: formConnectionMode === 'PASSIVE' ? 'rgba(2, 132, 199, 0.2)' : 'rgba(15, 23, 42, 0.6)',
+                      border: `1px solid ${formConnectionMode === 'PASSIVE' ? '#0284c7' : '#334155'}`
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="connMode"
+                      value="PASSIVE"
+                      checked={formConnectionMode === 'PASSIVE'}
+                      onChange={() => setFormConnectionMode('PASSIVE')}
+                      style={{ marginTop: '3px' }}
+                    />
+                    <div>
+                      <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#f8fafc' }}>Passive / Inbound</div>
+                      <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '2px' }}>
+                        Machine connects in to server listener port (e.g. 8004 / 5100). Standard for most analyzers.
+                      </div>
+                    </div>
+                  </label>
+
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '8px',
+                      padding: '10px',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      background: formConnectionMode === 'ACTIVE' ? 'rgba(234, 179, 8, 0.18)' : 'rgba(15, 23, 42, 0.6)',
+                      border: `1px solid ${formConnectionMode === 'ACTIVE' ? '#eab308' : '#334155'}`
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="connMode"
+                      value="ACTIVE"
+                      checked={formConnectionMode === 'ACTIVE'}
+                      onChange={() => setFormConnectionMode('ACTIVE')}
+                      style={{ marginTop: '3px' }}
+                    />
+                    <div>
+                      <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#fef08a' }}>Active / Outbound</div>
+                      <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '2px' }}>
+                        Server dials out to machine IP & port (e.g. 192.168.8.60:8004). Enables "Connect Now" button.
+                      </div>
+                    </div>
+                  </label>
+                </div>
+
+                {formConnectionMode === 'ACTIVE' && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '10px', marginTop: '10px', paddingTop: '10px', borderTop: '1px dashed #334155' }}>
+                    <div>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#cbd5e1', marginBottom: '4px', display: 'block' }}>
+                        Machine Remote IP to Connect
+                      </label>
+                      <input
+                        type="text"
+                        value={formRemoteIp}
+                        onChange={e => setFormRemoteIp(e.target.value)}
+                        placeholder="192.168.8.60"
+                        style={{ width: '100%', padding: '6px 10px', fontSize: '0.8rem', fontFamily: 'monospace', background: '#0f172a', color: '#fff', border: '1px solid #475569', borderRadius: '4px' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#cbd5e1', marginBottom: '4px', display: 'block' }}>
+                        Machine Remote Port
+                      </label>
+                      <input
+                        type="number"
+                        value={formRemotePort}
+                        onChange={e => setFormRemotePort(parseInt(e.target.value) || 8004)}
+                        placeholder="8004"
+                        style={{ width: '100%', padding: '6px 10px', fontSize: '0.8rem', fontFamily: 'monospace', background: '#0f172a', color: '#fff', border: '1px solid #475569', borderRadius: '4px' }}
+                      />
+                    </div>
                   </div>
                 )}
               </div>
