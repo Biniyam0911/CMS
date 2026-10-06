@@ -2,7 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   DollarSign, Calendar, Users, ChevronDown, ChevronUp, ChevronRight,
   Save, RefreshCw, CheckCircle2, AlertCircle, Percent,
-  Coins, Filter, Layers, Download, Check, Sparkles, ShieldCheck
+  Coins, Filter, Layers, Download, Check, Sparkles, ShieldCheck,
+  Search, X
 } from 'lucide-react';
 import { api } from '../../api/apiClient';
 
@@ -56,8 +57,12 @@ interface PayrollCalculationData {
   grandTotalDoctorShare: number;
 }
 
-interface AgreementItemState {
+export interface ServiceAgreementItemState {
+  serviceId: number;
+  serviceCode: string;
+  serviceName: string;
   category: string;
+  price: number;
   rateType: 1 | 2; // 1: %, 2: Fixed
   rate: number;
   isSelected: boolean;
@@ -87,17 +92,19 @@ export default function PayrollPage() {
   const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({});
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
 
-  // Tab 2: Agreement Setup State
+  // Tab 2: Agreement Setup State (Service-based)
   const [setupDoctorId, setSetupDoctorId] = useState<number | ''>('');
   const [doctorSelectionMode, setDoctorSelectionMode] = useState<'ALL' | 'MULTI' | 'SINGLE'>('SINGLE');
   const [selectedDoctorIds, setSelectedDoctorIds] = useState<number[]>([]);
   const [categoryServicesMap, setCategoryServicesMap] = useState<Record<string, { id: number; code: string; name: string; price: number }[]>>({});
-  const [expandedCatServices, setExpandedCatServices] = useState<Record<string, boolean>>({});
-  const [agreementsList, setAgreementsList] = useState<AgreementItemState[]>([]);
+  const [serviceAgreementsList, setServiceAgreementsList] = useState<ServiceAgreementItemState[]>([]);
   const [loadingAgreements, setLoadingAgreements] = useState(false);
   const [savingAgreements, setSavingAgreements] = useState(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
-  const [customCategoryInput, setCustomCategoryInput] = useState('');
+  const [agreementSearchQuery, setAgreementSearchQuery] = useState('');
+  const [agreementCategoryFilter, setAgreementCategoryFilter] = useState<string>('ALL');
+  const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>({});
+  const [categoryBulkRate, setCategoryBulkRate] = useState<Record<string, { rate: number; rateType: 1 | 2 }>>({});
 
   // Load Doctors
   const loadDoctors = async () => {
@@ -253,23 +260,39 @@ export default function PayrollPage() {
     setExpandedCategories({});
   };
 
-  // Tab 2: Load Agreements when Doctor is selected or in ALL/MULTI mode
+  // Tab 2: Load Service-Based Agreements when Doctor is selected or in ALL/MULTI mode
   useEffect(() => {
     if (activeTab !== 'AGREEMENTS') return;
 
+    // Collect all services from categoryServicesMap
+    const allServices: ServiceAgreementItemState[] = [];
+    Object.entries(categoryServicesMap).forEach(([cat, sList]) => {
+      (sList || []).forEach(s => {
+        allServices.push({
+          serviceId: s.id,
+          serviceCode: s.code || '',
+          serviceName: s.name,
+          category: cat,
+          price: Number(s.price || 0),
+          rateType: 1,
+          rate: 30,
+          isSelected: true
+        });
+      });
+    });
+
+    if (allServices.length === 0) return;
+
     if (doctorSelectionMode === 'ALL' || doctorSelectionMode === 'MULTI') {
-      // In ALL or MULTI mode, initialize list with standard categories
-      const initializedList: AgreementItemState[] = categories.map(cat => ({
-        category: cat,
-        rateType: 1,
-        rate: 30,
-        isSelected: true
-      }));
-      setAgreementsList(initializedList);
+      // In ALL or MULTI mode, initialize list with all services active at standard 30%
+      setServiceAgreementsList(allServices);
       return;
     }
 
-    if (!setupDoctorId) return;
+    if (!setupDoctorId) {
+      setServiceAgreementsList([]);
+      return;
+    }
 
     const loadDoctorAgreements = async () => {
       setLoadingAgreements(true);
@@ -278,29 +301,36 @@ export default function PayrollPage() {
         const res = await api.get<any[]>('/api/v1/payroll/agreements', { doctorId: setupDoctorId });
         const existing = (res as any)?.data || (res as any)?.Data || res || [];
 
-        const existingMap = new Map<string, { rateType: 1 | 2; rate: number; isActive: boolean }>();
-        existing.forEach((item: any) => {
-          const cat = item.category ?? item.Category;
-          const rt = (item.rateType ?? item.RateType) === 2 ? 2 : 1;
-          const r = Number(item.rate ?? item.Rate ?? 0);
-          const active = item.isActive ?? item.IsActive ?? true;
-          if (cat) existingMap.set(cat, { rateType: rt, rate: r, isActive: active });
-        });
+        const initializedList = allServices.map(svc => {
+          // Match by specific serviceId first -> serviceName -> category fallback
+          const found = (Array.isArray(existing) ? existing : []).find((item: any) => {
+            const sid = item.serviceId ?? item.ServiceId;
+            const sname = item.serviceName ?? item.ServiceName;
+            const cat = item.category ?? item.Category;
+            if (sid && Number(sid) === svc.serviceId) return true;
+            if (sname && sname.trim().toLowerCase() === svc.serviceName.trim().toLowerCase()) return true;
+            if (!sid && !sname && cat && cat.toLowerCase() === svc.category.toLowerCase()) return true;
+            return false;
+          });
 
-        // Merge standard categories + any custom in DB
-        const allCats = Array.from(new Set([...categories, ...Array.from(existingMap.keys())]));
+          if (found) {
+            return {
+              ...svc,
+              rateType: ((found.rateType ?? found.RateType) === 2 ? 2 : 1) as (1 | 2),
+              rate: Number(found.rate ?? found.Rate ?? 0),
+              isSelected: (found.isActive ?? found.IsActive) !== false
+            };
+          }
 
-        const initializedList: AgreementItemState[] = allCats.map(cat => {
-          const found = existingMap.get(cat);
           return {
-            category: cat,
-            rateType: found?.rateType ?? 1,
-            rate: found?.rate ?? 0,
-            isSelected: !!found && found.isActive
+            ...svc,
+            rateType: 1 as (1 | 2),
+            rate: 30,
+            isSelected: false
           };
         });
 
-        setAgreementsList(initializedList);
+        setServiceAgreementsList(initializedList);
       } catch (err) {
         console.error('Failed to load agreements for doctor:', err);
       } finally {
@@ -309,18 +339,18 @@ export default function PayrollPage() {
     };
 
     loadDoctorAgreements();
-  }, [setupDoctorId, doctorSelectionMode, activeTab, categories]);
+  }, [setupDoctorId, doctorSelectionMode, activeTab, categoryServicesMap]);
 
-  // Update Agreement Row
-  const updateAgreementRow = (category: string, field: keyof AgreementItemState, value: any) => {
-    setAgreementsList(prev =>
-      prev.map(row => (row.category === category ? { ...row, [field]: value } : row))
+  // Update Service Row
+  const updateServiceRow = (serviceId: number, field: keyof ServiceAgreementItemState, value: any) => {
+    setServiceAgreementsList(prev =>
+      prev.map(row => (row.serviceId === serviceId ? { ...row, [field]: value } : row))
     );
   };
 
-  // Quick Action: Set uniform rate for all selected
+  // Quick Action: Set uniform rate for all selected services across all categories
   const applyUniformRate = (rate: number, rateType: 1 | 2) => {
-    setAgreementsList(prev =>
+    setServiceAgreementsList(prev =>
       prev.map(row => ({
         ...row,
         isSelected: true,
@@ -330,20 +360,73 @@ export default function PayrollPage() {
     );
   };
 
-  // Add Custom Category
-  const handleAddCustomCategory = () => {
-    if (!customCategoryInput.trim()) return;
-    const cat = customCategoryInput.trim();
-    if (agreementsList.some(r => r.category.toLowerCase() === cat.toLowerCase())) {
-      alert('Category already exists in the list.');
-      return;
-    }
-    setAgreementsList(prev => [
-      ...prev,
-      { category: cat, rateType: 1, rate: 30, isSelected: true }
-    ]);
-    setCustomCategoryInput('');
+  // Category Bulk Setter: Set rate for all services under a specific category
+  const applyCategoryBulkRate = (category: string) => {
+    const config = categoryBulkRate[category] || { rate: 30, rateType: 1 };
+    setServiceAgreementsList(prev =>
+      prev.map(row =>
+        row.category === category
+          ? { ...row, isSelected: true, rate: config.rate, rateType: config.rateType }
+          : row
+      )
+    );
   };
+
+  // Toggle selection for all services in a category
+  const toggleCategorySelection = (category: string, isSelected: boolean) => {
+    setServiceAgreementsList(prev =>
+      prev.map(row => (row.category === category ? { ...row, isSelected } : row))
+    );
+  };
+
+  // Toggle selection for all services
+  const toggleAllServicesSelection = (isSelected: boolean) => {
+    setServiceAgreementsList(prev => prev.map(row => ({ ...row, isSelected })));
+  };
+
+  // Collapse / Expand Category in Agreement Table
+  const toggleCategoryCollapse = (category: string) => {
+    setCollapsedCategories(prev => ({ ...prev, [category]: !prev[category] }));
+  };
+
+  // Expand all / Collapse all categories
+  const expandAllAgreementCategories = () => setCollapsedCategories({});
+  const collapseAllAgreementCategories = () => {
+    const allCollapsed: Record<string, boolean> = {};
+    categories.forEach(c => { allCollapsed[c] = true; });
+    setCollapsedCategories(allCollapsed);
+  };
+
+  // Filtered service agreements based on search and category filter
+  const filteredServiceAgreements = useMemo(() => {
+    return serviceAgreementsList.filter(item => {
+      if (agreementCategoryFilter !== 'ALL' && item.category !== agreementCategoryFilter) {
+        return false;
+      }
+      if (agreementSearchQuery.trim()) {
+        const q = agreementSearchQuery.toLowerCase().trim();
+        const matchesName = item.serviceName.toLowerCase().includes(q);
+        const matchesCode = item.serviceCode.toLowerCase().includes(q);
+        const matchesCat = item.category.toLowerCase().includes(q);
+        if (!matchesName && !matchesCode && !matchesCat) return false;
+      }
+      return true;
+    });
+  }, [serviceAgreementsList, agreementCategoryFilter, agreementSearchQuery]);
+
+  // Group filtered services by category
+  const groupedAgreementsByCategory = useMemo(() => {
+    const map: Record<string, ServiceAgreementItemState[]> = {};
+    const catList = agreementCategoryFilter !== 'ALL' ? [agreementCategoryFilter] : categories;
+    catList.forEach(c => {
+      map[c] = [];
+    });
+    filteredServiceAgreements.forEach(svc => {
+      if (!map[svc.category]) map[svc.category] = [];
+      map[svc.category].push(svc);
+    });
+    return map;
+  }, [filteredServiceAgreements, agreementCategoryFilter, categories]);
 
   // Toggle Doctor in Multi-select mode
   const toggleDoctorSelection = (docId: number) => {
@@ -367,7 +450,9 @@ export default function PayrollPage() {
     setSavingAgreements(true);
     setSaveSuccessMsg(null);
     try {
-      const agreementsPayload = agreementsList.map(a => ({
+      const agreementsPayload = serviceAgreementsList.map(a => ({
+        serviceId: a.serviceId,
+        serviceName: a.serviceName,
         category: a.category,
         rateType: a.rateType,
         rate: Number(a.rate) || 0,
@@ -388,12 +473,13 @@ export default function PayrollPage() {
       }
 
       await api.post('/api/v1/payroll/agreements', payload);
+      const activeCount = agreementsPayload.filter(a => a.isActive).length;
       const targetDesc = doctorSelectionMode === 'ALL'
         ? 'all doctors'
         : doctorSelectionMode === 'MULTI'
         ? `${selectedDoctorIds.length} selected doctors`
         : 'the selected doctor';
-      setSaveSuccessMsg(`Payroll agreements applied successfully to ${targetDesc}!`);
+      setSaveSuccessMsg(`Payroll service agreements applied successfully to ${targetDesc}! (${activeCount} active service agreements saved)`);
       setTimeout(() => setSaveSuccessMsg(null), 5000);
     } catch (err) {
       console.error('Failed to save agreements:', err);
@@ -1317,311 +1403,530 @@ export default function PayrollPage() {
             </div>
           ) : (
             <div className="glass-panel" style={{ borderRadius: '14px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', overflow: 'hidden' }}>
-              {/* Quick Preset Toolbar */}
-              <div style={{ padding: '14px 20px', background: 'rgba(0,0,0,0.02)', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
-                    Quick Presets:
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => applyUniformRate(30, 1)}
-                    style={{ padding: '5px 12px', borderRadius: '7px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer' }}
-                  >
-                    Set All to 30%
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => applyUniformRate(40, 1)}
-                    style={{ padding: '5px 12px', borderRadius: '7px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer' }}
-                  >
-                    Set All to 40%
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => applyUniformRate(50, 1)}
-                    style={{ padding: '5px 12px', borderRadius: '7px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer' }}
-                  >
-                    Set All to 50%
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAgreementsList(prev => prev.map(r => ({ ...r, isSelected: true })))}
-                    style={{ padding: '5px 12px', borderRadius: '7px', border: '1px solid #0071e3', color: '#0071e3', background: 'transparent', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer' }}
-                  >
-                    Select All
-                  </button>
-                </div>
+              {/* Toolbar: Search, Category Filter Pills, and Global Presets */}
+              <div style={{ padding: '16px 20px', background: 'rgba(0,0,0,0.02)', borderBottom: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {/* Row 1: Search & Filter Pills */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                  {/* Search box */}
+                  <div style={{ position: 'relative', width: '320px', maxWidth: '100%' }}>
+                    <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+                    <input
+                      type="text"
+                      placeholder="Search services by name or code..."
+                      value={agreementSearchQuery}
+                      onChange={e => setAgreementSearchQuery(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '8px 34px 8px 36px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border-color)',
+                        background: 'var(--bg-card)',
+                        color: 'var(--text-main)',
+                        fontSize: '0.85rem',
+                        outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                    {agreementSearchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setAgreementSearchQuery('')}
+                        style={{
+                          position: 'absolute',
+                          right: '10px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: 0,
+                          color: 'var(--text-secondary)'
+                        }}
+                      >
+                        <X size={15} />
+                      </button>
+                    )}
+                  </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                    <strong>{agreementsList.filter(a => a.isSelected).length}</strong> of {agreementsList.length} categories active
-                  </span>
-                </div>
-              </div>
-
-              {/* Table of Categories and Rates */}
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
-                  <thead>
-                    <tr style={{ background: 'rgba(0,0,0,0.03)', borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                      <th style={{ padding: '12px 18px', width: '48px', textAlign: 'center' }}>Active</th>
-                      <th style={{ padding: '12px 18px', fontWeight: 700 }}>Service Category &amp; Included Services</th>
-                      <th style={{ padding: '12px 18px', fontWeight: 700, width: '220px' }}>Agreement Type</th>
-                      <th style={{ padding: '12px 18px', fontWeight: 700, width: '220px' }}>Rate Value</th>
-                      <th style={{ padding: '12px 18px', fontWeight: 700, width: '260px' }}>Sample Calculation</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {agreementsList.map((row, idx) => {
-                      const isSelected = row.isSelected;
-                      const samplePrice = 1000;
-                      const sampleDoctorShare = row.rateType === 1
-                        ? (Number(row.rate || 0) / 100) * samplePrice
-                        : Number(row.rate || 0);
-
-                      const servicesUnderCat = categoryServicesMap[row.category] || [];
-                      const isServicesExpanded = expandedCatServices[row.category];
-
+                  {/* Category Filter Pills */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Category:</span>
+                    <button
+                      type="button"
+                      onClick={() => setAgreementCategoryFilter('ALL')}
+                      style={{
+                        padding: '5px 12px',
+                        borderRadius: '20px',
+                        border: agreementCategoryFilter === 'ALL' ? '2px solid #0071e3' : '1px solid var(--border-color)',
+                        background: agreementCategoryFilter === 'ALL' ? 'rgba(0, 113, 227, 0.12)' : 'var(--bg-card)',
+                        color: agreementCategoryFilter === 'ALL' ? '#0071e3' : 'var(--text-secondary)',
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      All ({serviceAgreementsList.length})
+                    </button>
+                    {categories.map(cat => {
+                      const totalInCat = serviceAgreementsList.filter(s => s.category === cat).length;
+                      const activeInCat = serviceAgreementsList.filter(s => s.category === cat && s.isSelected).length;
+                      const isCatActive = agreementCategoryFilter === cat;
                       return (
-                        <React.Fragment key={row.category}>
-                          <tr
-                            style={{
-                              borderBottom: (idx < agreementsList.length - 1 && !isServicesExpanded) ? '1px solid var(--border-color)' : 'none',
-                              background: isSelected ? 'transparent' : 'rgba(0,0,0,0.02)',
-                              opacity: isSelected ? 1 : 0.65,
-                              transition: 'all 0.2s'
-                            }}
-                          >
-                            {/* Checkbox */}
-                            <td style={{ padding: '12px 18px', textAlign: 'center' }}>
-                              <input
-                                type="checkbox"
-                                checked={isSelected}
-                                onChange={e => updateAgreementRow(row.category, 'isSelected', e.target.checked)}
-                                style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#0071e3' }}
-                              />
-                            </td>
-
-                            {/* Category Name + Included Services Trigger */}
-                            <td style={{ padding: '12px 18px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <span style={{ fontWeight: 800, color: 'var(--text-main)', fontSize: '0.95rem' }}>
-                                  {row.category}
-                                </span>
-                                {servicesUnderCat.length > 0 && (
-                                  <button
-                                    type="button"
-                                    onClick={() => setExpandedCatServices(prev => ({ ...prev, [row.category]: !prev[row.category] }))}
-                                    style={{
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: '4px',
-                                      padding: '2px 8px',
-                                      borderRadius: '12px',
-                                      border: '1px solid #bfdbfe',
-                                      background: '#eff6ff',
-                                      color: '#1d4ed8',
-                                      fontSize: '0.72rem',
-                                      fontWeight: 700,
-                                      cursor: 'pointer'
-                                    }}
-                                  >
-                                    {servicesUnderCat.length} service{servicesUnderCat.length !== 1 ? 's' : ''}
-                                    {isServicesExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                                  </button>
-                                )}
-                              </div>
-                              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                                All services classified under {row.category} will inherit this rate rule
-                              </div>
-                            </td>
-
-                          {/* Rate Type Selector */}
-                          <td style={{ padding: '12px 18px' }}>
-                            <div style={{ display: 'flex', gap: '6px' }}>
-                              <button
-                                type="button"
-                                disabled={!isSelected}
-                                onClick={() => updateAgreementRow(row.category, 'rateType', 1)}
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '4px',
-                                  padding: '6px 12px',
-                                  borderRadius: '6px',
-                                  border: row.rateType === 1 ? '2px solid #0071e3' : '1px solid var(--border-color)',
-                                  background: row.rateType === 1 ? 'rgba(0, 113, 227, 0.1)' : 'var(--bg-card)',
-                                  color: row.rateType === 1 ? '#0071e3' : 'var(--text-secondary)',
-                                  fontWeight: 700,
-                                  fontSize: '0.8rem',
-                                  cursor: isSelected ? 'pointer' : 'default'
-                                }}
-                              >
-                                <Percent size={13} />
-                                Percentage
-                              </button>
-
-                              <button
-                                type="button"
-                                disabled={!isSelected}
-                                onClick={() => updateAgreementRow(row.category, 'rateType', 2)}
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '4px',
-                                  padding: '6px 12px',
-                                  borderRadius: '6px',
-                                  border: row.rateType === 2 ? '2px solid #34c759' : '1px solid var(--border-color)',
-                                  background: row.rateType === 2 ? 'rgba(52, 199, 89, 0.1)' : 'var(--bg-card)',
-                                  color: row.rateType === 2 ? '#166534' : 'var(--text-secondary)',
-                                  fontWeight: 700,
-                                  fontSize: '0.8rem',
-                                  cursor: isSelected ? 'pointer' : 'default'
-                                }}
-                              >
-                                <Coins size={13} />
-                                Fixed Fee
-                              </button>
-                            </div>
-                          </td>
-
-                          {/* Rate Value Input */}
-                          <td style={{ padding: '12px 18px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <input
-                                type="number"
-                                min="0"
-                                max={row.rateType === 1 ? '100' : '100000'}
-                                step={row.rateType === 1 ? '1' : '50'}
-                                disabled={!isSelected}
-                                value={row.rate}
-                                onChange={e => updateAgreementRow(row.category, 'rate', parseFloat(e.target.value) || 0)}
-                                style={{
-                                  width: '120px',
-                                  padding: '6px 10px',
-                                  borderRadius: '6px',
-                                  border: '1px solid var(--border-color)',
-                                  background: 'var(--bg-card)',
-                                  color: 'var(--text-main)',
-                                  fontWeight: 700,
-                                  fontSize: '0.9rem',
-                                  outline: 'none'
-                                }}
-                              />
-                              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
-                                {row.rateType === 1 ? '%' : 'ETB'}
-                              </span>
-                            </div>
-                          </td>
-
-                          {/* Live Preview */}
-                          <td style={{ padding: '12px 18px' }}>
-                            {isSelected ? (
-                              <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                                For 1,000 ETB price: <strong style={{ color: '#166534' }}>ETB {sampleDoctorShare.toFixed(2)}</strong> doctor share
-                              </div>
-                            ) : (
-                              <span style={{ fontSize: '0.78rem', color: '#b45309', fontWeight: 600 }}>
-                                Agreement disabled (0 ETB)
-                              </span>
-                            )}
-                          </td>
-                        </tr>
-
-                          {/* Expandable Services Drawer for this Category */}
-                          {isServicesExpanded && servicesUnderCat.length > 0 && (
-                            <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--border-color)' }}>
-                              <td colSpan={5} style={{ padding: '12px 24px 14px 56px' }}>
-                                <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#1e40af', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '8px' }}>
-                                  Clinical Services governed by this {row.category} agreement ({servicesUnderCat.length}):
-                                </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '8px', maxHeight: '180px', overflowY: 'auto' }}>
-                                  {servicesUnderCat.map(svc => (
-                                    <div
-                                      key={svc.id || svc.code}
-                                      style={{
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        alignItems: 'center',
-                                        padding: '6px 10px',
-                                        borderRadius: '6px',
-                                        background: '#ffffff',
-                                        border: '1px solid #e2e8f0',
-                                        fontSize: '0.78rem'
-                                      }}
-                                    >
-                                      <div>
-                                        <span style={{ fontWeight: 600, color: '#1e293b' }}>{svc.name}</span>
-                                        {svc.code && (
-                                          <span style={{ marginLeft: '6px', fontFamily: 'monospace', color: '#64748b', fontSize: '0.7rem' }}>
-                                            {svc.code}
-                                          </span>
-                                        )}
-                                      </div>
-                                      <strong style={{ color: '#059669', fontSize: '0.8rem', flexShrink: 0, marginLeft: '8px' }}>
-                                        ETB {Number(svc.price || 0).toFixed(2)}
-                                      </strong>
-                                    </div>
-                                  ))}
-                                </div>
-                              </td>
-                            </tr>
-                          )}
-                        </React.Fragment>
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => setAgreementCategoryFilter(cat)}
+                          style={{
+                            padding: '5px 12px',
+                            borderRadius: '20px',
+                            border: isCatActive ? '2px solid #0071e3' : '1px solid var(--border-color)',
+                            background: isCatActive ? 'rgba(0, 113, 227, 0.12)' : 'var(--bg-card)',
+                            color: isCatActive ? '#0071e3' : 'var(--text-secondary)',
+                            fontSize: '0.8rem',
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {cat} ({activeInCat}/{totalInCat})
+                        </button>
                       );
                     })}
-                  </tbody>
-                </table>
+                  </div>
+                </div>
+
+                {/* Row 2: Global Batch Presets & Expand/Collapse */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', paddingTop: '10px', borderTop: '1px solid rgba(0,0,0,0.05)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Global Presets:</span>
+                    <button
+                      type="button"
+                      onClick={() => applyUniformRate(30, 1)}
+                      style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', fontSize: '0.76rem', fontWeight: 600, cursor: 'pointer' }}
+                    >
+                      Set All to 30%
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyUniformRate(40, 1)}
+                      style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', fontSize: '0.76rem', fontWeight: 600, cursor: 'pointer' }}
+                    >
+                      Set All to 40%
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyUniformRate(50, 1)}
+                      style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', fontSize: '0.76rem', fontWeight: 600, cursor: 'pointer' }}
+                    >
+                      Set All to 50%
+                    </button>
+                    <span style={{ color: 'var(--border-color)', margin: '0 4px' }}>|</span>
+                    <button
+                      type="button"
+                      onClick={() => toggleAllServicesSelection(true)}
+                      style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid #0071e3', color: '#0071e3', background: 'transparent', fontSize: '0.76rem', fontWeight: 600, cursor: 'pointer' }}
+                    >
+                      Select All
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => toggleAllServicesSelection(false)}
+                      style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', background: 'transparent', fontSize: '0.76rem', fontWeight: 600, cursor: 'pointer' }}
+                    >
+                      Deselect All
+                    </button>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <button
+                      type="button"
+                      onClick={expandAllAgreementCategories}
+                      style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      <ChevronDown size={13} /> Expand All
+                    </button>
+                    <button
+                      type="button"
+                      onClick={collapseAllAgreementCategories}
+                      style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      <ChevronUp size={13} /> Collapse All
+                    </button>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginLeft: '6px' }}>
+                      <strong>{serviceAgreementsList.filter(a => a.isSelected).length}</strong> of {serviceAgreementsList.length} services active
+                    </span>
+                  </div>
+                </div>
               </div>
 
-              {/* Add Custom Category Row */}
-              <div style={{ padding: '14px 20px', background: 'rgba(0,0,0,0.015)', borderTop: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
-                  Add Custom Category / Service:
-                </span>
-                <input
-                  type="text"
-                  placeholder="e.g., Hydrafacial, Hair Transplant..."
-                  value={customCategoryInput}
-                  onChange={e => setCustomCategoryInput(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') handleAddCustomCategory();
-                  }}
-                  style={{
-                    padding: '7px 12px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--border-color)',
-                    background: 'var(--bg-card)',
-                    color: 'var(--text-main)',
-                    fontSize: '0.85rem',
-                    width: '280px',
-                    outline: 'none'
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={handleAddCustomCategory}
-                  style={{
-                    padding: '7px 14px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--border-color)',
-                    background: 'var(--bg-card)',
-                    color: 'var(--text-main)',
-                    fontWeight: 600,
-                    fontSize: '0.82rem',
-                    cursor: 'pointer'
-                  }}
-                >
-                  + Add to List
-                </button>
+              {/* Grouped Service Agreements by Category */}
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {Object.entries(groupedAgreementsByCategory).map(([categoryName, services]) => {
+                  const isCollapsed = !!collapsedCategories[categoryName];
+                  const totalInCat = services.length;
+                  const activeInCat = services.filter(s => s.isSelected).length;
+                  const curBulk = categoryBulkRate[categoryName] || { rate: 30, rateType: 1 };
+
+                  // If search is active and category has no matching services, hide this category
+                  if (totalInCat === 0 && agreementSearchQuery) return null;
+
+                  return (
+                    <div
+                      key={categoryName}
+                      style={{
+                        borderBottom: '1px solid var(--border-color)',
+                        background: 'var(--bg-card)'
+                      }}
+                    >
+                      {/* Category Group Header Banner */}
+                      <div
+                        style={{
+                          padding: '12px 20px',
+                          background: 'rgba(0, 113, 227, 0.03)',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          flexWrap: 'wrap',
+                          gap: '12px'
+                        }}
+                      >
+                        {/* Left: Category Title, Toggle Chevron & Count Badge */}
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
+                            cursor: 'pointer'
+                          }}
+                          onClick={() => toggleCategoryCollapse(categoryName)}
+                        >
+                          <button
+                            type="button"
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              padding: 0,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              color: '#0071e3'
+                            }}
+                          >
+                            {isCollapsed ? <ChevronRight size={18} /> : <ChevronDown size={18} />}
+                          </button>
+                          <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                            {categoryName}
+                          </span>
+                          <span
+                            style={{
+                              padding: '2px 8px',
+                              borderRadius: '12px',
+                              background: activeInCat > 0 ? 'rgba(52, 199, 89, 0.15)' : 'rgba(0,0,0,0.06)',
+                              color: activeInCat > 0 ? '#166534' : 'var(--text-secondary)',
+                              fontSize: '0.75rem',
+                              fontWeight: 700
+                            }}
+                          >
+                            {activeInCat} / {totalInCat} Active Services
+                          </span>
+                        </div>
+
+                        {/* Right: Category Quick Batch Tool */}
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            flexWrap: 'wrap'
+                          }}
+                          onClick={e => e.stopPropagation()}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => toggleCategorySelection(categoryName, activeInCat !== totalInCat)}
+                            style={{
+                              padding: '4px 10px',
+                              borderRadius: '6px',
+                              border: '1px solid var(--border-color)',
+                              background: 'var(--bg-card)',
+                              color: 'var(--text-secondary)',
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {activeInCat === totalInCat ? 'Deselect Category' : 'Select Category'}
+                          </button>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'var(--bg-card)', padding: '2px 6px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Set all to:</span>
+                            <input
+                              type="number"
+                              min="0"
+                              max={curBulk.rateType === 1 ? '100' : '100000'}
+                              value={curBulk.rate}
+                              onChange={e => {
+                                const val = parseFloat(e.target.value) || 0;
+                                setCategoryBulkRate(prev => ({
+                                  ...prev,
+                                  [categoryName]: { ...(prev[categoryName] || { rate: 30, rateType: 1 }), rate: val }
+                                }));
+                              }}
+                              style={{
+                                width: '54px',
+                                padding: '3px 6px',
+                                borderRadius: '4px',
+                                border: '1px solid var(--border-color)',
+                                background: 'var(--bg-main)',
+                                color: 'var(--text-main)',
+                                fontSize: '0.78rem',
+                                fontWeight: 700,
+                                outline: 'none'
+                              }}
+                            />
+                            <div style={{ display: 'flex', borderRadius: '4px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+                              <button
+                                type="button"
+                                onClick={() => setCategoryBulkRate(prev => ({
+                                  ...prev,
+                                  [categoryName]: { ...(prev[categoryName] || { rate: 30, rateType: 1 }), rateType: 1 }
+                                }))}
+                                style={{
+                                  padding: '2px 6px',
+                                  border: 'none',
+                                  background: curBulk.rateType === 1 ? '#0071e3' : 'var(--bg-card)',
+                                  color: curBulk.rateType === 1 ? '#fff' : 'var(--text-secondary)',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 700,
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                %
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setCategoryBulkRate(prev => ({
+                                  ...prev,
+                                  [categoryName]: { ...(prev[categoryName] || { rate: 30, rateType: 1 }), rateType: 2 }
+                                }))}
+                                style={{
+                                  padding: '2px 6px',
+                                  border: 'none',
+                                  background: curBulk.rateType === 2 ? '#34c759' : 'var(--bg-card)',
+                                  color: curBulk.rateType === 2 ? '#fff' : 'var(--text-secondary)',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 700,
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                ETB
+                              </button>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => applyCategoryBulkRate(categoryName)}
+                              style={{
+                                padding: '3px 10px',
+                                borderRadius: '5px',
+                                border: 'none',
+                                background: '#0071e3',
+                                color: '#fff',
+                                fontSize: '0.74rem',
+                                fontWeight: 700,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              Apply
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Services Table for this Category */}
+                      {!isCollapsed && (
+                        <div style={{ overflowX: 'auto' }}>
+                          {services.length === 0 ? (
+                            <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                              No services found matching current filters in this category.
+                            </div>
+                          ) : (
+                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.86rem' }}>
+                              <thead>
+                                <tr style={{ background: 'rgba(0,0,0,0.015)', borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                  <th style={{ padding: '10px 16px', width: '48px', textAlign: 'center' }}>Active</th>
+                                  <th style={{ padding: '10px 16px', fontWeight: 700 }}>Service Name &amp; Code</th>
+                                  <th style={{ padding: '10px 16px', fontWeight: 700, width: '160px' }}>Standard Price</th>
+                                  <th style={{ padding: '10px 16px', fontWeight: 700, width: '210px' }}>Agreement Type</th>
+                                  <th style={{ padding: '10px 16px', fontWeight: 700, width: '190px' }}>Rate Value</th>
+                                  <th style={{ padding: '10px 16px', fontWeight: 700, width: '220px' }}>Doctor Share Preview</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {services.map((row, sIdx) => {
+                                  const isSelected = row.isSelected;
+                                  const sampleDoctorShare = row.rateType === 1
+                                    ? (Number(row.rate || 0) / 100) * (row.price || 0)
+                                    : Number(row.rate || 0);
+
+                                  return (
+                                    <tr
+                                      key={row.serviceId || `${row.category}_${row.serviceName}_${sIdx}`}
+                                      style={{
+                                        borderBottom: sIdx < services.length - 1 ? '1px solid var(--border-color)' : 'none',
+                                        background: isSelected ? 'transparent' : 'rgba(0,0,0,0.02)',
+                                        opacity: isSelected ? 1 : 0.6,
+                                        transition: 'all 0.15s'
+                                      }}
+                                    >
+                                      {/* Checkbox */}
+                                      <td style={{ padding: '10px 16px', textAlign: 'center' }}>
+                                        <input
+                                          type="checkbox"
+                                          checked={isSelected}
+                                          onChange={e => updateServiceRow(row.serviceId, 'isSelected', e.target.checked)}
+                                          style={{ width: '17px', height: '17px', cursor: 'pointer', accentColor: '#0071e3' }}
+                                        />
+                                      </td>
+
+                                      {/* Service Name & Code */}
+                                      <td style={{ padding: '10px 16px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                          <span style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '0.88rem' }}>
+                                            {row.serviceName}
+                                          </span>
+                                          {row.serviceCode && (
+                                            <span style={{
+                                              padding: '1px 6px',
+                                              borderRadius: '4px',
+                                              background: 'rgba(0,0,0,0.05)',
+                                              color: 'var(--text-secondary)',
+                                              fontFamily: 'monospace',
+                                              fontSize: '0.72rem',
+                                              fontWeight: 600
+                                            }}>
+                                              {row.serviceCode}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </td>
+
+                                      {/* Standard Price */}
+                                      <td style={{ padding: '10px 16px' }}>
+                                        <span style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '0.86rem' }}>
+                                          ETB {Number(row.price || 0).toFixed(2)}
+                                        </span>
+                                      </td>
+
+                                      {/* Rate Type Selector */}
+                                      <td style={{ padding: '10px 16px' }}>
+                                        <div style={{ display: 'flex', gap: '5px' }}>
+                                          <button
+                                            type="button"
+                                            disabled={!isSelected}
+                                            onClick={() => updateServiceRow(row.serviceId, 'rateType', 1)}
+                                            style={{
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              gap: '3px',
+                                              padding: '5px 10px',
+                                              borderRadius: '6px',
+                                              border: row.rateType === 1 ? '2px solid #0071e3' : '1px solid var(--border-color)',
+                                              background: row.rateType === 1 ? 'rgba(0, 113, 227, 0.1)' : 'var(--bg-card)',
+                                              color: row.rateType === 1 ? '#0071e3' : 'var(--text-secondary)',
+                                              fontWeight: 700,
+                                              fontSize: '0.76rem',
+                                              cursor: isSelected ? 'pointer' : 'default'
+                                            }}
+                                          >
+                                            <Percent size={12} />
+                                            Percentage
+                                          </button>
+
+                                          <button
+                                            type="button"
+                                            disabled={!isSelected}
+                                            onClick={() => updateServiceRow(row.serviceId, 'rateType', 2)}
+                                            style={{
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              gap: '3px',
+                                              padding: '5px 10px',
+                                              borderRadius: '6px',
+                                              border: row.rateType === 2 ? '2px solid #34c759' : '1px solid var(--border-color)',
+                                              background: row.rateType === 2 ? 'rgba(52, 199, 89, 0.1)' : 'var(--bg-card)',
+                                              color: row.rateType === 2 ? '#166534' : 'var(--text-secondary)',
+                                              fontWeight: 700,
+                                              fontSize: '0.76rem',
+                                              cursor: isSelected ? 'pointer' : 'default'
+                                            }}
+                                          >
+                                            <Coins size={12} />
+                                            Fixed Fee
+                                          </button>
+                                        </div>
+                                      </td>
+
+                                      {/* Rate Value Input */}
+                                      <td style={{ padding: '10px 16px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                          <input
+                                            type="number"
+                                            min="0"
+                                            max={row.rateType === 1 ? '100' : '100000'}
+                                            step={row.rateType === 1 ? '1' : '50'}
+                                            disabled={!isSelected}
+                                            value={row.rate}
+                                            onChange={e => updateServiceRow(row.serviceId, 'rate', parseFloat(e.target.value) || 0)}
+                                            style={{
+                                              width: '90px',
+                                              padding: '5px 8px',
+                                              borderRadius: '6px',
+                                              border: '1px solid var(--border-color)',
+                                              background: 'var(--bg-card)',
+                                              color: 'var(--text-main)',
+                                              fontWeight: 700,
+                                              fontSize: '0.86rem',
+                                              outline: 'none'
+                                            }}
+                                          />
+                                          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                                            {row.rateType === 1 ? '%' : 'ETB'}
+                                          </span>
+                                        </div>
+                                      </td>
+
+                                      {/* Doctor Share Preview */}
+                                      <td style={{ padding: '10px 16px' }}>
+                                        {isSelected ? (
+                                          <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                                            Yields: <strong style={{ color: '#166534' }}>ETB {sampleDoctorShare.toFixed(2)}</strong> per service
+                                          </div>
+                                        ) : (
+                                          <span style={{ fontSize: '0.75rem', color: '#b45309', fontWeight: 600 }}>
+                                            Agreement disabled (0 ETB)
+                                          </span>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
 
               {/* Bottom Save Action Bar */}
-              <div style={{ padding: '18px 24px', background: 'rgba(0,0,0,0.03)', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '14px' }}>
-                <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                  Agreements will take effect immediately upon saving
-                </span>
+              <div style={{ padding: '18px 24px', background: 'rgba(0,0,0,0.03)', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <ShieldCheck size={18} color="#0071e3" />
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                    <strong>{serviceAgreementsList.filter(a => a.isSelected).length}</strong> active service agreements ready to save. Takes effect immediately.
+                  </span>
+                </div>
                 <button
                   type="button"
                   onClick={handleSaveAgreements}
