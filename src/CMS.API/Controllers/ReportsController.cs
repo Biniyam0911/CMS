@@ -632,7 +632,7 @@ public class ReportsController : ControllerBase
                     CASE p.Gender WHEN 1 THEN 'Male' WHEN 2 THEN 'Female' ELSE 'Other' END AS Gender,
                     DATEDIFF(YEAR, p.DateOfBirth, GETDATE()) - 
                     CASE WHEN DATEADD(YEAR, DATEDIFF(YEAR, p.DateOfBirth, GETDATE()), p.DateOfBirth) > GETDATE() THEN 1 ELSE 0 END AS Age,
-                    FORMAT(CAST(po.OrderedAt AS DATE), 'yyyy-MM-dd') AS VisitDate,
+                    FORMAT(CAST(po.CreatedAt AS DATE), 'yyyy-MM-dd') AS VisitDate,
                     'Procedure' AS ActivityType,
                     po.ProcedureName AS ServiceOrDetails,
                     ISNULL(NULLIF(po.ClinicalNotes, ''), 'Clinical Procedure') AS DiagnosisOrNotes,
@@ -640,12 +640,12 @@ public class ReportsController : ControllerBase
                     CASE po.StatusId WHEN 2 THEN 'Completed' WHEN 3 THEN 'Cancelled' ELSE 'Ordered' END AS Status
                 FROM ProcedureOrders po WITH (NOLOCK)
                 JOIN Patients p WITH (NOLOCK) ON p.Id = po.PatientId
-                LEFT JOIN Invoices inv WITH (NOLOCK) ON inv.PatientId = po.PatientId AND CAST(inv.IssueDate AS DATE) = CAST(po.OrderedAt AS DATE)
+                LEFT JOIN Invoices inv WITH (NOLOCK) ON inv.PatientId = po.PatientId AND CAST(inv.IssueDate AS DATE) = CAST(po.CreatedAt AS DATE)
                 LEFT JOIN InvoiceItems ii WITH (NOLOCK) ON ii.InvoiceId = inv.Id AND ii.ItemType = 4 AND (ii.Description LIKE '%' + po.ProcedureName + '%' OR po.ProcedureName LIKE '%' + ii.Description + '%')
                 WHERE po.TenantId = @TenantId
-                  AND po.DoctorId = @TargetDoctorId
-                  AND (@DateFrom IS NULL OR CAST(po.OrderedAt AS DATE) >= @DateFrom)
-                  AND (@DateTo IS NULL OR CAST(po.OrderedAt AS DATE) <= @DateTo)
+                  AND po.OrderedBy = @TargetDoctorId
+                  AND (@DateFrom IS NULL OR CAST(po.CreatedAt AS DATE) >= @DateFrom)
+                  AND (@DateTo IS NULL OR CAST(po.CreatedAt AS DATE) <= @DateTo)
             )
             SELECT * FROM (
                 SELECT * FROM DocConsultations

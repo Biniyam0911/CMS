@@ -161,3 +161,4 @@ c:\Users\ASUS\source\repos\CMS\src\CMS.API\bin\Release\net8.0\CMS.API.staticweba
 C:\Users\ASUS\source\repos\CMS\src\CMS.API\bin\Release\net8.0\Microsoft.Extensions.Hosting.WindowsServices.dll
 C:\Users\ASUS\source\repos\CMS\src\CMS.API\bin\Release\net8.0\System.ServiceProcess.ServiceController.dll
 C:\Users\ASUS\source\repos\CMS\src\CMS.API\bin\Release\net8.0\runtimes\win\lib\net8.0\System.ServiceProcess.ServiceController.dll
+C:\Users\ASUS\source\repos\CMS\src\CMS.API\bin\Release\net8.0\Microsoft.Extensions.Caching.Memory.dll
