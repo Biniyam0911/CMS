@@ -47,7 +47,7 @@ public class PayrollController : ControllerBase
 
         // Fetch distinct payroll-relevant categories and their services from the Services table
         var servicesSql = @"
-            SELECT Id, Code, Name, Category, StandardFee AS Price
+            SELECT Id, Code, Name, Category, Price
             FROM Services
             WHERE TenantId = @TenantId
               AND IsActive = 1
@@ -97,7 +97,7 @@ public class PayrollController : ControllerBase
         using var conn = _dbFactory.CreateConnection();
 
         var sql = @"
-            SELECT Id, Code, Name, Category, StandardFee AS Price
+            SELECT Id, Code, Name, Category, Price
             FROM Services
             WHERE TenantId = @TenantId
               AND IsActive = 1
@@ -120,6 +120,8 @@ public class PayrollController : ControllerBase
                 pa.TenantId,
                 pa.DoctorId,
                 ISNULL(u.FirstName + ' ' + u.LastName, ISNULL(st.FirstName + ' ' + st.LastName, 'Dr. #' + CAST(pa.DoctorId AS NVARCHAR))) AS DoctorName,
+                pa.ServiceId,
+                pa.ServiceName,
                 pa.Category,
                 pa.RateType,   -- 1 = Percentage, 2 = Fixed Amount
                 pa.Rate,
@@ -132,7 +134,7 @@ public class PayrollController : ControllerBase
             LEFT JOIN Users u WITH (NOLOCK) ON u.Id = st.UserId
             WHERE pa.TenantId = @TenantId
               AND (@DoctorId IS NULL OR pa.DoctorId = @DoctorId)
-            ORDER BY DoctorName, pa.Category";
+            ORDER BY DoctorName, pa.Category, pa.ServiceName";
 
         var list = await conn.QueryAsync<dynamic>(sql, new { TenantId = tenantId, DoctorId = doctorId });
         return Ok(ApiResponse<object>.Ok(list));
@@ -171,10 +173,26 @@ public class PayrollController : ControllerBase
             return BadRequest(ApiResponse<string>.Fail("Either DoctorId, DoctorIds, or ApplyToAllDoctors=true is required."));
         }
 
-        var upsertSql = @"
+        var upsertServiceSql = @"
+            MERGE INTO PayrollAgreements AS target
+            USING (SELECT @TenantId AS TenantId, @DoctorId AS DoctorId, @ServiceId AS ServiceId) AS source
+            ON (target.TenantId = source.TenantId AND target.DoctorId = source.DoctorId AND target.ServiceId = source.ServiceId)
+            WHEN MATCHED THEN
+                UPDATE SET 
+                    ServiceName = @ServiceName,
+                    Category = @Category,
+                    RateType = @RateType,
+                    Rate = @Rate,
+                    IsActive = @IsActive,
+                    UpdatedAt = GETDATE()
+            WHEN NOT MATCHED THEN
+                INSERT (TenantId, DoctorId, ServiceId, ServiceName, Category, RateType, Rate, IsActive, CreatedAt, UpdatedAt)
+                VALUES (@TenantId, @DoctorId, @ServiceId, @ServiceName, @Category, @RateType, @Rate, @IsActive, GETDATE(), GETDATE());";
+
+        var upsertCategorySql = @"
             MERGE INTO PayrollAgreements AS target
             USING (SELECT @TenantId AS TenantId, @DoctorId AS DoctorId, @Category AS Category) AS source
-            ON (target.TenantId = source.TenantId AND target.DoctorId = source.DoctorId AND target.Category = source.Category)
+            ON (target.TenantId = source.TenantId AND target.DoctorId = source.DoctorId AND target.Category = source.Category AND target.ServiceId IS NULL)
             WHEN MATCHED THEN
                 UPDATE SET 
                     RateType = @RateType,
@@ -190,17 +208,34 @@ public class PayrollController : ControllerBase
         {
             foreach (var item in request.Agreements)
             {
-                if (string.IsNullOrWhiteSpace(item.Category)) continue;
+                if (string.IsNullOrWhiteSpace(item.Category) && string.IsNullOrWhiteSpace(item.ServiceName)) continue;
 
-                await conn.ExecuteAsync(upsertSql, new
+                if (item.ServiceId.HasValue && item.ServiceId.Value > 0)
                 {
-                    TenantId = tenantId,
-                    DoctorId = docId,
-                    Category = item.Category.Trim(),
-                    RateType = item.RateType == 2 ? (byte)2 : (byte)1,
-                    Rate = item.Rate,
-                    IsActive = item.IsActive
-                });
+                    await conn.ExecuteAsync(upsertServiceSql, new
+                    {
+                        TenantId = tenantId,
+                        DoctorId = docId,
+                        ServiceId = item.ServiceId.Value,
+                        ServiceName = item.ServiceName?.Trim() ?? string.Empty,
+                        Category = item.Category?.Trim() ?? string.Empty,
+                        RateType = item.RateType == 2 ? (byte)2 : (byte)1,
+                        Rate = item.Rate,
+                        IsActive = item.IsActive
+                    });
+                }
+                else
+                {
+                    await conn.ExecuteAsync(upsertCategorySql, new
+                    {
+                        TenantId = tenantId,
+                        DoctorId = docId,
+                        Category = item.Category.Trim(),
+                        RateType = item.RateType == 2 ? (byte)2 : (byte)1,
+                        Rate = item.Rate,
+                        IsActive = item.IsActive
+                    });
+                }
                 savedCount++;
             }
         }
@@ -264,17 +299,32 @@ public class PayrollController : ControllerBase
             JOIN Invoices i WITH (NOLOCK) ON (i.EncounterId = e.Id OR (i.EncounterId IS NULL AND i.PatientId = e.PatientId AND CAST(i.IssueDate AS DATE) = CAST(e.EncounterDate AS DATE)))
             JOIN InvoiceItems ii WITH (NOLOCK) ON ii.InvoiceId = i.Id
             LEFT JOIN Services s WITH (NOLOCK) ON s.Id = ii.RefId
-            LEFT JOIN PayrollAgreements pa WITH (NOLOCK) ON pa.DoctorId = d.Id 
-                AND pa.TenantId = @TenantId 
-                AND pa.IsActive = 1
-                AND pa.Category = COALESCE(
-                    NULLIF(s.Category, ''),
+            OUTER APPLY (
+                SELECT TOP 1 paSub.Id, paSub.RateType, paSub.Rate
+                FROM PayrollAgreements paSub WITH (NOLOCK)
+                WHERE paSub.DoctorId = d.Id 
+                  AND paSub.TenantId = @TenantId 
+                  AND paSub.IsActive = 1
+                  AND (
+                      (paSub.ServiceId IS NOT NULL AND s.Id IS NOT NULL AND paSub.ServiceId = s.Id)
+                      OR (paSub.ServiceName IS NOT NULL AND (paSub.ServiceName = ii.Description OR (s.Name IS NOT NULL AND paSub.ServiceName = s.Name)))
+                      OR (paSub.ServiceId IS NULL AND paSub.Category = COALESCE(
+                            NULLIF(s.Category, ''),
+                            CASE 
+                                WHEN ii.Description LIKE '%Consultation%' OR ii.ItemType = 1 THEN 'Consultation'
+                                WHEN ii.Description LIKE '%FACIAL%' THEN 'Facial'
+                                ELSE 'Procedure'
+                            END
+                      ))
+                  )
+                ORDER BY 
+                    -- Prefer exact ServiceId match first, then ServiceName match, then Category match
                     CASE 
-                        WHEN ii.Description LIKE '%Consultation%' OR ii.ItemType = 1 THEN 'Consultation'
-                        WHEN ii.Description LIKE '%FACIAL%' THEN 'Facial'
-                        ELSE 'Procedure'
+                        WHEN paSub.ServiceId IS NOT NULL AND s.Id IS NOT NULL AND paSub.ServiceId = s.Id THEN 1
+                        WHEN paSub.ServiceName IS NOT NULL AND (paSub.ServiceName = ii.Description OR (s.Name IS NOT NULL AND paSub.ServiceName = s.Name)) THEN 2
+                        ELSE 3
                     END
-                )
+            ) pa
             WHERE e.TenantId = @TenantId
               AND ii.ItemType IN (1, 4)
               AND (@DoctorId IS NULL OR d.Id = @DoctorId)
@@ -404,6 +454,8 @@ public class SaveDoctorAgreementsRequest
 
 public class SavePayrollAgreementItemDto
 {
+    public int? ServiceId { get; set; }
+    public string? ServiceName { get; set; }
     public string Category { get; set; } = string.Empty;
     public byte RateType { get; set; } = 1; // 1 = Percentage, 2 = Fixed
     public decimal Rate { get; set; }
