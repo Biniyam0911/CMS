@@ -141,3 +141,8 @@
 2026-10-06 17:15:00.348 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-10-06T17:15:00.3479453+03:00"
 2026-10-06 17:16:00.375 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-10-06T17:16:00.3756631+03:00"
 2026-10-06 17:16:29.724 +03:00 [INF] Application is shutting down...
+2026-10-06 17:35:13.540 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-10-06T17:35:13.4927553+03:00"
+2026-10-06 17:35:13.657 +03:00 [INF] Application started. Press Ctrl+C to shut down.
+2026-10-06 17:35:13.660 +03:00 [INF] Hosting environment: Development
+2026-10-06 17:35:13.664 +03:00 [INF] Content root path: C:\Users\ASUS\source\repos\CMS\src\CMS.ServiceManager
+2026-10-06 17:35:19.223 +03:00 [INF] Application is shutting down...
