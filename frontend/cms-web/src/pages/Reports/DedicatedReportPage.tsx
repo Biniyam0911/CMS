@@ -76,6 +76,21 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
   const [data, setData] = useState<any[]>([]);
   const [exportedAlert, setExportedAlert] = useState<string | null>(null);
 
+  // Nurse procedure mode (no unit price or total price)
+  const userRoles = useMemo(() => {
+    try {
+      const saved = sessionStorage.getItem('current_user') || localStorage.getItem('current_user');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return Array.isArray(parsed.roles) ? parsed.roles : [parsed.role || ''];
+      }
+    } catch {}
+    return [];
+  }, []);
+  const isNurseUser = userRoles.some((r: string) => r.toLowerCase().includes('nurse'));
+  const [nurseProcedureMode, setNurseProcedureMode] = useState(true);
+  const hideProcedurePricing = isNurseUser || nurseProcedureMode;
+
   // Filter Dropdowns
   const [datePreset, setDatePreset] = useState<'this_month' | 'last_30_days' | 'today' | 'yesterday' | 'last_7_days' | 'last_month' | 'this_year' | 'custom'>('this_month');
   const [customFrom, setCustomFrom] = useState('');
@@ -336,10 +351,18 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
   // Export functions
   const exportToCSV = () => {
     if (data.length === 0) return;
-    const keys = Object.keys(data[0]);
+    let exportRows = data;
+    if (reportType === 'REPORT_PROCEDURE' && hideProcedurePricing) {
+      exportRows = data.map(r => ({
+        'Procedure Description': r.procedureName,
+        'Category': r.category,
+        'Total Orders': r.orderCount
+      }));
+    }
+    const keys = Object.keys(exportRows[0]);
     const csvContent = [
       keys.join(','),
-      ...data.map(row => keys.map(k => `"${String(row[k] ?? '').replace(/"/g, '""')}"`).join(','))
+      ...exportRows.map(row => keys.map(k => `"${String((row as any)[k] ?? '').replace(/"/g, '""')}"`).join(','))
     ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -625,27 +648,69 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
             </>
           )}
 
-          {/* Procedure Report: Category Dropdown */}
+          {/* Procedure Report: Category Dropdown & View Mode */}
           {reportType === 'REPORT_PROCEDURE' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Procedure Category</label>
-              <select
-                value={selectedCategory}
-                onChange={e => setSelectedCategory(e.target.value)}
-                style={{ padding: '7px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', fontSize: '0.82rem', minWidth: '180px' }}
-              >
-                <option value="ALL">All Procedure Categories</option>
-                <option value="Facial Aesthetics">Facial Aesthetics</option>
-                <option value="PRP Regenerative">PRP Regenerative</option>
-                <option value="Intralesional Injection">Intralesional Injection</option>
-                <option value="Electrotherapy">Electrotherapy</option>
-                <option value="Acne & Scarring">Acne & Scarring</option>
-                <option value="Cryosurgery">Cryosurgery</option>
-                <option value="Laser & Pigment">Laser & Pigment</option>
-                <option value="Hair Restoration">Hair Restoration</option>
-                <option value="Clinical Procedure">Other Clinical Procedure</option>
-              </select>
-            </div>
+            <>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Procedure Category</label>
+                <select
+                  value={selectedCategory}
+                  onChange={e => setSelectedCategory(e.target.value)}
+                  style={{ padding: '7px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', fontSize: '0.82rem', minWidth: '180px' }}
+                >
+                  <option value="ALL">All Procedure Categories</option>
+                  <option value="Facial Aesthetics">Facial Aesthetics</option>
+                  <option value="PRP Regenerative">PRP Regenerative</option>
+                  <option value="Intralesional Injection">Intralesional Injection</option>
+                  <option value="Electrotherapy">Electrotherapy</option>
+                  <option value="Acne & Scarring">Acne & Scarring</option>
+                  <option value="Cryosurgery">Cryosurgery</option>
+                  <option value="Laser & Pigment">Laser & Pigment</option>
+                  <option value="Hair Restoration">Hair Restoration</option>
+                  <option value="Clinical Procedure">Other Clinical Procedure</option>
+                </select>
+              </div>
+
+              {!isNurseUser && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Report View Mode</label>
+                  <div style={{ display: 'flex', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '2px', gap: '2px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setNurseProcedureMode(true)}
+                      style={{
+                        padding: '6px 12px',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        background: nurseProcedureMode ? '#0284c7' : 'transparent',
+                        color: nurseProcedureMode ? '#ffffff' : 'var(--text-muted)'
+                      }}
+                    >
+                      Nurse Report (Procedures Only)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setNurseProcedureMode(false)}
+                      style={{
+                        padding: '6px 12px',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        background: !nurseProcedureMode ? '#059669' : 'transparent',
+                        color: !nurseProcedureMode ? '#ffffff' : 'var(--text-muted)'
+                      }}
+                    >
+                      Administrative (With Prices)
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
         </div>
@@ -703,7 +768,7 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
       )}
 
       {procedureSummary && (
-        <div className="no-print" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(3, 1fr)', gap: '16px' }}>
+        <div className="no-print" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : (hideProcedurePricing ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)'), gap: '16px' }}>
           <div className="glass-panel" style={{ padding: '18px' }}>
             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Distinct Procedures</span>
             <div style={{ fontSize: '1.5rem', fontWeight: 800, margin: '4px 0', color: 'var(--text-main)' }}>{procedureSummary.count}</div>
@@ -714,11 +779,13 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
             <div style={{ fontSize: '1.5rem', fontWeight: 800, margin: '4px 0', color: '#0284c7' }}>{procedureSummary.totalOrders}</div>
             <span style={{ fontSize: '0.72rem', color: '#0284c7' }}>Interventions Executed</span>
           </div>
-          <div className="glass-panel" style={{ padding: '18px' }}>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Procedure Revenue Total</span>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800, margin: '4px 0', color: '#059669' }}>Br {procedureSummary.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
-            <span style={{ fontSize: '0.72rem', color: '#059669' }}>Total Gross Yield</span>
-          </div>
+          {!hideProcedurePricing && (
+            <div className="glass-panel" style={{ padding: '18px' }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Procedure Revenue Total</span>
+              <div style={{ fontSize: '1.5rem', fontWeight: 800, margin: '4px 0', color: '#059669' }}>Br {procedureSummary.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+              <span style={{ fontSize: '0.72rem', color: '#059669' }}>Total Gross Yield</span>
+            </div>
+          )}
         </div>
       )}
 
@@ -809,8 +876,12 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
                       <th>Procedure Description</th>
                       <th>Category</th>
                       <th style={{ textAlign: 'right' }}>Total Orders</th>
-                      <th style={{ textAlign: 'right' }}>Unit Price (Br)</th>
-                      <th style={{ textAlign: 'right' }}>Total Yield (Br)</th>
+                      {!hideProcedurePricing && (
+                        <>
+                          <th style={{ textAlign: 'right' }}>Unit Price (Br)</th>
+                          <th style={{ textAlign: 'right' }}>Total Yield (Br)</th>
+                        </>
+                      )}
                     </>
                   )}
                 </tr>
@@ -879,8 +950,12 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
                     <td style={{ fontWeight: 700 }}>{r.procedureName}</td>
                     <td><span className="badge badge-info">{r.category}</span></td>
                     <td style={{ textAlign: 'right', fontWeight: 700, color: '#0284c7' }}>{r.orderCount}</td>
-                    <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>Br {r.unitPrice.toFixed(2)}</td>
-                    <td style={{ textAlign: 'right', fontWeight: 700, color: '#059669', fontFamily: 'monospace' }}>Br {r.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                    {!hideProcedurePricing && (
+                      <>
+                        <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>Br {r.unitPrice.toFixed(2)}</td>
+                        <td style={{ textAlign: 'right', fontWeight: 700, color: '#059669', fontFamily: 'monospace' }}>Br {r.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                      </>
+                    )}
                   </tr>
                 ))}
               </tbody>

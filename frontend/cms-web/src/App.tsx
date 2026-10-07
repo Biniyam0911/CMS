@@ -18,6 +18,7 @@ import ReportBuilderPage from './pages/ReportBuilder/ReportBuilderPage';
 import ReportsLibraryPage from './pages/Reports/ReportsLibraryPage';
 import DedicatedReportPage from './pages/Reports/DedicatedReportPage';
 import MyPatientSummaryPage from './pages/Reports/MyPatientSummaryPage';
+import NurseOrdersFollowupPage from './pages/Reports/NurseOrdersFollowupPage';
 import PatientPortalPage from './pages/PatientPortal/PatientPortalPage';
 import UserManagementPage from './pages/UserManagement/UserManagementPage';
 import ServicesPage from './pages/Services/ServicesPage';
@@ -476,6 +477,7 @@ export default function App() {
           {!disabledModules.has(activeModule) && activeModule === 'REPORT_DIAGNOSIS' && <DedicatedReportPage reportType="REPORT_DIAGNOSIS" />}
           {!disabledModules.has(activeModule) && activeModule === 'REPORT_PROCEDURE' && <DedicatedReportPage reportType="REPORT_PROCEDURE" />}
           {!disabledModules.has(activeModule) && activeModule === 'REPORT_MY_PATIENT_SUMMARY' && <MyPatientSummaryPage />}
+          {!disabledModules.has(activeModule) && activeModule === 'REPORT_NURSE_ORDERS' && <NurseOrdersFollowupPage />}
           {!disabledModules.has(activeModule) && activeModule === 'REPORT_BUILDER' && <ReportBuilderPage />}
           {!disabledModules.has(activeModule) && activeModule === 'PATIENT_PORTAL' && <PatientPortalPage />}
           {!disabledModules.has(activeModule) && activeModule === 'SERVICE_MGMT' && <ServicesPage />}

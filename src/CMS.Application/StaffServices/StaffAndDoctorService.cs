@@ -110,7 +110,13 @@ public class StaffAndDoctorService
         });
 
         // 2. If staff is linked to a user, update User record too
-        if (dto.UserId.HasValue && dto.UserId.Value > 0)
+        int resolvedUserId = (dto.UserId.HasValue && dto.UserId.Value > 0)
+            ? dto.UserId.Value
+            : await conn.QueryFirstOrDefaultAsync<int>(
+                "SELECT ISNULL(UserId, 0) FROM Staff WHERE Id = @Id AND TenantId = @TenantId",
+                new { dto.Id, TenantId = tenantId });
+
+        if (resolvedUserId > 0)
         {
             var sqlUser = @"
                 UPDATE Users
@@ -122,7 +128,7 @@ public class StaffAndDoctorService
                 WHERE Id = @UserId AND TenantId = @TenantId;";
 
             await conn.ExecuteAsync(sqlUser, new {
-                UserId = dto.UserId.Value,
+                UserId = resolvedUserId,
                 TenantId = tenantId,
                 dto.FirstName,
                 dto.LastName,

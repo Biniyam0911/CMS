@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Users, Search, Plus, FileText, Phone, Mail, Calendar, Activity, X,
   Stethoscope, Camera, ShieldCheck, Copy, Loader2, ChevronLeft, ChevronRight,
-  MapPin, CreditCard, User, Building, Hash, Edit3
+  MapPin, CreditCard, User, Building, Hash, Edit3, Globe
 } from 'lucide-react';
 import { api } from '../../api/apiClient';
 
@@ -23,6 +23,7 @@ export default function PatientsPage({ onSelectEmrPatient }: PatientsPageProps) 
   const [pageSize, setPageSize] = useState(10);
 
   // Registration Form State
+  const [isOnlineRegistry, setIsOnlineRegistry] = useState(false);
   const [mrnPreview, setMrnPreview] = useState(`HD-${Math.floor(1000 + Math.random() * 9000)}`);
   const [firstName, setFirstName] = useState('');
   const [middleName, setMiddleName] = useState(''); // Father's Name
@@ -198,17 +199,19 @@ export default function PatientsPage({ onSelectEmrPatient }: PatientsPageProps) 
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
-  const openRegisterModal = async () => {
+  const openRegisterModal = async (isOnline = false) => {
+    setIsOnlineRegistry(isOnline);
+    const prefix = isOnline ? 'ON' : 'HD';
     try {
-      const res: any = await api.get('/patients/next-mrn');
+      const res: any = await api.get(`/patients/next-mrn?prefix=${prefix}`);
       const nextVal = res?.nextMRN || res?.NextMRN || res?.data?.nextMRN || res?.data?.NextMRN;
       if (nextVal) {
         setMrnPreview(nextVal);
       } else {
-        setMrnPreview(`HD-${String(patients.length + 1).padStart(4, '0')}`);
+        setMrnPreview(`${prefix}-${String(patients.length + 1).padStart(4, '0')}`);
       }
     } catch {
-      setMrnPreview(`HD-${String(patients.length + 1).padStart(4, '0')}`);
+      setMrnPreview(`${prefix}-${String(patients.length + 1).padStart(4, '0')}`);
     }
     setFirstName('');
     setMiddleName('');
@@ -300,7 +303,10 @@ export default function PatientsPage({ onSelectEmrPatient }: PatientsPageProps) 
           <button onClick={() => setShowMpiModal(true)} className="btn-secondary" style={{ flex: isMobile ? 1 : undefined, justifyContent: 'center' }}>
             <ShieldCheck size={15} /> MPI Duplicate Check
           </button>
-          <button onClick={openRegisterModal} className="btn-primary" style={{ flex: isMobile ? 1 : undefined, justifyContent: 'center' }}>
+          <button onClick={() => openRegisterModal(true)} className="btn-secondary" style={{ flex: isMobile ? 1 : undefined, justifyContent: 'center', borderColor: '#0284c7', color: '#0284c7', fontWeight: 600 }}>
+            <Globe size={15} /> + Online Patient Registry
+          </button>
+          <button onClick={() => openRegisterModal(false)} className="btn-primary" style={{ flex: isMobile ? 1 : undefined, justifyContent: 'center' }}>
             <Plus size={15} /> + Register New Patient
           </button>
         </div>
@@ -543,8 +549,12 @@ export default function PatientsPage({ onSelectEmrPatient }: PatientsPageProps) 
             
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>
               <div>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)' }}>Register New Patient</h3>
-                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Create master patient index record</span>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                  {isOnlineRegistry ? 'Online Patient Registry' : 'Register New Patient'}
+                </h3>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                  {isOnlineRegistry ? 'Register online patient with ON- prefix card number' : 'Create master patient index record'}
+                </span>
               </div>
               <button onClick={() => setShowRegisterModal(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
                 <X size={18} />

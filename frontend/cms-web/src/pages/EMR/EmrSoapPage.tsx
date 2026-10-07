@@ -908,7 +908,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
             setDiagnosis(latest.assessment);
             setCertDiagnosis(latest.assessment);
           }
-          if (latest.soapPlan) setPlan(latest.soapPlan);
+          if (latest.soapPlan || latest.plan || latest.Plan) setPlan(latest.soapPlan || latest.plan || latest.Plan);
         }
 
         if (certs && certs.length > 0) {
@@ -1168,6 +1168,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
         physicalExam: physicalExam,
         assessment: diagnosis,
         plan: plan,
+        soapPlan: plan,
         vitalSigns: JSON.stringify({ bp: `${bpSys}/${bpDia}`, hr, temp, spo2, weight })
       };
       setHistoryEncounters(prev => [newEnc, ...prev]);
@@ -3108,7 +3109,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                   {enc.historyOfIllness && <div style={{ fontSize: '0.78rem', marginBottom: '3px' }}><strong>History:</strong> {enc.historyOfIllness}</div>}
                   {enc.physicalExam && <div style={{ fontSize: '0.78rem', marginBottom: '3px' }}><strong>Physical Exam:</strong> {enc.physicalExam}</div>}
                   {enc.assessment && <div style={{ fontSize: '0.78rem', marginBottom: '3px', color: '#0369a1' }}><strong>Diagnosis:</strong> {enc.assessment}</div>}
-                  {enc.soapPlan && <div style={{ fontSize: '0.78rem', color: '#059669' }}><strong>Plan:</strong> {enc.soapPlan}</div>}
+                  {(enc.soapPlan || enc.plan || enc.Plan) && <div style={{ fontSize: '0.78rem', color: '#059669' }}><strong>Plan:</strong> {enc.soapPlan || enc.plan || enc.Plan}</div>}
                 </div>
               ))}
 

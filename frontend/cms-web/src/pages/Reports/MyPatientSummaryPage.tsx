@@ -136,13 +136,13 @@ export default function MyPatientSummaryPage() {
   // CSV export
   const handleExportCSV = () => {
     if (filteredData.length === 0) return;
-    const headers = ['ID', 'MRN', 'Patient Name', 'Gender', 'Age', 'Visit Date', 'Type', 'Service Name', 'Fee (ETB)', 'Status'];
+    const headers = ['ID', 'MRN', 'Patient Name', 'Gender', 'Age', 'Visit Date', 'Type', 'Service Name', 'Status'];
     const rows = filteredData.map(r => [
       r.encounterId, r.mrn,
       `"${r.patientName.replace(/"/g, '""')}"`,
       r.gender, r.age, r.visitDate, r.activityType,
       `"${(r.serviceName || '').replace(/"/g, '""')}"`,
-      r.fee, r.status,
+      r.status,
     ]);
     const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
@@ -226,8 +226,6 @@ export default function MyPatientSummaryPage() {
           { label: 'Total Visits',      value: metrics.totalVisits,   icon: <Users size={18} color="#0284c7" />,  color: '#0284c7',  sub: 'Total visits in period',           border: 'none' },
           { label: 'Consultations',     value: metrics.consultations,  icon: <FileHeart size={18} color="#059669" />, color: '#059669', sub: 'Clinical consultations',         border: '4px solid #059669' },
           { label: 'Procedures',        value: metrics.procedures,     icon: <Activity size={18} color="#d97706" />,  color: '#d97706', sub: 'Clinical procedures performed', border: '4px solid #d97706' },
-          { label: 'Total Value (ETB)', value: `${metrics.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-            icon: <DollarSign size={18} color="#7c3aed" />, color: '#7c3aed', sub: 'Billed services total', border: '4px solid #7c3aed' },
         ].map(card => (
           <div key={card.label} style={{ padding: '16px 20px', background: '#ffffff', borderRadius: '10px', border: '1px solid var(--border-color)', borderLeft: card.border }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -269,9 +267,9 @@ export default function MyPatientSummaryPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '2px solid var(--border-color)', textAlign: 'left' }}>
-                  {['Date', 'Patient', 'MRN', 'Age / Sex', 'Type', 'Service Name', 'Fee (ETB)', 'Status'].map(h => (
+                  {['Date', 'Patient', 'MRN', 'Age / Sex', 'Type', 'Service Name', 'Status'].map(h => (
                     <th key={h} style={{ padding: '10px 14px', fontWeight: 700, fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', whiteSpace: 'nowrap',
-                      textAlign: h === 'Fee (ETB)' ? 'right' : h === 'Status' ? 'center' : 'left' }}>{h}</th>
+                      textAlign: h === 'Status' ? 'center' : 'left' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -295,9 +293,6 @@ export default function MyPatientSummaryPage() {
                     </td>
                     <td style={{ padding: '9px 14px', fontWeight: 600, color: 'var(--text-main)', maxWidth: '300px' }}>
                       {row.serviceName}
-                    </td>
-                    <td style={{ padding: '9px 14px', textAlign: 'right', fontWeight: 700, fontFamily: 'monospace' }}>
-                      {Number(row.fee) > 0 ? Number(row.fee).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
                     </td>
                     <td style={{ padding: '9px 14px', textAlign: 'center' }}>
                       <span style={{

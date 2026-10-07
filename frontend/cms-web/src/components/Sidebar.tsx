@@ -4,7 +4,7 @@ import {
   Pill, CreditCard, BarChart3, FileSpreadsheet, Globe, ShieldCheck,
   Boxes, Key, Settings, Plug, LogOut, LucideIcon, HeartPulse, Layers,
   ChevronLeft, ChevronRight, Stethoscope, Activity, Cross, Building, Bed, Video, X, KeyRound,
-  DollarSign, Coins, Palette
+  DollarSign, Coins, Palette, ClipboardList
 } from 'lucide-react';
 
 import { hasModuleAccess } from '../utils/permissions';
@@ -12,7 +12,7 @@ import { hasModuleAccess } from '../utils/permissions';
 export type ModuleKey =
   | 'DASHBOARD' | 'PATIENTS' | 'TRIAGE' | 'EMR' | 'INPATIENT' | 'APPOINTMENTS' | 'QUEUE'
   | 'LAB' | 'PHARMACY' | 'BILLING' | 'PAYROLL' | 'REPORTS' | 'REPORT_BUILDER'
-  | 'REPORT_SALES' | 'REPORT_AGE_STRATIFIED' | 'REPORT_SEX_STRATIFIED' | 'REPORT_DOCTOR_PERFORMANCE' | 'REPORT_DIAGNOSIS' | 'REPORT_PROCEDURE' | 'REPORT_MY_PATIENT_SUMMARY'
+  | 'REPORT_SALES' | 'REPORT_AGE_STRATIFIED' | 'REPORT_SEX_STRATIFIED' | 'REPORT_DOCTOR_PERFORMANCE' | 'REPORT_DIAGNOSIS' | 'REPORT_PROCEDURE' | 'REPORT_MY_PATIENT_SUMMARY' | 'REPORT_NURSE_ORDERS'
   | 'PATIENT_PORTAL' | 'USER_MGMT' | 'SERVICE_MGMT' | 'MODULE_MGMT' | 'API_MGMT'
   | 'SETTINGS' | 'APPEARANCE' | 'INTEGRATIONS' | 'TELEMED' | 'CHANGE_PASSWORD';
 
@@ -47,6 +47,7 @@ export const MODULE_ITEMS: { key: ModuleKey; label: string; category: string; ic
   { key: 'REPORT_MY_PATIENT_SUMMARY', label: 'My Patient Summary', category: 'Reports', icon: FileHeart },
   { key: 'REPORT_DIAGNOSIS', label: 'Diagnosis Report', category: 'Reports', icon: FileHeart },
   { key: 'REPORT_PROCEDURE', label: 'Procedure Report', category: 'Reports', icon: Activity },
+  { key: 'REPORT_NURSE_ORDERS', label: 'Nurse Order Follow-up', category: 'Reports', icon: ClipboardList },
   { key: 'REPORT_BUILDER', label: 'Report Builder', category: 'Reports', icon: FileSpreadsheet },
   { key: 'PATIENT_PORTAL', label: 'Patient Portal', category: 'Portals', icon: Globe },
   { key: 'SERVICE_MGMT', label: 'Service Management', category: 'Admin', icon: Layers },

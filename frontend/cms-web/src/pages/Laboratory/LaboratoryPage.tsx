@@ -287,6 +287,39 @@ export default function LaboratoryPage() {
   const [showAddTestModal, setShowAddTestModal] = useState(false);
   const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
 
+  // Late lab orders flagged by nurses
+  const [lateOrders, setLateOrders] = useState<Record<string, { patientName: string; orderNo?: string }>>(() => {
+    try {
+      const s = localStorage.getItem('cms_late_lab_orders');
+      return s ? JSON.parse(s) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  useEffect(() => {
+    const handleLateOrderEvent = () => {
+      try {
+        const s = localStorage.getItem('cms_late_lab_orders');
+        setLateOrders(s ? JSON.parse(s) : {});
+      } catch {}
+    };
+    window.addEventListener('cms_late_lab_order_flagged', handleLateOrderEvent);
+    window.addEventListener('storage', handleLateOrderEvent);
+    return () => {
+      window.removeEventListener('cms_late_lab_order_flagged', handleLateOrderEvent);
+      window.removeEventListener('storage', handleLateOrderEvent);
+    };
+  }, []);
+
+  const isOrderFlaggedLate = (o: OrderItem) => {
+    if (!o) return false;
+    const byNo = o.orderNo && lateOrders[o.orderNo];
+    const byId = o.id && lateOrders[String(o.id)];
+    const byPat = o.patientName && (lateOrders[o.patientName] || Object.values(lateOrders).some(v => v?.patientName && v.patientName.toLowerCase() === o.patientName.toLowerCase()));
+    return !!(byNo || byId || byPat);
+  };
+
   // New Test Catalog Form State
   const [newTestCode, setNewTestCode] = useState('');
   const [newTestName, setNewTestName] = useState('');
@@ -1386,6 +1419,11 @@ export default function LaboratoryPage() {
                             <span style={{ fontWeight: 800, color: '#0284c7', fontFamily: 'monospace', fontSize: '0.88rem' }}>{o.orderNo}</span>
                             <span style={{ color: 'var(--text-muted)' }}>•</span>
                             <strong style={{ color: 'var(--text-main)', fontSize: '0.92rem' }}>{o.patientName}</strong>
+                            {isOrderFlaggedLate(o) && (
+                              <span style={{ color: '#dc2626', fontWeight: 'bold', fontStyle: 'italic', fontSize: '0.85rem' }}>
+                                patient {o.patientName} order is late
+                              </span>
+                            )}
                             {isStat ? (
                               <span style={{ padding: '2px 7px', borderRadius: '4px', background: '#fee2e2', color: '#b91c1c', fontSize: '0.68rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
                                 <AlertTriangle size={11} /> STAT
@@ -1680,6 +1718,11 @@ export default function LaboratoryPage() {
                               <span style={{ fontWeight: 800, color: '#0369a1', fontFamily: 'monospace', fontSize: '0.88rem' }}>{o.orderNo}</span>
                               <span style={{ color: 'var(--text-muted)' }}>•</span>
                               <strong style={{ color: 'var(--text-main)', fontSize: '0.92rem' }}>{o.patientName}</strong>
+                              {isOrderFlaggedLate(o) && (
+                                <span style={{ color: '#dc2626', fontWeight: 'bold', fontStyle: 'italic', fontSize: '0.85rem' }}>
+                                  patient {o.patientName} order is late
+                                </span>
+                              )}
                               {o.mrn && (
                                 <span style={{ fontSize: '0.72rem', background: '#f1f5f9', color: '#475569', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
                                   MRN: {o.mrn}
@@ -1846,7 +1889,14 @@ export default function LaboratoryPage() {
                     </code>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>({o.sampleType || 'EDTA Whole Blood'})</span>
                   </div>
-                  <div style={{ fontWeight: 700, fontSize: '0.94rem', color: 'var(--text-main)' }}>{o.patientName} — {o.testName}</div>
+                  <div style={{ fontWeight: 700, fontSize: '0.94rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <span>{o.patientName} — {o.testName}</span>
+                    {isOrderFlaggedLate(o) && (
+                      <span style={{ color: '#dc2626', fontWeight: 'bold', fontStyle: 'italic', fontSize: '0.85rem' }}>
+                        patient {o.patientName} order is late
+                      </span>
+                    )}
+                  </div>
                   <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '3px' }}>
                     Current Milestone: <strong style={{ color: '#0284c7' }}>{o.custodyStep}</strong> • Order #{o.orderNo}
                   </div>

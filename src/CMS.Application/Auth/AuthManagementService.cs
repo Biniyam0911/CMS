@@ -116,12 +116,12 @@ public class AuthManagementService
         using var conn = _dbFactory.CreateConnection();
         var sql = @"
             SELECT u.Id, u.TenantId, u.Username, u.Email, u.FirstName, u.LastName,
-                   u.MfaEnabled, STRING_AGG(r.Name, ',') AS Roles
+                   u.MfaEnabled, u.IsActive, STRING_AGG(r.Name, ',') AS Roles
             FROM Users u
             LEFT JOIN UserRoles ur ON ur.UserId = u.Id
             LEFT JOIN Roles r ON r.Id = ur.RoleId
             WHERE u.TenantId = @TenantId
-            GROUP BY u.Id, u.TenantId, u.Username, u.Email, u.FirstName, u.LastName, u.MfaEnabled
+            GROUP BY u.Id, u.TenantId, u.Username, u.Email, u.FirstName, u.LastName, u.MfaEnabled, u.IsActive
             ORDER BY u.LastName, u.FirstName";
 
         var rows = await conn.QueryAsync<dynamic>(sql, new { TenantId = tenantId });
@@ -129,7 +129,10 @@ public class AuthManagementService
             (int)r.Id, (byte)r.TenantId, (string)r.Username, (string)r.Email,
             (string)r.FirstName, (string)r.LastName,
             ((string)(r.Roles ?? "Staff")).Split(','),
-            (bool)r.MfaEnabled
+            (bool)r.MfaEnabled,
+            DoctorId: null,
+            StaffId: null,
+            IsActive: (bool)(r.IsActive ?? true)
         )).ToList();
     }
 

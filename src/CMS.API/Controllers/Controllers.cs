@@ -157,13 +157,14 @@ public class PatientsController : ControllerBase
     }
 
     [HttpGet("next-mrn")]
-    public async Task<IActionResult> GetNextMRN()
+    public async Task<IActionResult> GetNextMRN([FromQuery] string prefix = "HD")
     {
         byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
         using var conn = _dbFactory.CreateConnection();
         var sql = "SELECT ISNULL(MAX(Id), 0) + 1 FROM Patients WHERE TenantId = @TenantId;";
         int nextId = await conn.ExecuteScalarAsync<int>(sql, new { TenantId = tenantId });
-        var nextMrn = $"HD-{nextId:D4}";
+        var cleanPrefix = string.IsNullOrWhiteSpace(prefix) ? "HD" : prefix.Trim().ToUpper();
+        var nextMrn = $"{cleanPrefix}-{nextId:D4}";
         return Ok(ApiResponse<object>.Ok(new { NextMRN = nextMrn, NextId = nextId }));
     }
 
@@ -1176,6 +1177,25 @@ public class LaboratoryController : ControllerBase
 
         await conn.ExecuteAsync("sp_CreateLabOrder", p, commandType: System.Data.CommandType.StoredProcedure);
         int orderId = p.Get<int>("@NewOrderId");
+
+        try
+        {
+            var isStat = dto.Priority == 1;
+            var patName = await conn.QueryFirstOrDefaultAsync<string>(
+                "SELECT FirstName + ' ' + LastName FROM Patients WHERE Id = @PatientId", new { dto.PatientId }) ?? $"Patient #{dto.PatientId}";
+            await conn.ExecuteAsync(@"
+                INSERT INTO Notifications (TenantId, RecipientUserId, Channel, Subject, Body, Priority, NotificationType, RefType, RefId, StatusId, CreatedAt)
+                VALUES (@TenantId, NULL, 3, @Subject, @Body, @Priority, 'LabOrdered', 'LabTechnician,Doctor,Nurse,Admin', @RefId, 1, GETDATE())",
+                new {
+                    dto.TenantId,
+                    Subject = isStat ? $"STAT Lab Order: #{orderId}" : $"New Lab Order: #{orderId}",
+                    Body = $"Diagnostic lab order #{orderId} placed for {patName}. Awaiting specimen collection & testing.",
+                    Priority = isStat ? 1 : 2,
+                    RefId = orderId
+                });
+        }
+        catch { /* non-blocking */ }
+
         return Ok(ApiResponse<object>.Ok(new { OrderId = orderId }));
     }
 
@@ -1344,6 +1364,40 @@ public class LaboratoryController : ControllerBase
         await conn.ExecuteAsync(
             "UPDATE LabOrders SET StatusId = @StatusId, UpdatedAt = GETDATE() WHERE Id = @OrderId",
             new { StatusId = orderStatus, req.OrderId });
+
+        try
+        {
+            var patName = await conn.QueryFirstOrDefaultAsync<string>(
+                "SELECT FirstName + ' ' + LastName FROM Patients WHERE Id = @PatientId", new { PatientId = patientId }) ?? $"Patient #{patientId}";
+            var orderNo = await conn.QueryFirstOrDefaultAsync<string>(
+                "SELECT OrderNumber FROM LabOrders WHERE Id = @OrderId", new { req.OrderId }) ?? $"LAB-{req.OrderId}";
+
+            if (req.IsVerified)
+            {
+                await conn.ExecuteAsync(@"
+                    INSERT INTO Notifications (TenantId, RecipientUserId, Channel, Subject, Body, Priority, NotificationType, RefType, RefId, StatusId, CreatedAt)
+                    VALUES (@TenantId, NULL, 3, @Subject, @Body, 1, 'LabResultApproved', 'Doctor,Nurse,LabTechnician,Admin', @RefId, 1, GETDATE())",
+                    new {
+                        TenantId = tenantId,
+                        Subject = $"Lab Result Approved: {orderNo}",
+                        Body = $"Laboratory test results for {patName} ({orderNo}) verified and approved by laboratory.",
+                        RefId = req.OrderId
+                    });
+            }
+            else
+            {
+                await conn.ExecuteAsync(@"
+                    INSERT INTO Notifications (TenantId, RecipientUserId, Channel, Subject, Body, Priority, NotificationType, RefType, RefId, StatusId, CreatedAt)
+                    VALUES (@TenantId, NULL, 3, @Subject, @Body, 2, 'LabResultSaved', 'Doctor,Nurse,LabTechnician,Admin', @RefId, 1, GETDATE())",
+                    new {
+                        TenantId = tenantId,
+                        Subject = $"Lab Results Saved: {orderNo}",
+                        Body = $"Laboratory test results recorded for {patName} ({orderNo}). Pending verification & sign-off.",
+                        RefId = req.OrderId
+                    });
+            }
+        }
+        catch { /* non-blocking */ }
 
         return Ok(ApiResponse<object>.Ok(new {
             Success = true,
@@ -1538,6 +1592,26 @@ public class LaboratoryController : ControllerBase
 
         // Update item status to 3 (InProcess/Received)
         await conn.ExecuteAsync("UPDATE LabOrderItems SET StatusId = 3 WHERE Id = @OrderItemId", new { OrderItemId = orderItemId });
+
+        try
+        {
+            var patName = await conn.QueryFirstOrDefaultAsync<string>(
+                "SELECT FirstName + ' ' + LastName FROM Patients WHERE Id = @PatientId", new { PatientId = patientId }) ?? $"Patient #{patientId}";
+            var orderNo = await conn.QueryFirstOrDefaultAsync<string>(
+                "SELECT OrderNumber FROM LabOrders WHERE Id = @OrderId", new { req.OrderId }) ?? $"LAB-{req.OrderId}";
+            string machineTitle = req.MachineName ?? req.MachineId ?? "Laboratory Analyzer";
+
+            await conn.ExecuteAsync(@"
+                INSERT INTO Notifications (TenantId, RecipientUserId, Channel, Subject, Body, Priority, NotificationType, RefType, RefId, StatusId, CreatedAt)
+                VALUES (@TenantId, NULL, 3, @Subject, @Body, 2, 'LabResultSaved', 'Doctor,Nurse,LabTechnician,Admin', @RefId, 1, GETDATE())",
+                new {
+                    TenantId = tenantId,
+                    Subject = $"Lab Result Received from Machine: {orderNo}",
+                    Body = $"Analyzer results ingested from {machineTitle} for {patName} ({testCode}, {orderNo}). Ready for review.",
+                    RefId = req.OrderId
+                });
+        }
+        catch { /* non-blocking */ }
 
         return Ok(ApiResponse<object>.Ok(new {
             Success = true,

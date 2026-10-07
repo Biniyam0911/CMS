@@ -317,7 +317,7 @@ export default function UserManagementPage() {
             phone: u.phone || u.Phone || (matchedStaff ? matchedStaff.phone : ''),
             roles: Array.isArray(u.roles) ? u.roles : (u.roles ? [u.roles] : ['Staff']),
             mfaEnabled: Boolean(u.mfaEnabled || u.MfaEnabled),
-            status: u.isActive !== false ? 'Active' : 'Inactive',
+            status: (u.isActive === false || (matchedStaff && matchedStaff.isActive === false)) ? 'Inactive' : 'Active',
             staff: matchedStaff || null
           };
         });

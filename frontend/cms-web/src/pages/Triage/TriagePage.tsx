@@ -65,7 +65,7 @@ export default function TriagePage() {
   const [showAssignModal, setShowAssignModal] = useState<any>(null);
   const [selectedDoctorId, setSelectedDoctorId] = useState<number | ''>('');
   const [selectedRoomId, setSelectedRoomId] = useState<number>(1);
-  const [selectedServiceId, setSelectedServiceId] = useState<number>(1);
+  const [selectedServiceId, setSelectedServiceId] = useState<number>(6569);
   const [visitType, setVisitType] = useState<'New' | 'New Repeat' | 'Repeat'>('New');
   const [isAssigning, setIsAssigning] = useState(false);
 
@@ -148,12 +148,21 @@ export default function TriagePage() {
       ]);
 
       if (consultServicesData && Array.isArray(consultServicesData) && consultServicesData.length > 0) {
-        setConsultationServices(consultServicesData.map((s: any) => ({
+        const mappedServices = consultServicesData.map((s: any) => ({
           id: s.id || s.Id,
           name: s.name || s.Name,
           code: s.code || s.Code,
           fee: Number(s.fee ?? s.Fee ?? s.standardFee ?? s.StandardFee ?? 1800.0)
-        })));
+        }));
+        setConsultationServices(mappedServices);
+        const spec1 = mappedServices.find((s: any) =>
+          s.name?.toLowerCase().includes('consultation fee specialist 1') && !s.name?.toLowerCase().includes('vip')
+        ) || mappedServices.find((s: any) =>
+          s.name?.toLowerCase().includes('specialist 1') && !s.name?.toLowerCase().includes('vip')
+        ) || mappedServices[0];
+        if (spec1) {
+          setSelectedServiceId(spec1.id);
+        }
       }
 
       if (queueData && Array.isArray(queueData)) {
@@ -278,7 +287,12 @@ export default function TriagePage() {
     const existingDocId = item.assignedDoctorId || item.AssignedDoctorId || item.doctorId || item.DoctorId;
     setSelectedDoctorId(existingDocId ? Number(existingDocId) : '');
     if (consultationServices.length > 0) {
-      setSelectedServiceId(consultationServices[0].id);
+      const spec1 = consultationServices.find(s =>
+        s.name?.toLowerCase().includes('consultation fee specialist 1') && !s.name?.toLowerCase().includes('vip')
+      ) || consultationServices.find(s =>
+        s.name?.toLowerCase().includes('specialist 1') && !s.name?.toLowerCase().includes('vip')
+      ) || consultationServices[0];
+      setSelectedServiceId(spec1.id);
     }
     setVisitType('New');
     setLoadingVisits(true);

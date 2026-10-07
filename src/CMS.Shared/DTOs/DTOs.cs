@@ -10,7 +10,7 @@ public record LoginRequest(string Username, string Password, byte TenantId = 1);
 public record LoginResponse(string AccessToken, string RefreshToken, int ExpiresInMinutes, UserDto User);
 public record RefreshTokenRequest(string RefreshToken);
 
-public record UserDto(int Id, byte TenantId, string Username, string Email, string FirstName, string LastName, string[] Roles, bool MfaEnabled, int? DoctorId = null, int? StaffId = null);
+public record UserDto(int Id, byte TenantId, string Username, string Email, string FirstName, string LastName, string[] Roles, bool MfaEnabled, int? DoctorId = null, int? StaffId = null, bool IsActive = true);
 
 public class PatientDto
 {

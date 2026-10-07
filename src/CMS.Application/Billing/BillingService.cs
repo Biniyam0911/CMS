@@ -535,6 +535,23 @@ public class BillingService
                 INSERT INTO Notifications (TenantId, RecipientUserId, Channel, Subject, Body, Priority, NotificationType, RefType, RefId, StatusId, CreatedAt)
                 VALUES (@TenantId, NULL, 3, 'Payment Settled: Invoice #' + CAST(@InvoiceId AS VARCHAR), 'Payment of Br ' + CAST(@Amount AS VARCHAR) + ' collected for patient #' + CAST(@PatientId AS VARCHAR) + ' (Ref: ' + ISNULL(@Reference, 'Cash') + ').', 2, 'PaymentSettled', 'BillingOfficer,Doctor,Admin', @InvoiceId, 1, GETDATE())",
                 new { dto.TenantId, dto.InvoiceId, dto.PatientId, dto.Amount, dto.Reference });
+
+            // If invoice contains laboratory tests, notify laboratory staff that fees are settled
+            var hasLabItems = await conn.ExecuteScalarAsync<int>(@"
+                SELECT COUNT(1) FROM InvoiceItems 
+                WHERE InvoiceId = @InvoiceId AND (ItemType = 2 OR Description LIKE '%Lab%' OR Description LIKE '%CBC%' OR Description LIKE '%Test%' OR Description LIKE '%Panel%')",
+                new { dto.InvoiceId });
+
+            if (hasLabItems > 0)
+            {
+                var patName = await conn.QueryFirstOrDefaultAsync<string>(
+                    "SELECT FirstName + ' ' + LastName FROM Patients WHERE Id = @PatientId", new { dto.PatientId }) ?? $"Patient #{dto.PatientId}";
+
+                await conn.ExecuteAsync(@"
+                    INSERT INTO Notifications (TenantId, RecipientUserId, Channel, Subject, Body, Priority, NotificationType, RefType, RefId, StatusId, CreatedAt)
+                    VALUES (@TenantId, NULL, 3, 'Lab Order Paid: Invoice #' + CAST(@InvoiceId AS VARCHAR), 'Payment cleared for laboratory order for ' + @PatientName + '. Released for specimen collection & processing.', 2, 'LabPaid', 'LabTechnician,Doctor,Nurse,Admin', @InvoiceId, 1, GETDATE())",
+                    new { dto.TenantId, dto.InvoiceId, PatientName = patName });
+            }
         }
         catch { /* non-blocking notification */ }
     }

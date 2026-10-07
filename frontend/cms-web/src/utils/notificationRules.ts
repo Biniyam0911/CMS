@@ -91,6 +91,42 @@ export const NOTIFICATION_EVENTS: NotificationEventDef[] = [
     targetModule: 'USER_MGMT',
     defaultRoles: ['SuperAdmin', 'Admin'],
     color: '#6e6e73'
+  },
+  {
+    key: 'LabOrdered',
+    name: 'Lab Order Placed',
+    category: 'Clinical',
+    description: 'New laboratory diagnostic test ordered for patient',
+    targetModule: 'LAB',
+    defaultRoles: ['LabTechnician', 'Doctor', 'Nurse', 'Admin', 'SuperAdmin'],
+    color: '#0284c7'
+  },
+  {
+    key: 'LabPaid',
+    name: 'Lab Order Fees Paid',
+    category: 'Billing',
+    description: 'Laboratory invoice settled and released for specimen collection',
+    targetModule: 'LAB',
+    defaultRoles: ['LabTechnician', 'BillingOfficer', 'Nurse', 'Admin', 'SuperAdmin'],
+    color: '#10b981'
+  },
+  {
+    key: 'LabResultSaved',
+    name: 'Lab Result Saved / Machine Ingested',
+    category: 'Clinical',
+    description: 'Laboratory results recorded manually or ingested from automated analyzer',
+    targetModule: 'LAB',
+    defaultRoles: ['Doctor', 'Nurse', 'LabTechnician', 'Admin', 'SuperAdmin'],
+    color: '#f59e0b'
+  },
+  {
+    key: 'LabResultApproved',
+    name: 'Lab Result Verified & Approved',
+    category: 'Clinical',
+    description: 'Laboratory results verified and approved for EMR clinical review',
+    targetModule: 'LAB',
+    defaultRoles: ['Doctor', 'Nurse', 'LabTechnician', 'Admin', 'SuperAdmin'],
+    color: '#059669'
   }
 ];
 
@@ -105,7 +141,11 @@ export const DEFAULT_ROLE_RULES: RoleNotificationMatrix = {
   InvoicePending: ['BillingOfficer', 'Admin'],
   PaymentSettled: ['BillingOfficer', 'Admin', 'SuperAdmin'],
   ProcedureOrdered: ['Doctor', 'Nurse', 'Admin'],
-  SystemSecurity: ['SuperAdmin', 'Admin']
+  SystemSecurity: ['SuperAdmin', 'Admin'],
+  LabOrdered: ['LabTechnician', 'Doctor', 'Nurse', 'Admin', 'SuperAdmin'],
+  LabPaid: ['LabTechnician', 'BillingOfficer', 'Nurse', 'Admin', 'SuperAdmin'],
+  LabResultSaved: ['Doctor', 'Nurse', 'LabTechnician', 'Admin', 'SuperAdmin'],
+  LabResultApproved: ['Doctor', 'Nurse', 'LabTechnician', 'Admin', 'SuperAdmin']
 };
 
 const STORAGE_KEY = 'cms_role_notification_rules';

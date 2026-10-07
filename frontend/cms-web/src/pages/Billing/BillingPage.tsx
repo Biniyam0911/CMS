@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   CreditCard, DollarSign, Plus, CheckCircle2, Download, Printer, X, Trash2,
   Loader2, Search, Filter, RefreshCw, ArrowRight, FileText, Check, AlertCircle,
@@ -14,11 +14,12 @@ export default function BillingPage() {
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [filterDate, setFilterDate] = useState<string>('');
 
-  // Date Period Filter State (defaults to TODAY)
-  type DatePeriod = 'ALL' | 'TODAY' | 'WEEK' | 'MONTH' | 'CUSTOM';
+  // Date Period Filter State (defaults to TODAY, max custom range 1 month, no ALL)
+  type DatePeriod = 'TODAY' | 'WEEK' | 'MONTH' | 'CUSTOM';
   const [datePeriod, setDatePeriod] = useState<DatePeriod>('TODAY');
   const [customStartDate, setCustomStartDate] = useState<string>('');
   const [customEndDate, setCustomEndDate] = useState<string>('');
+  const [sortDoctorOrder, setSortDoctorOrder] = useState<'NONE' | 'ASC' | 'DESC'>('NONE');
   const [dbStats, setDbStats] = useState<{
     totalInvoices: number;
     billableInvoices: number;
@@ -122,7 +123,7 @@ export default function BillingPage() {
     if (period === 'CUSTOM') {
       return { fromDate: cStart || undefined, toDate: cEnd || undefined };
     }
-    return { fromDate: undefined, toDate: undefined };
+    return { fromDate: today, toDate: today };
   };
 
   const fetchInvoicesAndPatients = async (
@@ -139,7 +140,7 @@ export default function BillingPage() {
       const { fromDate, toDate } = getDateRangeForPeriod(activeP, activeStart, activeEnd);
 
       const invQuery = new URLSearchParams();
-      invQuery.set('limit', activeP === 'ALL' ? '300' : '1000');
+      invQuery.set('limit', '1000');
       if (fromDate) invQuery.set('fromDate', fromDate);
       if (toDate) invQuery.set('toDate', toDate);
 
@@ -275,7 +276,7 @@ export default function BillingPage() {
     try {
       const { fromDate, toDate } = getDateRangeForPeriod(datePeriod, customStartDate, customEndDate);
       const invQuery = new URLSearchParams();
-      invQuery.set('limit', datePeriod === 'ALL' ? '300' : '1000');
+      invQuery.set('limit', '1000');
       if (fromDate) invQuery.set('fromDate', fromDate);
       if (toDate) invQuery.set('toDate', toDate);
 
@@ -431,7 +432,7 @@ export default function BillingPage() {
     try {
       setIsVerifyingTransfer(true);
       await api.post(`/billing/invoices/${invoiceId}/verify-telemed-payment`, {});
-      setPaySuccessMsg('✓ Transfer verified & confirmed! Telegram notification sent to patient.');
+      setPaySuccessMsg('âœ“ Transfer verified & confirmed! Telegram notification sent to patient.');
       setTimeout(() => setPaySuccessMsg(null), 4500);
       await fetchInvoicesOnly();
     } catch (err: any) {
@@ -510,7 +511,7 @@ export default function BillingPage() {
     }
   };
 
-  // ── Chapa Online Payment ────────────────────────────────────────────
+  // â”€â”€ Chapa Online Payment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handlePayWithChapa = async () => {
     if (!selectedInvoice) return;
     try {
@@ -570,7 +571,7 @@ export default function BillingPage() {
     setChapaCheckoutUrl(null);
     setChapaVerified(false);
   };
-  // ────────────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const handleReimburseInvoice = async (invoiceId: number) => {
     if (!window.confirm('Are you sure you want to reimburse this invoice? The status will revert to Pending (Issued) and the paid amount will reset to Br 0.00.')) {
@@ -591,7 +592,7 @@ export default function BillingPage() {
         }
         return prev;
       });
-      setPaySuccessMsg('✓ Invoice reimbursed successfully! Status is now Pending (Issued) and Paid Amount is Br 0.00.');
+      setPaySuccessMsg('âœ“ Invoice reimbursed successfully! Status is now Pending (Issued) and Paid Amount is Br 0.00.');
       setTimeout(() => setPaySuccessMsg(null), 4000);
       await fetchInvoicesOnly();
     } catch (err: any) {
@@ -666,22 +667,44 @@ export default function BillingPage() {
   };
 
   const handleApplyCustomDates = () => {
+    if (!customStartDate || !customEndDate) {
+      alert('Please select both start and end dates.');
+      return;
+    }
+    const start = new Date(customStartDate);
+    const end = new Date(customEndDate);
+    if (end < start) {
+      alert('End date cannot be earlier than start date.');
+      return;
+    }
+    const diffDays = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays > 31) {
+      alert('Maximum custom date range is one month (31 days). Please select a narrower date range.');
+      return;
+    }
     fetchInvoicesAndPatients('CUSTOM', customStartDate, customEndDate);
   };
 
-  // Filter Invoices
+  // Filter & Sort Invoices
   const filteredInvoices = invoices.filter(inv => {
     const matchesStatus = statusFilter === 'ALL' || inv.status === statusFilter;
     const matchesDate = !filterDate || inv.issueDate === filterDate;
     const q = searchQuery.toLowerCase();
     const matchesSearch = !q || inv.invoiceNo.toLowerCase().includes(q) || inv.patientName.toLowerCase().includes(q);
     return matchesStatus && matchesDate && matchesSearch;
+  }).sort((a, b) => {
+    if (sortDoctorOrder === 'NONE') return 0;
+    const docA = (a.doctorName || '').trim().toLowerCase();
+    const docB = (b.doctorName || '').trim().toLowerCase();
+    if (docA < docB) return sortDoctorOrder === 'ASC' ? -1 : 1;
+    if (docA > docB) return sortDoctorOrder === 'ASC' ? 1 : -1;
+    return 0;
   });
 
   const getStatusBadge = (st: string) => {
     switch (st) {
       case 'Waived':
-        return <span className="badge" style={{ background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', fontSize: '0.68rem', display: 'flex', alignItems: 'center', gap: '3px' }}>☑ Waived (Free)</span>;
+        return <span className="badge" style={{ background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', fontSize: '0.68rem', display: 'flex', alignItems: 'center', gap: '3px' }}>â˜‘ Waived (Free)</span>;
       case 'Paid':
         return <span className="badge badge-normal" style={{ fontSize: '0.68rem', display: 'flex', alignItems: 'center', gap: '3px' }}><CheckCircle2 size={11} /> Paid</span>;
       case 'PartiallyPaid':
@@ -698,7 +721,7 @@ export default function BillingPage() {
       case 'Approved':
         return <span className="badge badge-normal" style={{ fontSize: '0.68rem', display: 'flex', alignItems: 'center', gap: '3px' }}><CheckCircle2 size={11} /> Approved</span>;
       case 'Reimbursed':
-        return <span className="badge" style={{ background: '#dcfce7', color: '#15803d', border: '1px solid #86efac', fontSize: '0.68rem', display: 'flex', alignItems: 'center', gap: '3px' }}>✓ Reimbursed</span>;
+        return <span className="badge" style={{ background: '#dcfce7', color: '#15803d', border: '1px solid #86efac', fontSize: '0.68rem', display: 'flex', alignItems: 'center', gap: '3px' }}>âœ“ Reimbursed</span>;
       case 'Rejected':
         return <span className="badge badge-critical" style={{ fontSize: '0.68rem' }}>Rejected</span>;
       default:
@@ -782,13 +805,12 @@ export default function BillingPage() {
           <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '5px', marginRight: '6px' }}>
             <Calendar size={14} color="#0284c7" /> Period:
           </span>
-          {(['TODAY', 'WEEK', 'MONTH', 'ALL', 'CUSTOM'] as DatePeriod[]).map(p => {
+          {(['TODAY', 'WEEK', 'MONTH', 'CUSTOM'] as DatePeriod[]).map(p => {
             const labels: Record<DatePeriod, string> = {
               TODAY: 'Today',
               WEEK: 'Last 7 Days',
               MONTH: 'This Month',
-              ALL: 'All Time (Full DB)',
-              CUSTOM: 'Custom Range'
+              CUSTOM: 'Custom Range (Max 1 Mo)'
             };
             const isActive = datePeriod === p;
             return (
@@ -841,11 +863,10 @@ export default function BillingPage() {
         )}
 
         <div style={{ fontSize: '0.73rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-          {datePeriod === 'ALL' && '📊 All 32,547+ Invoices Across Entire Clinic History'}
-          {datePeriod === 'TODAY' && "📅 Today's Activity"}
-          {datePeriod === 'WEEK' && '📅 Last 7 Days Activity'}
-          {datePeriod === 'MONTH' && "📅 Current Month's Activity"}
-          {datePeriod === 'CUSTOM' && (customStartDate || customEndDate ? `📅 ${customStartDate || 'Beginning'} → ${customEndDate || 'Today'}` : 'Pick dates and click Apply Filter')}
+          {datePeriod === 'TODAY' && "ðŸ“… Today's Activity"}
+          {datePeriod === 'WEEK' && 'ðŸ“… Last 7 Days Activity'}
+          {datePeriod === 'MONTH' && "ðŸ“… Current Month's Activity"}
+          {datePeriod === 'CUSTOM' && (customStartDate || customEndDate ? `ðŸ“… ${customStartDate || 'Beginning'} â†’ ${customEndDate || 'Today'} (Max 1 Month)` : 'Pick dates (max 1 month) and click Apply Filter')}
         </div>
       </div>
 
@@ -976,7 +997,18 @@ export default function BillingPage() {
                   <tr>
                     <th>Invoice No</th>
                     <th>Patient Name</th>
-                    <th>Doctor</th>
+                    <th
+                      onClick={() => setSortDoctorOrder(prev => prev === 'NONE' ? 'ASC' : prev === 'ASC' ? 'DESC' : 'NONE')}
+                      style={{ cursor: 'pointer', userSelect: 'none', color: sortDoctorOrder !== 'NONE' ? '#0284c7' : undefined }}
+                      title="Click to sort by Doctor Name (Ascending / Descending / None)"
+                    >
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        Doctor
+                        <span style={{ fontSize: '0.75rem' }}>
+                          {sortDoctorOrder === 'ASC' ? 'â–²' : sortDoctorOrder === 'DESC' ? 'â–¼' : 'â‡…'}
+                        </span>
+                      </div>
+                    </th>
                     <th>Date</th>
                     <th>Total (Br)</th>
                     <th>Paid</th>
@@ -1020,7 +1052,7 @@ export default function BillingPage() {
                             )}
                             {inv.receiptImageUrl && (
                               <span title="Payment Screenshot Uploaded" style={{ background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0', borderRadius: '4px', padding: '1px 5px', fontSize: '0.68rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                                📸 Slip
+                                ðŸ“¸ Slip
                               </span>
                             )}
                           </div>
@@ -1030,7 +1062,7 @@ export default function BillingPage() {
                         </td>
                         <td>
                           <div style={{ fontWeight: 600, color: '#0369a1', fontSize: '0.78rem' }}>
-                            {inv.doctorName || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>—</span>}
+                            {inv.doctorName || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>â€”</span>}
                           </div>
                         </td>
                         <td>
@@ -1096,7 +1128,7 @@ export default function BillingPage() {
                         <div key={idx} style={{ padding: '6px 10px', borderBottom: '1px solid var(--border-color)', fontSize: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: idx % 2 === 0 ? '#ffffff' : '#fdfcf9' }}>
                           <div>
                             <div style={{ fontWeight: 600 }}>{it.description}</div>
-                            <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{it.itemType} • Qty: {it.quantity} @ Br {it.unitPrice.toFixed(2)}</div>
+                            <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{it.itemType} â€¢ Qty: {it.quantity} @ Br {it.unitPrice.toFixed(2)}</div>
                           </div>
                           <span style={{ fontWeight: 700 }}>Br {it.totalPrice.toFixed(2)}</span>
                         </div>
@@ -1143,7 +1175,7 @@ export default function BillingPage() {
                       <div style={{ padding: '12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                           <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            📸 Transfer Screenshot (Uploaded by Patient)
+                            ðŸ“¸ Transfer Screenshot (Uploaded by Patient)
                           </span>
                           <span className="badge badge-warning" style={{ fontSize: '0.65rem' }}>
                             Needs Verification
@@ -1179,7 +1211,7 @@ export default function BillingPage() {
                     ) : (
                       selectedInvoice.notes && selectedInvoice.notes.toLowerCase().includes('telemedicine') && selectedInvoice.status !== 'Paid' && (
                         <div style={{ padding: '10px 12px', background: '#eff6ff', borderRadius: '6px', border: '1px solid #bfdbfe', color: '#1e40af', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <AlertCircle size={14} /> Telemedicine Consultation — Awaiting patient transfer proof on Telegram.
+                          <AlertCircle size={14} /> Telemedicine Consultation â€” Awaiting patient transfer proof on Telegram.
                         </div>
                       )
                     )}
@@ -1206,7 +1238,7 @@ export default function BillingPage() {
 
                       {payMethod === '4' && (
                         <div style={{ padding: '8px 12px', background: '#fffbeb', border: '1px solid #f59e0b', borderRadius: '6px', fontSize: '0.75rem', color: '#78350f', fontWeight: 600 }}>
-                          ☑ Waived — this invoice will be marked as <strong>Paid (Free / Waived Service)</strong>. No money collected.
+                          â˜‘ Waived â€” this invoice will be marked as <strong>Paid (Free / Waived Service)</strong>. No money collected.
                         </div>
                       )}
 
@@ -1299,7 +1331,7 @@ export default function BillingPage() {
                           cursor: 'pointer', width: '100%'
                         }}
                       >
-                        ☑ Waive / Mark as Free Service
+                        â˜‘ Waive / Mark as Free Service
                       </button>
 
                       <button type="submit" className="btn-primary" style={{ justifyContent: 'center', marginTop: '4px' }}>
@@ -1310,12 +1342,12 @@ export default function BillingPage() {
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <div style={{ padding: '10px', background: '#d1fae5', borderRadius: '6px', border: '1px solid #a7f3d0', color: '#065f46', fontSize: '0.78rem', fontWeight: 700, textAlign: 'center' }}>
-                      ✓ Invoice Fully Settled &amp; Paid
+                      âœ“ Invoice Fully Settled &amp; Paid
                     </div>
                     {selectedInvoice.receiptImageUrl && (
                       <div style={{ padding: '10px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
                         <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                          📸 Payment Transfer Receipt (Verified)
+                          ðŸ“¸ Payment Transfer Receipt (Verified)
                         </div>
                         <div
                           onClick={() => setShowScreenshotModal(selectedInvoice.receiptImageUrl.startsWith('http') ? selectedInvoice.receiptImageUrl : selectedInvoice.receiptImageUrl)}
@@ -1362,18 +1394,44 @@ export default function BillingPage() {
                     <Printer size={14} /> Print Official Receipt / ERCA Tax Invoice
                   </button>
 
-                  {(selectedInvoice.paid > 0 || selectedInvoice.status === 'Paid' || selectedInvoice.status === 'PartiallyPaid') && (
-                    <button
-                      type="button"
-                      onClick={() => handleReimburseInvoice(selectedInvoice.id)}
-                      disabled={isReimbursing}
-                      className="btn-secondary"
-                      style={{ width: '100%', justifyContent: 'center', background: '#fff1f2', borderColor: '#f43f5e', color: '#e11d48', fontWeight: 700 }}
-                      title="Reimburse invoice: Reset paid amount to 0 and revert status to Issued (Pending)"
-                    >
-                      {isReimbursing ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />} Reimburse Invoice (Reset to Pending)
-                    </button>
-                  )}
+                  {(() => {
+                    const isPaidOrPartial = selectedInvoice.paid > 0 || selectedInvoice.status === 'Paid' || selectedInvoice.status === 'PartiallyPaid';
+                    if (!isPaidOrPartial) return null;
+
+                    // 24-hour reimbursement window check
+                    const invDate = new Date(selectedInvoice.issueDate);
+                    const now = new Date();
+                    const hoursDiff = (now.getTime() - invDate.getTime()) / (1000 * 60 * 60);
+                    const isOlderThan24h = hoursDiff > 24;
+
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <button
+                          type="button"
+                          onClick={() => handleReimburseInvoice(selectedInvoice.id)}
+                          disabled={isReimbursing || isOlderThan24h}
+                          className="btn-secondary"
+                          style={{
+                            width: '100%',
+                            justifyContent: 'center',
+                            background: isOlderThan24h ? '#f1f5f9' : '#fff1f2',
+                            borderColor: isOlderThan24h ? '#cbd5e1' : '#f43f5e',
+                            color: isOlderThan24h ? '#94a3b8' : '#e11d48',
+                            fontWeight: 700,
+                            cursor: isOlderThan24h ? 'not-allowed' : 'pointer'
+                          }}
+                          title={isOlderThan24h ? "Reimbursement is only permitted within 24 hours of invoice date" : "Reimburse invoice: Reset paid amount to 0 and revert status to Issued (Pending)"}
+                        >
+                          {isReimbursing ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />} Reimburse Invoice (Reset to Pending)
+                        </button>
+                        {isOlderThan24h && (
+                          <span style={{ fontSize: '0.68rem', color: '#94a3b8', textAlign: 'center', fontStyle: 'italic' }}>
+                            ðŸ”’ Reimbursement locked: invoices older than 24 hours cannot be reimbursed.
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             ) : (
@@ -1640,7 +1698,7 @@ export default function BillingPage() {
                   onChange={e => setIsFreeInvoice(e.target.checked)}
                   style={{ width: '16px', height: '16px', accentColor: '#059669' }}
                 />
-                <span>☑ Free / Waived Service</span>
+                <span>â˜‘ Free / Waived Service</span>
                 <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 400, marginLeft: '4px' }}>
                   (Amount will be set to Br 0.00 and marked as Paid)
                 </span>
@@ -1673,7 +1731,7 @@ export default function BillingPage() {
               <div style={{ textAlign: 'center', marginBottom: '18px' }}>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>{clinicProfile.name}</h3>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{clinicProfile.address} | Tel: {clinicProfile.phone}</div>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginTop: '2px' }}>TIN: 0049281923 • MRC: {showReceiptModal.mrcNumber || 'ERCA-ETH-2026-F9812'}</div>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginTop: '2px' }}>TIN: 0049281923 â€¢ MRC: {showReceiptModal.mrcNumber || 'ERCA-ETH-2026-F9812'}</div>
                 <div style={{ fontSize: '0.85rem', fontWeight: 800, marginTop: '8px', letterSpacing: '0.5px', textDecoration: 'underline' }}>OFFICIAL FISCAL CASH RECEIPT &amp; TAX INVOICE</div>
               </div>
 
@@ -1774,7 +1832,7 @@ export default function BillingPage() {
               <div style={{ textAlign: 'center', padding: '32px', color: '#34c759' }}>
                 <CheckCircle2 size={56} style={{ margin: '0 auto 16px' }} />
                 <div style={{ fontSize: '1.2rem', fontWeight: 800 }}>Payment Confirmed!</div>
-                <div style={{ fontSize: '0.8rem', opacity: 0.7, marginTop: 8 }}>Invoice will be updated shortly…</div>
+                <div style={{ fontSize: '0.8rem', opacity: 0.7, marginTop: 8 }}>Invoice will be updated shortlyâ€¦</div>
               </div>
             ) : (
               <>
@@ -1790,25 +1848,25 @@ export default function BillingPage() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
                   {/* Telebirr */}
                   <div style={{ padding: 16, borderRadius: 12, background: 'rgba(0,113,227,0.15)', border: '1px solid rgba(0,113,227,0.35)', textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#5eabff', marginBottom: 10 }}>📱 TELEBIRR</div>
+                    <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#5eabff', marginBottom: 10 }}>ðŸ“± TELEBIRR</div>
                     <div style={{ width: 100, height: 100, background: '#fff', borderRadius: 8, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #0071e3' }}>
                       <QrCode size={76} color="#0071e3" />
                     </div>
                     {telebirrQrPayload && (
                       <div style={{ fontSize: '0.55rem', fontFamily: 'monospace', color: 'rgba(255,255,255,0.4)', marginTop: 8, wordBreak: 'break-all' }}>
-                        {telebirrQrPayload.substring(0, 60)}…
+                        {telebirrQrPayload.substring(0, 60)}â€¦
                       </div>
                     )}
                   </div>
                   {/* CBE Birr */}
                   <div style={{ padding: 16, borderRadius: 12, background: 'rgba(52,199,89,0.1)', border: '1px solid rgba(52,199,89,0.3)', textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#34c759', marginBottom: 10 }}>🏦 CBE BIRR</div>
+                    <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#34c759', marginBottom: 10 }}>ðŸ¦ CBE BIRR</div>
                     <div style={{ width: 100, height: 100, background: '#fff', borderRadius: 8, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #34c759' }}>
                       <QrCode size={76} color="#34c759" />
                     </div>
                     {telebirrCbeQrPayload && (
                       <div style={{ fontSize: '0.55rem', fontFamily: 'monospace', color: 'rgba(255,255,255,0.4)', marginTop: 8, wordBreak: 'break-all' }}>
-                        {telebirrCbeQrPayload.substring(0, 60)}…
+                        {telebirrCbeQrPayload.substring(0, 60)}â€¦
                       </div>
                     )}
                   </div>
@@ -1822,7 +1880,7 @@ export default function BillingPage() {
 
                 <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)', textAlign: 'center', marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                   <Loader2 size={12} className="animate-spin" color="#5eabff" />
-                  Waiting for patient to scan and confirm payment…
+                  Waiting for patient to scan and confirm paymentâ€¦
                 </div>
 
                 <button
@@ -1830,7 +1888,7 @@ export default function BillingPage() {
                   onClick={handleSimulateTelebirrScan}
                   style={{ width: '100%', padding: '10px', borderRadius: 8, background: 'rgba(52,199,89,0.2)', border: '1px solid rgba(52,199,89,0.4)', color: '#34c759', fontWeight: 700, cursor: 'pointer', fontSize: '0.82rem' }}
                 >
-                  ✔ Simulate Patient Scan & Confirm (Dev/Testing)
+                  âœ” Simulate Patient Scan & Confirm (Dev/Testing)
                 </button>
               </>
             )}
@@ -1844,7 +1902,7 @@ export default function BillingPage() {
           <div style={{ maxWidth: '90vw', maxHeight: '90vh', background: '#1e293b', borderRadius: '12px', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
             <div style={{ padding: '12px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #334155', color: '#f8fafc' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, fontSize: '0.9rem' }}>
-                📸 Telemedicine Payment Transfer Screenshot
+                ðŸ“¸ Telemedicine Payment Transfer Screenshot
               </div>
               <button
                 onClick={() => setShowScreenshotModal(null)}
@@ -1885,13 +1943,13 @@ export default function BillingPage() {
               <div style={{ textAlign: 'center', padding: '24px 0' }}>
                 <CheckCircle2 size={60} color="#7DC242" style={{ margin: '0 auto 16px' }} />
                 <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#7DC242' }}>Payment Verified!</div>
-                <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.55)', marginTop: 8 }}>Invoice is being updated…</div>
+                <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.55)', marginTop: 8 }}>Invoice is being updatedâ€¦</div>
               </div>
             ) : (
               <>
                 {/* Amount */}
                 <div style={{ textAlign: 'center', marginBottom: 24, padding: '16px', background: 'rgba(125,194,66,0.08)', borderRadius: 12, border: '1px solid rgba(125,194,66,0.2)' }}>
-                  <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)', marginBottom: 6 }}>Amount Due — {selectedInvoice.invoiceNo}</div>
+                  <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)', marginBottom: 6 }}>Amount Due â€” {selectedInvoice.invoiceNo}</div>
                   <div style={{ fontSize: '2.4rem', fontWeight: 900, color: '#7DC242', fontFamily: 'monospace' }}>
                     Br {Math.max(0, selectedInvoice.total - selectedInvoice.paid).toFixed(2)}
                   </div>
@@ -1923,7 +1981,7 @@ export default function BillingPage() {
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
                     }}
                   >
-                    {chapaVerifying ? <><Loader2 size={16} className="animate-spin" /> Verifying…</> : <><CheckCircle2 size={16} /> Verify Payment</>}
+                    {chapaVerifying ? <><Loader2 size={16} className="animate-spin" /> Verifyingâ€¦</> : <><CheckCircle2 size={16} /> Verify Payment</>}
                   </button>
 
                   {chapaCheckoutUrl && (
@@ -1947,3 +2005,4 @@ export default function BillingPage() {
     </div>
   );
 }
+
