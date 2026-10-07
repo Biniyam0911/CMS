@@ -109,12 +109,26 @@ public class StaffAndDoctorService
             dto.IsActive
         });
 
-        // 2. If staff is linked to a user, update User record too
+        // 2. If staff is linked to a user, update User record and UserRoles too
         int resolvedUserId = (dto.UserId.HasValue && dto.UserId.Value > 0)
             ? dto.UserId.Value
             : await conn.QueryFirstOrDefaultAsync<int>(
                 "SELECT ISNULL(UserId, 0) FROM Staff WHERE Id = @Id AND TenantId = @TenantId",
                 new { dto.Id, TenantId = tenantId });
+
+        // If not directly linked by UserId, check by Email
+        if (resolvedUserId <= 0 && !string.IsNullOrWhiteSpace(dto.Email))
+        {
+            resolvedUserId = await conn.QueryFirstOrDefaultAsync<int>(
+                "SELECT Id FROM Users WHERE Email = @Email AND TenantId = @TenantId",
+                new { dto.Email, TenantId = tenantId });
+            if (resolvedUserId > 0)
+            {
+                await conn.ExecuteAsync(
+                    "UPDATE Staff SET UserId = @UserId WHERE Id = @Id AND TenantId = @TenantId",
+                    new { UserId = resolvedUserId, dto.Id, TenantId = tenantId });
+            }
+        }
 
         if (resolvedUserId > 0)
         {
@@ -136,6 +150,15 @@ public class StaffAndDoctorService
                 dto.Phone,
                 dto.IsActive
             });
+
+            // Synchronize UserRoles table so user's role updates persist on reload & login
+            if (dto.PrimaryRoleId.HasValue && dto.PrimaryRoleId.Value > 0)
+            {
+                await conn.ExecuteAsync(@"
+                    DELETE FROM UserRoles WHERE UserId = @UserId;
+                    INSERT INTO UserRoles (UserId, RoleId) VALUES (@UserId, @RoleId);",
+                    new { UserId = resolvedUserId, RoleId = dto.PrimaryRoleId.Value });
+            }
         }
 
         // 3. Update or Insert Doctor record if SpecializationId or LicenseNumber provided

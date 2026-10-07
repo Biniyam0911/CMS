@@ -91,8 +91,10 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
   const [nurseProcedureMode, setNurseProcedureMode] = useState(true);
   const hideProcedurePricing = isNurseUser || nurseProcedureMode;
 
-  // Filter Dropdowns
-  const [datePreset, setDatePreset] = useState<'this_month' | 'last_30_days' | 'today' | 'yesterday' | 'last_7_days' | 'last_month' | 'this_year' | 'custom'>('this_month');
+  // Filter Dropdowns (default to today for sales report to match billing page)
+  const [datePreset, setDatePreset] = useState<'this_month' | 'last_30_days' | 'today' | 'yesterday' | 'last_7_days' | 'last_month' | 'this_year' | 'custom'>(() => {
+    return reportType === 'REPORT_SALES' ? 'today' : 'this_month';
+  });
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
 
@@ -211,12 +213,15 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
           invoiceNo: inv.invoiceNo || inv.InvoiceNo || `INV-${inv.id}`,
           patientName: inv.patientName || inv.PatientName || 'Patient',
           receptionist: inv.receptionist || inv.Receptionist || 'Reception Staff',
+          doctorName: inv.doctorName || inv.DoctorName || 'Attending Doctor',
           issueDate: String(inv.issueDate || inv.IssueDate || '').split('T')[0],
           subTotal: Number(inv.subTotal || inv.SubTotal || 0),
           taxAmount: Number(inv.taxAmount || inv.TaxAmount || 0),
+          discountAmount: Number(inv.discountAmount || inv.DiscountAmount || 0),
           totalAmount: Number(inv.totalAmount || inv.TotalAmount || 0),
           paidAmount: Number(inv.paidAmount || inv.PaidAmount || 0),
-          status: inv.status || inv.Status || 'Paid'
+          status: inv.status || inv.Status || 'Paid',
+          isWaived: Boolean(inv.isWaived ?? inv.IsWaived)
         }));
 
         if (selectedPaymentStatus === 'PAID') {
@@ -383,9 +388,10 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
   // KPI Calculations
   const salesSummary = useMemo(() => {
     if (reportType !== 'REPORT_SALES') return null;
-    const totalBilled = data.reduce((s, r) => s + (r.totalAmount || 0), 0);
-    const totalPaid = data.reduce((s, r) => s + (r.paidAmount || 0), 0);
-    const totalVat = data.reduce((s, r) => s + (r.taxAmount || 0), 0);
+    const nonWaived = data.filter(r => !r.isWaived && (r.totalAmount > 0 || r.paidAmount > 0));
+    const totalBilled = nonWaived.reduce((s, r) => s + (r.totalAmount || 0), 0);
+    const totalPaid = nonWaived.reduce((s, r) => s + (r.paidAmount || 0), 0);
+    const totalVat = nonWaived.reduce((s, r) => s + (r.taxAmount || 0), 0);
     return { count: data.length, totalBilled, totalPaid, totalVat };
   }, [reportType, data]);
 

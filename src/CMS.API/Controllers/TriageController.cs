@@ -144,19 +144,25 @@ public class TriageController : ControllerBase
             LEFT JOIN Staff s WITH (NOLOCK) ON s.Id = d.StaffId
             LEFT JOIN ConsultationRooms r WITH (NOLOCK) ON r.Id = t.AssignedRoomId
             WHERE t.TenantId = @TenantId
-              AND t.AssignedDoctorId = @DoctorId
+              AND (
+                  t.AssignedDoctorId = @DoctorId
+                  OR d.Id = @DoctorId
+                  OR d.StaffId = @DoctorId
+                  OR EXISTS (SELECT 1 FROM Doctors d2 WHERE (d2.Id = @DoctorId OR d2.StaffId = @DoctorId) AND (d2.Id = t.AssignedDoctorId OR d2.StaffId = t.AssignedDoctorId))
+              )
               AND (
                   (
                       @DateStart IS NOT NULL 
                       AND (
                           (t.TriagedAt >= @DateStart AND t.TriagedAt < @DateEnd)
                           OR (t.UpdatedAt >= @DateStart AND t.UpdatedAt < @DateEnd)
+                          OR t.Status IN ('AssignedToDoctor', 'InConsultation')
                       )
                   )
                   OR
                   (
                       @DateStart IS NULL 
-                      AND t.Status = 'AssignedToDoctor'
+                      AND t.Status IN ('AssignedToDoctor', 'InConsultation')
                   )
               )
             ORDER BY t.PriorityLevel ASC, t.UpdatedAt DESC, t.TriagedAt DESC";
@@ -406,7 +412,21 @@ public class TriageController : ControllerBase
                 VisitType = ISNULL(@VisitType, VisitType),
                 Status = 'AssignedToDoctor',
                 UpdatedAt = GETDATE()
-            WHERE Id = @TriageId AND TenantId = @TenantId;";
+            WHERE Id = @TriageId AND TenantId = @TenantId;
+
+            -- Also update any open/today encounters for this patient to the reassigned doctor
+            UPDATE Encounters
+            SET DoctorId = @DoctorId
+            WHERE PatientId = (SELECT PatientId FROM PatientTriage WHERE Id = @TriageId)
+              AND EncounterDate >= CAST(GETDATE() AS DATE)
+              AND TenantId = @TenantId;
+
+            -- Also update today's open or draft/issued invoices for this patient
+            UPDATE Invoices
+            SET DoctorId = @DoctorId
+            WHERE PatientId = (SELECT PatientId FROM PatientTriage WHERE Id = @TriageId)
+              AND (StatusId IN (1, 2) OR CAST(CreatedAt AS DATE) = CAST(GETDATE() AS DATE))
+              AND TenantId = @TenantId;";
 
         await conn.ExecuteAsync(sql, new {
             dto.TriageId,

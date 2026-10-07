@@ -30,6 +30,11 @@ export default function TriagePage() {
   const [pageSize, setPageSize] = useState(10);
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
 
+  // Sorting state (default: last intake first)
+  type TriageSortCriteria = 'LAST_INTAKE' | 'FIRST_INTAKE' | 'PATIENT_NAME' | 'CATEGORY' | 'DOCTOR' | 'STATUS';
+  const [sortCriteria, setSortCriteria] = useState<TriageSortCriteria>('LAST_INTAKE');
+  const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('DESC');
+
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
     window.addEventListener('resize', handleResize);
@@ -94,8 +99,19 @@ export default function TriagePage() {
             mrn: p.mrn || p.MRN || `HD-${p.id || p.Id}`,
             name: `${p.firstName || p.FirstName || ''} ${p.middleName || p.MiddleName || ''} ${p.lastName || p.LastName || ''}`.trim(),
             phone: p.primaryPhone || p.PrimaryPhone || '',
-            gender: p.gender === 1 || p.Gender === 1 || p.gender === 'Male' ? 'Male' : 'Female',
-            age: p.dateOfBirth ? (new Date().getFullYear() - new Date(p.dateOfBirth).getFullYear()) : 30
+            age: (() => {
+              const rawDob = p.dateOfBirth || p.DateOfBirth || p.dob || p.DOB;
+              if (p.age !== undefined && p.age !== null && p.age !== '' && !isNaN(Number(p.age))) return Number(p.age);
+              if (p.Age !== undefined && p.Age !== null && p.Age !== '' && !isNaN(Number(p.Age))) return Number(p.Age);
+              if (!rawDob) return null;
+              const b = new Date(rawDob);
+              if (isNaN(b.getTime())) return null;
+              const now = new Date();
+              let a = now.getFullYear() - b.getFullYear();
+              const m = now.getMonth() - b.getMonth();
+              if (m < 0 || (m === 0 && now.getDate() < b.getDate())) a--;
+              return a >= 0 ? a : null;
+            })()
           }));
           setPatients(mapped);
           if (mapped.length > 0 && !newSelectedPatient) {
@@ -203,7 +219,7 @@ export default function TriagePage() {
           name: `${p.firstName || p.FirstName || ''} ${p.middleName || p.MiddleName || ''} ${p.lastName || p.LastName || ''}`.trim(),
           phone: p.primaryPhone || p.PrimaryPhone || '',
           gender: p.gender === 1 || p.Gender === 1 ? 'Male' : 'Female',
-          age: p.dateOfBirth ? (new Date().getFullYear() - new Date(p.dateOfBirth).getFullYear()) : 30
+          age: (() => { const rawDob = p.dateOfBirth || p.DateOfBirth || p.dob || p.DOB; if (p.age !== undefined && p.age !== null && p.age !== '' && !isNaN(Number(p.age))) return Number(p.age); if (p.Age !== undefined && p.Age !== null && p.Age !== '' && !isNaN(Number(p.Age))) return Number(p.Age); if (!rawDob) return null; const b = new Date(rawDob); if (isNaN(b.getTime())) return null; const now = new Date(); let a = now.getFullYear() - b.getFullYear(); const m = now.getMonth() - b.getMonth(); if (m < 0 || (m === 0 && now.getDate() < b.getDate())) a--; return a >= 0 ? a : null; })()
         }));
         setPatients(mappedPatients);
         setNewSelectedPatient(mappedPatients[0]);
@@ -445,7 +461,7 @@ export default function TriagePage() {
       setTriageQueue(prev => prev.map(item => (item.id === selectedItem.id || item.Id === selectedItem.id) ? updatedItem : item));
 
       setSaveSuccess(true);
-      setToastMessage('✓ Vital Signs recorded and saved to database successfully!');
+      setToastMessage('âœ“ Vital Signs recorded and saved to database successfully!');
       setTimeout(() => {
         setSaveSuccess(false);
         setToastMessage(null);
@@ -562,7 +578,7 @@ export default function TriagePage() {
         isReassign
           ? `Assignment updated! Patient reassigned to ${doctorName}.`
           : (visitType === 'Repeat'
-              ? `Routed to ${doctorName} (Repeat Visit • Free / Br 0.00)`
+              ? `Routed to ${doctorName} (Repeat Visit â€¢ Free / Br 0.00)`
               : `Routed to ${doctorName} & Invoiced Br ${finalFee.toFixed(2)} in Billing!`)
       );
       setTimeout(() => setToastMessage(null), 5000);
@@ -612,18 +628,49 @@ export default function TriagePage() {
     return matchesStatus && matchesSearch;
   });
 
-  // Sort Queue: Assigned patients are sorted and grouped with their assigned doctor
+  // Sort Queue: Default is Last Intake First (newest intake first)
   const sortedQueue = [...filteredQueue].sort((a, b) => {
-    const isAssignedA = a.status === 'AssignedToDoctor';
-    const isAssignedB = b.status === 'AssignedToDoctor';
-    if (isAssignedA && isAssignedB) {
-      const docA = (a.assignedDoctorName || 'ZZZ').toLowerCase();
-      const docB = (b.assignedDoctorName || 'ZZZ').toLowerCase();
-      if (docA !== docB) return docA.localeCompare(docB);
-      return (a.patientName || '').localeCompare(b.patientName || '');
+    let comparison = 0;
+    if (sortCriteria === 'LAST_INTAKE') {
+      const timeA = new Date(a.triagedAt || a.createdAt || a.TriagedAt || 0).getTime();
+      const timeB = new Date(b.triagedAt || b.createdAt || b.TriagedAt || 0).getTime();
+      comparison = timeB - timeA || (Number(b.id || 0) - Number(a.id || 0));
+      return sortOrder === 'ASC' ? -comparison : comparison;
     }
-    return 0;
+    if (sortCriteria === 'FIRST_INTAKE') {
+      const timeA = new Date(a.triagedAt || a.createdAt || a.TriagedAt || 0).getTime();
+      const timeB = new Date(b.triagedAt || b.createdAt || b.TriagedAt || 0).getTime();
+      comparison = timeA - timeB || (Number(a.id || 0) - Number(b.id || 0));
+      return sortOrder === 'DESC' ? -comparison : comparison;
+    }
+    if (sortCriteria === 'PATIENT_NAME') {
+      comparison = (a.patientName || '').localeCompare(b.patientName || '');
+    } else if (sortCriteria === 'CATEGORY') {
+      const rank: Record<string, number> = { Red: 1, Orange: 2, Yellow: 3, Green: 4 };
+      const rankA = rank[a.triageCategory] || 99;
+      const rankB = rank[b.triageCategory] || 99;
+      comparison = rankA - rankB;
+    } else if (sortCriteria === 'DOCTOR') {
+      comparison = (a.assignedDoctorName || '').localeCompare(b.assignedDoctorName || '');
+    } else if (sortCriteria === 'STATUS') {
+      comparison = (a.status || '').localeCompare(b.status || '');
+    }
+    return sortOrder === 'DESC' ? -comparison : comparison;
   });
+
+  const handleResetSort = () => {
+    setSortCriteria('LAST_INTAKE');
+    setSortOrder('DESC');
+  };
+
+  const handleToggleSort = (criteria: TriageSortCriteria) => {
+    if (sortCriteria === criteria) {
+      setSortOrder(prev => (prev === 'ASC' ? 'DESC' : 'ASC'));
+    } else {
+      setSortCriteria(criteria);
+      setSortOrder(criteria === 'LAST_INTAKE' ? 'DESC' : 'ASC');
+    }
+  };
 
   // Pagination for Queue
   const totalCount = sortedQueue.length;
@@ -653,15 +700,15 @@ export default function TriagePage() {
   const getTriageBadge = (cat: string) => {
     switch (cat?.toLowerCase()) {
       case 'red':
-        return <span className="badge badge-critical" style={{ background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca' }}>● Red (L1: Emergency)</span>;
+        return <span className="badge badge-critical" style={{ background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca' }}>â— Red (L1: Emergency)</span>;
       case 'orange':
-        return <span className="badge" style={{ background: '#ffedd5', color: '#c2410c', border: '1px solid #fed7aa' }}>● Orange (L2: Urgent)</span>;
+        return <span className="badge" style={{ background: '#ffedd5', color: '#c2410c', border: '1px solid #fed7aa' }}>â— Orange (L2: Urgent)</span>;
       case 'yellow':
-        return <span className="badge badge-warning" style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a' }}>● Yellow (L3: Priority)</span>;
+        return <span className="badge badge-warning" style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a' }}>â— Yellow (L3: Priority)</span>;
       case 'green':
-        return <span className="badge badge-normal" style={{ background: '#d1fae5', color: '#065f46', border: '1px solid #a7f3d0' }}>● Green (L4: Routine)</span>;
+        return <span className="badge badge-normal" style={{ background: '#d1fae5', color: '#065f46', border: '1px solid #a7f3d0' }}>â— Green (L4: Routine)</span>;
       default:
-        return <span className="badge badge-info" style={{ background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd' }}>● Blue (L5: Non-Urgent)</span>;
+        return <span className="badge badge-info" style={{ background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd' }}>â— Blue (L5: Non-Urgent)</span>;
     }
   };
 
@@ -798,14 +845,64 @@ export default function TriagePage() {
             </div>
           </div>
 
+          {/* Sort Controls Bar */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>Sort by:</span>
+              <select
+                value={sortCriteria}
+                onChange={e => {
+                  const val = e.target.value as any;
+                  setSortCriteria(val);
+                  setSortOrder(val === 'LAST_INTAKE' ? 'DESC' : 'ASC');
+                }}
+                style={{ padding: '3px 8px', fontSize: '0.72rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: '#fff' }}
+              >
+                <option value="LAST_INTAKE">Last Intake First (Default)</option>
+                <option value="FIRST_INTAKE">First Intake (Oldest First)</option>
+                <option value="PATIENT_NAME">Patient Name (A-Z)</option>
+                <option value="CATEGORY">Priority / Category</option>
+                <option value="DOCTOR">Assigned Doctor</option>
+                <option value="STATUS">Status</option>
+              </select>
+              <button
+                type="button"
+                onClick={() => setSortOrder(prev => prev === 'ASC' ? 'DESC' : 'ASC')}
+                className="btn-secondary"
+                style={{ padding: '3px 7px', fontSize: '0.7rem' }}
+                title="Toggle Ascending / Descending"
+              >
+                {sortOrder === 'ASC' ? '▲ Asc' : '▼ Desc'}
+              </button>
+            </div>
+
+            {(sortCriteria !== 'LAST_INTAKE' || sortOrder !== 'DESC') && (
+              <button
+                type="button"
+                onClick={handleResetSort}
+                className="btn-secondary"
+                style={{ padding: '3px 8px', fontSize: '0.7rem', color: '#0284c7', borderColor: '#0284c7', background: '#f0f9ff' }}
+                title="Reset sorting to Last Intake First"
+              >
+                ↺ Reset Sort
+              </button>
+            )}
+          </div>
+
           <div className="table-responsive">
             <table className="cms-table">
             <thead>
               <tr>
-                <th>Patient</th>
-                <th>Category</th>
+                <th onClick={() => handleToggleSort('PATIENT_NAME')} style={{ cursor: 'pointer', userSelect: 'none' }} title="Click to sort by Patient Name">
+                  Patient {sortCriteria === 'PATIENT_NAME' ? (sortOrder === 'ASC' ? '▲' : '▼') : '↕'}
+                </th>
+                <th onClick={() => handleToggleSort('CATEGORY')} style={{ cursor: 'pointer', userSelect: 'none' }} title="Click to sort by Category">
+                  Category {sortCriteria === 'CATEGORY' ? (sortOrder === 'ASC' ? '▲' : '▼') : '↕'}
+                </th>
                 <th>Vitals Summary</th>
-                <th>Status / Routing</th>
+                <th onClick={() => handleToggleSort('STATUS')} style={{ cursor: 'pointer', userSelect: 'none' }} title="Click to sort by Status">
+                  Status / Routing {sortCriteria === 'STATUS' ? (sortOrder === 'ASC' ? '▲' : '▼') : '↕'}
+                </th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -850,7 +947,7 @@ export default function TriagePage() {
                       {(item.systolicBP || item.SystolicBP) ? (
                         <div>
                           <div>BP: <strong>{item.systolicBP ?? item.SystolicBP}/{item.diastolicBP ?? item.DiastolicBP}</strong> | HR: <strong>{item.heartRate ?? item.HeartRate}</strong></div>
-                          <div style={{ color: 'var(--text-muted)' }}>Temp: {item.temperature ?? item.Temperature}°C | SpO2: {item.oxygenSaturation ?? item.OxygenSaturation}% | BMI: {item.bmi ?? item.Bmi}</div>
+                          <div style={{ color: 'var(--text-muted)' }}>Temp: {item.temperature ?? item.Temperature}Â°C | SpO2: {item.oxygenSaturation ?? item.OxygenSaturation}% | BMI: {item.bmi ?? item.Bmi}</div>
                         </div>
                       ) : (
                         <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Pending measurement</span>
@@ -1040,8 +1137,8 @@ export default function TriagePage() {
                 {/* Temp, SpO2, Respiratory Rate */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
                   <div>
-                    <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Temp (°C)</label>
-                    <input type="text" placeholder="°C" value={temp} onChange={e => setTemp(e.target.value)} />
+                    <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Temp (Â°C)</label>
+                    <input type="text" placeholder="Â°C" value={temp} onChange={e => setTemp(e.target.value)} />
                   </div>
                   <div>
                     <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>SpO2 (%)</label>
@@ -1192,7 +1289,7 @@ export default function TriagePage() {
                   >
                     {consultationServices.map(s => (
                       <option key={s.id} value={s.id}>
-                        {s.name} — Br {s.fee.toFixed(2)}
+                        {s.name} â€” Br {s.fee.toFixed(2)}
                       </option>
                     ))}
                   </select>
@@ -1203,9 +1300,9 @@ export default function TriagePage() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
                     <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Visit Type</label>
                     <span style={{ fontSize: '0.68rem', color: '#0284c7' }}>
-                      {visitType === 'New' && '• First visit ever (No prior history)'}
-                      {visitType === 'New Repeat' && '• >10 days since last paid visit'}
-                      {visitType === 'Repeat' && '• ≤10 days since last paid visit (Free)'}
+                      {visitType === 'New' && 'â€¢ First visit ever (No prior history)'}
+                      {visitType === 'New Repeat' && 'â€¢ >10 days since last paid visit'}
+                      {visitType === 'Repeat' && 'â€¢ â‰¤10 days since last paid visit (Free)'}
                     </span>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px' }}>
@@ -1215,7 +1312,7 @@ export default function TriagePage() {
                         type="button"
                         onClick={() => setVisitType(vt)}
                         title={
-                          vt === 'New' ? 'First visit ever — patient has no prior visits' :
+                          vt === 'New' ? 'First visit ever â€” patient has no prior visits' :
                           vt === 'New Repeat' ? 'Returning patient >10 days after last paid visit' :
                           'Returning patient within 10 days of last paid visit (Free follow-up)'
                         }
@@ -1236,7 +1333,7 @@ export default function TriagePage() {
                       >
                         <span>{vt}</span>
                         <span style={{ fontSize: '0.62rem', fontWeight: 500, opacity: 0.85 }}>
-                          {vt === 'New' ? '1st Visit' : vt === 'New Repeat' ? '>10 Days' : '≤10 Days (Free)'}
+                          {vt === 'New' ? '1st Visit' : vt === 'New Repeat' ? '>10 Days' : 'â‰¤10 Days (Free)'}
                         </span>
                       </button>
                     ))}
@@ -1252,7 +1349,7 @@ export default function TriagePage() {
                     </div>
                   </div>
                   <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textAlign: 'right' }}>
-                    {calculatedFee > 0 ? '✓ Auto-linked to Billing' : '✓ No charge for Repeat'}
+                    {calculatedFee > 0 ? 'âœ“ Auto-linked to Billing' : 'âœ“ No charge for Repeat'}
                   </div>
                 </div>
 
@@ -1379,7 +1476,7 @@ export default function TriagePage() {
                             {p.name}
                           </div>
                           <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                            {p.gender} • {p.age} yrs • Phone: {p.phone || '—'}
+                            {p.gender} â€¢ {p.age} yrs â€¢ Phone: {p.phone || 'â€”'}
                           </div>
                         </div>
                         <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0369a1', fontSize: '0.75rem' }}>
@@ -1455,3 +1552,4 @@ export default function TriagePage() {
     </div>
   );
 }
+

@@ -244,18 +244,45 @@ public class ReportsController : ControllerBase
         var sql = @"
             SELECT 
                 i.InvoiceNumber AS InvoiceNo,
-                ISNULL(p.FirstName + ' ' + p.LastName, 'Patient') AS PatientName,
+                ISNULL(p.FirstName + ' ' + ISNULL(p.MiddleName + ' ', '') + p.LastName, 'Patient') AS PatientName,
                 ISNULL(u.FirstName + ' ' + u.LastName, ISNULL(u.Username, 'Reception Staff')) AS Receptionist,
+                ISNULL(doc.Title + ' ' + doc.FirstName + ' ' + doc.LastName, 'Attending Doctor') AS DoctorName,
                 FORMAT(CAST(i.IssueDate AS DATE), 'yyyy-MM-dd') AS IssueDate,
                 i.SubTotal,
-                i.TaxAmt AS TaxAmount,
+                ISNULL(i.TaxAmt, 0) AS TaxAmount,
+                ISNULL(i.DiscountAmt, 0) AS DiscountAmount,
                 i.TotalAmount,
-                i.PaidAmount,
-                ISNULL(s.Name, 'Paid') AS Status
+                CASE 
+                    WHEN i.TotalAmount = 0 THEN 0
+                    WHEN EXISTS (
+                        SELECT 1 FROM Payments pm 
+                        WHERE pm.InvoiceId = i.Id 
+                          AND (pm.PaymentMethod = 4 OR pm.Reference LIKE '%Waiv%' OR pm.Reference LIKE '%Free%')
+                    ) THEN 0
+                    ELSE ISNULL(i.PaidAmount, 0)
+                END AS PaidAmount,
+                CASE i.StatusId
+                    WHEN 1 THEN 'Draft'
+                    WHEN 2 THEN 'Issued'
+                    WHEN 3 THEN 'PartiallyPaid'
+                    WHEN 4 THEN 'Paid'
+                    WHEN 5 THEN 'Void'
+                    ELSE ISNULL(s.Name, 'Paid') END AS Status,
+                CASE 
+                    WHEN i.TotalAmount = 0 THEN CAST(1 AS BIT)
+                    WHEN EXISTS (
+                        SELECT 1 FROM Payments pm 
+                        WHERE pm.InvoiceId = i.Id 
+                          AND (pm.PaymentMethod = 4 OR pm.Reference LIKE '%Waiv%' OR pm.Reference LIKE '%Free%')
+                    ) THEN CAST(1 AS BIT)
+                    ELSE CAST(0 AS BIT)
+                END AS IsWaived
             FROM Invoices i WITH (NOLOCK)
-            JOIN Patients p WITH (NOLOCK) ON p.Id = i.PatientId
+            LEFT JOIN Patients p WITH (NOLOCK) ON p.Id = i.PatientId
             LEFT JOIN InvoiceStatuses s WITH (NOLOCK) ON s.Id = i.StatusId
             LEFT JOIN Users u WITH (NOLOCK) ON u.Id = i.CreatedBy
+            LEFT JOIN Doctors d WITH (NOLOCK) ON d.Id = i.DoctorId
+            LEFT JOIN Staff doc WITH (NOLOCK) ON doc.Id = d.StaffId
             WHERE i.TenantId = @TenantId
               AND i.TotalAmount > 0
               AND (@DateFrom IS NULL OR CAST(i.IssueDate AS DATE) >= @DateFrom)

@@ -515,6 +515,103 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
   const [expandedCertId, setExpandedCertId] = useState<number | null>(null);
   const [showPrintModal, setShowPrintModal] = useState<any>(null);
 
+  const printPrescriptionSlip = () => {
+    const elem = document.getElementById('huderma-printable-prescription');
+    if (!elem) {
+      window.print();
+      return;
+    }
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow?.document;
+    if (!doc) {
+      window.print();
+      return;
+    }
+    doc.open();
+    doc.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Prescription Slip - ${activePatient?.name || 'Patient'}</title>
+          <style>
+            * { box-sizing: border-box; margin: 0; padding: 0; }
+            body { font-family: 'Plus Jakarta Sans', Arial, -apple-system, sans-serif; background: #ffffff; color: #1c1917; padding: 24px; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { text-align: left; }
+            @page { size: auto; margin: 10mm; }
+          </style>
+        </head>
+        <body>
+          ${elem.outerHTML}
+        </body>
+      </html>
+    `);
+    doc.close();
+    setTimeout(() => {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+      setTimeout(() => {
+        try { document.body.removeChild(iframe); } catch {}
+      }, 1500);
+    }, 200);
+  };
+
+  const printCertificateDocument = () => {
+    const elem = document.getElementById('huderma-printable-certificate');
+    if (!elem) {
+      window.print();
+      return;
+    }
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow?.document;
+    if (!doc) {
+      window.print();
+      return;
+    }
+    doc.open();
+    doc.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Medical Certificate - ${activePatient?.name || 'Patient'}</title>
+          <style>
+            * { box-sizing: border-box; margin: 0; padding: 0; }
+            body { font-family: 'Plus Jakarta Sans', Arial, -apple-system, sans-serif; background: #ffffff; color: #1c1917; padding: 24px; }
+            table { width: 100%; border-collapse: collapse; }
+            @page { size: auto; margin: 10mm; }
+          </style>
+        </head>
+        <body>
+          ${elem.outerHTML}
+        </body>
+      </html>
+    `);
+    doc.close();
+    setTimeout(() => {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+      setTimeout(() => {
+        try { document.body.removeChild(iframe); } catch {}
+      }, 1500);
+    }, 200);
+  };
+
   // ==========================================
   // REAL PATIENT HISTORY BROWSER STATE
   // ==========================================
@@ -818,7 +915,19 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
           id: p.patientId || p.PatientId || p.id || p.Id,
           mrn: p.mrn || p.MRN || `HD-${p.patientId || p.id}`,
           name: p.patientName || p.PatientName || 'Assigned Patient',
-          age: p.dateOfBirth ? (new Date().getFullYear() - new Date(p.dateOfBirth).getFullYear()) : 30,
+          age: (() => {
+            const rawDob = p.dateOfBirth || p.DateOfBirth || p.dob || p.DOB;
+            if (p.age !== undefined && p.age !== null && p.age !== '' && !isNaN(Number(p.age))) return Number(p.age);
+            if (p.Age !== undefined && p.Age !== null && p.Age !== '' && !isNaN(Number(p.Age))) return Number(p.Age);
+            if (!rawDob) return null;
+            const b = new Date(rawDob);
+            if (isNaN(b.getTime())) return null;
+            const now = new Date();
+            let a = now.getFullYear() - b.getFullYear();
+            const m = now.getMonth() - b.getMonth();
+            if (m < 0 || (m === 0 && now.getDate() < b.getDate())) a--;
+            return a >= 0 ? a : null;
+          })(),
           gender: p.gender === 1 || p.Gender === 1 ? 'Male' : 'Female',
           blood: p.bloodGroup || p.BloodGroup || '',
           allergies: p.allergies || p.Allergies || 'None',
@@ -1514,7 +1623,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
             certNo: `HD-MC-${new Date().getFullYear()}-00${issuedCerts.length + 1}`,
             patientName: (activePatient?.name || 'PATIENT').toUpperCase(),
             cardNo: activePatient?.mrn || 'MRN-001',
-            age: activePatient?.age || 30,
+            age: activePatient?.age ?? '',
             examinedOn: certExamDate,
             diagnosis: certDiagnosis || diagnosis,
             recommendation: recommendation,
@@ -2027,8 +2136,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
         {activePatient && (
           <div style={{ display: 'flex', gap: '16px', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #f0eae1', fontSize: '0.8rem', flexWrap: 'wrap' }}>
             <div><span style={{ color: 'var(--text-muted)' }}>Card No:</span> <strong style={{ color: '#0369a1', fontFamily: 'monospace' }}>{activePatient.mrn}</strong></div>
-            <div><span style={{ color: 'var(--text-muted)' }}>Patient Name:</span> <strong style={{ color: 'var(--text-main)' }}>{activePatient.name}</strong></div>
-            <div><span style={{ color: 'var(--text-muted)' }}>Age/Gender:</span> <strong>{activePatient.age} yrs / {activePatient.gender}</strong></div>
+            <div><span style={{ color: 'var(--text-muted)' }}>Age/Gender:</span> <strong>{activePatient.age !== null && activePatient.age !== undefined && activePatient.age !== '' ? `${activePatient.age} yrs` : 'N/A'} / {activePatient.gender || 'N/A'}</strong></div>
             {activePatient.blood ? (
               <div><span style={{ color: 'var(--text-muted)' }}>Blood:</span> <strong style={{ color: '#e11d48' }}>{activePatient.blood}</strong></div>
             ) : null}
@@ -2107,28 +2215,48 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
 
             {(!isMobile || showMobileQueue) && (
               <>
-                {/* Attending Doctor Badge / Status (Dropdown removed per user request) */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '10px', background: '#fdfcf9', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                {/* Attending Doctor Selector & Status */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '10px', background: '#fdfcf9', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>Attending Doctor:</span>
                     <span style={{ fontSize: '0.7rem', color: '#0284c7', fontWeight: 700 }}>{patients.length} Patient{patients.length === 1 ? '' : 's'}</span>
                   </div>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }}></span>
-                    {(() => {
-                      const doc = availableDoctors.find(d => d.id === selectedDoctorId);
-                      if (doc) return doc.name;
-                      if (currentUser?.firstName) return `Dr. ${currentUser.firstName} ${currentUser.lastName || ''}`.trim();
-                      if (currentUser?.name) return currentUser.name.startsWith('Dr.') ? currentUser.name : `Dr. ${currentUser.name}`;
-                      if (currentUser?.username && currentUser.username.toLowerCase() !== 'admin') return `Dr. ${currentUser.username}`;
-                      return availableDoctors[0]?.name || 'Attending Physician';
-                    })()}
-                    {availableDoctors.find(d => d.id === selectedDoctorId)?.specialization && (
-                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 500 }}>
-                        ({availableDoctors.find(d => d.id === selectedDoctorId)?.specialization})
-                      </span>
-                    )}
-                  </div>
+                  {availableDoctors.length > 1 ? (
+                    <select
+                      value={selectedDoctorId}
+                      onChange={e => {
+                        const newId = Number(e.target.value);
+                        setSelectedDoctorId(newId);
+                        try { localStorage.setItem('emr_selected_doctor_id', String(newId)); } catch {}
+                        const doc = availableDoctors.find(d => d.id === newId);
+                        if (doc) {
+                          setCertDoctorName(doc.name);
+                          setCertDoctorTitle(doc.specialization ? `${doc.specialization} Specialist` : 'Physician');
+                        }
+                      }}
+                      style={{
+                        padding: '6px 8px',
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        color: 'var(--text-main)',
+                        borderRadius: '6px',
+                        border: '1px solid var(--border-color)',
+                        background: '#ffffff',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {availableDoctors.map(d => (
+                        <option key={d.id} value={d.id}>
+                          {d.name} {d.specialization ? `(${d.specialization})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }}></span>
+                      {availableDoctors[0]?.name || 'Attending Physician'}
+                    </div>
+                  )}
                 </div>
 
                 {/* Consultation Date Selector (for note entry, not for patient filter) */}
@@ -2197,7 +2325,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                               </div>
                             )}
                             <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
-                              {p.mrn} • {p.age}y {p.gender}
+                              {p.mrn}{p.age !== null && p.age !== undefined && p.age !== '' ? ` • ${p.age}y` : ''} {p.gender}
                             </div>
                           </div>
                           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '3px' }}>
@@ -2220,7 +2348,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
               <div style={{ padding: '10px 12px', background: '#e0f2fe', borderRadius: '8px', border: '1.5px solid #0284c7', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <div style={{ fontWeight: 700, color: '#0369a1', fontSize: '0.85rem' }}>Active: {activePatient.name}</div>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{activePatient.mrn} • {activePatient.age}y {activePatient.gender}</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{activePatient.mrn}{activePatient.age !== null && activePatient.age !== undefined && activePatient.age !== '' ? ` • ${activePatient.age}y` : ''} {activePatient.gender}</div>
                 </div>
                 <button
                   type="button"
