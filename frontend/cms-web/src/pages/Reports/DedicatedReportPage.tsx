@@ -223,10 +223,14 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
 
         const results = raw.map((r: any) => {
           const count = Number(r.count || r.Count || 0);
+          const maleCount = Number(r.maleCount || r.MaleCount || 0);
+          const femaleCount = Number(r.femaleCount || r.FemaleCount || 0);
           cumulative += count;
           return {
             groupKey: r.ageGroup || r.AgeGroup,
             ageBracket: r.ageBracket || r.AgeBracket,
+            maleCount,
+            femaleCount,
             count,
             percentage: total > 0 ? ((count / total) * 100).toFixed(1) : '0.0',
             cumulativeCount: cumulative
@@ -387,7 +391,7 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
       )}
 
       {/* Header Panel */}
-      <div className="glass-panel" style={{ padding: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
+      <div className="glass-panel no-print" style={{ padding: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
         <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
           <div style={{ padding: '12px', borderRadius: '12px', background: 'rgba(2, 132, 199, 0.08)', border: '1px solid rgba(2, 132, 199, 0.2)' }}>
             {config.icon}
@@ -418,7 +422,7 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
       </div>
 
       {/* ALL FILTERS AS CLEAN DROPDOWNS BAR */}
-      <div className="glass-panel" style={{ padding: '18px 22px' }}>
+      <div className="glass-panel no-print" style={{ padding: '18px 22px' }}>
         <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '12px' }}>
           Report Filters (Select from dropdowns)
         </div>
@@ -649,7 +653,7 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
 
       {/* KPI METRIC CARDS ROW */}
       {salesSummary && (
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: '16px' }}>
+        <div className="no-print" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: '16px' }}>
           <div className="glass-panel" style={{ padding: '18px' }}>
             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Total Invoices</span>
             <div style={{ fontSize: '1.5rem', fontWeight: 800, margin: '4px 0', color: 'var(--text-main)' }}>{salesSummary.count}</div>
@@ -674,7 +678,7 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
       )}
 
       {docSummary && (
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: '16px' }}>
+        <div className="no-print" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: '16px' }}>
           <div className="glass-panel" style={{ padding: '18px' }}>
             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Attending Doctors</span>
             <div style={{ fontSize: '1.5rem', fontWeight: 800, margin: '4px 0', color: 'var(--text-main)' }}>{docSummary.doctorsCount}</div>
@@ -699,7 +703,7 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
       )}
 
       {procedureSummary && (
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(3, 1fr)', gap: '16px' }}>
+        <div className="no-print" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(3, 1fr)', gap: '16px' }}>
           <div className="glass-panel" style={{ padding: '18px' }}>
             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Distinct Procedures</span>
             <div style={{ fontSize: '1.5rem', fontWeight: 800, margin: '4px 0', color: 'var(--text-main)' }}>{procedureSummary.count}</div>
@@ -720,7 +724,14 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
 
       {/* REPORT DATA TABLE */}
       <div className="glass-panel" style={{ padding: '24px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <div className="print-only" style={{ display: 'none', marginBottom: '20px', textAlign: 'center' }}>
+          <h2 style={{ fontSize: '1.3rem', fontWeight: 800, margin: '0 0 4px 0' }}>Huderma Specialty Clinic</h2>
+          <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: '0 0 4px 0', color: '#0369a1' }}>{config.title}</h3>
+          <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>
+            Period: {dateFrom} to {dateTo} | Generated on: {new Date().toLocaleDateString()}
+          </p>
+        </div>
+        <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, color: 'var(--text-main)' }}>
             Itemized Report Output
           </h3>
@@ -760,7 +771,9 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
                   {reportType === 'REPORT_AGE_STRATIFIED' && (
                     <>
                       <th>Age Bracket</th>
-                      <th style={{ textAlign: 'right' }}>Patient Count</th>
+                      <th style={{ textAlign: 'right' }}>Male Count</th>
+                      <th style={{ textAlign: 'right' }}>Female Count</th>
+                      <th style={{ textAlign: 'right' }}>Total Count</th>
                       <th style={{ textAlign: 'right' }}>Percentage Share (%)</th>
                       <th style={{ textAlign: 'right' }}>Cumulative Total</th>
                     </>
@@ -824,7 +837,9 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
                 {reportType === 'REPORT_AGE_STRATIFIED' && data.map((r, i) => (
                   <tr key={i}>
                     <td style={{ fontWeight: 700 }}>{r.ageBracket}</td>
-                    <td style={{ textAlign: 'right', fontWeight: 700, color: '#0284c7' }}>{r.count}</td>
+                    <td style={{ textAlign: 'right', fontWeight: 700, color: '#0284c7' }}>{r.maleCount ?? 0}</td>
+                    <td style={{ textAlign: 'right', fontWeight: 700, color: '#ec4899' }}>{r.femaleCount ?? 0}</td>
+                    <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--text-main)' }}>{r.count}</td>
                     <td style={{ textAlign: 'right', fontWeight: 600 }}>{r.percentage}%</td>
                     <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>{r.cumulativeCount}</td>
                   </tr>

@@ -119,6 +119,14 @@ public class BillingController : ControllerBase
         return Ok(ApiResponse<string>.Ok("Payment processed successfully."));
     }
 
+    [HttpPost("invoices/{id}/reimburse")]
+    public async Task<IActionResult> ReimburseInvoice(int id)
+    {
+        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+        bool ok = await _billingService.ReimburseInvoiceAsync(id, tenantId);
+        return Ok(ApiResponse<bool>.Ok(ok, "Invoice reimbursed. Status changed to Pending and paid amount reset to 0."));
+    }
+
     [HttpPost("invoices/{id}/verify-telemed-payment")]
     public async Task<IActionResult> VerifyTelemedPayment(int id, [FromServices] CMS.Application.Telemedicine.TelemedService telemedService)
     {

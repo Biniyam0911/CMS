@@ -92,16 +92,31 @@ public class BillingService
             }
         }
 
+        int? validDoctorId = dto.DoctorId;
+        if ((!validDoctorId.HasValue || validDoctorId.Value <= 0) && validEncounterId.HasValue)
+        {
+            validDoctorId = await conn.ExecuteScalarAsync<int?>(
+                "SELECT DoctorId FROM Encounters WHERE Id = @Id", new { Id = validEncounterId.Value });
+        }
+        if ((!validDoctorId.HasValue || validDoctorId.Value <= 0) && dto.PatientId > 0)
+        {
+            validDoctorId = await conn.ExecuteScalarAsync<int?>(@"
+                SELECT TOP 1 AssignedDoctorId FROM PatientTriage 
+                WHERE PatientId = @PatientId AND TenantId = @TenantId AND AssignedDoctorId > 0
+                ORDER BY Id DESC", new { dto.PatientId, dto.TenantId });
+        }
+
         var sqlHeader = @"
-            INSERT INTO Invoices (TenantId, InvoiceNumber, PatientId, EncounterId, StatusId, IssueDate, SubTotal, TaxAmt, TotalAmount, PaidAmount, DiscountAmt, InsuranceClaim, InsuranceProviderId, InsuranceCoPayPercent, InsuranceClaimAmount, PatientPayAmount, PreAuthCode, ClaimStatusId, CreatedBy, CreatedAt)
+            INSERT INTO Invoices (TenantId, InvoiceNumber, PatientId, EncounterId, DoctorId, StatusId, IssueDate, SubTotal, TaxAmt, TotalAmount, PaidAmount, DiscountAmt, InsuranceClaim, InsuranceProviderId, InsuranceCoPayPercent, InsuranceClaimAmount, PatientPayAmount, PreAuthCode, ClaimStatusId, CreatedBy, CreatedAt)
             OUTPUT INSERTED.Id
-            VALUES (@TenantId, @InvoiceNumber, @PatientId, @EncounterId, @InitialStatus, GETDATE(), @SubTotal, @TaxAmt, @TotalAmount, @PaidAmount, 0, @InsuranceClaim, @InsuranceProviderId, @InsuranceCoPayPercent, @InsuranceClaimAmount, @PatientPayAmount, @PreAuthCode, @ClaimStatusId, @CreatedBy, GETDATE());";
+            VALUES (@TenantId, @InvoiceNumber, @PatientId, @EncounterId, @DoctorId, @InitialStatus, GETDATE(), @SubTotal, @TaxAmt, @TotalAmount, @PaidAmount, 0, @InsuranceClaim, @InsuranceProviderId, @InsuranceCoPayPercent, @InsuranceClaimAmount, @PatientPayAmount, @PreAuthCode, @ClaimStatusId, @CreatedBy, GETDATE());";
 
         int invoiceId = await conn.ExecuteScalarAsync<int>(sqlHeader, new {
             dto.TenantId,
             InvoiceNumber = invoiceNumber,
             dto.PatientId,
             EncounterId = validEncounterId,
+            DoctorId = validDoctorId,
             InitialStatus = initialStatus,
             SubTotal = subTotal,
             TaxAmt = tax,
@@ -153,12 +168,12 @@ public class BillingService
                 else
                 {
                     // Resolve a valid DoctorId — FK_LabOrders_Doctors requires a Doctors.Id
-                    int validDoctorId = dto.CreatedBy > 0
+                    int labDoctorId = dto.CreatedBy > 0
                         ? (await conn.ExecuteScalarAsync<int?>(
                               "SELECT TOP 1 Id FROM Doctors WHERE Id = @Id", new { Id = dto.CreatedBy }) ?? 0)
                         : 0;
-                    if (validDoctorId <= 0)
-                        validDoctorId = await conn.ExecuteScalarAsync<int>(
+                    if (labDoctorId <= 0)
+                        labDoctorId = await conn.ExecuteScalarAsync<int>(
                             "SELECT TOP 1 Id FROM Doctors ORDER BY Id ASC");
 
                     var newOrderNo = $"LAB-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..4].ToUpper()}";
@@ -171,7 +186,7 @@ public class BillingService
                             OrderNumber = newOrderNo,
                             dto.PatientId,
                             EncounterId = validEncounterId,
-                            OrderedBy = validDoctorId,
+                            OrderedBy = labDoctorId,
                             ClinicalInfo = item.Description
                         });
 
@@ -233,12 +248,12 @@ public class BillingService
         var sql = @"
             SELECT 
                 COUNT(1) AS TotalInvoices,
-                SUM(CASE WHEN TotalAmount > 0 THEN 1 ELSE 0 END) AS BillableInvoices,
-                SUM(CASE WHEN TotalAmount = 0 THEN 1 ELSE 0 END) AS WaivedInvoices,
-                ISNULL(SUM(CASE WHEN TotalAmount > 0 THEN TotalAmount ELSE 0 END), 0) AS TotalBilled,
-                ISNULL(SUM(CASE WHEN TotalAmount > 0 THEN PaidAmount ELSE 0 END), 0) AS PaidRevenue,
-                ISNULL(SUM(CASE WHEN TotalAmount > 0 AND TotalAmount > PaidAmount THEN TotalAmount - PaidAmount ELSE 0 END), 0) AS PendingReceivables,
-                SUM(CASE WHEN StatusId = 4 AND TotalAmount > 0 THEN 1 ELSE 0 END) AS PaidCount
+                SUM(CASE WHEN TotalAmount > 0 AND NOT EXISTS (SELECT 1 FROM Payments pm WHERE pm.InvoiceId = Invoices.Id AND (pm.PaymentMethod = 4 OR pm.Reference LIKE '%Waiv%' OR pm.Reference LIKE '%Free%')) THEN 1 ELSE 0 END) AS BillableInvoices,
+                SUM(CASE WHEN TotalAmount = 0 OR EXISTS (SELECT 1 FROM Payments pm WHERE pm.InvoiceId = Invoices.Id AND (pm.PaymentMethod = 4 OR pm.Reference LIKE '%Waiv%' OR pm.Reference LIKE '%Free%')) THEN 1 ELSE 0 END) AS WaivedInvoices,
+                ISNULL(SUM(CASE WHEN TotalAmount > 0 AND NOT EXISTS (SELECT 1 FROM Payments pm WHERE pm.InvoiceId = Invoices.Id AND (pm.PaymentMethod = 4 OR pm.Reference LIKE '%Waiv%' OR pm.Reference LIKE '%Free%')) THEN TotalAmount ELSE 0 END), 0) AS TotalBilled,
+                ISNULL(SUM(CASE WHEN TotalAmount > 0 AND NOT EXISTS (SELECT 1 FROM Payments pm WHERE pm.InvoiceId = Invoices.Id AND (pm.PaymentMethod = 4 OR pm.Reference LIKE '%Waiv%' OR pm.Reference LIKE '%Free%')) THEN PaidAmount ELSE 0 END), 0) AS PaidRevenue,
+                ISNULL(SUM(CASE WHEN TotalAmount > 0 AND TotalAmount > PaidAmount AND NOT EXISTS (SELECT 1 FROM Payments pm WHERE pm.InvoiceId = Invoices.Id AND (pm.PaymentMethod = 4 OR pm.Reference LIKE '%Waiv%' OR pm.Reference LIKE '%Free%')) THEN TotalAmount - PaidAmount ELSE 0 END), 0) AS PendingReceivables,
+                SUM(CASE WHEN StatusId = 4 AND TotalAmount > 0 AND NOT EXISTS (SELECT 1 FROM Payments pm WHERE pm.InvoiceId = Invoices.Id AND (pm.PaymentMethod = 4 OR pm.Reference LIKE '%Waiv%' OR pm.Reference LIKE '%Free%')) THEN 1 ELSE 0 END) AS PaidCount
             FROM Invoices WITH (NOLOCK)
             WHERE TenantId = @TenantId
               AND (@FromDate IS NULL OR CAST(IssueDate AS DATE) >= CAST(@FromDate AS DATE))
@@ -254,10 +269,21 @@ public class BillingService
         var sql = @"
             SELECT TOP (@Limit) i.Id, i.TenantId, i.InvoiceNumber AS InvoiceNo,
                    i.PatientId, p.FirstName + ' ' + ISNULL(p.MiddleName + ' ', '') + p.LastName AS PatientName,
-                   i.EncounterId, i.IssueDate, i.DueDate, i.SubTotal,
+                   i.EncounterId, i.DoctorId,
+                   ISNULL(doc.DoctorName, '—') AS DoctorName,
+                   i.IssueDate, i.DueDate, i.SubTotal,
                    ISNULL(i.TaxAmt, 0) AS TaxAmount,
                    ISNULL(i.DiscountAmt, 0) AS DiscountAmount,
-                   i.TotalAmount, ISNULL(i.PaidAmount, 0) AS PaidAmount,
+                   i.TotalAmount,
+                   CASE 
+                       WHEN i.TotalAmount = 0 THEN 0
+                       WHEN EXISTS (
+                           SELECT 1 FROM Payments pm 
+                           WHERE pm.InvoiceId = i.Id 
+                             AND (pm.PaymentMethod = 4 OR pm.Reference LIKE '%Waiv%' OR pm.Reference LIKE '%Free%')
+                       ) THEN 0
+                       ELSE ISNULL(i.PaidAmount, 0)
+                   END AS PaidAmount,
                    i.StatusId,
                    CASE i.StatusId
                        WHEN 1 THEN 'Draft'
@@ -290,6 +316,16 @@ public class BillingService
             FROM Invoices i WITH (NOLOCK)
             JOIN Patients p WITH (NOLOCK) ON p.Id = i.PatientId
             LEFT JOIN InsuranceProviders ip WITH (NOLOCK) ON ip.Id = i.InsuranceProviderId
+            OUTER APPLY (
+                SELECT TOP 1 
+                    ISNULL(s.FirstName + ' ' + s.LastName, 'Attending Physician') AS DoctorName
+                FROM Doctors d WITH (NOLOCK)
+                JOIN Staff s WITH (NOLOCK) ON s.Id = d.StaffId
+                WHERE d.Id = i.DoctorId 
+                   OR d.Id = (SELECT e.DoctorId FROM Encounters e WITH (NOLOCK) WHERE e.Id = i.EncounterId)
+                   OR d.Id = (SELECT TOP 1 t.AssignedDoctorId FROM PatientTriage t WITH (NOLOCK) WHERE t.PatientId = i.PatientId AND t.AssignedDoctorId > 0 ORDER BY t.Id DESC)
+                   OR d.Id = (SELECT TOP 1 a.DoctorId FROM Appointments a WITH (NOLOCK) WHERE a.PatientId = i.PatientId AND a.DoctorId > 0 ORDER BY a.Id DESC)
+            ) doc
             WHERE i.TenantId = @TenantId
               AND (@PatientId IS NULL OR i.PatientId = @PatientId)
               AND (@FromDate IS NULL OR CAST(i.IssueDate AS DATE) >= CAST(@FromDate AS DATE))
@@ -331,10 +367,21 @@ public class BillingService
         var sql = @"
             SELECT i.Id, i.TenantId, i.InvoiceNumber AS InvoiceNo,
                    i.PatientId, p.FirstName + ' ' + ISNULL(p.MiddleName + ' ', '') + p.LastName AS PatientName,
-                   i.EncounterId, i.IssueDate, i.DueDate, i.SubTotal,
+                   i.EncounterId, i.DoctorId,
+                   ISNULL(doc.DoctorName, '—') AS DoctorName,
+                   i.IssueDate, i.DueDate, i.SubTotal,
                    ISNULL(i.TaxAmt, 0) AS TaxAmount,
                    ISNULL(i.DiscountAmt, 0) AS DiscountAmount,
-                   i.TotalAmount, ISNULL(i.PaidAmount, 0) AS PaidAmount,
+                   i.TotalAmount,
+                   CASE 
+                       WHEN i.TotalAmount = 0 THEN 0
+                       WHEN EXISTS (
+                           SELECT 1 FROM Payments pm 
+                           WHERE pm.InvoiceId = i.Id 
+                             AND (pm.PaymentMethod = 4 OR pm.Reference LIKE '%Waiv%' OR pm.Reference LIKE '%Free%')
+                       ) THEN 0
+                       ELSE ISNULL(i.PaidAmount, 0)
+                   END AS PaidAmount,
                    i.StatusId,
                    CASE i.StatusId
                        WHEN 1 THEN 'Draft'
@@ -367,6 +414,16 @@ public class BillingService
             FROM Invoices i
             JOIN Patients p ON p.Id = i.PatientId
             LEFT JOIN InsuranceProviders ip ON ip.Id = i.InsuranceProviderId
+            OUTER APPLY (
+                SELECT TOP 1 
+                    ISNULL(s.FirstName + ' ' + s.LastName, 'Attending Physician') AS DoctorName
+                FROM Doctors d WITH (NOLOCK)
+                JOIN Staff s WITH (NOLOCK) ON s.Id = d.StaffId
+                WHERE d.Id = i.DoctorId 
+                   OR d.Id = (SELECT e.DoctorId FROM Encounters e WITH (NOLOCK) WHERE e.Id = i.EncounterId)
+                   OR d.Id = (SELECT TOP 1 t.AssignedDoctorId FROM PatientTriage t WITH (NOLOCK) WHERE t.PatientId = i.PatientId AND t.AssignedDoctorId > 0 ORDER BY t.Id DESC)
+                   OR d.Id = (SELECT TOP 1 a.DoctorId FROM Appointments a WITH (NOLOCK) WHERE a.PatientId = i.PatientId AND a.DoctorId > 0 ORDER BY a.Id DESC)
+            ) doc
             WHERE i.Id = @Id AND i.TenantId = @TenantId";
 
         var inv = await conn.QueryFirstOrDefaultAsync<InvoiceDto>(sql, new { Id = id, TenantId = tenantId });
@@ -389,6 +446,32 @@ public class BillingService
         return inv;
     }
 
+    public async Task<bool> ReimburseInvoiceAsync(int invoiceId, byte tenantId)
+    {
+        using var conn = _dbFactory.CreateConnection();
+        var sql = @"
+            DECLARE @OriginalPaid DECIMAL(18,2);
+            SELECT @OriginalPaid = ISNULL(PaidAmount, 0) FROM Invoices WHERE Id = @InvoiceId AND TenantId = @TenantId;
+
+            UPDATE Invoices
+            SET PaidAmount = 0,
+                StatusId = 2, -- 2 = Issued (Pending)
+                UpdatedAt = GETDATE()
+            WHERE Id = @InvoiceId AND TenantId = @TenantId;
+
+            IF @OriginalPaid > 0
+            BEGIN
+                INSERT INTO Payments (TenantId, InvoiceId, PatientId, Amount, PaymentDate, PaymentMethod, Reference, ReceivedBy)
+                SELECT TenantId, Id, PatientId, -@OriginalPaid, GETDATE(), 1, 'Reimbursed / Refunded - Status Reset to Pending', 1
+                FROM Invoices WHERE Id = @InvoiceId;
+            END
+
+            SELECT 1;";
+
+        await conn.ExecuteScalarAsync<int>(sql, new { InvoiceId = invoiceId, TenantId = tenantId });
+        return true;
+    }
+
     public async Task ProcessPaymentAsync(ProcessPaymentDto dto)
     {
         using var conn = _dbFactory.CreateConnection();
@@ -403,13 +486,15 @@ public class BillingService
             methodCode = (byte)parsedEnum;
         }
 
+        bool isWaiver = methodCode == 4 || (dto.Reference != null && dto.Reference.Contains("Waiv", StringComparison.OrdinalIgnoreCase));
+
         var paymentSql = @"
             INSERT INTO Payments (TenantId, InvoiceId, PatientId, Amount, PaymentDate, PaymentMethod, Reference, ReceivedBy)
             VALUES (@TenantId, @InvoiceId, @PatientId, @Amount, GETDATE(), @PaymentMethod, @Reference, @ReceivedBy);
 
             UPDATE Invoices
-            SET PaidAmount = PaidAmount + @Amount,
-                StatusId = CASE WHEN (PaidAmount + @Amount) >= TotalAmount THEN 4 ELSE 3 END,
+            SET PaidAmount = CASE WHEN @IsWaiver = 1 THEN PaidAmount ELSE PaidAmount + @Amount END,
+                StatusId = CASE WHEN @IsWaiver = 1 THEN 4 WHEN (PaidAmount + @Amount) >= TotalAmount THEN 4 ELSE 3 END,
                 UpdatedAt = GETDATE()
             WHERE Id = @InvoiceId AND TenantId = @TenantId;
 
@@ -423,7 +508,8 @@ public class BillingService
             dto.Amount,
             PaymentMethod = methodCode,
             dto.Reference,
-            dto.ReceivedBy
+            dto.ReceivedBy,
+            IsWaiver = isWaiver ? 1 : 0
         });
 
         // When invoice is marked as Paid (StatusId = 4), verify and notify patient on Telegram if applicable

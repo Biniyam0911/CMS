@@ -39,7 +39,26 @@ public class TriageController : ControllerBase
                    ISNULL(s.FirstName + ' ' + s.LastName, 'Unassigned') AS AssignedDoctorName,
                    t.AssignedRoomId,
                    ISNULL(r.RoomName, 'Not Assigned') AS AssignedRoomName,
-                   t.Status, t.HoldReason, t.HoldDurationMin,
+                   t.Status,
+                   ISNULL(t.VisitType, 
+                       CASE 
+                           WHEN EXISTS (
+                               SELECT 1 FROM Encounters prev 
+                               WHERE prev.PatientId = t.PatientId AND prev.EncounterDate < t.TriagedAt
+                           ) AND EXISTS (
+                               SELECT 1 FROM Encounters prev 
+                               WHERE prev.PatientId = t.PatientId 
+                                 AND prev.EncounterDate >= DATEADD(day, -10, t.TriagedAt)
+                                 AND prev.EncounterDate < t.TriagedAt
+                           ) THEN 'Repeat'
+                           WHEN EXISTS (
+                               SELECT 1 FROM Encounters prev 
+                               WHERE prev.PatientId = t.PatientId AND prev.EncounterDate < t.TriagedAt
+                           ) THEN 'New Repeat'
+                           ELSE 'New'
+                       END
+                   ) AS VisitType,
+                   t.HoldReason, t.HoldDurationMin,
                    t.TriagedBy, t.TriagedAt, t.UpdatedAt
             FROM PatientTriage t WITH (NOLOCK)
             JOIN Patients p WITH (NOLOCK) ON p.Id = t.PatientId
@@ -98,7 +117,26 @@ public class TriageController : ControllerBase
                    ISNULL(s.FirstName + ' ' + s.LastName, 'Attending Physician') AS AssignedDoctorName,
                    t.AssignedRoomId,
                    ISNULL(r.RoomName, 'Room 101') AS AssignedRoomName,
-                   t.Status, t.TriagedAt, t.UpdatedAt
+                   t.Status,
+                   ISNULL(t.VisitType, 
+                       CASE 
+                           WHEN EXISTS (
+                               SELECT 1 FROM Encounters prev 
+                               WHERE prev.PatientId = t.PatientId AND prev.EncounterDate < t.TriagedAt
+                           ) AND EXISTS (
+                               SELECT 1 FROM Encounters prev 
+                               WHERE prev.PatientId = t.PatientId 
+                                 AND prev.EncounterDate >= DATEADD(day, -10, t.TriagedAt)
+                                 AND prev.EncounterDate < t.TriagedAt
+                           ) THEN 'Repeat'
+                           WHEN EXISTS (
+                               SELECT 1 FROM Encounters prev 
+                               WHERE prev.PatientId = t.PatientId AND prev.EncounterDate < t.TriagedAt
+                           ) THEN 'New Repeat'
+                           ELSE 'New'
+                       END
+                   ) AS VisitType,
+                   t.TriagedAt, t.UpdatedAt
             FROM PatientTriage t WITH (NOLOCK)
             JOIN Patients p WITH (NOLOCK) ON p.Id = t.PatientId
             LEFT JOIN PatientQueues q WITH (NOLOCK) ON q.Id = t.QueueId
@@ -365,6 +403,7 @@ public class TriageController : ControllerBase
             UPDATE PatientTriage
             SET AssignedDoctorId = @DoctorId,
                 AssignedRoomId = @RoomId,
+                VisitType = ISNULL(@VisitType, VisitType),
                 Status = 'AssignedToDoctor',
                 UpdatedAt = GETDATE()
             WHERE Id = @TriageId AND TenantId = @TenantId;";
@@ -373,7 +412,8 @@ public class TriageController : ControllerBase
             dto.TriageId,
             TenantId = tenantId,
             dto.DoctorId,
-            dto.RoomId
+            dto.RoomId,
+            dto.VisitType
         });
 
         if (dto.AppointmentId.HasValue && dto.AppointmentId.Value > 0)

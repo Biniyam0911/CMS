@@ -307,3 +307,81 @@ input:focus, select:focus, textarea:focus {
   .grid-4 { grid-template-columns: 1fr !important; gap: 8px !important; }
 }
 
+/* ========================================================================= */
+/* PRINT STYLES - HIDE CHAT/SIDEBAR/NAV/BUTTONS FOR CLEAN REPORTS & INVOICES  */
+/* ========================================================================= */
+@media print {
+  /* Hide application shell navigation, sidebar, mobile navigation, buttons, and tools */
+  aside,
+  nav,
+  header,
+  .mobile-bottom-nav,
+  .sidebar,
+  .no-print,
+  button,
+  .btn-primary,
+  .btn-secondary,
+  .btn-danger,
+  input,
+  select,
+  textarea {
+    display: none !important;
+  }
+
+  /* Show elements specifically designed for print */
+  .print-only {
+    display: block !important;
+  }
+
+  /* Ensure page and body background is white with black text */
+  html, body, #root, main, .main-content {
+    background: #ffffff !important;
+    color: #000000 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    box-shadow: none !important;
+  }
+
+  /* Expand table and containers across full printable page width */
+  .glass-panel {
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
+
+  .table-responsive {
+    overflow: visible !important;
+    width: 100% !important;
+  }
+
+  table.cms-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 11px !important;
+  }
+
+  table.cms-table th,
+  table.cms-table td {
+    border: 1px solid #cbd5e1 !important;
+    padding: 6px 8px !important;
+    color: #000000 !important;
+    background: transparent !important;
+  }
+
+  table.cms-table th {
+    background-color: #f1f5f9 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Prevent awkward page breaks in the middle of rows */
+  tr {
+    page-break-inside: avoid !important;
+  }
+}
+
+

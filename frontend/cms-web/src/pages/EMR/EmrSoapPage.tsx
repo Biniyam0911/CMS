@@ -572,6 +572,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
   // DEDICATED PRESCRIBE MODAL STATE
   // ==========================================
   const [showPrescribeModal, setShowPrescribeModal] = useState(false);
+  const [showPrescriptionSlipModal, setShowPrescriptionSlipModal] = useState(false);
   const [prescribeSearch, setPrescribeSearch] = useState('');
   const [prescribeCategoryFilter, setPrescribeCategoryFilter] = useState('ALL');
   const [prescribeActiveTab, setPrescribeActiveTab] = useState<'catalog' | 'custom'>('catalog');
@@ -821,7 +822,8 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
           gender: p.gender === 1 || p.Gender === 1 ? 'Male' : 'Female',
           blood: p.bloodGroup || p.BloodGroup || '',
           allergies: p.allergies || p.Allergies || 'None',
-          insurance: p.insuranceProvider || p.InsuranceProvider || 'Cash'
+          insurance: p.insuranceProvider || p.InsuranceProvider || 'Cash',
+          visitType: p.visitType || p.VisitType || ''
         }));
         setPatients(mapped);
         const target = mapped.find((p: any) => p.id === selectedPatientId) || mapped[0];
@@ -2188,6 +2190,11 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                             <div style={{ fontWeight: 700, color: isSelected ? '#0369a1' : 'var(--text-main)' }}>
                               {p.name}
                             </div>
+                            {p.visitType && (
+                              <div style={{ fontSize: '0.67rem', fontWeight: 600, color: p.visitType === 'New' ? '#0369a1' : (p.visitType === 'Repeat' ? '#059669' : '#d97706'), marginTop: '1px' }}>
+                                • {p.visitType} Visit
+                              </div>
+                            )}
                             <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
                               {p.mrn} • {p.age}y {p.gender}
                             </div>
@@ -4565,27 +4572,49 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                       <strong style={{ color: '#0f172a' }}>{prescribeBasket.length} Medication(s)</strong>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={handlePrescribeSubmit}
-                      disabled={prescribeBasket.length === 0 || isSubmittingPrescription}
-                      className="btn-primary"
-                      style={{
-                        width: '100%',
-                        padding: '10px',
-                        background: prescribeBasket.length === 0 ? '#94a3b8' : 'linear-gradient(135deg,#059669,#047857)',
-                        borderColor: '#059669',
-                        fontWeight: 700,
-                        fontSize: '0.84rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px'
-                      }}
-                    >
-                      <Send size={15} />
-                      {isSubmittingPrescription ? 'Submitting Prescription...' : `Submit Prescription (${prescribeBasket.length} Meds)`}
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        type="button"
+                        onClick={() => setShowPrescriptionSlipModal(true)}
+                        disabled={prescribeBasket.length === 0}
+                        className="btn-secondary"
+                        style={{
+                          flex: 1,
+                          padding: '10px 8px',
+                          fontWeight: 700,
+                          fontSize: '0.82rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px'
+                        }}
+                        title="Print prescription slip for patient"
+                      >
+                        <Printer size={15} /> Print Rx
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handlePrescribeSubmit}
+                        disabled={prescribeBasket.length === 0 || isSubmittingPrescription}
+                        className="btn-primary"
+                        style={{
+                          flex: 1.6,
+                          padding: '10px 8px',
+                          background: prescribeBasket.length === 0 ? '#94a3b8' : 'linear-gradient(135deg,#059669,#047857)',
+                          borderColor: '#059669',
+                          fontWeight: 700,
+                          fontSize: '0.84rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        <Send size={15} />
+                        {isSubmittingPrescription ? 'Submitting...' : `Submit (${prescribeBasket.length})`}
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -4653,6 +4682,97 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
               <div style={{ marginTop: '54px', paddingTop: '10px' }}>
                 <div style={{ fontWeight: 800, fontSize: '1rem' }}>{showPrintModal.doctorName || certDoctorName}</div>
                 <div style={{ fontSize: '0.82rem', color: '#57534e', fontWeight: 600 }}>{showPrintModal.doctorTitle || certDoctorTitle}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Official Prescription Slip Print Modal */}
+      {showPrescriptionSlipModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(28,25,23,0.75)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '20px' }}>
+          <div className="glass-panel" style={{ width: '740px', maxHeight: '95vh', overflowY: 'auto', padding: '32px', background: '#ffffff', border: '1px solid var(--border-color)', borderRadius: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #e5dfd5', paddingBottom: '12px' }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0369a1' }}>Official Medical Prescription Slip</div>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button onClick={() => window.print()} className="btn-primary" style={{ background: '#059669', borderColor: '#059669' }}>
+                  <Printer size={15} /> Print Prescription / PDF
+                </button>
+                <button onClick={() => setShowPrescriptionSlipModal(false)} className="btn-secondary"><X size={15} /> Close</button>
+              </div>
+            </div>
+
+            <div id="huderma-printable-prescription" style={{ background: '#ffffff', border: '1px solid #d6cec2', padding: '36px 44px', color: '#1c1917', fontFamily: "'Plus Jakarta Sans', Arial, sans-serif" }}>
+              {/* Header with Clinic & Doctor */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #059669', paddingBottom: '16px', marginBottom: '20px' }}>
+                <div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#059669' }}>Huderma Specialty Clinic</div>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>Department of Outpatient Consultation &amp; Clinical Care</div>
+                  <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Tel: +251 949 74 44 44 | Addis Ababa, Ethiopia</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#0f172a' }}>{certDoctorName}</div>
+                  <div style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 600 }}>{certDoctorTitle}</div>
+                  <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>Date: {new Date().toLocaleDateString()}</div>
+                </div>
+              </div>
+
+              {/* Patient Details Banner */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr', gap: '10px', background: '#f8fafc', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.78rem', marginBottom: '22px' }}>
+                <div><strong>Patient:</strong> {activePatient?.name || 'Walk-in Patient'}</div>
+                <div><strong>MRN / Card:</strong> <span style={{ fontFamily: 'monospace', fontWeight: 700 }}>{activePatient?.mrn || 'N/A'}</span></div>
+                <div><strong>Age / Sex:</strong> {activePatient?.age ? `${activePatient.age}y` : 'Adult'} · {activePatient?.gender || 'N/A'}</div>
+                <div style={{ gridColumn: '1 / -1', borderTop: '1px solid #e2e8f0', paddingTop: '6px', color: '#334155' }}>
+                  <strong>Clinical Diagnosis / Indication:</strong> {diagnosis || 'Clinical Consultation'}
+                </div>
+              </div>
+
+              {/* Rx Heading */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                <span style={{ fontSize: '1.8rem', fontWeight: 900, fontFamily: 'serif', color: '#059669', fontStyle: 'italic', lineHeight: 1 }}>℞</span>
+                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Prescription Orders</span>
+              </div>
+
+              {/* Items Table */}
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', marginBottom: '28px' }}>
+                <thead>
+                  <tr style={{ background: '#f1f5f9', borderBottom: '1.5px solid #cbd5e1', textAlign: 'left' }}>
+                    <th style={{ padding: '8px 10px', width: '30px' }}>#</th>
+                    <th style={{ padding: '8px 10px' }}>Medication &amp; Dosage</th>
+                    <th style={{ padding: '8px 10px' }}>Route &amp; Frequency</th>
+                    <th style={{ padding: '8px 10px' }}>Duration</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'right' }}>Qty</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {prescribeBasket.map((med, i) => (
+                    <tr key={i} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                      <td style={{ padding: '10px 8px', fontWeight: 700, color: '#64748b' }}>{i + 1}.</td>
+                      <td style={{ padding: '10px 8px' }}>
+                        <div style={{ fontWeight: 700, color: '#0f172a' }}>{med.drugName}</div>
+                        <div style={{ fontSize: '0.72rem', color: '#0369a1', marginTop: '2px' }}>{med.instructions || 'Take as directed'}</div>
+                      </td>
+                      <td style={{ padding: '10px 8px' }}>
+                        <div>{med.dosage} ({med.route})</div>
+                        <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{med.frequency}</div>
+                      </td>
+                      <td style={{ padding: '10px 8px', color: '#334155' }}>{med.duration}</td>
+                      <td style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 800, color: '#0f172a' }}>{med.qty}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {/* Footer with Doctor Signature & Stamp */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '40px', paddingTop: '16px', borderTop: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                  Please present this prescription slip to the clinic dispensary or licensed pharmacy.
+                </div>
+                <div style={{ textAlign: 'center', minWidth: '180px' }}>
+                  <div style={{ borderBottom: '1.5px dashed #000', marginBottom: '6px', height: '35px' }}></div>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 700 }}>{certDoctorName}</div>
+                  <div style={{ fontSize: '0.7rem', color: '#64748b' }}>Prescriber Signature &amp; Stamp</div>
+                </div>
               </div>
             </div>
           </div>

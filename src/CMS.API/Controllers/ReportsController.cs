@@ -300,6 +300,8 @@ public class ReportsController : ControllerBase
             SELECT 
                 AgeGroup,
                 AgeBracket,
+                SUM(CASE WHEN Gender = 1 THEN 1 ELSE 0 END) AS MaleCount,
+                SUM(CASE WHEN Gender = 2 THEN 1 ELSE 0 END) AS FemaleCount,
                 COUNT(1) AS Count
             FROM (
                 SELECT 
@@ -326,7 +328,8 @@ public class ReportsController : ControllerBase
                         WHEN Age BETWEEN 15 AND 29 THEN 4
                         WHEN Age BETWEEN 30 AND 64 THEN 5
                         ELSE 6
-                    END AS SortOrder
+                    END AS SortOrder,
+                    Gender
                 FROM PatientVisits
             ) t
             GROUP BY AgeGroup, AgeBracket, SortOrder
@@ -512,7 +515,22 @@ public class ReportsController : ControllerBase
             FROM InvoiceItems ii WITH (NOLOCK)
             JOIN Invoices i WITH (NOLOCK) ON i.Id = ii.InvoiceId
             WHERE i.TenantId = @TenantId
-              AND ii.ItemType = 4
+              AND (i.StatusId = 4 OR i.PaidAmount >= i.TotalAmount)
+              AND i.TotalAmount > 0
+              AND (
+                  ii.ItemType = 3
+                  OR EXISTS (SELECT 1 FROM Services s WITH (NOLOCK) WHERE s.Name = ii.Description AND s.Category IN ('Procedure', 'Facial'))
+                  OR ii.Description LIKE '%PRP%'
+                  OR ii.Description LIKE '%FACIAL%'
+                  OR ii.Description LIKE '%Treatment%'
+                  OR ii.Description LIKE '%Cryo%'
+                  OR ii.Description LIKE '%Electro%'
+                  OR ii.Description LIKE '%Biopsy%'
+                  OR ii.Description LIKE '%Injection%'
+                  OR ii.Description LIKE '%Scar%'
+                  OR ii.Description LIKE '%Steroid%'
+                  OR ii.Description LIKE '%Peel%'
+              )
               AND (@DateFrom IS NULL OR CAST(i.IssueDate AS DATE) >= @DateFrom)
               AND (@DateTo IS NULL OR CAST(i.IssueDate AS DATE) <= @DateTo)
             GROUP BY ii.Description

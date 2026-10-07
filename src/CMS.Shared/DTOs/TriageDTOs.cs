@@ -30,6 +30,7 @@ public class TriageDto
     public int? AssignedRoomId { get; set; }
     public string? AssignedRoomName { get; set; }
     public string Status { get; set; } = "WaitingTriage";
+    public string? VisitType { get; set; }
     public string? HoldReason { get; set; }
     public int? HoldDurationMin { get; set; }
     public int TriagedBy { get; set; } = 1;
@@ -87,4 +88,5 @@ public class AssignDoctorDto
     public int? AppointmentId { get; set; }
     public int DoctorId { get; set; }
     public int? RoomId { get; set; }
+    public string? VisitType { get; set; }
 }

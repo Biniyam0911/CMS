@@ -63,7 +63,7 @@ export default function TriagePage() {
 
   // Assign Doctor Modal State
   const [showAssignModal, setShowAssignModal] = useState<any>(null);
-  const [selectedDoctorId, setSelectedDoctorId] = useState<number>(1);
+  const [selectedDoctorId, setSelectedDoctorId] = useState<number | ''>('');
   const [selectedRoomId, setSelectedRoomId] = useState<number>(1);
   const [selectedServiceId, setSelectedServiceId] = useState<number>(1);
   const [visitType, setVisitType] = useState<'New' | 'New Repeat' | 'Repeat'>('New');
@@ -275,6 +275,8 @@ export default function TriagePage() {
   // Load Real Previous Visits when Assign Doctor modal opens
   const openAssignModalForPatient = async (item: any) => {
     setShowAssignModal(item);
+    const existingDocId = item.assignedDoctorId || item.AssignedDoctorId || item.doctorId || item.DoctorId;
+    setSelectedDoctorId(existingDocId ? Number(existingDocId) : '');
     if (consultationServices.length > 0) {
       setSelectedServiceId(consultationServices[0].id);
     }
@@ -478,11 +480,17 @@ export default function TriagePage() {
   const handleAssignDoctorSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!showAssignModal) return;
+    if (!selectedDoctorId) {
+      setToastMessage('Please select an attending doctor. Doctor selection is mandatory.');
+      setTimeout(() => setToastMessage(null), 3500);
+      return;
+    }
 
     const selectedService = consultationServices.find(s => s.id === selectedServiceId) || consultationServices[0];
     const finalFee = visitType === 'Repeat' ? 0 : (selectedService.fee || 500);
     const patId = Number(showAssignModal.patientId || showAssignModal.PatientId || showAssignModal.id || 1);
     const trgId = Number(showAssignModal.id || showAssignModal.Id || 1);
+    const isReassign = showAssignModal.status === 'AssignedToDoctor' || showAssignModal.Status === 'AssignedToDoctor';
 
     setIsAssigning(true);
     try {
@@ -491,15 +499,15 @@ export default function TriagePage() {
         tenantId: 1,
         triageId: trgId,
         appointmentId: showAssignModal.appointmentId || null,
-        doctorId: selectedDoctorId,
+        doctorId: Number(selectedDoctorId),
         roomId: selectedRoomId,
         consultationServiceName: selectedService.name,
         consultationFee: finalFee,
         visitType: visitType
       });
 
-      // 2. Real Database Billing Invoice Creation for Paid Visits
-      if (finalFee > 0) {
+      // 2. Real Database Billing Invoice Creation for Paid Visits (Only for fresh assignments)
+      if (finalFee > 0 && !isReassign) {
         let currentUserId = 1;
         try {
           const savedUser = localStorage.getItem('current_user');
@@ -513,6 +521,7 @@ export default function TriagePage() {
           await api.post('/billing/invoices', {
             tenantId: 1,
             patientId: patId,
+            doctorId: Number(selectedDoctorId),
             encounterId: null, // At triage assign stage, no encounter exists yet
             createdBy: currentUserId,
             items: [
@@ -533,12 +542,14 @@ export default function TriagePage() {
       }
 
       const assignedDoc = doctors.find(d => d.id === selectedDoctorId);
-      const doctorName = assignedDoc?.name || 'Dr. Kebede Biniyam';
+      const doctorName = assignedDoc?.name || 'Attending Doctor';
 
       setToastMessage(
-        visitType === 'Repeat'
-          ? `Routed to ${doctorName} (Repeat Visit • Free / Br 0.00)`
-          : `Routed to ${doctorName} & Invoiced Br ${finalFee.toFixed(2)} in Billing!`
+        isReassign
+          ? `Assignment updated! Patient reassigned to ${doctorName}.`
+          : (visitType === 'Repeat'
+              ? `Routed to ${doctorName} (Repeat Visit • Free / Br 0.00)`
+              : `Routed to ${doctorName} & Invoiced Br ${finalFee.toFixed(2)} in Billing!`)
       );
       setTimeout(() => setToastMessage(null), 5000);
 
@@ -587,12 +598,25 @@ export default function TriagePage() {
     return matchesStatus && matchesSearch;
   });
 
+  // Sort Queue: Assigned patients are sorted and grouped with their assigned doctor
+  const sortedQueue = [...filteredQueue].sort((a, b) => {
+    const isAssignedA = a.status === 'AssignedToDoctor';
+    const isAssignedB = b.status === 'AssignedToDoctor';
+    if (isAssignedA && isAssignedB) {
+      const docA = (a.assignedDoctorName || 'ZZZ').toLowerCase();
+      const docB = (b.assignedDoctorName || 'ZZZ').toLowerCase();
+      if (docA !== docB) return docA.localeCompare(docB);
+      return (a.patientName || '').localeCompare(b.patientName || '');
+    }
+    return 0;
+  });
+
   // Pagination for Queue
-  const totalCount = filteredQueue.length;
+  const totalCount = sortedQueue.length;
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
   const startIndex = (currentPage - 1) * pageSize;
   const endIndex = Math.min(startIndex + pageSize, totalCount);
-  const paginatedQueue = filteredQueue.slice(startIndex, endIndex);
+  const paginatedQueue = sortedQueue.slice(startIndex, endIndex);
 
   // Filter patients for the New Triage Search Modal
   const filteredNewPatients = patients.filter(p => {
@@ -791,6 +815,21 @@ export default function TriagePage() {
                     <td>
                       <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{item.patientName}</div>
                       <div style={{ fontSize: '0.72rem', color: '#0369a1', fontFamily: 'monospace' }}>{item.mrn} ({item.tokenNumber})</div>
+                      {item.visitType && (
+                        <span style={{
+                          display: 'inline-block',
+                          marginTop: '3px',
+                          padding: '1px 6px',
+                          borderRadius: '4px',
+                          fontSize: '0.65rem',
+                          fontWeight: 700,
+                          background: item.visitType === 'New' ? '#dbeafe' : (item.visitType === 'Repeat' ? '#dcfce7' : '#fef3c7'),
+                          color: item.visitType === 'New' ? '#1e40af' : (item.visitType === 'Repeat' ? '#166534' : '#92400e'),
+                          border: `1px solid ${item.visitType === 'New' ? '#bfdbfe' : (item.visitType === 'Repeat' ? '#bbf7d0' : '#fde68a')}`
+                        }}>
+                          {item.visitType} Visit
+                        </span>
+                      )}
                     </td>
                     <td>{getTriageBadge(item.triageCategory)}</td>
                     <td style={{ fontSize: '0.78rem' }}>
@@ -827,14 +866,25 @@ export default function TriagePage() {
                             <PauseCircle size={13} /> Hold
                           </button>
                         )}
-                        <button
-                          onClick={() => openAssignModalForPatient(item)}
-                          className="btn-primary"
-                          style={{ padding: '3px 7px', fontSize: '0.72rem' }}
-                          title="Assign Doctor & Consultation Service"
-                        >
-                          <UserCheck size={13} /> Assign
-                        </button>
+                        {item.status === 'AssignedToDoctor' ? (
+                          <button
+                            onClick={() => openAssignModalForPatient(item)}
+                            className="btn-secondary"
+                            style={{ padding: '3px 7px', fontSize: '0.72rem', borderColor: '#0284c7', color: '#0284c7', background: '#f0f9ff' }}
+                            title="Change Assigned Doctor"
+                          >
+                            <UserCheck size={13} /> Change Doctor
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => openAssignModalForPatient(item)}
+                            className="btn-primary"
+                            style={{ padding: '3px 7px', fontSize: '0.72rem' }}
+                            title="Assign Doctor & Consultation Service"
+                          >
+                            <UserCheck size={13} /> Assign
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -879,7 +929,22 @@ export default function TriagePage() {
                 <div>
                   <div style={{ fontSize: '0.7rem', color: '#0284c7', fontWeight: 700 }}>RECORDING VITALS FOR:</div>
                   <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>{selectedItem.patientName}</h3>
-                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>{selectedItem.mrn}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>{selectedItem.mrn}</span>
+                    {selectedItem.visitType && (
+                      <span style={{
+                        padding: '1px 6px',
+                        borderRadius: '4px',
+                        fontSize: '0.65rem',
+                        fontWeight: 700,
+                        background: selectedItem.visitType === 'New' ? '#dbeafe' : (selectedItem.visitType === 'Repeat' ? '#dcfce7' : '#fef3c7'),
+                        color: selectedItem.visitType === 'New' ? '#1e40af' : (selectedItem.visitType === 'Repeat' ? '#166534' : '#92400e'),
+                        border: `1px solid ${selectedItem.visitType === 'New' ? '#bfdbfe' : (selectedItem.visitType === 'Repeat' ? '#bbf7d0' : '#fde68a')}`
+                      }}>
+                        {selectedItem.visitType} Visit
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                   {saveSuccess && <span className="badge badge-normal"><CheckCircle2 size={11} /> Saved</span>}
@@ -1075,12 +1140,16 @@ export default function TriagePage() {
                 
                 {/* Attending Doctor Selection */}
                 <div>
-                  <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Attending Doctor (On-Duty)</label>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                    Attending Doctor <span style={{ color: '#dc2626' }}>* (Mandatory)</span>
+                  </label>
                   <select
+                    required
                     value={selectedDoctorId}
-                    onChange={e => setSelectedDoctorId(parseInt(e.target.value))}
-                    style={{ fontWeight: 600, color: 'var(--text-main)' }}
+                    onChange={e => setSelectedDoctorId(e.target.value ? parseInt(e.target.value) : '')}
+                    style={{ fontWeight: 600, color: selectedDoctorId ? 'var(--text-main)' : 'var(--text-muted)' }}
                   >
+                    <option value="">-- Select Attending Doctor (Mandatory) --</option>
                     {doctors.map(d => (
                       <option key={d.id} value={d.id}>
                         {d.name} ({d.specialty})
@@ -1175,9 +1244,9 @@ export default function TriagePage() {
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '6px' }}>
                   <button type="button" onClick={() => setShowAssignModal(null)} className="btn-secondary" disabled={isAssigning}>Cancel</button>
-                  <button type="submit" className="btn-primary" disabled={isAssigning}>
+                  <button type="submit" className="btn-primary" disabled={isAssigning || !selectedDoctorId}>
                     {isAssigning ? <Loader2 size={14} className="animate-spin" /> : <ArrowRight size={14} />}
-                    {isAssigning ? 'Routing Patient...' : 'Dispatch & Route Patient'}
+                    {isAssigning ? 'Routing Patient...' : ((showAssignModal?.status === 'AssignedToDoctor' || showAssignModal?.Status === 'AssignedToDoctor') ? 'Update Doctor Assignment' : 'Dispatch & Route Patient')}
                   </button>
                 </div>
               </form>

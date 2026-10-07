@@ -54,7 +54,21 @@ export default function App() {
     // If we have a saved user, assume the cookie is still valid (server will 401 if not)
     return sessionStorage.getItem('current_user') || localStorage.getItem('current_user') ? 'cookie' : null;
   });
-  const [activeModule, setActiveModule] = useState<ModuleKey>('DASHBOARD');
+  const [activeModule, setActiveModule] = useState<ModuleKey>(() => {
+    try {
+      const saved = sessionStorage.getItem('current_user') || localStorage.getItem('current_user');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.roles) {
+          const firstAllowed = MODULE_ITEMS.find(
+            m => m.key !== 'CHANGE_PASSWORD' && hasModuleAccess(parsed.roles, m.key)
+          );
+          if (firstAllowed) return firstAllowed.key;
+        }
+      }
+    } catch {}
+    return 'DASHBOARD';
+  });
   const [selectedEmrPatientId, setSelectedEmrPatientId] = useState<number | null>(null);
   const [disabledModules, setDisabledModules] = useState<Set<string>>(() => {
     try {
@@ -272,6 +286,20 @@ export default function App() {
       window.removeEventListener('module_state_changed', handleModuleStateChange);
     };
   }, [user]);
+
+  // Ensure activeModule is always permitted for user; redirect to first allowed module if not
+  useEffect(() => {
+    if (user?.roles && user.roles.length > 0) {
+      if (!hasModuleAccess(user.roles, activeModule)) {
+        const firstAllowed = MODULE_ITEMS.find(
+          m => m.key !== 'CHANGE_PASSWORD' && hasModuleAccess(user.roles, m.key)
+        );
+        if (firstAllowed) {
+          setActiveModule(firstAllowed.key);
+        }
+      }
+    }
+  }, [user, activeModule]);
 
   // Idle Inactivity Tracker for Configurable Session Timeout
   useEffect(() => {

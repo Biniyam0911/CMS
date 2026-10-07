@@ -83,6 +83,7 @@ export default function BillingPage() {
   const [isFreeInvoice, setIsFreeInvoice] = useState(false);
   const [vatPercent, setVatPercent] = useState<number>(0.0);
   const [isVerifyingTransfer, setIsVerifyingTransfer] = useState(false);
+  const [isReimbursing, setIsReimbursing] = useState(false);
   const [clinicProfile, setClinicProfile] = useState<{ name: string; address: string; phone: string }>({
     name: 'Specialty Clinic',
     address: 'Addis Ababa, Ethiopia',
@@ -209,11 +210,13 @@ export default function BillingPage() {
             invoiceNo: inv.invoiceNo || inv.InvoiceNo || `INV-1-${inv.id}`,
             patientId: inv.patientId || inv.PatientId,
             patientName: inv.patientName || inv.PatientName || `Patient #${inv.patientId}`,
+            doctorName: inv.doctorName || inv.DoctorName || '',
+            doctorId: inv.doctorId || inv.DoctorId || null,
             issueDate: inv.issueDate ? String(inv.issueDate).split('T')[0] : new Date().toISOString().split('T')[0],
             subtotal: inv.subTotal || inv.SubTotal || 0,
             vat: inv.taxAmount || inv.TaxAmount || 0,
             total: inv.totalAmount || inv.TotalAmount || 0,
-            paid: inv.paidAmount || inv.PaidAmount || 0,
+            paid: isWaived ? 0 : (inv.paidAmount || inv.PaidAmount || 0),
             isWaived: isWaived,
             status: isWaived ? 'Waived' : (inv.statusName || (inv.statusId === 4 ? 'Paid' : (inv.statusId === 3 ? 'PartiallyPaid' : 'Issued'))),
             insuranceProviderId: inv.insuranceProviderId || inv.InsuranceProviderId,
@@ -303,11 +306,13 @@ export default function BillingPage() {
             invoiceNo: inv.invoiceNo || inv.InvoiceNo || `INV-1-${inv.id}`,
             patientId: inv.patientId || inv.PatientId,
             patientName: inv.patientName || inv.PatientName || `Patient #${inv.patientId}`,
+            doctorName: inv.doctorName || inv.DoctorName || '',
+            doctorId: inv.doctorId || inv.DoctorId || null,
             issueDate: inv.issueDate ? String(inv.issueDate).split('T')[0] : new Date().toISOString().split('T')[0],
             subtotal: inv.subTotal || inv.SubTotal || 0,
             vat: inv.taxAmount || inv.TaxAmount || 0,
             total: inv.totalAmount || inv.TotalAmount || 0,
-            paid: inv.paidAmount || inv.PaidAmount || 0,
+            paid: isWaived ? 0 : (inv.paidAmount || inv.PaidAmount || 0),
             isWaived,
             status: isWaived ? 'Waived' : (inv.statusName || (inv.statusId === 4 ? 'Paid' : (inv.statusId === 3 ? 'PartiallyPaid' : 'Issued'))),
             insuranceProviderId: inv.insuranceProviderId || inv.InsuranceProviderId,
@@ -567,6 +572,36 @@ export default function BillingPage() {
   };
   // ────────────────────────────────────────────────────────────────────
 
+  const handleReimburseInvoice = async (invoiceId: number) => {
+    if (!window.confirm('Are you sure you want to reimburse this invoice? The status will revert to Pending (Issued) and the paid amount will reset to Br 0.00.')) {
+      return;
+    }
+    try {
+      setIsReimbursing(true);
+      await api.post(`/billing/invoices/${invoiceId}/reimburse`);
+      setInvoices(prev => prev.map(inv => {
+        if (inv.id === invoiceId) {
+          return { ...inv, paid: 0, status: 'Issued', statusId: 2 };
+        }
+        return inv;
+      }));
+      setSelectedInvoice((prev: any) => {
+        if (prev && prev.id === invoiceId) {
+          return { ...prev, paid: 0, status: 'Issued', statusId: 2 };
+        }
+        return prev;
+      });
+      setPaySuccessMsg('✓ Invoice reimbursed successfully! Status is now Pending (Issued) and Paid Amount is Br 0.00.');
+      setTimeout(() => setPaySuccessMsg(null), 4000);
+      await fetchInvoicesOnly();
+    } catch (err: any) {
+      console.error('Failed to reimburse invoice:', err);
+      alert(`Reimbursement failed: ${err?.message || 'Server error'}`);
+    } finally {
+      setIsReimbursing(false);
+    }
+  };
+
   const handleProcessPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedInvoice) return;
@@ -698,7 +733,10 @@ export default function BillingPage() {
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ display: 'flex', gap: '8px' }} className="no-print">
+          <button onClick={() => window.print()} className="btn-secondary" style={{ padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Printer size={14} /> Print Invoices List
+          </button>
           <button onClick={() => fetchInvoicesAndPatients()} className="btn-secondary" style={{ padding: '6px 10px' }}>
             <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
           </button>
@@ -709,7 +747,7 @@ export default function BillingPage() {
       </div>
 
       {/* Primary Module Tabs: Invoices vs Insurance Claims */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '14px', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '4px', maxWidth: '100%' }}>
+      <div className="no-print" style={{ display: 'flex', gap: '8px', marginBottom: '14px', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '4px', maxWidth: '100%' }}>
         <button
           onClick={() => setBillingTab('invoices')}
           className={billingTab === 'invoices' ? 'btn-primary' : 'btn-secondary'}
@@ -727,7 +765,7 @@ export default function BillingPage() {
       </div>
 
       {/* Date Period Filter Bar */}
-      <div style={{
+      <div className="no-print" style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -852,7 +890,7 @@ export default function BillingPage() {
           <div className="glass-panel" style={{ padding: '18px' }}>
             
             {/* Search & Status Filter */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', gap: '10px', flexWrap: 'wrap' }}>
+            <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', gap: '10px', flexWrap: 'wrap' }}>
               <div style={{ position: 'relative', width: isMobile ? '100%' : '280px' }}>
                 <Search size={15} color="var(--text-muted)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
                 <input
@@ -922,6 +960,15 @@ export default function BillingPage() {
               </div>
             </div>
 
+            {/* Print-only Header */}
+            <div className="print-only" style={{ display: 'none', marginBottom: '16px', textAlign: 'center' }}>
+              <h2 style={{ margin: '0 0 4px 0', fontSize: '18px', fontWeight: 800 }}>{clinicProfile.name}</h2>
+              <h3 style={{ margin: '0 0 4px 0', fontSize: '14px', fontWeight: 700, color: '#334155' }}>Invoices &amp; Revenue Ledger</h3>
+              <p style={{ margin: 0, fontSize: '11px', color: '#64748b' }}>
+                Period: {datePeriod} | Filter Date: {filterDate || 'All Dates'} | Status: {statusFilter} | Generated: {new Date().toLocaleDateString()}
+              </p>
+            </div>
+
             {/* Invoices List */}
             <div className="table-responsive">
               <table className="cms-table">
@@ -929,6 +976,7 @@ export default function BillingPage() {
                   <tr>
                     <th>Invoice No</th>
                     <th>Patient Name</th>
+                    <th>Doctor</th>
                     <th>Date</th>
                     <th>Total (Br)</th>
                     <th>Paid</th>
@@ -938,14 +986,14 @@ export default function BillingPage() {
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+                      <td colSpan={7} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
                         <Loader2 size={20} className="animate-spin" style={{ margin: '0 auto 6px' }} />
                         Loading invoices from database...
                       </td>
                     </tr>
                   ) : filteredInvoices.length === 0 ? (
                     <tr>
-                      <td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+                      <td colSpan={7} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
                         No invoices match your filter.
                       </td>
                     </tr>
@@ -981,13 +1029,20 @@ export default function BillingPage() {
                           <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{inv.patientName}</div>
                         </td>
                         <td>
+                          <div style={{ fontWeight: 600, color: '#0369a1', fontSize: '0.78rem' }}>
+                            {inv.doctorName || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>—</span>}
+                          </div>
+                        </td>
+                        <td>
                           <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{inv.issueDate}</span>
                         </td>
                         <td>
                           <strong style={{ color: 'var(--text-main)' }}>Br {inv.total.toFixed(2)}</strong>
                         </td>
                         <td>
-                          <span style={{ color: '#059669', fontWeight: 600 }}>Br {inv.paid.toFixed(2)}</span>
+                          <span style={{ color: '#059669', fontWeight: 600 }}>
+                            Br {(inv.isWaived || inv.status === 'Waived' ? 0 : (inv.paid || 0)).toFixed(2)}
+                          </span>
                         </td>
                         <td>{getStatusBadge(inv.status)}</td>
                       </tr>
@@ -999,14 +1054,17 @@ export default function BillingPage() {
           </div>
 
           {/* Right: Selected Invoice Detail & Cashier Panel */}
-          <div className="glass-panel" style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div className="glass-panel no-print" style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
             {selectedInvoice ? (
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', marginBottom: '12px' }}>
                   <div>
                     <div style={{ fontSize: '0.7rem', color: '#0369a1', fontWeight: 700 }}>INVOICE DOSSIER</div>
                     <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>{selectedInvoice.invoiceNo}</h3>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{selectedInvoice.patientName}</span>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{selectedInvoice.patientName}</div>
+                    <div style={{ fontSize: '0.74rem', color: '#0284c7', fontWeight: 600, marginTop: '2px' }}>
+                      Attending Doctor: {selectedInvoice.doctorName || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Not specified</span>}
+                    </div>
                   </div>
                   <div>{getStatusBadge(selectedInvoice.status)}</div>
                 </div>
@@ -1303,6 +1361,19 @@ export default function BillingPage() {
                   >
                     <Printer size={14} /> Print Official Receipt / ERCA Tax Invoice
                   </button>
+
+                  {(selectedInvoice.paid > 0 || selectedInvoice.status === 'Paid' || selectedInvoice.status === 'PartiallyPaid') && (
+                    <button
+                      type="button"
+                      onClick={() => handleReimburseInvoice(selectedInvoice.id)}
+                      disabled={isReimbursing}
+                      className="btn-secondary"
+                      style={{ width: '100%', justifyContent: 'center', background: '#fff1f2', borderColor: '#f43f5e', color: '#e11d48', fontWeight: 700 }}
+                      title="Reimburse invoice: Reset paid amount to 0 and revert status to Issued (Pending)"
+                    >
+                      {isReimbursing ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />} Reimburse Invoice (Reset to Pending)
+                    </button>
+                  )}
                 </div>
               </div>
             ) : (
@@ -1611,6 +1682,7 @@ export default function BillingPage() {
                 <div><strong>Fiscal Rec #:</strong> <span style={{ fontFamily: 'monospace', fontWeight: 700 }}>{showReceiptModal.fiscalReceiptNo || 'PENDING-FISCAL'}</span></div>
                 <div><strong>Date &amp; Time:</strong> {showReceiptModal.issueDate}</div>
                 <div><strong>Patient Name:</strong> {showReceiptModal.patientName}</div>
+                <div style={{ gridColumn: isMobile ? 'auto' : '1 / -1' }}><strong>Doctor:</strong> {showReceiptModal.doctorName || 'Attending Physician'}</div>
                 {showReceiptModal.insuranceProviderName && (
                   <div style={{ gridColumn: '1 / -1', color: '#0369a1', fontWeight: 600 }}>
                     Third-Party Payer: {showReceiptModal.insuranceProviderName} ({showReceiptModal.insuranceCoPayPercent}% Co-Pay)

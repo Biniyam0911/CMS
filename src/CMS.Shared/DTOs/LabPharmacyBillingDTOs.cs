@@ -219,6 +219,8 @@ public class InvoiceDto
     public string? FiscalSignature { get; set; }
     public string? FiscalQrPayload { get; set; }
     public bool IsWaived { get; set; } = false;
+    public int? DoctorId { get; set; }
+    public string? DoctorName { get; set; }
     public string? ReceiptImageUrl { get; set; }
     public string? Notes { get; set; }
     public List<InvoiceItemDto> Items { get; set; } = new();
@@ -261,7 +263,8 @@ public record CreateInvoiceDto(
     byte? StatusId = null,
     int? InsuranceProviderId = null,
     decimal? InsuranceCoPayPercent = null,
-    string? PreAuthCode = null);
+    string? PreAuthCode = null,
+    int? DoctorId = null);
 
 public record ProcessPaymentDto(
     byte TenantId, int InvoiceId, int PatientId, decimal Amount, string PaymentMethod, int ReceivedBy, string? Reference = null);
