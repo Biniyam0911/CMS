@@ -34,6 +34,8 @@ interface NurseOrderItem {
 }
 
 export default function NurseOrdersFollowupPage() {
+  const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<NurseOrderItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -41,6 +43,15 @@ export default function NurseOrdersFollowupPage() {
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'PENDING' | 'IN_PROGRESS' | 'COMPLETED'>('ALL');
   const [expandedOrderIds, setExpandedOrderIds] = useState<Set<string | number>>(new Set());
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Date range — default to today
+  const [dateFrom, setDateFrom] = useState(todayStr);
+  const [dateTo, setDateTo] = useState(todayStr);
+  const [datePreset, setDatePreset] = useState<'today' | 'yesterday' | 'week' | 'custom'>('today');
+
+  // Pagination
+  const PAGE_SIZE = 20;
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Late orders tracking synchronized via localStorage and window events
   const [lateOrders, setLateOrders] = useState<Record<string, { patientName: string; orderNo?: string; flaggedAt?: string }>>(() => {
@@ -52,12 +63,29 @@ export default function NurseOrdersFollowupPage() {
     }
   });
 
-  const fetchOrders = async () => {
+  const applyDatePreset = (preset: 'today' | 'yesterday' | 'week' | 'custom') => {
+    const now = new Date();
+    const fmt = (d: Date) => d.toLocaleDateString('en-CA');
+    if (preset === 'today') { setDateFrom(fmt(now)); setDateTo(fmt(now)); }
+    else if (preset === 'yesterday') {
+      const y = new Date(now); y.setDate(y.getDate() - 1);
+      setDateFrom(fmt(y)); setDateTo(fmt(y));
+    } else if (preset === 'week') {
+      const w = new Date(now); w.setDate(w.getDate() - 6);
+      setDateFrom(fmt(w)); setDateTo(fmt(now));
+    }
+    setDatePreset(preset);
+    setCurrentPage(1);
+  };
+
+  const fetchOrders = async (from?: string, to?: string) => {
     setLoading(true);
+    const f = from ?? dateFrom;
+    const t = to ?? dateTo;
     try {
       const [labRes, procRes] = await Promise.all([
-        api.get<any[]>('/laboratory/orders').catch(() => []),
-        api.get<any[]>('/procedures/queue').catch(() => [])
+        api.get<any[]>(`/laboratory/orders?date=${f}`).catch(() => []),
+        api.get<any[]>(`/procedures/queue?date=${f}`).catch(() => [])
       ]);
 
       const mappedList: NurseOrderItem[] = [];
@@ -146,6 +174,7 @@ export default function NurseOrdersFollowupPage() {
       // Sort newest orders first
       mappedList.sort((a, b) => new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime());
       setOrders(mappedList);
+      setCurrentPage(1);
     } catch (err) {
       console.error('Failed to fetch nurse orders:', err);
     } finally {
@@ -262,6 +291,10 @@ export default function NurseOrdersFollowupPage() {
     });
   }, [orders, typeFilter, statusFilter, searchQuery]);
 
+  // Pagination
+  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / PAGE_SIZE));
+  const paginatedOrders = filteredOrders.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
   // Counts
   const counts = useMemo(() => {
     return {
@@ -321,7 +354,7 @@ export default function NurseOrdersFollowupPage() {
 
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <button
-            onClick={fetchOrders}
+            onClick={() => fetchOrders()}
             className="btn-secondary"
             style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem' }}
           >
@@ -342,6 +375,51 @@ export default function NurseOrdersFollowupPage() {
             Collapse All
           </button>
         </div>
+      </div>
+
+      {/* Date Range Toolbar */}
+      <div className="glass-panel" style={{ padding: '12px 16px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px' }}>
+        <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', marginRight: 4 }}>Date Range:</span>
+        {(['today', 'yesterday', 'week'] as const).map(p => (
+          <button
+            key={p}
+            onClick={() => applyDatePreset(p)}
+            style={{
+              padding: '4px 12px', borderRadius: '6px', border: '1px solid',
+              borderColor: datePreset === p ? '#0284c7' : 'var(--border)',
+              background: datePreset === p ? '#e0f2fe' : 'var(--surface)',
+              color: datePreset === p ? '#0284c7' : 'var(--text-main)',
+              fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer'
+            }}
+          >
+            {p === 'today' ? 'Today' : p === 'yesterday' ? 'Yesterday' : 'Last 7 Days'}
+          </button>
+        ))}
+        <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>or custom:</span>
+        <input
+          type="date"
+          value={dateFrom}
+          max={dateTo}
+          onChange={e => { setDateFrom(e.target.value); setDatePreset('custom'); setCurrentPage(1); }}
+          style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border)', fontSize: '0.8rem', background: 'var(--surface)', color: 'var(--text-main)' }}
+        />
+        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>–</span>
+        <input
+          type="date"
+          value={dateTo}
+          min={dateFrom}
+          onChange={e => { setDateTo(e.target.value); setDatePreset('custom'); setCurrentPage(1); }}
+          style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border)', fontSize: '0.8rem', background: 'var(--surface)', color: 'var(--text-main)' }}
+        />
+        <button
+          onClick={() => fetchOrders()}
+          style={{
+            padding: '4px 14px', borderRadius: '6px', border: 'none',
+            background: '#0284c7', color: '#fff', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer'
+          }}
+        >
+          Apply
+        </button>
       </div>
 
       {/* KPI Cards */}
@@ -485,7 +563,7 @@ export default function NurseOrdersFollowupPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredOrders.map(o => {
+                {paginatedOrders.map(o => {
                   const isExpanded = expandedOrderIds.has(o.id);
                   const isLate = isOrderLate(o);
                   const isCompleted = ['approved', 'completed', 'verified'].includes(o.status.toLowerCase());
@@ -710,6 +788,76 @@ export default function NurseOrdersFollowupPage() {
                 })}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* Pagination Toolbar */}
+        {!loading && filteredOrders.length > 0 && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '12px 18px',
+            borderTop: '1px solid var(--border)',
+            background: 'var(--surface)',
+            flexWrap: 'wrap',
+            gap: '8px'
+          }}>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              Showing {Math.min((currentPage - 1) * PAGE_SIZE + 1, filteredOrders.length)} to {Math.min(currentPage * PAGE_SIZE, filteredOrders.length)} of {filteredOrders.length} orders
+            </span>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <button
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage === 1}
+                style={{
+                  padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--border)',
+                  background: 'var(--surface)', fontSize: '0.78rem', cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                  opacity: currentPage === 1 ? 0.5 : 1
+                }}
+              >
+                « First
+              </button>
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                style={{
+                  padding: '4px 10px', borderRadius: '4px', border: '1px solid var(--border)',
+                  background: 'var(--surface)', fontSize: '0.78rem', cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                  opacity: currentPage === 1 ? 0.5 : 1
+                }}
+              >
+                ‹ Prev
+              </button>
+
+              <span style={{ fontSize: '0.8rem', fontWeight: 600, padding: '0 8px' }}>
+                Page {currentPage} of {totalPages}
+              </span>
+
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                style={{
+                  padding: '4px 10px', borderRadius: '4px', border: '1px solid var(--border)',
+                  background: 'var(--surface)', fontSize: '0.78rem', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                  opacity: currentPage === totalPages ? 0.5 : 1
+                }}
+              >
+                Next ›
+              </button>
+              <button
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={currentPage === totalPages}
+                style={{
+                  padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--border)',
+                  background: 'var(--surface)', fontSize: '0.78rem', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                  opacity: currentPage === totalPages ? 0.5 : 1
+                }}
+              >
+                Last »
+              </button>
+            </div>
           </div>
         )}
       </div>

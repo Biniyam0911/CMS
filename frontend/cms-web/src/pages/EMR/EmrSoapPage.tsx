@@ -2069,8 +2069,11 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
       <style>{`
         @media print {
           body * { visibility: hidden; }
-          #huderma-printable-certificate, #huderma-printable-certificate * { visibility: visible; }
-          #huderma-printable-certificate {
+          #huderma-printable-certificate, #huderma-printable-certificate *,
+          #huderma-printable-prescription, #huderma-printable-prescription * {
+            visibility: visible;
+          }
+          #huderma-printable-certificate, #huderma-printable-prescription {
             position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 24px;
             background: #ffffff !important; box-shadow: none !important; border: none !important;
           }
@@ -4761,7 +4764,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #e5dfd5', paddingBottom: '12px' }}>
               <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0369a1' }}>Official Medical Certificate Document</div>
               <div style={{ display: 'flex', gap: '10px' }}>
-                <button onClick={() => window.print()} className="btn-primary" style={{ background: '#c89345', borderColor: '#c89345' }}>
+                <button onClick={printCertificateDocument} className="btn-primary" style={{ background: '#c89345', borderColor: '#c89345' }}>
                   <Printer size={15} /> Print Certificate / Save as PDF
                 </button>
                 <button onClick={() => setShowPrintModal(null)} className="btn-secondary"><X size={15} /> Close</button>
@@ -4824,7 +4827,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #e5dfd5', paddingBottom: '12px' }}>
               <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0369a1' }}>Official Medical Prescription Slip</div>
               <div style={{ display: 'flex', gap: '10px' }}>
-                <button onClick={() => window.print()} className="btn-primary" style={{ background: '#059669', borderColor: '#059669' }}>
+                <button onClick={printPrescriptionSlip} className="btn-primary" style={{ background: '#059669', borderColor: '#059669' }}>
                   <Printer size={15} /> Print Prescription / PDF
                 </button>
                 <button onClick={() => setShowPrescriptionSlipModal(false)} className="btn-secondary"><X size={15} /> Close</button>

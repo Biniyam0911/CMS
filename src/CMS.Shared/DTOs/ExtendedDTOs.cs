@@ -57,7 +57,7 @@ public record ProcedureOrderDto(
     DateTime CreatedAt, DateTime? PerformedAt, string? ProcedureResult);
 
 public record CreateProcedureOrderDto(
-    byte TenantId, int EncounterId, int PatientId, int OrderedBy,
+    byte TenantId, int? EncounterId, int PatientId, int OrderedBy,
     string ProcedureCode, string ProcedureName, string? ClinicalNotes);
 
 public record CompleteProcedureDto(int OrderId, int PerformedBy, string ProcedureResult);

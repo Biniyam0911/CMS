@@ -278,6 +278,39 @@ public class AuthManagementService
         return (true, "User password has been successfully reset.");
     }
 
+    public async Task<bool> UpdateUserRolesAsync(int userId, IEnumerable<string> roleNames)
+    {
+        using var conn = _dbFactory.CreateConnection();
+        // Resolve Role IDs for the given role names
+        var namesList = roleNames?.Distinct().ToList() ?? new List<string>();
+        var roleIds = new List<short>();
+        if (namesList.Count > 0)
+        {
+            roleIds = (await conn.QueryAsync<short>(
+                "SELECT Id FROM Roles WHERE Name IN @Names",
+                new { Names = namesList })).ToList();
+        }
+
+        // Wipe old roles and insert new
+        await conn.ExecuteAsync("DELETE FROM UserRoles WHERE UserId = @UserId", new { UserId = userId });
+        foreach (var rId in roleIds)
+        {
+            await conn.ExecuteAsync(
+                "INSERT INTO UserRoles (UserId, RoleId) VALUES (@UserId, @RoleId)",
+                new { UserId = userId, RoleId = rId });
+        }
+
+        // Also sync primary role on Staff table if this user is a staff member
+        if (roleIds.Count > 0)
+        {
+            await conn.ExecuteAsync(
+                "UPDATE Staff SET PrimaryRoleId = @PrimaryRoleId WHERE UserId = @UserId",
+                new { PrimaryRoleId = (int)roleIds[0], UserId = userId });
+        }
+
+        return true;
+    }
+
     public static string HashPassword(string password, string salt)
     {
         using var sha256 = SHA256.Create();

@@ -92,6 +92,15 @@ public class UsersController : ControllerBase
         return Ok(ApiResponse<object>.Ok(new { Success = rows > 0, Id = id }));
     }
 
+    public record UpdateUserRolesDto(List<string> Roles);
+
+    [HttpPut("{userId:int}/roles")]
+    public async Task<IActionResult> UpdateUserRoles(int userId, [FromBody] UpdateUserRolesDto dto)
+    {
+        var success = await _authService.UpdateUserRolesAsync(userId, dto.Roles ?? new List<string>());
+        return Ok(ApiResponse<object>.Ok(new { Success = success, UserId = userId, Roles = dto.Roles }));
+    }
+
     public record AdminResetPasswordDto(
         string NewPassword,
         string ConfirmPassword

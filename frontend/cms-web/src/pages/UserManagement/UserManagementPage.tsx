@@ -1784,11 +1784,14 @@ export default function UserManagementPage() {
               <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Edit Assigned Roles: {showRoleModal.name}</h3>
               <button onClick={() => setShowRoleModal(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={18} /></button>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', margin: '14px 0 20px' }}>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '12px' }}>
+              Select one or multiple roles for this user. Changes are saved directly to the database.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', margin: '14px 0 20px', maxHeight: '280px', overflowY: 'auto' }}>
               {roles.map(r => {
                 const hasRole = (showRoleModal.roles || []).includes(r.name);
                 return (
-                  <label key={r.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.85rem', cursor: 'pointer' }}>
+                  <label key={r.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.85rem', cursor: 'pointer', padding: '6px 8px', borderRadius: '6px', background: hasRole ? '#f0fdf4' : 'transparent', border: hasRole ? '1px solid #bbf7d0' : '1px solid transparent' }}>
                     <input
                       type="checkbox"
                       checked={hasRole}
@@ -1797,16 +1800,33 @@ export default function UserManagementPage() {
                           ? (showRoleModal.roles || []).filter((x: string) => x !== r.name)
                           : [...(showRoleModal.roles || []), r.name];
                         setShowRoleModal({ ...showRoleModal, roles: updated });
-                        setUsers(users.map(u => u.id === showRoleModal.id ? { ...u, roles: updated } : u));
                       }}
                     />
-                    {r.name}
+                    <span style={{ fontWeight: hasRole ? 600 : 400, color: hasRole ? '#15803d' : 'inherit' }}>{r.name}</span>
                   </label>
                 );
               })}
             </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button onClick={() => setShowRoleModal(null)} className="btn-primary">Done</button>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button onClick={() => setShowRoleModal(null)} className="btn-secondary">Cancel</button>
+              <button
+                onClick={async () => {
+                  try {
+                    const targetId = showRoleModal.id;
+                    const assignedRoles = showRoleModal.roles || [];
+                    await api.put(`/users/${targetId}/roles`, { roles: assignedRoles });
+                    setUsers(users.map(u => u.id === targetId ? { ...u, roles: assignedRoles } : u));
+                    setShowRoleModal(null);
+                    setSaveSuccessToast(`✓ Successfully updated and saved roles for ${showRoleModal.name}!`);
+                    setTimeout(() => setSaveSuccessToast(null), 4000);
+                  } catch (err: any) {
+                    alert(err?.response?.data?.message || err?.message || 'Failed to save roles');
+                  }
+                }}
+                className="btn-primary"
+              >
+                Save Roles
+              </button>
             </div>
           </div>
         </div>

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   CreditCard, DollarSign, Plus, CheckCircle2, Download, Printer, X, Trash2,
   Loader2, Search, Filter, RefreshCw, ArrowRight, FileText, Check, AlertCircle,
@@ -213,6 +213,7 @@ export default function BillingPage() {
             patientName: inv.patientName || inv.PatientName || `Patient #${inv.patientId}`,
             doctorName: inv.doctorName || inv.DoctorName || '',
             doctorId: inv.doctorId || inv.DoctorId || null,
+            rawIssueDate: inv.issueDate || inv.IssueDate || inv.createdAt || inv.CreatedAt || null,
             issueDate: inv.issueDate ? String(inv.issueDate).split('T')[0] : new Date().toISOString().split('T')[0],
             subtotal: inv.subTotal || inv.SubTotal || 0,
             vat: inv.taxAmount || inv.TaxAmount || 0,
@@ -309,6 +310,7 @@ export default function BillingPage() {
             patientName: inv.patientName || inv.PatientName || `Patient #${inv.patientId}`,
             doctorName: inv.doctorName || inv.DoctorName || '',
             doctorId: inv.doctorId || inv.DoctorId || null,
+            rawIssueDate: inv.issueDate || inv.IssueDate || inv.createdAt || inv.CreatedAt || null,
             issueDate: inv.issueDate ? String(inv.issueDate).split('T')[0] : new Date().toISOString().split('T')[0],
             subtotal: inv.subTotal || inv.SubTotal || 0,
             vat: inv.taxAmount || inv.TaxAmount || 0,
@@ -1398,11 +1400,19 @@ export default function BillingPage() {
                     const isPaidOrPartial = selectedInvoice.paid > 0 || selectedInvoice.status === 'Paid' || selectedInvoice.status === 'PartiallyPaid';
                     if (!isPaidOrPartial) return null;
 
-                    // 24-hour reimbursement window check
-                    const invDate = new Date(selectedInvoice.issueDate);
+                    // 24-hour reimbursement window check: works only within 24 hours (or current calendar day)
+                    // If invoice was issued on previous days or > 24 hours ago, disable the button.
                     const now = new Date();
+                    const invDateStr = selectedInvoice.rawIssueDate || selectedInvoice.issueDate;
+                    const invDate = new Date(invDateStr);
                     const hoursDiff = (now.getTime() - invDate.getTime()) / (1000 * 60 * 60);
-                    const isOlderThan24h = hoursDiff > 24;
+
+                    // Also check calendar date: if issueDate is strictly before today's date
+                    const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+                    const invDayStr = selectedInvoice.issueDate;
+                    const isPreviousDay = invDayStr < todayStr;
+
+                    const isOlderThan24h = hoursDiff > 24 || isPreviousDay;
 
                     return (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
