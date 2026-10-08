@@ -286,7 +286,17 @@ public class PayrollController : ControllerBase
                     END
                 ) AS Category,
                 ii.Description AS ServiceName,
-                ISNULL(ii.Total, 0) AS ServicePrice,
+                CASE 
+                    WHEN i.TotalAmount = 0 THEN 0
+                    WHEN EXISTS (
+                        SELECT 1 FROM Payments pm WITH (NOLOCK)
+                        WHERE pm.InvoiceId = i.Id 
+                          AND (pm.PaymentMethod = 4 OR pm.Reference LIKE '%Waiv%' OR pm.Reference LIKE '%Free%')
+                    ) THEN 0
+                    WHEN i.TotalAmount > 0 AND i.PaidAmount > 0 THEN 
+                        ROUND(ii.Total * (CASE WHEN i.PaidAmount > i.TotalAmount THEN i.TotalAmount ELSE i.PaidAmount END / i.TotalAmount), 2)
+                    ELSE 0
+                END AS PaidAmount,
                 ISNULL(p.FirstName + ' ' + ISNULL(p.LastName, ''), 'Patient #' + CAST(p.Id AS NVARCHAR)) AS PatientName,
                 ISNULL(p.MRN, '') AS MRN,
                 ISNULL(i.InvoiceNumber, 'INV-' + CAST(i.Id AS NVARCHAR)) AS InvoiceNumber,
@@ -329,6 +339,13 @@ public class PayrollController : ControllerBase
             ) pa
             WHERE e.TenantId = @TenantId
               AND ii.ItemType IN (1, 4)
+              AND i.StatusId NOT IN (1, 5, 6)
+              AND i.PaidAmount > 0
+              AND NOT EXISTS (
+                  SELECT 1 FROM Payments pm WITH (NOLOCK)
+                  WHERE pm.InvoiceId = i.Id 
+                    AND (pm.PaymentMethod = 4 OR pm.Reference LIKE '%Waiv%' OR pm.Reference LIKE '%Free%')
+              )
               AND (@DoctorId IS NULL OR d.Id = @DoctorId)
               AND (@DateFrom IS NULL OR i.IssueDate >= @DateFrom)
               AND (@DateTo IS NULL OR i.IssueDate <= @DateTo)
@@ -365,7 +382,7 @@ public class PayrollController : ControllerBase
 
                     foreach (var row in dateGrp)
                     {
-                        decimal price = (decimal)row.ServicePrice;
+                        decimal paid = (decimal)row.PaidAmount;
                         byte? rateType = row.RateType != null ? (byte)row.RateType : null;
                         decimal? rate = row.Rate != null ? (decimal)row.Rate : null;
                         bool hasAgreement = (int)row.HasAgreement == 1;
@@ -380,9 +397,9 @@ public class PayrollController : ControllerBase
                                 doctorShare = rate.Value;
                                 rateDisplay = $"ETB {rate.Value:N2} (Fixed)";
                             }
-                            else // Percentage
+                            else // Percentage calculated on paid amount
                             {
-                                doctorShare = Math.Round((rate.Value / 100m) * price, 2);
+                                doctorShare = Math.Round((rate.Value / 100m) * paid, 2);
                                 rateDisplay = $"{rate.Value:G29}%";
                             }
                         }
@@ -395,7 +412,8 @@ public class PayrollController : ControllerBase
                             RateType = rateType ?? 1,
                             Rate = rate ?? 0,
                             RateDisplay = rateDisplay,
-                            ServicePrice = price,
+                            ServicePrice = paid,
+                            PaidAmount = paid,
                             PatientName = (string)row.PatientName,
                             DoctorShare = doctorShare,
                             HasAgreement = hasAgreement
@@ -407,7 +425,7 @@ public class PayrollController : ControllerBase
                         Date = sDate,
                         Services = services,
                         TotalCount = services.Count,
-                        TotalPrice = services.Sum(s => s.ServicePrice),
+                        TotalPrice = services.Sum(s => s.PaidAmount),
                         TotalDoctorShare = services.Sum(s => s.DoctorShare)
                     });
                 }
@@ -511,6 +529,7 @@ public class PayrollServiceItemDto
     public decimal Rate { get; set; }
     public string RateDisplay { get; set; } = string.Empty;
     public decimal ServicePrice { get; set; }
+    public decimal PaidAmount { get; set; }
     public string PatientName { get; set; } = string.Empty;
     public decimal DoctorShare { get; set; }
     public bool HasAgreement { get; set; }

@@ -22,6 +22,7 @@ interface ServiceItem {
   rate: number;
   rateDisplay: string;
   servicePrice: number;
+  paidAmount?: number;
   patientName: string;
   doctorShare: number;
   hasAgreement: boolean;
@@ -1047,7 +1048,7 @@ export default function PayrollPage() {
                                                     <th style={{ padding: '8px 14px', fontWeight: 700 }}>MRN</th>
                                                     <th style={{ padding: '8px 14px', fontWeight: 700 }}>Patient Name</th>
                                                     <th style={{ padding: '8px 14px', fontWeight: 700 }}>Agreement Rate</th>
-                                                    <th style={{ padding: '8px 14px', fontWeight: 700, textAlign: 'right' }}>Price of Service</th>
+                                                    <th style={{ padding: '8px 14px', fontWeight: 700, textAlign: 'right' }}>Paid Amount</th>
                                                     <th style={{ padding: '8px 14px', fontWeight: 700, textAlign: 'right' }}>Doctor's Share</th>
                                                   </tr>
                                                 </thead>
