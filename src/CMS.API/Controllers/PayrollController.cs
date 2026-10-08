@@ -230,7 +230,7 @@ public class PayrollController : ControllerBase
                     {
                         TenantId = tenantId,
                         DoctorId = docId,
-                        Category = item.Category.Trim(),
+                        Category = item.Category?.Trim() ?? string.Empty,
                         RateType = item.RateType == 2 ? (byte)2 : (byte)1,
                         Rate = item.Rate,
                         IsActive = item.IsActive
@@ -349,7 +349,7 @@ public class PayrollController : ControllerBase
               AND (@DoctorId IS NULL OR d.Id = @DoctorId)
               AND (@DateFrom IS NULL OR i.IssueDate >= @DateFrom)
               AND (@DateTo IS NULL OR i.IssueDate <= @DateTo)
-            ORDER BY DoctorName, Category, ServiceDate DESC, ServiceName";
+            ORDER BY DoctorName, Category, ServiceDate ASC, ServiceName";
 
         var rows = await conn.QueryAsync<dynamic>(sql, new
         {
@@ -375,7 +375,7 @@ public class PayrollController : ControllerBase
                 string catName = catGrp.Key;
                 var dateGroups = new List<PayrollDateGroupDto>();
 
-                foreach (var dateGrp in catGrp.GroupBy(r => ((DateTime)r.ServiceDate).ToString("yyyy-MM-dd")))
+                foreach (var dateGrp in catGrp.GroupBy(r => ((DateTime)r.ServiceDate).ToString("yyyy-MM-dd")).OrderBy(g => g.Key))
                 {
                     string sDate = dateGrp.Key;
                     var services = new List<PayrollServiceItemDto>();
