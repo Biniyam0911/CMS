@@ -5,7 +5,7 @@ import {
   FlaskConical, History, Calendar, Check, Send, AlertTriangle, ShieldAlert, Loader2,
   ChevronDown, ChevronRight, ShoppingCart, Pill, Scissors, Clock, ArrowRight,
   Sparkles, CheckSquare, Layers, FileCheck, ShieldCheck, CreditCard, Eye,
-  ChevronLeft, Users, ChevronUp, DollarSign, RefreshCw
+  ChevronLeft, Users, ChevronUp, DollarSign, RefreshCw, Lock
 } from 'lucide-react';
 import { api } from '../../api/apiClient';
 import { evaluateCdsAlerts, CdsAlert } from '../../utils/cdsRuleEngine';
@@ -250,13 +250,36 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Admin check: only users with Admin/SuperAdmin role can change the attending doctor
+  const isAdmin = (() => {
+    const roles: string[] = Array.isArray(currentUser?.roles)
+      ? currentUser.roles
+      : (currentUser?.role ? [currentUser.role] : []);
+    if (roles.some((r: string) => /admin/i.test(r))) return true;
+    const uname = (currentUser?.username || '').toLowerCase();
+    if (uname === 'admin' || uname === 'superadmin') return true;
+    try {
+      const raw = localStorage.getItem('auth_user') || localStorage.getItem('user');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        const localRoles: string[] = Array.isArray(parsed?.roles)
+          ? parsed.roles
+          : (parsed?.role ? [parsed.role] : []);
+        if (localRoles.some((r: string) => /admin/i.test(r))) return true;
+        const localUname = (parsed?.username || '').toLowerCase();
+        if (localUname === 'admin' || localUname === 'superadmin') return true;
+      }
+    } catch {}
+    return false;
+  })();
+
   // Doctor Selector State for Multi-Doctor EMR
-  // Use the doctorId from the logged-in user (set by backend at login) — no hardcoded username checks
+  // If not admin, always lock to the logged-in doctorId
   const initialDoctorId = (() => {
     if (currentUser?.doctorId) return Number(currentUser.doctorId);
     try {
       const saved = localStorage.getItem('emr_selected_doctor_id');
-      if (saved) return Number(saved);
+      if (saved && isAdmin) return Number(saved);
     } catch {}
     return 0;
   })();
@@ -462,10 +485,12 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
           let savedDocId = 0;
           try { savedDocId = Number(localStorage.getItem('emr_selected_doctor_id')); } catch {}
           const savedMatch = docs.find(d => d.id === savedDocId);
-          const chosen = savedMatch || docs[0];
+          const chosen = (isAdmin && savedMatch) ? savedMatch : docs[0];
           if (chosen) {
             setSelectedDoctorId(chosen.id);
-            try { localStorage.setItem('emr_selected_doctor_id', String(chosen.id)); } catch {}
+            if (isAdmin) {
+              try { localStorage.setItem('emr_selected_doctor_id', String(chosen.id)); } catch {}
+            }
             setCertDoctorName(chosen.name);
             setCertDoctorTitle(chosen.specialization ? `${chosen.specialization} Specialist` : 'Physician');
           }
@@ -475,16 +500,21 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
       }
     };
     fetchDoctors();
-  }, [currentUser]);
+  }, [currentUser, isAdmin]);
 
-  // Update selectedDoctorId when currentUser changes
+  // Update selectedDoctorId when currentUser changes and enforce non-admin lock
   useEffect(() => {
     const loggedDocId = Number(currentUser?.doctorId);
-    if (loggedDocId > 0) {
+    if (!isAdmin && loggedDocId > 0) {
+      if (selectedDoctorId !== loggedDocId) {
+        setSelectedDoctorId(loggedDocId);
+      }
+      try { localStorage.setItem('emr_selected_doctor_id', String(loggedDocId)); } catch {}
+    } else if (loggedDocId > 0 && selectedDoctorId === 0) {
       setSelectedDoctorId(loggedDocId);
       try { localStorage.setItem('emr_selected_doctor_id', String(loggedDocId)); } catch {}
     }
-  }, [currentUser]);
+  }, [currentUser, isAdmin, selectedDoctorId]);
 
   // Update certDoctorName and certDoctorTitle when selectedDoctorId changes
   useEffect(() => {
@@ -2234,7 +2264,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>Attending Doctor:</span>
                     <span style={{ fontSize: '0.7rem', color: '#0284c7', fontWeight: 700 }}>{patients.length} Patient{patients.length === 1 ? '' : 's'}</span>
                   </div>
-                  {availableDoctors.length > 1 ? (
+                  {isAdmin && availableDoctors.length > 1 ? (
                     <select
                       value={selectedDoctorId}
                       onChange={e => {
@@ -2265,9 +2295,16 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                       ))}
                     </select>
                   ) : (
-                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }}></span>
-                      {availableDoctors[0]?.name || 'Attending Physician'}
+                    <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }}></span>
+                        <span>{availableDoctors.find(d => d.id === selectedDoctorId)?.name || availableDoctors[0]?.name || 'Attending Physician'}</span>
+                      </div>
+                      {!isAdmin && (
+                        <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '3px', background: '#e2e8f0', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }} title="Only administrators can switch the attending doctor queue">
+                          <Lock size={10} /> Locked
+                        </span>
+                      )}
                     </div>
                   )}
                 </div>
@@ -2794,12 +2831,25 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                 <div>
-                  <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>Attending Doctor</label>
-                  <input type="text" value={certDoctorName} onChange={e => setCertDoctorName(e.target.value)} required />
+                  <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>Attending Doctor {!isAdmin && '(Locked)'}</label>
+                  <input
+                    type="text"
+                    value={certDoctorName}
+                    onChange={e => { if (isAdmin) setCertDoctorName(e.target.value); }}
+                    readOnly={!isAdmin}
+                    style={{ background: !isAdmin ? '#f1f5f9' : '#ffffff', cursor: !isAdmin ? 'not-allowed' : 'text' }}
+                    required
+                  />
                 </div>
                 <div>
-                  <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>Designation</label>
-                  <input type="text" value={certDoctorTitle} onChange={e => setCertDoctorTitle(e.target.value)} />
+                  <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>Designation {!isAdmin && '(Locked)'}</label>
+                  <input
+                    type="text"
+                    value={certDoctorTitle}
+                    onChange={e => { if (isAdmin) setCertDoctorTitle(e.target.value); }}
+                    readOnly={!isAdmin}
+                    style={{ background: !isAdmin ? '#f1f5f9' : '#ffffff', cursor: !isAdmin ? 'not-allowed' : 'text' }}
+                  />
                 </div>
               </div>
 
