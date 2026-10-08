@@ -211,6 +211,7 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
         
         let filtered = rows.map((inv: any) => ({
           invoiceNo: inv.invoiceNo || inv.InvoiceNo || `INV-${inv.id}`,
+          mrn: inv.mrn || inv.MRN || '',
           patientName: inv.patientName || inv.PatientName || 'Patient',
           receptionist: inv.receptionist || inv.Receptionist || 'Reception Staff',
           doctorName: inv.doctorName || inv.DoctorName || 'Attending Doctor',
@@ -221,7 +222,8 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
           totalAmount: Number(inv.totalAmount || inv.TotalAmount || 0),
           paidAmount: Number(inv.paidAmount || inv.PaidAmount || 0),
           status: inv.status || inv.Status || 'Paid',
-          isWaived: Boolean(inv.isWaived ?? inv.IsWaived)
+          isWaived: Boolean(inv.isWaived ?? inv.IsWaived),
+          category: inv.category || inv.Category || 'Consultation'
         }));
 
         if (selectedPaymentStatus === 'PAID') {
@@ -879,14 +881,13 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
                   {reportType === 'REPORT_SALES' && (
                     <>
                       <th>Invoice No</th>
+                      <th>MRN</th>
                       <th>Patient Name</th>
+                      <th>Doctor</th>
                       <th>Receptionist / Cashier</th>
                       <th>Issue Date</th>
-                      <th style={{ textAlign: 'right' }}>SubTotal (Br)</th>
-                      <th style={{ textAlign: 'right' }}>VAT 15% (Br)</th>
-                      <th style={{ textAlign: 'right' }}>Total (Br)</th>
+                      <th>Category</th>
                       <th style={{ textAlign: 'right' }}>Paid (Br)</th>
-                      <th>Status</th>
                     </>
                   )}
                   {reportType === 'REPORT_AGE_STRATIFIED' && (
@@ -949,20 +950,25 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
                 {reportType === 'REPORT_SALES' && data.map((r, i) => (
                   <tr key={i}>
                     <td style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0284c7' }}>{r.invoiceNo}</td>
+                    <td style={{ fontFamily: 'monospace', fontSize: '0.82em' }}>{r.mrn}</td>
                     <td style={{ fontWeight: 600 }}>{r.patientName}</td>
+                    <td style={{ fontSize: '0.88em' }}>{r.doctorName}</td>
                     <td>{r.receptionist}</td>
                     <td>{r.issueDate}</td>
-                    <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>Br {r.subTotal.toFixed(2)}</td>
-                    <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>Br {r.taxAmount.toFixed(2)}</td>
-                    <td style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 700 }}>Br {r.totalAmount.toFixed(2)}</td>
-                    <td style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, color: '#059669' }}>Br {r.paidAmount.toFixed(2)}</td>
                     <td>
-                      <span className={r.status === 'Paid' ? 'badge badge-normal' : 'badge badge-warning'}>
-                        {r.status}
-                      </span>
+                      <span style={{ fontSize: '0.82em', fontWeight: 600, color: '#0369a1' }}>{r.category}</span>
                     </td>
+                    <td style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, color: '#059669' }}>Br {r.paidAmount.toFixed(2)}</td>
                   </tr>
                 ))}
+                {reportType === 'REPORT_SALES' && data.length > 0 && (
+                  <tr style={{ borderTop: '2px solid #334155', background: '#f1f5f9' }}>
+                    <td colSpan={7} style={{ fontWeight: 800, fontSize: '0.9rem', textAlign: 'right', padding: '8px 12px' }}>TOTAL PAID</td>
+                    <td style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 900, fontSize: '0.95rem', color: '#059669', padding: '8px 12px' }}>
+                      Br {data.reduce((s: number, r: any) => s + r.paidAmount, 0).toFixed(2)}
+                    </td>
+                  </tr>
+                )}
 
                 {reportType === 'REPORT_AGE_STRATIFIED' && data.map((r, i) => (
                   <tr key={i}>

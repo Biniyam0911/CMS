@@ -341,6 +341,9 @@ input:focus, select:focus, textarea:focus {
     margin: 0 !important;
     width: 100% !important;
     box-shadow: none !important;
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
   }
 
   /* Expand table and containers across full printable page width */

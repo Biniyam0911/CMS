@@ -244,6 +244,7 @@ public class ReportsController : ControllerBase
         var sql = @"
             SELECT 
                 i.InvoiceNumber AS InvoiceNo,
+                ISNULL(p.MRN, '') AS MRN,
                 ISNULL(p.FirstName + ' ' + ISNULL(p.MiddleName + ' ', '') + p.LastName, 'Patient') AS PatientName,
                 ISNULL(u.FirstName + ' ' + u.LastName, ISNULL(u.Username, 'Reception Staff')) AS Receptionist,
                 ISNULL(doc.Title + ' ' + doc.FirstName + ' ' + doc.LastName, 'Attending Doctor') AS DoctorName,
@@ -276,13 +277,33 @@ public class ReportsController : ControllerBase
                           AND (pm.PaymentMethod = 4 OR pm.Reference LIKE '%Waiv%' OR pm.Reference LIKE '%Free%')
                     ) THEN CAST(1 AS BIT)
                     ELSE CAST(0 AS BIT)
-                END AS IsWaived
+                END AS IsWaived,
+                ISNULL(icat.Category, 'Consultation') AS Category
             FROM Invoices i WITH (NOLOCK)
             LEFT JOIN Patients p WITH (NOLOCK) ON p.Id = i.PatientId
             LEFT JOIN InvoiceStatuses s WITH (NOLOCK) ON s.Id = i.StatusId
             LEFT JOIN Users u WITH (NOLOCK) ON u.Id = i.CreatedBy
             LEFT JOIN Doctors d WITH (NOLOCK) ON d.Id = i.DoctorId
             LEFT JOIN Staff doc WITH (NOLOCK) ON doc.Id = d.StaffId
+            CROSS APPLY (
+                SELECT STRING_AGG(cat.CategoryName, ', ') WITHIN GROUP (ORDER BY cat.CategoryName) AS Category
+                FROM (
+                    SELECT DISTINCT
+                        CASE
+                            WHEN ii.ItemType = 2 OR s2.Category = 'Laboratory' THEN 'Laboratory'
+                            WHEN ii.ItemType = 3 OR ii.ItemType = 4 OR s2.Category IN ('Procedure', 'Facial')
+                                 OR ii.Description LIKE '%Treatment%' OR ii.Description LIKE '%PRP%'
+                                 OR ii.Description LIKE '%Cryo%' OR ii.Description LIKE '%Electro%'
+                                 OR ii.Description LIKE '%Biopsy%' OR ii.Description LIKE '%Injection%'
+                                 OR ii.Description LIKE '%Scar%' OR ii.Description LIKE '%Peel%'
+                                 OR ii.Description LIKE '%Steroid%' THEN 'Procedure'
+                            ELSE 'Consultation'
+                        END AS CategoryName
+                    FROM InvoiceItems ii WITH (NOLOCK)
+                    LEFT JOIN Services s2 WITH (NOLOCK) ON s2.Name = ii.Description
+                    WHERE ii.InvoiceId = i.Id
+                ) cat
+            ) icat
             WHERE i.TenantId = @TenantId
               AND i.TotalAmount > 0
               AND (@DateFrom IS NULL OR CAST(i.IssueDate AS DATE) >= @DateFrom)

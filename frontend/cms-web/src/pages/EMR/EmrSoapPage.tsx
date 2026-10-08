@@ -573,10 +573,10 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
           <title>Prescription Slip - ${activePatient?.name || 'Patient'}</title>
           <style>
             * { box-sizing: border-box; margin: 0; padding: 0; }
-            body { font-family: 'Plus Jakarta Sans', Arial, -apple-system, sans-serif; background: #ffffff; color: #1c1917; padding: 24px; }
+            body { font-family: 'Plus Jakarta Sans', Arial, -apple-system, sans-serif; background: #ffffff; color: #1c1917; padding: 8px 12px; font-size: 10px; }
             table { width: 100%; border-collapse: collapse; }
-            th, td { text-align: left; }
-            @page { size: auto; margin: 10mm; }
+            th, td { text-align: left; padding: 4px 6px; }
+            @page { size: A5; margin: 8mm; }
           </style>
         </head>
         <body>
@@ -4897,11 +4897,11 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
               </div>
             </div>
 
-            <div id="huderma-printable-prescription" style={{ background: '#ffffff', border: '1px solid #d6cec2', padding: '36px 44px', color: '#1c1917', fontFamily: "'Plus Jakarta Sans', Arial, sans-serif" }}>
+            <div id="huderma-printable-prescription" style={{ background: '#ffffff', border: '1px solid #d6cec2', padding: '14px 18px', color: '#1c1917', fontFamily: "'Plus Jakarta Sans', Arial, sans-serif" }}>
               {/* Header with Clinic & Doctor */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #059669', paddingBottom: '16px', marginBottom: '20px' }}>
                 <div>
-                  <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#059669' }}>Huderma Specialty Clinic</div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#059669' }}>Huderma Specialty Clinic</div>
                   <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>Department of Outpatient Consultation &amp; Clinical Care</div>
                   <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Tel: +251 949 74 44 44 | Addis Ababa, Ethiopia</div>
                 </div>
@@ -4913,46 +4913,46 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
               </div>
 
               {/* Patient Details Banner */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr', gap: '10px', background: '#f8fafc', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.78rem', marginBottom: '22px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr', gap: '8px', background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.7rem', marginBottom: '14px' }}>
                 <div><strong>Patient:</strong> {activePatient?.name || 'Walk-in Patient'}</div>
                 <div><strong>MRN / Card:</strong> <span style={{ fontFamily: 'monospace', fontWeight: 700 }}>{activePatient?.mrn || 'N/A'}</span></div>
                 <div><strong>Age / Sex:</strong> {activePatient?.age ? `${activePatient.age}y` : 'Adult'} · {activePatient?.gender || 'N/A'}</div>
-                <div style={{ gridColumn: '1 / -1', borderTop: '1px solid #e2e8f0', paddingTop: '6px', color: '#334155' }}>
+                <div style={{ gridColumn: '1 / -1', borderTop: '1px solid #e2e8f0', paddingTop: '4px', color: '#334155' }}>
                   <strong>Clinical Diagnosis / Indication:</strong> {diagnosis || 'Clinical Consultation'}
                 </div>
               </div>
 
               {/* Rx Heading */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-                <span style={{ fontSize: '1.8rem', fontWeight: 900, fontFamily: 'serif', color: '#059669', fontStyle: 'italic', lineHeight: 1 }}>℞</span>
-                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Prescription Orders</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                <span style={{ fontSize: '1.3rem', fontWeight: 900, fontFamily: 'serif', color: '#059669', fontStyle: 'italic', lineHeight: 1 }}>℞</span>
+                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Prescription Orders</span>
               </div>
 
               {/* Items Table */}
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', marginBottom: '28px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.72rem', marginBottom: '16px' }}>
                 <thead>
                   <tr style={{ background: '#f1f5f9', borderBottom: '1.5px solid #cbd5e1', textAlign: 'left' }}>
-                    <th style={{ padding: '8px 10px', width: '30px' }}>#</th>
-                    <th style={{ padding: '8px 10px' }}>Medication &amp; Dosage</th>
-                    <th style={{ padding: '8px 10px' }}>Route &amp; Frequency</th>
-                    <th style={{ padding: '8px 10px' }}>Duration</th>
-                    <th style={{ padding: '8px 10px', textAlign: 'right' }}>Qty</th>
+                    <th style={{ padding: '5px 6px', width: '30px' }}>#</th>
+                    <th style={{ padding: '5px 6px' }}>Medication &amp; Dosage</th>
+                    <th style={{ padding: '5px 6px' }}>Route &amp; Frequency</th>
+                    <th style={{ padding: '5px 6px' }}>Duration</th>
+                    <th style={{ padding: '5px 6px', textAlign: 'right' }}>Qty</th>
                   </tr>
                 </thead>
                 <tbody>
                   {prescribeBasket.map((med, i) => (
                     <tr key={i} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                      <td style={{ padding: '10px 8px', fontWeight: 700, color: '#64748b' }}>{i + 1}.</td>
-                      <td style={{ padding: '10px 8px' }}>
+                      <td style={{ padding: '5px 6px', fontWeight: 700, color: '#64748b' }}>{i + 1}.</td>
+                      <td style={{ padding: '5px 6px' }}>
                         <div style={{ fontWeight: 700, color: '#0f172a' }}>{med.drugName}</div>
-                        <div style={{ fontSize: '0.72rem', color: '#0369a1', marginTop: '2px' }}>{med.instructions || 'Take as directed'}</div>
+                        <div style={{ fontSize: '0.68rem', color: '#0369a1', marginTop: '1px' }}>{med.instructions || 'Take as directed'}</div>
                       </td>
-                      <td style={{ padding: '10px 8px' }}>
+                      <td style={{ padding: '5px 6px' }}>
                         <div>{med.dosage} ({med.route})</div>
-                        <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{med.frequency}</div>
+                        <div style={{ fontSize: '0.68rem', color: '#64748b' }}>{med.frequency}</div>
                       </td>
-                      <td style={{ padding: '10px 8px', color: '#334155' }}>{med.duration}</td>
-                      <td style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 800, color: '#0f172a' }}>{med.qty}</td>
+                      <td style={{ padding: '5px 6px', color: '#334155' }}>{med.duration}</td>
+                      <td style={{ padding: '5px 6px', textAlign: 'right', fontWeight: 800, color: '#0f172a' }}>{med.qty}</td>
                     </tr>
                   ))}
                 </tbody>
