@@ -324,15 +324,23 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
         const res = await api.get<any>('/reports/procedures', {
           dateFrom,
           dateTo,
-          category: selectedCategory !== 'ALL' ? selectedCategory : undefined
+          category: selectedCategory !== 'ALL' ? selectedCategory : undefined,
+          doctor: selectedDoctor !== 'ALL' ? selectedDoctor : undefined
         });
         const raw = Array.isArray(res) ? res : (res?.data || res?.Data || []);
         const rows = raw.map((p: any) => ({
+          id: p.id || p.Id,
+          mrn: p.mrn || p.MRN || 'N/A',
+          patientName: p.patientName || p.PatientName || 'Unknown Patient',
+          doctorName: p.doctorName || p.DoctorName || 'Attending Physician',
           procedureName: p.procedureName || p.ProcedureName,
           category: p.category || p.Category || 'Clinical Procedure',
-          orderCount: Number(p.orderCount || p.OrderCount || 0),
+          procedureDate: p.procedureDate || p.ProcedureDate || '',
+          quantity: Number(p.quantity || p.Quantity || 1),
+          orderCount: Number(p.quantity || p.Quantity || 1),
           unitPrice: Number(p.unitPrice || p.UnitPrice || 0),
-          totalRevenue: Number(p.totalRevenue || p.TotalRevenue || 0)
+          totalRevenue: Number(p.totalRevenue || p.TotalRevenue || 0),
+          status: p.status || p.Status || 'Paid'
         }));
 
         setData(rows);
@@ -357,12 +365,32 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
   const exportToCSV = () => {
     if (data.length === 0) return;
     let exportRows = data;
-    if (reportType === 'REPORT_PROCEDURE' && hideProcedurePricing) {
-      exportRows = data.map(r => ({
-        'Procedure Description': r.procedureName,
-        'Category': r.category,
-        'Total Orders': r.orderCount
-      }));
+    if (reportType === 'REPORT_PROCEDURE') {
+      if (hideProcedurePricing) {
+        exportRows = data.map(r => ({
+          'Date': r.procedureDate,
+          'MRN': r.mrn,
+          'Patient Name': r.patientName,
+          'Attending Doctor': r.doctorName,
+          'Procedure Description': r.procedureName,
+          'Category': r.category,
+          'Quantity': r.quantity || 1,
+          'Status': r.status
+        }));
+      } else {
+        exportRows = data.map(r => ({
+          'Date': r.procedureDate,
+          'MRN': r.mrn,
+          'Patient Name': r.patientName,
+          'Attending Doctor': r.doctorName,
+          'Procedure Description': r.procedureName,
+          'Category': r.category,
+          'Quantity': r.quantity || 1,
+          'Unit Price': r.unitPrice,
+          'Total Revenue (Br)': r.totalRevenue,
+          'Status': r.status
+        }));
+      }
     }
     const keys = Object.keys(exportRows[0]);
     const csvContent = [
@@ -406,9 +434,10 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
 
   const procedureSummary = useMemo(() => {
     if (reportType !== 'REPORT_PROCEDURE') return null;
-    const totalOrders = data.reduce((s, r) => s + (r.orderCount || 0), 0);
+    const totalOrders = data.reduce((s, r) => s + (r.quantity || r.orderCount || 1), 0);
     const totalRevenue = data.reduce((s, r) => s + (r.totalRevenue || 0), 0);
-    return { count: data.length, totalOrders, totalRevenue };
+    const uniquePatients = new Set(data.map(r => r.mrn).filter(Boolean)).size;
+    return { count: data.length, totalOrders, totalRevenue, uniquePatients };
   }, [reportType, data]);
 
   return (
@@ -654,7 +683,7 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
             </>
           )}
 
-          {/* Procedure Report: Category Dropdown & View Mode */}
+          {/* Procedure Report: Category, Doctor Dropdown & View Mode */}
           {reportType === 'REPORT_PROCEDURE' && (
             <>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -674,6 +703,20 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
                   <option value="Laser & Pigment">Laser & Pigment</option>
                   <option value="Hair Restoration">Hair Restoration</option>
                   <option value="Clinical Procedure">Other Clinical Procedure</option>
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Attending Doctor</label>
+                <select
+                  value={selectedDoctor}
+                  onChange={e => setSelectedDoctor(e.target.value)}
+                  style={{ padding: '7px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', fontSize: '0.82rem', minWidth: '180px' }}
+                >
+                  <option value="ALL">All Attending Doctors</option>
+                  {doctorsList.map((d, idx) => (
+                    <option key={idx} value={d.name}>{d.name}</option>
+                  ))}
                 </select>
               </div>
 
@@ -774,14 +817,19 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
       )}
 
       {procedureSummary && (
-        <div className="no-print" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : (hideProcedurePricing ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)'), gap: '16px' }}>
+        <div className="no-print" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : (hideProcedurePricing ? 'repeat(3, 1fr)' : 'repeat(4, 1fr)'), gap: '16px' }}>
           <div className="glass-panel" style={{ padding: '18px' }}>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Distinct Procedures</span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Procedure Records</span>
             <div style={{ fontSize: '1.5rem', fontWeight: 800, margin: '4px 0', color: 'var(--text-main)' }}>{procedureSummary.count}</div>
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Procedure Catalog Items</span>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Itemized Entries</span>
           </div>
           <div className="glass-panel" style={{ padding: '18px' }}>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Total Completed Interventions</span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Unique Patients</span>
+            <div style={{ fontSize: '1.5rem', fontWeight: 800, margin: '4px 0', color: '#7c3aed' }}>{procedureSummary.uniquePatients}</div>
+            <span style={{ fontSize: '0.72rem', color: '#7c3aed' }}>Patients Treated</span>
+          </div>
+          <div className="glass-panel" style={{ padding: '18px' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Total Interventions</span>
             <div style={{ fontSize: '1.5rem', fontWeight: 800, margin: '4px 0', color: '#0284c7' }}>{procedureSummary.totalOrders}</div>
             <span style={{ fontSize: '0.72rem', color: '#0284c7' }}>Interventions Executed</span>
           </div>
@@ -879,15 +927,20 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
                   )}
                   {reportType === 'REPORT_PROCEDURE' && (
                     <>
+                      <th>Date</th>
+                      <th>MRN</th>
+                      <th>Patient Name</th>
+                      <th>Attending Doctor</th>
                       <th>Procedure Description</th>
                       <th>Category</th>
-                      <th style={{ textAlign: 'right' }}>Total Orders</th>
                       {!hideProcedurePricing && (
                         <>
+                          <th style={{ textAlign: 'right' }}>Qty</th>
                           <th style={{ textAlign: 'right' }}>Unit Price (Br)</th>
-                          <th style={{ textAlign: 'right' }}>Total Yield (Br)</th>
+                          <th style={{ textAlign: 'right' }}>Total (Br)</th>
                         </>
                       )}
+                      <th>Status</th>
                     </>
                   )}
                 </tr>
@@ -953,15 +1006,27 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
 
                 {reportType === 'REPORT_PROCEDURE' && data.map((r, i) => (
                   <tr key={i}>
+                    <td style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>{r.procedureDate}</td>
+                    <td style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0284c7', fontSize: '0.82rem' }}>{r.mrn}</td>
+                    <td style={{ fontWeight: 600 }}>{r.patientName}</td>
+                    <td style={{ color: 'var(--text-muted)' }}>{r.doctorName}</td>
                     <td style={{ fontWeight: 700 }}>{r.procedureName}</td>
                     <td><span className="badge badge-info">{r.category}</span></td>
-                    <td style={{ textAlign: 'right', fontWeight: 700, color: '#0284c7' }}>{r.orderCount}</td>
                     {!hideProcedurePricing && (
                       <>
+                        <td style={{ textAlign: 'right' }}>{r.quantity || 1}</td>
                         <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>Br {r.unitPrice.toFixed(2)}</td>
                         <td style={{ textAlign: 'right', fontWeight: 700, color: '#059669', fontFamily: 'monospace' }}>Br {r.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                       </>
                     )}
+                    <td>
+                      <span className={
+                        r.status === 'Paid' ? 'badge badge-normal' :
+                        r.status === 'Completed' ? 'badge badge-normal' :
+                        r.status === 'Ordered' ? 'badge badge-info' :
+                        'badge badge-warning'
+                      }>{r.status}</span>
+                    </td>
                   </tr>
                 ))}
               </tbody>

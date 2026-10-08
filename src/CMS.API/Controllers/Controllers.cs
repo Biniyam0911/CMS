@@ -969,6 +969,20 @@ public class LaboratoryController : ControllerBase
             SELECT
                 o.Id AS OrderId, o.OrderNumber, o.PatientId, o.Priority, o.OrderedAt, o.ClinicalInfo,
                 p.FirstName + ' ' + p.LastName AS PatientName, p.DateOfBirth, p.Gender, p.MRN,
+                COALESCE(
+                    ord_doc_s.Title + ' ' + ord_doc_s.FirstName + ' ' + ord_doc_s.LastName,
+                    ord_doc_s.FirstName + ' ' + ord_doc_s.LastName,
+                    ord_s.Title + ' ' + ord_s.FirstName + ' ' + ord_s.LastName,
+                    ord_s.FirstName + ' ' + ord_s.LastName,
+                    ord_u_s.Title + ' ' + ord_u_s.FirstName + ' ' + ord_u_s.LastName,
+                    ord_u_s.FirstName + ' ' + ord_u_s.LastName,
+                    enc_s.Title + ' ' + enc_s.FirstName + ' ' + enc_s.LastName,
+                    enc_s.FirstName + ' ' + enc_s.LastName,
+                    trg_s.Title + ' ' + trg_s.FirstName + ' ' + trg_s.LastName,
+                    trg_s.FirstName + ' ' + trg_s.LastName,
+                    ord_u.Username,
+                    'Attending Physician'
+                ) AS DoctorName,
                 oi.Id AS ItemId, oi.StatusId AS ItemStatus,
                 t.TestCode, t.TestName, t.Category, t.SampleType,
                 ISNULL(s.Barcode, 'BC-' + CAST(o.Id AS VARCHAR(10)) + '-' + CAST(oi.Id AS VARCHAR(10))) AS Barcode,
@@ -995,6 +1009,22 @@ public class LaboratoryController : ControllerBase
             JOIN LabOrderItems oi ON oi.OrderId = o.Id
             JOIN LabTestCatalog t ON t.Id = oi.TestId
             JOIN Patients p ON p.Id = o.PatientId
+            LEFT JOIN Doctors ord_d WITH (NOLOCK) ON ord_d.Id = o.OrderedBy
+            LEFT JOIN Staff ord_doc_s WITH (NOLOCK) ON ord_doc_s.Id = ord_d.StaffId
+            LEFT JOIN Staff ord_s WITH (NOLOCK) ON ord_s.Id = o.OrderedBy
+            LEFT JOIN Users ord_u WITH (NOLOCK) ON ord_u.Id = o.OrderedBy
+            LEFT JOIN Staff ord_u_s WITH (NOLOCK) ON ord_u_s.UserId = ord_u.Id
+            LEFT JOIN Encounters e WITH (NOLOCK) ON e.Id = o.EncounterId
+            LEFT JOIN Doctors enc_d WITH (NOLOCK) ON enc_d.Id = e.DoctorId
+            LEFT JOIN Staff enc_s WITH (NOLOCK) ON enc_s.Id = enc_d.StaffId OR enc_s.Id = e.DoctorId
+            OUTER APPLY (
+                SELECT TOP 1 t.AssignedDoctorId 
+                FROM PatientTriage t WITH (NOLOCK) 
+                WHERE t.PatientId = o.PatientId AND t.AssignedDoctorId > 0 
+                ORDER BY t.Id DESC
+            ) last_trg
+            LEFT JOIN Doctors trg_d WITH (NOLOCK) ON trg_d.Id = last_trg.AssignedDoctorId
+            LEFT JOIN Staff trg_s WITH (NOLOCK) ON trg_s.Id = trg_d.StaffId OR trg_s.Id = last_trg.AssignedDoctorId
             LEFT JOIN LabSamples s ON s.OrderId = o.Id
             LEFT JOIN LabResults r ON r.OrderItemId = oi.Id AND r.OrderId = o.Id
             WHERE o.TenantId = @TenantId
@@ -1015,6 +1045,20 @@ public class LaboratoryController : ControllerBase
             SELECT
                 o.Id, o.Id AS OrderId, o.OrderNumber, o.PatientId, o.Priority, o.OrderedAt, o.OrderedAt AS OrderDate, o.ClinicalInfo,
                 p.FirstName + ' ' + p.LastName AS PatientName, p.DateOfBirth, p.Gender, p.MRN,
+                COALESCE(
+                    ord_doc_s.Title + ' ' + ord_doc_s.FirstName + ' ' + ord_doc_s.LastName,
+                    ord_doc_s.FirstName + ' ' + ord_doc_s.LastName,
+                    ord_s.Title + ' ' + ord_s.FirstName + ' ' + ord_s.LastName,
+                    ord_s.FirstName + ' ' + ord_s.LastName,
+                    ord_u_s.Title + ' ' + ord_u_s.FirstName + ' ' + ord_u_s.LastName,
+                    ord_u_s.FirstName + ' ' + ord_u_s.LastName,
+                    enc_s.Title + ' ' + enc_s.FirstName + ' ' + enc_s.LastName,
+                    enc_s.FirstName + ' ' + enc_s.LastName,
+                    trg_s.Title + ' ' + trg_s.FirstName + ' ' + trg_s.LastName,
+                    trg_s.FirstName + ' ' + trg_s.LastName,
+                    ord_u.Username,
+                    'Attending Physician'
+                ) AS DoctorName,
                 oi.Id AS ItemId, oi.StatusId AS ItemStatus,
                 CASE
                     WHEN ISNULL(r.IsVerified, 0) = 1 OR oi.StatusId = 5 THEN 'Approved'
@@ -1046,6 +1090,22 @@ public class LaboratoryController : ControllerBase
             JOIN LabOrderItems oi ON oi.OrderId = o.Id
             JOIN LabTestCatalog t ON t.Id = oi.TestId
             JOIN Patients p ON p.Id = o.PatientId
+            LEFT JOIN Doctors ord_d WITH (NOLOCK) ON ord_d.Id = o.OrderedBy
+            LEFT JOIN Staff ord_doc_s WITH (NOLOCK) ON ord_doc_s.Id = ord_d.StaffId
+            LEFT JOIN Staff ord_s WITH (NOLOCK) ON ord_s.Id = o.OrderedBy
+            LEFT JOIN Users ord_u WITH (NOLOCK) ON ord_u.Id = o.OrderedBy
+            LEFT JOIN Staff ord_u_s WITH (NOLOCK) ON ord_u_s.UserId = ord_u.Id
+            LEFT JOIN Encounters e WITH (NOLOCK) ON e.Id = o.EncounterId
+            LEFT JOIN Doctors enc_d WITH (NOLOCK) ON enc_d.Id = e.DoctorId
+            LEFT JOIN Staff enc_s WITH (NOLOCK) ON enc_s.Id = enc_d.StaffId OR enc_s.Id = e.DoctorId
+            OUTER APPLY (
+                SELECT TOP 1 t.AssignedDoctorId 
+                FROM PatientTriage t WITH (NOLOCK) 
+                WHERE t.PatientId = o.PatientId AND t.AssignedDoctorId > 0 
+                ORDER BY t.Id DESC
+            ) last_trg
+            LEFT JOIN Doctors trg_d WITH (NOLOCK) ON trg_d.Id = last_trg.AssignedDoctorId
+            LEFT JOIN Staff trg_s WITH (NOLOCK) ON trg_s.Id = trg_d.StaffId OR trg_s.Id = last_trg.AssignedDoctorId
             LEFT JOIN LabResults r ON r.OrderItemId = oi.Id AND r.OrderId = o.Id
             WHERE o.TenantId = @TenantId
               AND (@PatientId IS NULL OR o.PatientId = @PatientId)

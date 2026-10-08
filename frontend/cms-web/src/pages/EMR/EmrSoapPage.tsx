@@ -1095,6 +1095,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
               id: l.id || l.orderId || l.OrderId,
               orderNumber: l.orderNumber || l.OrderNumber || `LAB-${l.orderId || l.id}`,
               patientId: l.patientId || l.PatientId || patId,
+              doctorName: l.doctorName || l.DoctorName || 'Attending Physician',
               orderDate: l.orderedAt || l.OrderedAt || l.orderDate || new Date().toISOString(),
               clinicalInfo: currentTestName,
               tests: [currentTestName],
@@ -3263,10 +3264,13 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                 return (
                   <div key={`lab-${idx}`} style={{ borderRadius: '8px', background: '#f0fdf4', border: '1px solid #bbf7d0', overflow: 'hidden' }}>
                     {/* Order Header */}
-                    <div style={{ padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #bbf7d0' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #bbf7d0', flexWrap: 'wrap', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                         <span className="badge badge-normal" style={{ fontSize: '0.68rem' }}>Laboratory Order #{lab.orderNumber || lab.id}</span>
                         <span style={{ fontWeight: 700, fontSize: '0.82rem' }}>{lab.clinicalInfo || 'Diagnostic Lab Order'}</span>
+                        {lab.doctorName && (
+                          <span style={{ fontSize: '0.72rem', color: '#0369a1', fontWeight: 600 }}>• Dr: {lab.doctorName}</span>
+                        )}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <span style={{ fontSize: '0.72rem', padding: '2px 8px', borderRadius: '4px',

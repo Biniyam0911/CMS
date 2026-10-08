@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("CMS.E2ETests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+01fbaf316b5d2f260b24e6581e8bdb01a6b9acf3")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+97beeedae99af8e551ef68eb00f9aa40b95c2d2c")]
 [assembly: System.Reflection.AssemblyProductAttribute("CMS.E2ETests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("CMS.E2ETests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

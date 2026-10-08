@@ -518,51 +518,28 @@ public class ReportsController : ControllerBase
     public async Task<IActionResult> GetProcedureReport(
         [FromQuery] DateTime? dateFrom = null,
         [FromQuery] DateTime? dateTo = null,
-        [FromQuery] string? category = null)
+        [FromQuery] string? category = null,
+        [FromQuery] string? doctor = null)
     {
         byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
         using var conn = _dbFactory.CreateConnection();
         var sql = @"
-            SELECT 
-                ii.Description AS ProcedureName,
-                CASE 
-                    WHEN ii.Description LIKE '%FACIAL%' THEN 'Facial Aesthetics'
-                    WHEN ii.Description LIKE '%PRP%' THEN 'PRP Regenerative'
-                    WHEN ii.Description LIKE '%Steroid%' THEN 'Intralesional Injection'
-                    WHEN ii.Description LIKE '%Electro%' THEN 'Electrotherapy'
-                    WHEN ii.Description LIKE '%Acne%' OR ii.Description LIKE '%Scar%' THEN 'Acne & Scarring'
-                    WHEN ii.Description LIKE '%Cryo%' THEN 'Cryosurgery'
-                    WHEN ii.Description LIKE '%pigment%' THEN 'Laser & Pigment'
-                    WHEN ii.Description LIKE '%Finasteride%' OR ii.Description LIKE '%Minoxidil%' THEN 'Hair Restoration'
-                    ELSE 'Clinical Procedure'
-                END AS Category,
-                COUNT(1) AS OrderCount,
-                CAST(AVG(ii.UnitPrice) AS DECIMAL(10,2)) AS UnitPrice,
-                SUM(ii.Total) AS TotalRevenue
-            FROM InvoiceItems ii WITH (NOLOCK)
-            JOIN Invoices i WITH (NOLOCK) ON i.Id = ii.InvoiceId
-            WHERE i.TenantId = @TenantId
-              AND (i.StatusId = 4 OR i.PaidAmount >= i.TotalAmount)
-              AND i.TotalAmount > 0
-              AND (
-                  ii.ItemType = 3
-                  OR EXISTS (SELECT 1 FROM Services s WITH (NOLOCK) WHERE s.Name = ii.Description AND s.Category IN ('Procedure', 'Facial'))
-                  OR ii.Description LIKE '%PRP%'
-                  OR ii.Description LIKE '%FACIAL%'
-                  OR ii.Description LIKE '%Treatment%'
-                  OR ii.Description LIKE '%Cryo%'
-                  OR ii.Description LIKE '%Electro%'
-                  OR ii.Description LIKE '%Biopsy%'
-                  OR ii.Description LIKE '%Injection%'
-                  OR ii.Description LIKE '%Scar%'
-                  OR ii.Description LIKE '%Steroid%'
-                  OR ii.Description LIKE '%Peel%'
-              )
-              AND (@DateFrom IS NULL OR CAST(i.IssueDate AS DATE) >= @DateFrom)
-              AND (@DateTo IS NULL OR CAST(i.IssueDate AS DATE) <= @DateTo)
-            GROUP BY ii.Description
-            HAVING (@Category IS NULL OR @Category = 'ALL' OR 
-                    (CASE 
+            WITH AllProcedures AS (
+                SELECT 
+                    ii.Id,
+                    p.MRN,
+                    p.FirstName + ' ' + ISNULL(p.MiddleName + ' ', '') + p.LastName AS PatientName,
+                    COALESCE(
+                        doc_s.Title + ' ' + doc_s.FirstName + ' ' + doc_s.LastName,
+                        doc_s.FirstName + ' ' + doc_s.LastName,
+                        enc_s.Title + ' ' + enc_s.FirstName + ' ' + enc_s.LastName,
+                        enc_s.FirstName + ' ' + enc_s.LastName,
+                        trg_s.Title + ' ' + trg_s.FirstName + ' ' + trg_s.LastName,
+                        trg_s.FirstName + ' ' + trg_s.LastName,
+                        'Attending Physician'
+                    ) AS DoctorName,
+                    ii.Description AS ProcedureName,
+                    CASE 
                         WHEN ii.Description LIKE '%FACIAL%' THEN 'Facial Aesthetics'
                         WHEN ii.Description LIKE '%PRP%' THEN 'PRP Regenerative'
                         WHEN ii.Description LIKE '%Steroid%' THEN 'Intralesional Injection'
@@ -572,14 +549,85 @@ public class ReportsController : ControllerBase
                         WHEN ii.Description LIKE '%pigment%' THEN 'Laser & Pigment'
                         WHEN ii.Description LIKE '%Finasteride%' OR ii.Description LIKE '%Minoxidil%' THEN 'Hair Restoration'
                         ELSE 'Clinical Procedure'
-                    END) = @Category)
-            ORDER BY OrderCount DESC";
+                    END AS Category,
+                    FORMAT(CAST(COALESCE(i.IssueDate, i.CreatedAt) AS DATE), 'yyyy-MM-dd') AS ProcedureDate,
+                    CAST(ii.UnitPrice AS DECIMAL(10,2)) AS UnitPrice,
+                    ISNULL(ii.Quantity, 1) AS Quantity,
+                    CAST(ii.Total AS DECIMAL(10,2)) AS TotalRevenue,
+                    CASE WHEN i.StatusId = 4 OR i.PaidAmount >= i.TotalAmount THEN 'Paid' ELSE 'Pending' END AS Status
+                FROM InvoiceItems ii WITH (NOLOCK)
+                JOIN Invoices i WITH (NOLOCK) ON i.Id = ii.InvoiceId
+                JOIN Patients p WITH (NOLOCK) ON p.Id = i.PatientId
+                LEFT JOIN Doctors d WITH (NOLOCK) ON d.Id = i.DoctorId
+                LEFT JOIN Staff doc_s WITH (NOLOCK) ON doc_s.Id = d.StaffId OR doc_s.Id = i.DoctorId
+                LEFT JOIN Encounters e WITH (NOLOCK) ON e.Id = i.EncounterId
+                LEFT JOIN Doctors enc_d WITH (NOLOCK) ON enc_d.Id = e.DoctorId
+                LEFT JOIN Staff enc_s WITH (NOLOCK) ON enc_s.Id = enc_d.StaffId OR enc_s.Id = e.DoctorId
+                OUTER APPLY (
+                    SELECT TOP 1 t.AssignedDoctorId 
+                    FROM PatientTriage t WITH (NOLOCK) 
+                    WHERE t.PatientId = i.PatientId AND t.AssignedDoctorId > 0 
+                    ORDER BY t.Id DESC
+                ) last_trg
+                LEFT JOIN Doctors trg_d WITH (NOLOCK) ON trg_d.Id = last_trg.AssignedDoctorId
+                LEFT JOIN Staff trg_s WITH (NOLOCK) ON trg_s.Id = trg_d.StaffId OR trg_s.Id = last_trg.AssignedDoctorId
+                WHERE i.TenantId = @TenantId
+                  AND (i.TotalAmount > 0)
+                  AND (
+                      ii.ItemType = 4 OR ii.ItemType = 3
+                      OR EXISTS (SELECT 1 FROM Services s WITH (NOLOCK) WHERE s.Name = ii.Description AND s.Category IN ('Procedure', 'Facial'))
+                      OR ii.Description LIKE '%PRP%'
+                      OR ii.Description LIKE '%FACIAL%'
+                      OR ii.Description LIKE '%Treatment%'
+                      OR ii.Description LIKE '%Cryo%'
+                      OR ii.Description LIKE '%Electro%'
+                      OR ii.Description LIKE '%Biopsy%'
+                      OR ii.Description LIKE '%Injection%'
+                      OR ii.Description LIKE '%Scar%'
+                      OR ii.Description LIKE '%Steroid%'
+                      OR ii.Description LIKE '%Peel%'
+                  )
+                  AND (@DateFrom IS NULL OR CAST(COALESCE(i.IssueDate, i.CreatedAt) AS DATE) >= @DateFrom)
+                  AND (@DateTo IS NULL OR CAST(COALESCE(i.IssueDate, i.CreatedAt) AS DATE) <= @DateTo)
+
+                UNION ALL
+
+                SELECT 
+                    po.Id,
+                    p.MRN,
+                    p.FirstName + ' ' + ISNULL(p.MiddleName + ' ', '') + p.LastName AS PatientName,
+                    ISNULL(s.Title + ' ' + s.FirstName + ' ' + s.LastName, ISNULL(s.FirstName + ' ' + s.LastName, 'Attending Physician')) AS DoctorName,
+                    po.ProcedureName,
+                    'Clinical Procedure' AS Category,
+                    FORMAT(CAST(po.CreatedAt AS DATE), 'yyyy-MM-dd') AS ProcedureDate,
+                    CAST(0 AS DECIMAL(10,2)) AS UnitPrice,
+                    1 AS Quantity,
+                    CAST(0 AS DECIMAL(10,2)) AS TotalRevenue,
+                    CASE po.StatusId WHEN 2 THEN 'Completed' WHEN 3 THEN 'Cancelled' ELSE 'Ordered' END AS Status
+                FROM ProcedureOrders po WITH (NOLOCK)
+                JOIN Patients p WITH (NOLOCK) ON p.Id = po.PatientId
+                LEFT JOIN Users u WITH (NOLOCK) ON u.Id = po.OrderedBy
+                LEFT JOIN Staff s WITH (NOLOCK) ON s.UserId = u.Id OR s.Id = po.OrderedBy
+                WHERE po.TenantId = @TenantId
+                  AND NOT EXISTS (
+                      SELECT 1 FROM InvoiceItems ii2 WITH (NOLOCK)
+                      JOIN Invoices i2 WITH (NOLOCK) ON i2.Id = ii2.InvoiceId
+                      WHERE i2.PatientId = po.PatientId AND ii2.Description = po.ProcedureName
+                  )
+                  AND (@DateFrom IS NULL OR CAST(po.CreatedAt AS DATE) >= @DateFrom)
+                  AND (@DateTo IS NULL OR CAST(po.CreatedAt AS DATE) <= @DateTo)
+            )
+            SELECT * FROM AllProcedures
+            WHERE (@Category IS NULL OR @Category = 'ALL' OR Category = @Category)
+              AND (@DoctorName IS NULL OR @DoctorName = 'ALL' OR DoctorName LIKE '%' + @DoctorName + '%')
+            ORDER BY ProcedureDate DESC, Id DESC";
 
         var rows = await conn.QueryAsync<dynamic>(sql, new {
             TenantId = tenantId,
             DateFrom = dateFrom?.Date,
             DateTo = dateTo?.Date,
-            Category = string.IsNullOrWhiteSpace(category) || category == "ALL" ? null : category
+            Category = string.IsNullOrWhiteSpace(category) || category == "ALL" ? null : category,
+            DoctorName = string.IsNullOrWhiteSpace(doctor) || doctor == "ALL" ? null : doctor
         });
         return Ok(ApiResponse<object>.Ok(rows));
     }

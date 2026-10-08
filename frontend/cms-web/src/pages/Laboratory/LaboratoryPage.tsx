@@ -31,6 +31,7 @@ interface OrderItem {
   orderNo: string;
   patientName: string;
   mrn?: string;
+  doctorName?: string;
   gender?: string;
   dateOfBirth?: string;
   isPaid?: boolean;
@@ -614,6 +615,7 @@ export default function LaboratoryPage() {
               orderNo: String(w.OrderNumber ?? w.orderNumber ?? w.ordernumber ?? `LAB-${ordId}`),
               patientName: String(w.PatientName ?? w.patientName ?? w.patientname ?? 'Patient'),
               mrn: String(w.MRN ?? w.mrn ?? ''),
+              doctorName: String(w.DoctorName ?? w.doctorName ?? w.doctor ?? w.Doctor ?? 'Attending Physician'),
               gender: String(w.Gender ?? w.gender ?? ''),
               dateOfBirth: String(w.DateOfBirth ?? w.dateOfBirth ?? ''),
               isPaid: Boolean(w.IsPaid ?? w.isPaid),
@@ -1437,6 +1439,8 @@ export default function LaboratoryPage() {
                           <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                             <span><strong>Tests ({o.tests.length}):</strong> {o.tests.map(t => t.testCode).join(', ')}</span>
                             <span>•</span>
+                            <span><strong>Doctor:</strong> <span style={{ color: '#0369a1', fontWeight: 600 }}>{o.doctorName || 'Attending Physician'}</span></span>
+                            <span>•</span>
                             <span><strong>Order Barcode:</strong> <code style={{ background: '#f1f5f9', padding: '1px 5px', borderRadius: '3px', color: '#334155' }}>{o.barcode}</code></span>
                             {o.orderedAt && (
                               <>
@@ -1734,6 +1738,8 @@ export default function LaboratoryPage() {
                             </div>
                             <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                               <span><strong>Tests ({o.tests.length}):</strong> {o.tests.map(t => t.testName).join(', ')}</span>
+                              <span>•</span>
+                              <span><strong>Doctor:</strong> <span style={{ color: '#0369a1', fontWeight: 600 }}>{o.doctorName || 'Attending Physician'}</span></span>
                               <span>•</span>
                               <span><strong>Barcode:</strong> <code style={{ background: '#f1f5f9', padding: '1px 5px', borderRadius: '3px' }}>{o.barcode}</code></span>
                               {o.orderedAt && (
@@ -2210,6 +2216,10 @@ export default function LaboratoryPage() {
               </div>
 
               <div>
+                <span style={{ color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 700 }}>Requesting Doctor:</span>
+                <div style={{ fontWeight: 800, color: '#0369a1', fontSize: '0.92rem' }}>{printModalOrder.doctorName || 'Attending Physician'}</div>
+              </div>
+              <div>
                 <span style={{ color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 700 }}>Requested Date:</span>
                 <div style={{ fontWeight: 600 }}>{printModalOrder.orderedAt ? new Date(printModalOrder.orderedAt).toLocaleString() : new Date().toLocaleString()}</div>
               </div>
@@ -2225,6 +2235,7 @@ export default function LaboratoryPage() {
                   </span>
                 </div>
               </div>
+
               <div>
                 <span style={{ color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 700 }}>Document Status:</span>
                 <div>
@@ -2235,7 +2246,7 @@ export default function LaboratoryPage() {
               </div>
 
               {printModalOrder.clinicalInfo && (
-                <div style={{ gridColumn: 'span 4', borderTop: '1px solid #e2e8f0', paddingTop: '6px' }}>
+                <div style={{ gridColumn: 'span 3', borderTop: '1px solid #e2e8f0', paddingTop: '6px' }}>
                   <span style={{ color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 700 }}>Clinical Indications / Notes:</span>
                   <div style={{ fontWeight: 600, color: '#334155', fontStyle: 'italic' }}>{printModalOrder.clinicalInfo}</div>
                 </div>
@@ -2293,17 +2304,18 @@ export default function LaboratoryPage() {
                 {/* Signatures Block for Requisition */}
                 <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px dashed #cbd5e1', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', fontSize: '0.76rem' }}>
                   <div>
-                    <div style={{ height: '36px', borderBottom: '1px solid #64748b', width: '160px', marginBottom: '4px' }} />
-                    <div style={{ fontWeight: 800, color: '#0f172a' }}>Referring Clinician / Doctor</div>
+                    <div style={{ height: '32px', borderBottom: '1px solid #64748b', width: '180px', marginBottom: '4px' }} />
+                    <div style={{ fontWeight: 800, color: '#0369a1', fontSize: '0.88rem' }}>{printModalOrder.doctorName || 'Attending Physician'}</div>
+                    <div style={{ fontWeight: 700, color: '#0f172a' }}>Referring Clinician / Doctor</div>
                     <div style={{ color: '#64748b' }}>Huderma Specialty Clinic</div>
                   </div>
                   <div>
-                    <div style={{ height: '36px', borderBottom: '1px solid #64748b', width: '160px', marginBottom: '4px' }} />
+                    <div style={{ height: '32px', borderBottom: '1px solid #64748b', width: '180px', marginBottom: '4px' }} />
                     <div style={{ fontWeight: 800, color: '#0f172a' }}>Specimen Phlebotomist</div>
                     <div style={{ color: '#64748b' }}>Sample Collection Sign-off</div>
                   </div>
                   <div style={{ textAlign: 'center' }}>
-                    <div style={{ height: '50px', border: '1px dashed #94a3b8', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '0.7rem' }}>
+                    <div style={{ height: '54px', border: '1px dashed #94a3b8', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '0.7rem' }}>
                       Official Clinic Stamp Box
                     </div>
                   </div>
@@ -2369,17 +2381,23 @@ export default function LaboratoryPage() {
                   );
                 })}
 
-                {/* Pathologist / Laboratory Director Signatures */}
-                <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px dashed #cbd5e1', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', fontSize: '0.78rem' }}>
+                {/* Clinician, Technologist & Pathologist Signatures */}
+                <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px dashed #cbd5e1', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', fontSize: '0.78rem' }}>
                   <div>
-                    <div style={{ height: '36px', borderBottom: '1px solid #64748b', width: '180px', marginBottom: '4px' }} />
+                    <div style={{ height: '32px', borderBottom: '1px solid #64748b', width: '160px', marginBottom: '4px' }} />
+                    <div style={{ fontWeight: 800, color: '#0369a1' }}>{printModalOrder.doctorName || 'Attending Physician'}</div>
+                    <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>Requesting Clinician</div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>Huderma Specialty Clinic</div>
+                  </div>
+                  <div>
+                    <div style={{ height: '32px', borderBottom: '1px solid #64748b', width: '160px', marginBottom: '4px' }} />
                     <div style={{ fontWeight: 800, color: 'var(--text-main)' }}>Medical Laboratory Technologist</div>
-                    <div style={{ color: 'var(--text-muted)' }}>License # ETH-MLT-84920 • LIS Authenticated</div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>License # ETH-MLT-84920 • LIS Verified</div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ height: '36px', borderBottom: '1px solid #64748b', width: '180px', marginLeft: 'auto', marginBottom: '4px' }} />
+                    <div style={{ height: '32px', borderBottom: '1px solid #64748b', width: '160px', marginLeft: 'auto', marginBottom: '4px' }} />
                     <div style={{ fontWeight: 800, color: 'var(--text-main)' }}>Consultant Clinical Pathologist</div>
-                    <div style={{ color: 'var(--text-muted)' }}>HUDERMA Central Laboratories</div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>HUDERMA Central Laboratories</div>
                   </div>
                 </div>
 
