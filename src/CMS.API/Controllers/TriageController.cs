@@ -102,70 +102,88 @@ public class TriageController : ControllerBase
         DateTime? dateEnd = dateStart?.AddDays(1);
 
         var sql = @"
-            SELECT t.Id, t.TenantId, t.PatientId,
-                   p.FirstName + ' ' + ISNULL(p.MiddleName + ' ', '') + p.LastName AS PatientName,
-                   p.MRN, p.DateOfBirth, p.Gender, p.BloodGroup, p.Allergies, p.InsuranceProvider,
-                   p.PrimaryPhone,
-                   t.AppointmentId, t.QueueId,
-                   ISNULL(q.TokenNumber, 'TRG-' + CAST(t.Id AS VARCHAR)) AS TokenNumber,
-                   t.TriageCategory, t.PriorityLevel,
-                   t.SystolicBP, t.DiastolicBP, t.HeartRate, t.RespiratoryRate,
-                   t.Temperature, t.OxygenSaturation, t.WeightKg, t.HeightCm,
-                   t.Bmi, t.BloodGlucose, t.PainScale,
-                   t.ChiefComplaint, t.NurseNotes,
-                   t.AssignedDoctorId,
-                   ISNULL(s.FirstName + ' ' + s.LastName, 'Attending Physician') AS AssignedDoctorName,
-                   t.AssignedRoomId,
-                   ISNULL(r.RoomName, 'Room 101') AS AssignedRoomName,
-                   t.Status,
-                   ISNULL(t.VisitType, 
-                       CASE 
-                           WHEN EXISTS (
-                               SELECT 1 FROM Encounters prev 
-                               WHERE prev.PatientId = t.PatientId AND prev.EncounterDate < t.TriagedAt
-                           ) AND EXISTS (
-                               SELECT 1 FROM Encounters prev 
-                               WHERE prev.PatientId = t.PatientId 
-                                 AND prev.EncounterDate >= DATEADD(day, -10, t.TriagedAt)
-                                 AND prev.EncounterDate < t.TriagedAt
-                           ) THEN 'Repeat'
-                           WHEN EXISTS (
-                               SELECT 1 FROM Encounters prev 
-                               WHERE prev.PatientId = t.PatientId AND prev.EncounterDate < t.TriagedAt
-                           ) THEN 'New Repeat'
-                           ELSE 'New'
-                       END
-                   ) AS VisitType,
-                   t.TriagedAt, t.UpdatedAt
-            FROM PatientTriage t WITH (NOLOCK)
-            JOIN Patients p WITH (NOLOCK) ON p.Id = t.PatientId
-            LEFT JOIN PatientQueues q WITH (NOLOCK) ON q.Id = t.QueueId
-            LEFT JOIN Doctors d WITH (NOLOCK) ON d.Id = t.AssignedDoctorId
-            LEFT JOIN Staff s WITH (NOLOCK) ON s.Id = d.StaffId
-            LEFT JOIN ConsultationRooms r WITH (NOLOCK) ON r.Id = t.AssignedRoomId
-            WHERE t.TenantId = @TenantId
-              AND (
-                  t.AssignedDoctorId = @DoctorId
-                  OR d.Id = @DoctorId
-                  OR d.StaffId = @DoctorId
-                  OR EXISTS (SELECT 1 FROM Doctors d2 WHERE (d2.Id = @DoctorId OR d2.StaffId = @DoctorId) AND (d2.Id = t.AssignedDoctorId OR d2.StaffId = t.AssignedDoctorId))
-              )
-              AND (
-                  (
-                      @DateStart IS NOT NULL 
-                      AND (
-                          (t.TriagedAt >= @DateStart AND t.TriagedAt < @DateEnd)
-                          OR (t.UpdatedAt >= @DateStart AND t.UpdatedAt < @DateEnd)
-                          OR t.Status IN ('AssignedToDoctor', 'InConsultation')
+            WITH RankedTriage AS (
+                SELECT t.Id, t.TenantId, t.PatientId,
+                       p.FirstName + ' ' + ISNULL(p.MiddleName + ' ', '') + p.LastName AS PatientName,
+                       p.MRN, p.DateOfBirth, p.Gender, p.BloodGroup, p.Allergies, p.InsuranceProvider,
+                       p.PrimaryPhone,
+                       t.AppointmentId, t.QueueId,
+                       ISNULL(q.TokenNumber, 'TRG-' + CAST(t.Id AS VARCHAR)) AS TokenNumber,
+                       t.TriageCategory, t.PriorityLevel,
+                       t.SystolicBP, t.DiastolicBP, t.HeartRate, t.RespiratoryRate,
+                       t.Temperature, t.OxygenSaturation, t.WeightKg, t.HeightCm,
+                       t.Bmi, t.BloodGlucose, t.PainScale,
+                       t.ChiefComplaint, t.NurseNotes,
+                       t.AssignedDoctorId,
+                       ISNULL(s.FirstName + ' ' + s.LastName, 'Attending Physician') AS AssignedDoctorName,
+                       t.AssignedRoomId,
+                       ISNULL(r.RoomName, 'Room 101') AS AssignedRoomName,
+                       t.Status,
+                       ISNULL(t.VisitType, 
+                           CASE 
+                               WHEN EXISTS (
+                                   SELECT 1 FROM Encounters prev 
+                                   WHERE prev.PatientId = t.PatientId AND prev.EncounterDate < t.TriagedAt
+                               ) AND EXISTS (
+                                   SELECT 1 FROM Encounters prev 
+                                   WHERE prev.PatientId = t.PatientId 
+                                     AND prev.EncounterDate >= DATEADD(day, -10, t.TriagedAt)
+                                     AND prev.EncounterDate < t.TriagedAt
+                               ) THEN 'Repeat'
+                               WHEN EXISTS (
+                                   SELECT 1 FROM Encounters prev 
+                                   WHERE prev.PatientId = t.PatientId AND prev.EncounterDate < t.TriagedAt
+                               ) THEN 'New Repeat'
+                               ELSE 'New'
+                           END
+                       ) AS VisitType,
+                       t.TriagedAt, t.UpdatedAt,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY t.PatientId 
+                           ORDER BY t.UpdatedAt DESC, t.TriagedAt DESC, t.Id DESC
+                       ) AS rn
+                FROM PatientTriage t WITH (NOLOCK)
+                JOIN Patients p WITH (NOLOCK) ON p.Id = t.PatientId
+                LEFT JOIN PatientQueues q WITH (NOLOCK) ON q.Id = t.QueueId
+                LEFT JOIN Doctors d WITH (NOLOCK) ON d.Id = t.AssignedDoctorId
+                LEFT JOIN Staff s WITH (NOLOCK) ON s.Id = d.StaffId
+                LEFT JOIN ConsultationRooms r WITH (NOLOCK) ON r.Id = t.AssignedRoomId
+                WHERE t.TenantId = @TenantId
+                  AND (
+                      t.AssignedDoctorId = @DoctorId
+                      OR d.Id = @DoctorId
+                      OR d.StaffId = @DoctorId
+                      OR EXISTS (SELECT 1 FROM Doctors d2 WHERE (d2.Id = @DoctorId OR d2.StaffId = @DoctorId) AND (d2.Id = t.AssignedDoctorId OR d2.StaffId = t.AssignedDoctorId))
+                  )
+                  AND (
+                      (
+                          @DateStart IS NOT NULL 
+                          AND (
+                              (t.TriagedAt >= @DateStart AND t.TriagedAt < @DateEnd)
+                              OR (t.UpdatedAt >= @DateStart AND t.UpdatedAt < @DateEnd)
+                              OR EXISTS (
+                                  SELECT 1 FROM Encounters e WITH (NOLOCK)
+                                  WHERE e.PatientId = t.PatientId
+                                    AND (e.DoctorId = @DoctorId OR EXISTS (SELECT 1 FROM Doctors d3 WHERE (d3.Id = @DoctorId OR d3.StaffId = @DoctorId) AND (d3.Id = e.DoctorId OR d3.StaffId = e.DoctorId)))
+                                    AND (
+                                        (e.EncounterDate >= @DateStart AND e.EncounterDate < @DateEnd)
+                                        OR (e.CreatedAt >= @DateStart AND e.CreatedAt < @DateEnd)
+                                    )
+                              )
+                          )
+                      )
+                      OR
+                      (
+                          @DateStart IS NULL 
+                          AND (
+                              (t.TriagedAt >= CAST(GETDATE() AS DATE) AND t.TriagedAt < DATEADD(day, 1, CAST(GETDATE() AS DATE)))
+                              OR (t.UpdatedAt >= CAST(GETDATE() AS DATE) AND t.UpdatedAt < DATEADD(day, 1, CAST(GETDATE() AS DATE)))
+                          )
                       )
                   )
-                  OR
-                  (
-                      @DateStart IS NULL 
-                      AND t.Status IN ('AssignedToDoctor', 'InConsultation')
-                  )
-              )
-            ORDER BY t.PriorityLevel ASC, t.UpdatedAt DESC, t.TriagedAt DESC";
+            )
+            SELECT * FROM RankedTriage WHERE rn = 1
+            ORDER BY PriorityLevel ASC, UpdatedAt DESC, TriagedAt DESC";
 
         var list = (await conn.QueryAsync<dynamic>(sql, new {
             TenantId = tenantId,

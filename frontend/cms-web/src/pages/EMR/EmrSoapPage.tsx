@@ -911,7 +911,16 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
         api.get<any[]>('/billing/invoices', { date: targetDate, limit: 100 }).catch(() => [])
       ]);
       if (assigned && Array.isArray(assigned) && assigned.length > 0) {
-        const mapped = assigned.map((p: any) => ({
+        // Deduplicate by patient ID preserving order
+        const seenPids = new Set<number>();
+        const uniqueAssigned = assigned.filter((p: any) => {
+          const pid = Number(p.patientId || p.PatientId || p.id || p.Id);
+          if (!pid || seenPids.has(pid)) return false;
+          seenPids.add(pid);
+          return true;
+        });
+
+        const mapped = uniqueAssigned.map((p: any) => ({
           id: p.patientId || p.PatientId || p.id || p.Id,
           mrn: p.mrn || p.MRN || `HD-${p.patientId || p.id}`,
           name: p.patientName || p.PatientName || 'Assigned Patient',
@@ -2262,13 +2271,13 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                   )}
                 </div>
 
-                {/* Consultation Date Selector (for note entry, not for patient filter) */}
+                {/* Consultation Date Selector for Queue Filter & Note Entry */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '10px', background: '#fdfcf9', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>Consultation Date:</span>
                     <button
                       type="button"
-                      onClick={() => setConsultDate(new Date().toISOString().split('T')[0])}
+                      onClick={() => setConsultDate(getLocalDateStr())}
                       className="btn-secondary"
                       style={{ padding: '2px 6px', fontSize: '0.68rem' }}
                     >
@@ -2377,9 +2386,9 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>
                     <div>
                       <h3 style={{ fontSize: '1.05rem', fontWeight: 700 }}>
-                        Clinical Note Entry — {activePatient?.name}
+                        Clinical Note Entry — {activePatient?.name || 'No Patient Selected'}
                       </h3>
-                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Card No: {activePatient?.mrn}</span>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Card No: {activePatient?.mrn || 'N/A'}</span>
                     </div>
 
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
