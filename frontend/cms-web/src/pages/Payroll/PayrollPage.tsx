@@ -16,6 +16,8 @@ interface DoctorItem {
 
 interface ServiceItem {
   serviceName: string;
+  mrn?: string;
+  invoiceNumber?: string;
   rateType: number; // 1 = %, 2 = Fixed
   rate: number;
   rateDisplay: string;
@@ -25,17 +27,17 @@ interface ServiceItem {
   hasAgreement: boolean;
 }
 
-interface CategoryGroup {
-  categoryName: string;
+interface DateGroup {
+  date: string;
   services: ServiceItem[];
   totalCount: number;
   totalPrice: number;
   totalDoctorShare: number;
 }
 
-interface DateGroup {
-  date: string;
-  categories: CategoryGroup[];
+interface CategoryGroup {
+  categoryName: string;
+  dates: DateGroup[];
   totalCount: number;
   totalPrice: number;
   totalDoctorShare: number;
@@ -44,7 +46,7 @@ interface DateGroup {
 interface DoctorGroup {
   doctorId: number;
   doctorName: string;
-  dates: DateGroup[];
+  categories: CategoryGroup[];
   totalCount: number;
   totalPrice: number;
   totalDoctorShare: number;
@@ -180,31 +182,30 @@ export default function PayrollPage() {
       const data = (res as any)?.data || (res as any)?.Data || res;
       setPayrollData(data);
 
-      // Auto-expand top doctor and recent date for convenience
+      // Auto-expand top doctor, first category, and first date for convenience
       if (data && data.doctors && data.doctors.length > 0) {
         const docExp: Record<number, boolean> = {};
-        const dateExp: Record<string, boolean> = {};
         const catExp: Record<string, boolean> = {};
+        const dateExp: Record<string, boolean> = {};
 
         data.doctors.forEach((d: DoctorGroup, docIdx: number) => {
           if (docIdx === 0 || data.doctors.length === 1) {
             docExp[d.doctorId] = true;
-            if (d.dates && d.dates.length > 0) {
-              const firstDate = d.dates[0];
-              const dateKey = `${d.doctorId}_${firstDate.date}`;
-              dateExp[dateKey] = true;
-              if (firstDate.categories && firstDate.categories.length > 0) {
-                firstDate.categories.forEach((c: CategoryGroup) => {
-                  catExp[`${dateKey}_${c.categoryName}`] = true;
-                });
+            if (d.categories && d.categories.length > 0) {
+              const firstCat = d.categories[0];
+              const catKey = `${d.doctorId}_${firstCat.categoryName}`;
+              catExp[catKey] = true;
+              if (firstCat.dates && firstCat.dates.length > 0) {
+                const firstDate = firstCat.dates[0];
+                dateExp[`${catKey}_${firstDate.date}`] = true;
               }
             }
           }
         });
 
         setExpandedDoctors(docExp);
-        setExpandedDates(dateExp);
         setExpandedCategories(catExp);
+        setExpandedDates(dateExp);
       }
     } catch (err) {
       console.error('Failed to calculate payroll:', err);
@@ -224,40 +225,40 @@ export default function PayrollPage() {
     setExpandedDoctors(prev => ({ ...prev, [doctorId]: !prev[doctorId] }));
   };
 
-  const toggleDate = (key: string) => {
-    setExpandedDates(prev => ({ ...prev, [key]: !prev[key] }));
-  };
-
   const toggleCategory = (key: string) => {
     setExpandedCategories(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const toggleDate = (key: string) => {
+    setExpandedDates(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
   const expandAll = () => {
     if (!payrollData?.doctors) return;
     const docExp: Record<number, boolean> = {};
-    const dateExp: Record<string, boolean> = {};
     const catExp: Record<string, boolean> = {};
+    const dateExp: Record<string, boolean> = {};
 
     payrollData.doctors.forEach(d => {
       docExp[d.doctorId] = true;
-      d.dates.forEach(dt => {
-        const dateKey = `${d.doctorId}_${dt.date}`;
-        dateExp[dateKey] = true;
-        dt.categories.forEach(c => {
-          catExp[`${dateKey}_${c.categoryName}`] = true;
+      d.categories.forEach(c => {
+        const catKey = `${d.doctorId}_${c.categoryName}`;
+        catExp[catKey] = true;
+        c.dates.forEach(dt => {
+          dateExp[`${catKey}_${dt.date}`] = true;
         });
       });
     });
 
     setExpandedDoctors(docExp);
-    setExpandedDates(dateExp);
     setExpandedCategories(catExp);
+    setExpandedDates(dateExp);
   };
 
   const collapseAll = () => {
     setExpandedDoctors({});
-    setExpandedDates({});
     setExpandedCategories({});
+    setExpandedDates({});
   };
 
   // Tab 2: Load Service-Based Agreements when Doctor is selected or in ALL/MULTI mode
@@ -497,19 +498,21 @@ export default function PayrollPage() {
     }
 
     const rows: string[][] = [
-      ['Doctor', 'Date', 'Category', 'Service Name', 'Patient Name', 'Rate Agreement', 'Service Price (ETB)', "Doctor's Share (ETB)"]
+      ['Doctor', 'Category', 'Date', 'Invoice No', 'MRN', 'Patient Name', 'Service Name', 'Rate Agreement', 'Service Price (ETB)', "Doctor's Share (ETB)"]
     ];
 
     payrollData.doctors.forEach(doc => {
-      doc.dates.forEach(dt => {
-        dt.categories.forEach(cat => {
-          cat.services.forEach(s => {
+      doc.categories.forEach(cat => {
+        cat.dates.forEach(dt => {
+          dt.services.forEach(s => {
             rows.push([
               doc.doctorName,
-              dt.date,
               cat.categoryName,
-              `"${s.serviceName.replace(/"/g, '""')}"`,
+              dt.date,
+              `"${(s.invoiceNumber || '').replace(/"/g, '""')}"`,
+              `"${(s.mrn || '').replace(/"/g, '""')}"`,
               `"${s.patientName.replace(/"/g, '""')}"`,
+              `"${s.serviceName.replace(/"/g, '""')}"`,
               s.rateDisplay,
               s.servicePrice.toFixed(2),
               s.doctorShare.toFixed(2)
@@ -893,7 +896,7 @@ export default function PayrollPage() {
                             {doctor.doctorName}
                           </div>
                           <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                            ID #{doctor.doctorId} • {doctor.dates.length} Active Date(s) • {doctor.totalCount} Services
+                            ID #{doctor.doctorId} • {doctor.categories.length} Category/Categories • {doctor.totalCount} Services
                           </div>
                         </div>
                       </div>
@@ -920,17 +923,17 @@ export default function PayrollPage() {
                       </div>
                     </div>
 
-                    {/* Level 2: DATES (when Doctor is expanded) */}
+                    {/* Level 2: CATEGORIES (when Doctor is expanded) */}
                     {isDocExpanded && (
                       <div style={{ padding: '12px 18px', background: 'var(--bg-dark)' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                          {doctor.dates.map(dateGroup => {
-                            const dateKey = `${doctor.doctorId}_${dateGroup.date}`;
-                            const isDateExpanded = !!expandedDates[dateKey];
+                          {doctor.categories.map(catGroup => {
+                            const catKey = `${doctor.doctorId}_${catGroup.categoryName}`;
+                            const isCatExpanded = !!expandedCategories[catKey];
 
                             return (
                               <div
-                                key={dateKey}
+                                key={catKey}
                                 style={{
                                   borderRadius: '10px',
                                   border: '1px solid var(--border-color)',
@@ -938,13 +941,13 @@ export default function PayrollPage() {
                                   background: 'var(--bg-card)'
                                 }}
                               >
-                                {/* Date Header */}
+                                {/* Category Header */}
                                 <div
-                                  onClick={() => toggleDate(dateKey)}
+                                  onClick={() => toggleCategory(catKey)}
                                   style={{
                                     padding: '10px 16px',
-                                    background: isDateExpanded ? 'rgba(0,0,0,0.03)' : 'transparent',
-                                    borderBottom: isDateExpanded ? '1px solid var(--border-color)' : 'none',
+                                    background: isCatExpanded ? 'rgba(0, 113, 227, 0.05)' : 'transparent',
+                                    borderBottom: isCatExpanded ? '1px solid var(--border-color)' : 'none',
                                     cursor: 'pointer',
                                     display: 'flex',
                                     alignItems: 'center',
@@ -954,39 +957,39 @@ export default function PayrollPage() {
                                 >
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                     <div style={{ color: 'var(--text-secondary)' }}>
-                                      {isDateExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                                      {isCatExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
                                     </div>
-                                    <Calendar size={16} style={{ color: '#0071e3' }} />
-                                    <span style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                                      {dateGroup.date}
+                                    <Layers size={16} style={{ color: '#0071e3' }} />
+                                    <span style={{ fontSize: '0.94rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                                      {catGroup.categoryName}
                                     </span>
-                                    <span style={{ fontSize: '0.78rem', background: 'rgba(0,0,0,0.06)', padding: '2px 8px', borderRadius: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                                      {dateGroup.totalCount} service{dateGroup.totalCount !== 1 ? 's' : ''}
+                                    <span style={{ fontSize: '0.78rem', background: 'rgba(0, 113, 227, 0.08)', color: '#0071e3', padding: '2px 8px', borderRadius: '12px', fontWeight: 700 }}>
+                                      {catGroup.totalCount} service{catGroup.totalCount !== 1 ? 's' : ''} • {catGroup.dates.length} date{catGroup.dates.length !== 1 ? 's' : ''}
                                     </span>
                                   </div>
 
                                   <div style={{ display: 'flex', gap: '18px', fontSize: '0.85rem' }}>
                                     <div>
-                                      <span style={{ color: 'var(--text-secondary)', marginRight: '6px' }}>Price:</span>
-                                      <strong>ETB {dateGroup.totalPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong>
+                                      <span style={{ color: 'var(--text-secondary)', marginRight: '6px' }}>Category Total:</span>
+                                      <strong>ETB {catGroup.totalPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong>
                                     </div>
                                     <div>
                                       <span style={{ color: '#166534', marginRight: '6px', fontWeight: 600 }}>Doctor's Share:</span>
-                                      <strong style={{ color: '#166534' }}>ETB {dateGroup.totalDoctorShare.toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong>
+                                      <strong style={{ color: '#166534' }}>ETB {catGroup.totalDoctorShare.toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong>
                                     </div>
                                   </div>
                                 </div>
 
-                                {/* Level 3: CATEGORIES (when Date is expanded) */}
-                                {isDateExpanded && (
+                                {/* Level 3: DATES (when Category is expanded) */}
+                                {isCatExpanded && (
                                   <div style={{ padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: '10px', background: 'rgba(0,0,0,0.015)' }}>
-                                    {dateGroup.categories.map(catGroup => {
-                                      const catKey = `${dateKey}_${catGroup.categoryName}`;
-                                      const isCatExpanded = !!expandedCategories[catKey];
+                                    {catGroup.dates.map(dateGroup => {
+                                      const dateKey = `${catKey}_${dateGroup.date}`;
+                                      const isDateExpanded = !!expandedDates[dateKey];
 
                                       return (
                                         <div
-                                          key={catKey}
+                                          key={dateKey}
                                           style={{
                                             borderRadius: '8px',
                                             border: '1px solid var(--border-color)',
@@ -994,13 +997,13 @@ export default function PayrollPage() {
                                             background: 'var(--bg-card)'
                                           }}
                                         >
-                                          {/* Category Header */}
+                                          {/* Date Header */}
                                           <div
-                                            onClick={() => toggleCategory(catKey)}
+                                            onClick={() => toggleDate(dateKey)}
                                             style={{
                                               padding: '8px 14px',
-                                              background: isCatExpanded ? 'rgba(0, 113, 227, 0.04)' : 'transparent',
-                                              borderBottom: isCatExpanded ? '1px solid var(--border-color)' : 'none',
+                                              background: isDateExpanded ? 'rgba(0,0,0,0.03)' : 'transparent',
+                                              borderBottom: isDateExpanded ? '1px solid var(--border-color)' : 'none',
                                               cursor: 'pointer',
                                               display: 'flex',
                                               alignItems: 'center',
@@ -1010,52 +1013,64 @@ export default function PayrollPage() {
                                           >
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                               <div style={{ color: 'var(--text-secondary)' }}>
-                                                {isCatExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                                                {isDateExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                                               </div>
-                                              <span style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                                                {catGroup.categoryName}
+                                              <Calendar size={15} style={{ color: '#0284c7' }} />
+                                              <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                                                {dateGroup.date}
                                               </span>
                                               <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', background: 'rgba(0,0,0,0.04)', padding: '1px 6px', borderRadius: '8px' }}>
-                                                {catGroup.totalCount} item{catGroup.totalCount !== 1 ? 's' : ''}
+                                                {dateGroup.totalCount} item{dateGroup.totalCount !== 1 ? 's' : ''}
                                               </span>
                                             </div>
 
                                             <div style={{ display: 'flex', gap: '16px', fontSize: '0.82rem' }}>
                                               <div>
                                                 <span style={{ color: 'var(--text-secondary)', marginRight: '4px' }}>Subtotal:</span>
-                                                <strong>ETB {catGroup.totalPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong>
+                                                <strong>ETB {dateGroup.totalPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong>
                                               </div>
                                               <div>
                                                 <span style={{ color: '#166534', marginRight: '4px', fontWeight: 600 }}>Doctor:</span>
-                                                <strong style={{ color: '#166534' }}>ETB {catGroup.totalDoctorShare.toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong>
+                                                <strong style={{ color: '#166534' }}>ETB {dateGroup.totalDoctorShare.toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong>
                                               </div>
                                             </div>
                                           </div>
 
-                                          {/* Level 4: SERVICE ROWS (when Category is expanded) */}
-                                          {isCatExpanded && (
+                                          {/* Level 4: SERVICE ROWS (when Date is expanded) */}
+                                          {isDateExpanded && (
                                             <div style={{ overflowX: 'auto' }}>
                                               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.83rem', textAlign: 'left' }}>
                                                 <thead>
                                                   <tr style={{ background: 'rgba(0,0,0,0.02)', borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                                                     <th style={{ padding: '8px 14px', fontWeight: 700 }}>Service Description</th>
+                                                    <th style={{ padding: '8px 14px', fontWeight: 700 }}>Invoice No</th>
+                                                    <th style={{ padding: '8px 14px', fontWeight: 700 }}>MRN</th>
+                                                    <th style={{ padding: '8px 14px', fontWeight: 700 }}>Patient Name</th>
                                                     <th style={{ padding: '8px 14px', fontWeight: 700 }}>Agreement Rate</th>
                                                     <th style={{ padding: '8px 14px', fontWeight: 700, textAlign: 'right' }}>Price of Service</th>
-                                                    <th style={{ padding: '8px 14px', fontWeight: 700 }}>Patient Name</th>
                                                     <th style={{ padding: '8px 14px', fontWeight: 700, textAlign: 'right' }}>Doctor's Share</th>
                                                   </tr>
                                                 </thead>
                                                 <tbody>
-                                                  {catGroup.services.map((svc, svcIdx) => (
+                                                  {dateGroup.services.map((svc, svcIdx) => (
                                                     <tr
                                                       key={svcIdx}
                                                       style={{
-                                                        borderBottom: svcIdx < catGroup.services.length - 1 ? '1px solid var(--border-color)' : 'none',
+                                                        borderBottom: svcIdx < dateGroup.services.length - 1 ? '1px solid var(--border-color)' : 'none',
                                                         transition: 'background 0.15s'
                                                       }}
                                                     >
                                                       <td style={{ padding: '8px 14px', fontWeight: 600, color: 'var(--text-main)' }}>
                                                         {svc.serviceName}
+                                                      </td>
+                                                      <td style={{ padding: '8px 14px', fontFamily: 'monospace', fontWeight: 600, color: '#0284c7', fontSize: '0.82rem' }}>
+                                                        {svc.invoiceNumber || '—'}
+                                                      </td>
+                                                      <td style={{ padding: '8px 14px', fontFamily: 'monospace', fontSize: '0.82rem' }}>
+                                                        {svc.mrn || '—'}
+                                                      </td>
+                                                      <td style={{ padding: '8px 14px', color: 'var(--text-secondary)' }}>
+                                                        {svc.patientName}
                                                       </td>
                                                       <td style={{ padding: '8px 14px' }}>
                                                         <span
@@ -1078,29 +1093,25 @@ export default function PayrollPage() {
                                                       <td style={{ padding: '8px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--text-main)' }}>
                                                         ETB {svc.servicePrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                                       </td>
-                                                      <td style={{ padding: '8px 14px', color: 'var(--text-secondary)' }}>
-                                                        {svc.patientName}
-                                                      </td>
                                                       <td style={{ padding: '8px 14px', textAlign: 'right', fontWeight: 800, color: '#166534' }}>
                                                         ETB {svc.doctorShare.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                                       </td>
                                                     </tr>
                                                   ))}
 
-                                                  {/* Category Count & Sum Row */}
+                                                  {/* Date Count & Sum Row */}
                                                   <tr style={{ background: 'rgba(0, 113, 227, 0.04)', borderTop: '2px solid var(--border-color)', fontWeight: 800 }}>
                                                     <td style={{ padding: '8px 14px', color: 'var(--text-main)' }}>
-                                                      Category Summary: {catGroup.categoryName} ({catGroup.totalCount} item{catGroup.totalCount !== 1 ? 's' : ''})
+                                                      Date Summary: {dateGroup.date} ({dateGroup.totalCount} item{dateGroup.totalCount !== 1 ? 's' : ''})
                                                     </td>
-                                                    <td style={{ padding: '8px 14px', color: 'var(--text-secondary)', fontSize: '0.78rem' }}>
-                                                      Count: {catGroup.totalCount}
+                                                    <td colSpan={4} style={{ padding: '8px 14px', color: 'var(--text-secondary)', fontSize: '0.78rem' }}>
+                                                      Count: {dateGroup.totalCount}
                                                     </td>
                                                     <td style={{ padding: '8px 14px', textAlign: 'right', color: 'var(--text-main)' }}>
-                                                      ETB {catGroup.totalPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                      ETB {dateGroup.totalPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                                     </td>
-                                                    <td style={{ padding: '8px 14px' }}></td>
                                                     <td style={{ padding: '8px 14px', textAlign: 'right', color: '#166534', fontSize: '0.9rem' }}>
-                                                      ETB {catGroup.totalDoctorShare.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                      ETB {dateGroup.totalDoctorShare.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                                     </td>
                                                   </tr>
                                                 </tbody>
@@ -1110,6 +1121,17 @@ export default function PayrollPage() {
                                         </div>
                                       );
                                     })}
+
+                                    {/* Category Total Footer */}
+                                    <div style={{ padding: '8px 14px', background: 'rgba(0, 113, 227, 0.06)', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem', fontWeight: 800 }}>
+                                      <span style={{ color: 'var(--text-main)' }}>
+                                        {catGroup.categoryName} Subtotal ({catGroup.totalCount} items across {catGroup.dates.length} dates)
+                                      </span>
+                                      <div style={{ display: 'flex', gap: '20px' }}>
+                                        <span>Revenue: ETB {catGroup.totalPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                        <span style={{ color: '#166534' }}>Doctor Share: ETB {catGroup.totalDoctorShare.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                      </div>
+                                    </div>
                                   </div>
                                 )}
                               </div>

@@ -364,21 +364,23 @@ input:focus, select:focus, textarea:focus {
   table.cms-table {
     width: 100% !important;
     border-collapse: collapse !important;
-    font-size: 11px !important;
+    font-size: 8.5px !important;
   }
 
   table.cms-table th,
   table.cms-table td {
     border: 1px solid #cbd5e1 !important;
-    padding: 6px 8px !important;
+    padding: 3px 5px !important;
     color: #000000 !important;
     background: transparent !important;
+    font-size: 8.5px !important;
   }
 
   table.cms-table th {
     background-color: #f1f5f9 !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+    font-weight: 700 !important;
   }
 
   /* Prevent awkward page breaks in the middle of rows */

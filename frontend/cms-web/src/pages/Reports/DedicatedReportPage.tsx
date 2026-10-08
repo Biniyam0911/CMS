@@ -847,10 +847,10 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
 
       {/* REPORT DATA TABLE */}
       <div className="glass-panel" style={{ padding: '24px' }}>
-        <div className="print-only" style={{ display: 'none', marginBottom: '20px', textAlign: 'center' }}>
-          <h2 style={{ fontSize: '1.3rem', fontWeight: 800, margin: '0 0 4px 0' }}>Huderma Specialty Clinic</h2>
-          <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: '0 0 4px 0', color: '#0369a1' }}>{config.title}</h3>
-          <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>
+        <div className="print-only" style={{ display: 'none', marginBottom: '12px', textAlign: 'center' }}>
+          <h2 style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0 0 3px 0' }}>Huderma Specialty Clinic</h2>
+          <h3 style={{ fontSize: '0.95rem', fontWeight: 700, margin: '0 0 3px 0', color: '#0369a1' }}>{config.title}</h3>
+          <p style={{ fontSize: '0.75rem', color: '#64748b', margin: 0 }}>
             Period: {dateFrom} to {dateTo} | Generated on: {new Date().toLocaleDateString()}
           </p>
         </div>

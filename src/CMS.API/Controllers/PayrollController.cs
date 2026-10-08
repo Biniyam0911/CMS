@@ -288,6 +288,8 @@ public class PayrollController : ControllerBase
                 ii.Description AS ServiceName,
                 ISNULL(ii.Total, 0) AS ServicePrice,
                 ISNULL(p.FirstName + ' ' + ISNULL(p.LastName, ''), 'Patient #' + CAST(p.Id AS NVARCHAR)) AS PatientName,
+                ISNULL(p.MRN, '') AS MRN,
+                ISNULL(i.InvoiceNumber, 'INV-' + CAST(i.Id AS NVARCHAR)) AS InvoiceNumber,
                 pa.RateType,
                 pa.Rate,
                 CASE WHEN pa.Id IS NOT NULL THEN 1 ELSE 0 END AS HasAgreement
@@ -330,7 +332,7 @@ public class PayrollController : ControllerBase
               AND (@DoctorId IS NULL OR d.Id = @DoctorId)
               AND (@DateFrom IS NULL OR i.IssueDate >= @DateFrom)
               AND (@DateTo IS NULL OR i.IssueDate <= @DateTo)
-            ORDER BY DoctorName, ServiceDate DESC, Category, ServiceName";
+            ORDER BY DoctorName, Category, ServiceDate DESC, ServiceName";
 
         var rows = await conn.QueryAsync<dynamic>(sql, new
         {
@@ -340,7 +342,7 @@ public class PayrollController : ControllerBase
             DateTo = dateTo?.Date
         });
 
-        // Group into hierarchical structure: Doctor -> Date -> Category -> Services
+        // Group into hierarchical structure: Doctor -> Category -> Date -> Services
         var doctorGroups = new List<PayrollDoctorGroupDto>();
 
         foreach (var docGroup in rows.GroupBy(r => (int)r.DoctorId))
@@ -349,19 +351,19 @@ public class PayrollController : ControllerBase
             int docId = (int)firstDoc.DoctorId;
             string docName = (string)firstDoc.DoctorName;
 
-            var dateGroups = new List<PayrollDateGroupDto>();
+            var categoryGroups = new List<PayrollCategoryGroupDto>();
 
-            foreach (var dateGrp in docGroup.GroupBy(r => ((DateTime)r.ServiceDate).ToString("yyyy-MM-dd")))
+            foreach (var catGrp in docGroup.GroupBy(r => (string)r.Category))
             {
-                string sDate = dateGrp.Key;
-                var categoryGroups = new List<PayrollCategoryGroupDto>();
+                string catName = catGrp.Key;
+                var dateGroups = new List<PayrollDateGroupDto>();
 
-                foreach (var catGrp in dateGrp.GroupBy(r => (string)r.Category))
+                foreach (var dateGrp in catGrp.GroupBy(r => ((DateTime)r.ServiceDate).ToString("yyyy-MM-dd")))
                 {
-                    string catName = catGrp.Key;
+                    string sDate = dateGrp.Key;
                     var services = new List<PayrollServiceItemDto>();
 
-                    foreach (var row in catGrp)
+                    foreach (var row in dateGrp)
                     {
                         decimal price = (decimal)row.ServicePrice;
                         byte? rateType = row.RateType != null ? (byte)row.RateType : null;
@@ -388,6 +390,8 @@ public class PayrollController : ControllerBase
                         services.Add(new PayrollServiceItemDto
                         {
                             ServiceName = (string)row.ServiceName,
+                            MRN = (string)(row.MRN ?? string.Empty),
+                            InvoiceNumber = (string)(row.InvoiceNumber ?? string.Empty),
                             RateType = rateType ?? 1,
                             Rate = rate ?? 0,
                             RateDisplay = rateDisplay,
@@ -398,9 +402,9 @@ public class PayrollController : ControllerBase
                         });
                     }
 
-                    categoryGroups.Add(new PayrollCategoryGroupDto
+                    dateGroups.Add(new PayrollDateGroupDto
                     {
-                        CategoryName = catName,
+                        Date = sDate,
                         Services = services,
                         TotalCount = services.Count,
                         TotalPrice = services.Sum(s => s.ServicePrice),
@@ -408,13 +412,13 @@ public class PayrollController : ControllerBase
                     });
                 }
 
-                dateGroups.Add(new PayrollDateGroupDto
+                categoryGroups.Add(new PayrollCategoryGroupDto
                 {
-                    Date = sDate,
-                    Categories = categoryGroups,
-                    TotalCount = categoryGroups.Sum(c => c.TotalCount),
-                    TotalPrice = categoryGroups.Sum(c => c.TotalPrice),
-                    TotalDoctorShare = categoryGroups.Sum(c => c.TotalDoctorShare)
+                    CategoryName = catName,
+                    Dates = dateGroups,
+                    TotalCount = dateGroups.Sum(d => d.TotalCount),
+                    TotalPrice = dateGroups.Sum(d => d.TotalPrice),
+                    TotalDoctorShare = dateGroups.Sum(d => d.TotalDoctorShare)
                 });
             }
 
@@ -422,10 +426,10 @@ public class PayrollController : ControllerBase
             {
                 DoctorId = docId,
                 DoctorName = docName,
-                Dates = dateGroups,
-                TotalCount = dateGroups.Sum(d => d.TotalCount),
-                TotalPrice = dateGroups.Sum(d => d.TotalPrice),
-                TotalDoctorShare = dateGroups.Sum(d => d.TotalDoctorShare)
+                Categories = categoryGroups,
+                TotalCount = categoryGroups.Sum(c => c.TotalCount),
+                TotalPrice = categoryGroups.Sum(c => c.TotalPrice),
+                TotalDoctorShare = categoryGroups.Sum(c => c.TotalDoctorShare)
             });
         }
 
@@ -474,15 +478,6 @@ public class PayrollDoctorGroupDto
 {
     public int DoctorId { get; set; }
     public string DoctorName { get; set; } = string.Empty;
-    public List<PayrollDateGroupDto> Dates { get; set; } = new();
-    public int TotalCount { get; set; }
-    public decimal TotalPrice { get; set; }
-    public decimal TotalDoctorShare { get; set; }
-}
-
-public class PayrollDateGroupDto
-{
-    public string Date { get; set; } = string.Empty;
     public List<PayrollCategoryGroupDto> Categories { get; set; } = new();
     public int TotalCount { get; set; }
     public decimal TotalPrice { get; set; }
@@ -492,6 +487,15 @@ public class PayrollDateGroupDto
 public class PayrollCategoryGroupDto
 {
     public string CategoryName { get; set; } = string.Empty;
+    public List<PayrollDateGroupDto> Dates { get; set; } = new();
+    public int TotalCount { get; set; }
+    public decimal TotalPrice { get; set; }
+    public decimal TotalDoctorShare { get; set; }
+}
+
+public class PayrollDateGroupDto
+{
+    public string Date { get; set; } = string.Empty;
     public List<PayrollServiceItemDto> Services { get; set; } = new();
     public int TotalCount { get; set; }
     public decimal TotalPrice { get; set; }
@@ -501,6 +505,8 @@ public class PayrollCategoryGroupDto
 public class PayrollServiceItemDto
 {
     public string ServiceName { get; set; } = string.Empty;
+    public string MRN { get; set; } = string.Empty;
+    public string InvoiceNumber { get; set; } = string.Empty;
     public byte RateType { get; set; }
     public decimal Rate { get; set; }
     public string RateDisplay { get; set; } = string.Empty;
