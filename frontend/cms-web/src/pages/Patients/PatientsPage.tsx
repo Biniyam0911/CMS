@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Users, Search, Plus, FileText, Phone, Mail, Calendar, Activity, X,
   Stethoscope, Camera, ShieldCheck, Copy, Loader2, ChevronLeft, ChevronRight,
@@ -269,12 +269,34 @@ export default function PatientsPage({ onSelectEmrPatient }: PatientsPageProps) 
     setHistoryDesc('');
   };
 
+  // Online / In-Clinic Registry Filter State
+  const [registryFilter, setRegistryFilter] = useState<'ALL' | 'ONLINE' | 'IN_CLINIC'>('ALL');
+
+  const onlineCount = useMemo(() => {
+    return patients.filter(p => {
+      const mrnUpper = (p.mrn || '').toUpperCase();
+      return mrnUpper.startsWith('ON-') || mrnUpper.startsWith('ON') || p.isOnline;
+    }).length;
+  }, [patients]);
+
+  const inClinicCount = Math.max(0, patients.length - onlineCount);
+
+  const filteredPatients = useMemo(() => {
+    return patients.filter(p => {
+      const mrnUpper = (p.mrn || '').toUpperCase();
+      const isOnline = mrnUpper.startsWith('ON-') || mrnUpper.startsWith('ON') || p.isOnline;
+      if (registryFilter === 'ONLINE') return isOnline;
+      if (registryFilter === 'IN_CLINIC') return !isOnline;
+      return true;
+    });
+  }, [patients, registryFilter]);
+
   // Pagination Calculations
-  const totalCount = patients.length;
+  const totalCount = filteredPatients.length;
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
   const startIndex = (currentPage - 1) * pageSize;
   const endIndex = Math.min(startIndex + pageSize, totalCount);
-  const paginatedPatients = patients.slice(startIndex, endIndex);
+  const paginatedPatients = filteredPatients.slice(startIndex, endIndex);
 
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
 
@@ -288,15 +310,55 @@ export default function PatientsPage({ onSelectEmrPatient }: PatientsPageProps) 
     <div>
       {/* Search and Action Bar */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', gap: '14px', flexWrap: 'wrap' }}>
-        <div style={{ position: 'relative', width: isMobile ? '100%' : '380px' }}>
-          <Search size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
-          <input
-            type="text"
-            placeholder="Search by Patient Name, MRN / Card No, or Phone..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            style={{ paddingLeft: '36px' }}
-          />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', width: isMobile ? '100%' : 'auto' }}>
+          <div style={{ position: 'relative', width: isMobile ? '100%' : '320px' }}>
+            <Search size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+            <input
+              type="text"
+              placeholder="Search by Patient Name, MRN, Phone..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              style={{ paddingLeft: '36px' }}
+            />
+          </div>
+
+          {/* Quick Filter: All / Online / In-Clinic */}
+          <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-main)', padding: '3px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+            <button
+              type="button"
+              onClick={() => { setRegistryFilter('ALL'); setCurrentPage(1); }}
+              style={{
+                padding: '6px 12px', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 700, border: 'none', cursor: 'pointer',
+                background: registryFilter === 'ALL' ? '#0284c7' : 'transparent',
+                color: registryFilter === 'ALL' ? '#fff' : 'var(--text-secondary)'
+              }}
+            >
+              All ({patients.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => { setRegistryFilter('ONLINE'); setCurrentPage(1); }}
+              style={{
+                padding: '6px 12px', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 700, border: 'none', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: '4px',
+                background: registryFilter === 'ONLINE' ? '#0284c7' : 'transparent',
+                color: registryFilter === 'ONLINE' ? '#fff' : 'var(--text-secondary)'
+              }}
+            >
+              <Globe size={13} /> Online ({onlineCount})
+            </button>
+            <button
+              type="button"
+              onClick={() => { setRegistryFilter('IN_CLINIC'); setCurrentPage(1); }}
+              style={{
+                padding: '6px 12px', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 700, border: 'none', cursor: 'pointer',
+                background: registryFilter === 'IN_CLINIC' ? '#0284c7' : 'transparent',
+                color: registryFilter === 'IN_CLINIC' ? '#fff' : 'var(--text-secondary)'
+              }}
+            >
+              In-Clinic ({inClinicCount})
+            </button>
+          </div>
         </div>
 
         <div style={{ display: 'flex', gap: '8px', width: isMobile ? '100%' : 'auto', flexWrap: 'wrap' }}>
@@ -374,9 +436,20 @@ export default function PatientsPage({ onSelectEmrPatient }: PatientsPageProps) 
                     }}
                   >
                     <td>
-                      <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0369a1', fontSize: '0.85rem' }}>
-                        {p.mrn}
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0369a1', fontSize: '0.85rem' }}>
+                          {p.mrn}
+                        </span>
+                        {((p.mrn || '').toUpperCase().startsWith('ON-') || (p.mrn || '').toUpperCase().startsWith('ON') || p.isOnline) && (
+                          <span style={{
+                            background: '#e0f2fe', color: '#0284c7', border: '1px solid #bae6fd',
+                            padding: '1px 6px', borderRadius: '4px', fontSize: '0.62rem', fontWeight: 800,
+                            display: 'inline-flex', alignItems: 'center', gap: '3px'
+                          }}>
+                            <Globe size={10} /> ONLINE
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td>
                       <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{p.fullName || `${p.firstName} ${p.lastName}`}</div>

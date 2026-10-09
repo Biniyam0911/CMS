@@ -234,10 +234,11 @@ export default function QueuePage() {
       const rawTriage = Array.isArray(triageData) ? triageData : (triageData?.data || []);
       const triageList: QueueItem[] = rawTriage
         .filter((t: any) => isToday(t.triagedAt || t.createdAt))
-        .map((t: any) => {
+        .map((t: any, idx: number) => {
           const mrnNum = extractMrnNumber(t.mrn || t.MRN, t.patientId || t.id);
+          const tid = t.id || t.Id || t.triageId || t.TriageId || mrnNum;
           return {
-            id: `trg-${t.id || t.Id}`,
+            id: tid ? `trg-${tid}-${idx}` : `trg-row-${idx}`,
             ticketId: undefined,
             mrnNumber: mrnNum,
             mrn: t.mrn || t.MRN,
@@ -260,10 +261,11 @@ export default function QueuePage() {
       const rawProc = Array.isArray(procData) ? procData : (procData?.data || []);
       const procList: QueueItem[] = rawProc
         .filter((p: any) => isToday(p.createdAt || p.orderedAt))
-        .map((p: any) => {
+        .map((p: any, idx: number) => {
           const mrnNum = extractMrnNumber(p.mrn || p.MRN, p.patientId || p.id);
+          const pid = p.id || p.Id || p.orderId || p.OrderId || mrnNum;
           return {
-            id: `prc-${p.id || p.Id}`,
+            id: pid ? `prc-${pid}-${idx}` : `prc-row-${idx}`,
             ticketId: undefined,
             mrnNumber: mrnNum,
             mrn: p.mrn || p.MRN,
@@ -286,11 +288,12 @@ export default function QueuePage() {
       const rawLab = Array.isArray(labData) ? labData : (labData?.data || []);
       const labList: QueueItem[] = rawLab
         .filter((l: any) => isToday(l.orderedAt || l.createdAt))
-        .map((l: any) => {
+        .map((l: any, idx: number) => {
           const mrnNum = extractMrnNumber(l.mrn || l.MRN, l.patientId || l.id);
           const isResultReady = l.itemStatus === 4 || l.itemStatus === 5 || l.status === 'Completed' || l.status === 'Approved';
+          const lid = l.id || l.Id || l.orderId || l.OrderId || l.orderItemId || l.OrderItemId || mrnNum;
           return {
-            id: `lab-${l.id || l.orderId}`,
+            id: lid ? `lab-${lid}-${idx}` : `lab-row-${idx}`,
             ticketId: undefined,
             mrnNumber: mrnNum,
             mrn: l.mrn || l.MRN,
@@ -374,63 +377,212 @@ export default function QueuePage() {
   // Filter waiting list for current station
   const stationWaitingList = useMemo(() => {
     if (activeStation === 'doctor') {
-      return activeWaitingList.filter(t => t.isDoctorService);
+      const doctorFiltered = activeWaitingList.filter(t => t.isDoctorService);
+      // If logged-in user is a doctor (not admin), only show their assigned patients
+      if (isDoctor && !isAdmin && currentUser) {
+        const doctorName = currentUser.name || currentUser.firstName || currentUser.lastName || '';
+        const doctorId = currentUser.doctorId || currentUser.id;
+        const myPatients = doctorFiltered.filter(t => {
+          if (!t.assignedDoctor || t.assignedDoctor === '-') return true; // Show unassigned too
+          const aDoc = (t.assignedDoctor || '').toLowerCase();
+          const myName = doctorName.toLowerCase();
+          return aDoc.includes(myName) || myName.includes(aDoc) ||
+            (doctorId && (aDoc.includes(String(doctorId)) || t.assignedDoctor === String(doctorId)));
+        });
+        // If filter yields nothing (assignedDoctor not populated), show all doctor items
+        return myPatients.length > 0 ? myPatients : doctorFiltered;
+      }
+      return doctorFiltered;
     }
     if (activeStation === 'lab') {
+      // Lab is always open to all staff — no doctor filter applied
       return activeWaitingList.filter(t => t.isLabService);
     }
     return activeWaitingList;
-  }, [activeWaitingList, activeStation]);
+  }, [activeWaitingList, activeStation, isDoctor, isAdmin, currentUser]);
 
   // Helper to ensure a ticket exists in PatientQueues before calling
   const ensureQueueTicket = async (item: QueueItem): Promise<number> => {
     if (item.ticketId) return item.ticketId;
-
-    // Check in patient to get real DB TicketId
-    const res: any = await api.post('/queue/checkin', {
-      patientId: item.patientId || 1,
-      serviceType: item.service,
-      priorityLevel: item.priorityLevel || 2,
-      notes: `Summoned from ${item.serviceCategory}`
-    });
-
-    const liveData: any = await api.get('/queue/live');
-    const liveList = Array.isArray(liveData) ? liveData : (liveData?.data || []);
-    const found = liveList.find((l: any) =>
-      extractMrnNumber(l.mrnNumber || l.MrnNumber || l.mrn || l.MRN, l.patientId) === item.mrnNumber
-    );
-
-    return found ? (found.id || found.Id) : (Date.now() % 100000);
+    try {
+      const res: any = await api.post('/queue/checkin', {
+        patientId: item.patientId || 1,
+        serviceType: item.service,
+        priorityLevel: item.priorityLevel || 2,
+        notes: `Summoned from ${item.serviceCategory}`
+      });
+      if (res?.data?.ticketId || res?.ticketId) {
+        return res?.data?.ticketId || res?.ticketId;
+      }
+      const liveData: any = await api.get('/queue/live');
+      const liveList = Array.isArray(liveData) ? liveData : (liveData?.data || []);
+      const found = liveList.find((l: any) =>
+        extractMrnNumber(l.mrnNumber || l.MrnNumber || l.mrn || l.MRN, l.patientId) === item.mrnNumber
+      );
+      return found ? (found.id || found.Id) : (Date.now() % 100000);
+    } catch (err) {
+      console.warn('ensureQueueTicket fallback:', err);
+      return Date.now() % 100000;
+    }
   };
 
   // ACTION: CALL SPECIFIC TICKET
   const handleCallTicket = async (ticket: QueueItem) => {
     try {
       setActionLoading(true);
-      const ticketDbId = await ensureQueueTicket(ticket);
-      const staffId = currentUser?.id || 1;
-      const counterId = counters.find(c => c.name === activeCounter)?.id || 1;
-
-      await api.post('/queue/call', {
-        ticketId: ticketDbId,
-        counterId: counterId,
-        staffId: staffId,
-        stationType: activeStation
-      }).catch(() => {});
 
       const updatedTicket: QueueItem = {
         ...ticket,
-        ticketId: ticketDbId,
         status: 'Called',
         counter: activeCounter
       };
 
-      setCurrentCalled(updatedTicket);
+      // 1. Play dew chime & announcement immediately
       playTicketChimeAndSpeech(updatedTicket.mrnNumber, activeCounter, updatedTicket.patientName);
+
+      // 2. Set current called state for immediate UI response
+      setCurrentCalled(updatedTicket);
+
+      // 3. Save to localStorage for instant cross-tab TV display sync
+      const calledPayload = {
+        mrnNumber: updatedTicket.mrnNumber,
+        patientName: updatedTicket.patientName,
+        service: updatedTicket.service,
+        counter: activeCounter,
+        isLab: updatedTicket.isLabService,
+        isProcedure: updatedTicket.serviceCategory === 'Procedure',
+        callTime: new Date().toISOString()
+      };
+      localStorage.setItem('cms_queue_current_called', JSON.stringify(calledPayload));
+
+      // 4. Broadcast event across tabs
       broadcastQueueEvent('CALL_PATIENT', updatedTicket);
+
+      // 5. Fail-safe backend sync
+      try {
+        const ticketDbId = await ensureQueueTicket(ticket);
+        const staffId = currentUser?.id || 1;
+        const counterId = counters.find(c => c.name === activeCounter)?.id || 1;
+
+        await api.post('/queue/call', {
+          ticketId: ticketDbId,
+          counterId: counterId,
+          staffId: staffId,
+          stationType: activeStation
+        }).catch(() => {});
+
+        setCurrentCalled(prev => prev ? { ...prev, ticketId: ticketDbId } : prev);
+      } catch (dbErr) {
+        console.warn('Queue call backend sync failed:', dbErr);
+      }
+
       await fetchAllQueues();
     } catch (err) {
       console.error('Call ticket failed:', err);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // ACTION: RECALL SPECIFIC TICKET
+  const handleRecallTicket = async (ticket: QueueItem) => {
+    try {
+      setActionLoading(true);
+      const updatedTicket: QueueItem = {
+        ...ticket,
+        status: 'Called',
+        counter: activeCounter
+      };
+
+      // 1. Re-play dew chime & speech
+      playTicketChimeAndSpeech(updatedTicket.mrnNumber, activeCounter, updatedTicket.patientName);
+
+      // 2. Update state & localStorage
+      setCurrentCalled(updatedTicket);
+      localStorage.setItem('cms_queue_current_called', JSON.stringify({
+        mrnNumber: updatedTicket.mrnNumber,
+        patientName: updatedTicket.patientName,
+        service: updatedTicket.service,
+        counter: activeCounter,
+        isLab: updatedTicket.isLabService,
+        isProcedure: updatedTicket.serviceCategory === 'Procedure',
+        callTime: new Date().toISOString()
+      }));
+
+      // 3. Broadcast recall
+      broadcastQueueEvent('RECALL_PATIENT', updatedTicket);
+
+      // 4. Backend sync
+      if (ticket.ticketId) {
+        const staffId = currentUser?.id || 1;
+        const counterId = counters.find(c => c.name === activeCounter)?.id || 1;
+        await api.post('/queue/recall', {
+          ticketId: ticket.ticketId,
+          counterId: counterId,
+          staffId: staffId
+        }).catch(() => {});
+      }
+    } catch (err) {
+      console.error('Recall failed:', err);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // ACTION: COMPLETE SPECIFIC TICKET
+  const handleCompleteTicket = async (ticket: QueueItem) => {
+    try {
+      setActionLoading(true);
+      const staffId = currentUser?.id || 1;
+
+      if (ticket.ticketId) {
+        await api.post('/queue/complete', {
+          ticketId: ticket.ticketId,
+          staffId: staffId
+        }).catch(() => {});
+      }
+
+      broadcastQueueEvent('COMPLETE_PATIENT', ticket);
+
+      if (currentCalled?.mrnNumber === ticket.mrnNumber) {
+        setCurrentCalled(null);
+        localStorage.removeItem('cms_queue_current_called');
+      }
+
+      await fetchAllQueues();
+    } catch (err) {
+      console.error('Complete failed:', err);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // ACTION: CANCEL SPECIFIC TICKET
+  const handleCancelTicket = async (ticket: QueueItem) => {
+    if (!confirm(`Cancel or mark No-Show for Patient #${ticket.mrnNumber} (${ticket.patientName})?`)) return;
+
+    try {
+      setActionLoading(true);
+      const staffId = currentUser?.id || 1;
+
+      if (ticket.ticketId) {
+        await api.post('/queue/cancel', {
+          ticketId: ticket.ticketId,
+          staffId: staffId,
+          reason: 'No-Show / Cancelled at station'
+        }).catch(() => {});
+      }
+
+      broadcastQueueEvent('CANCEL_PATIENT', ticket);
+
+      if (currentCalled?.mrnNumber === ticket.mrnNumber) {
+        setCurrentCalled(null);
+        localStorage.removeItem('cms_queue_current_called');
+      }
+
+      await fetchAllQueues();
+    } catch (err) {
+      console.error('Cancel failed:', err);
     } finally {
       setActionLoading(false);
     }
@@ -441,82 +593,6 @@ export default function QueuePage() {
     if (stationWaitingList.length === 0) return;
     const nextTicket = stationWaitingList[0];
     await handleCallTicket(nextTicket);
-  };
-
-  // ACTION: RECALL BUTTON
-  const handleRecall = async () => {
-    if (!currentCalled) return;
-    try {
-      setActionLoading(true);
-      const staffId = currentUser?.id || 1;
-      const counterId = counters.find(c => c.name === activeCounter)?.id || 1;
-
-      if (currentCalled.ticketId) {
-        await api.post('/queue/recall', {
-          ticketId: currentCalled.ticketId,
-          counterId: counterId,
-          staffId: staffId
-        }).catch(() => {});
-      }
-
-      playTicketChimeAndSpeech(currentCalled.mrnNumber, activeCounter, currentCalled.patientName);
-      broadcastQueueEvent('RECALL_PATIENT', currentCalled);
-    } catch (err) {
-      console.error('Recall failed:', err);
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  // ACTION: COMPLETE BUTTON
-  const handleComplete = async () => {
-    if (!currentCalled) return;
-    try {
-      setActionLoading(true);
-      const staffId = currentUser?.id || 1;
-
-      if (currentCalled.ticketId) {
-        await api.post('/queue/complete', {
-          ticketId: currentCalled.ticketId,
-          staffId: staffId
-        }).catch(() => {});
-      }
-
-      broadcastQueueEvent('COMPLETE_PATIENT', currentCalled);
-      setCurrentCalled(null);
-      await fetchAllQueues();
-    } catch (err) {
-      console.error('Complete failed:', err);
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  // ACTION: CANCEL / NO-SHOW BUTTON
-  const handleCancel = async () => {
-    if (!currentCalled) return;
-    if (!confirm(`Cancel or mark No-Show for Patient #${currentCalled.mrnNumber} (${currentCalled.patientName})?`)) return;
-
-    try {
-      setActionLoading(true);
-      const staffId = currentUser?.id || 1;
-
-      if (currentCalled.ticketId) {
-        await api.post('/queue/cancel', {
-          ticketId: currentCalled.ticketId,
-          staffId: staffId,
-          reason: 'No-Show at station'
-        }).catch(() => {});
-      }
-
-      broadcastQueueEvent('CANCEL_PATIENT', currentCalled);
-      setCurrentCalled(null);
-      await fetchAllQueues();
-    } catch (err) {
-      console.error('Cancel failed:', err);
-    } finally {
-      setActionLoading(false);
-    }
   };
 
   return (
@@ -577,7 +653,7 @@ export default function QueuePage() {
           )}
         </div>
 
-        {/* Action Buttons: Next, Recall, Complete, Cancel, Launch TV */}
+        {/* Top Controls: Next, Launch TV, Refresh */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           {/* NEXT BUTTON */}
           <button
@@ -593,54 +669,7 @@ export default function QueuePage() {
             title="Call next waiting patient in line"
           >
             <Play size={16} fill="#fff" />
-            <span>Next ({stationWaitingList.length})</span>
-          </button>
-
-          {/* RECALL BUTTON */}
-          <button
-            onClick={handleRecall}
-            disabled={!currentCalled || actionLoading}
-            className="btn-secondary"
-            style={{
-              padding: '11px 16px', borderRadius: '12px', fontSize: '0.88rem',
-              fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6,
-              opacity: !currentCalled ? 0.5 : 1
-            }}
-            title="Re-announce currently called patient"
-          >
-            <Volume2 size={16} /> Recall
-          </button>
-
-          {/* COMPLETE BUTTON */}
-          <button
-            onClick={handleComplete}
-            disabled={!currentCalled || actionLoading}
-            className="btn-secondary"
-            style={{
-              padding: '11px 16px', borderRadius: '12px', fontSize: '0.88rem',
-              fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6,
-              color: '#16a34a', borderColor: '#86efac',
-              opacity: !currentCalled ? 0.5 : 1
-            }}
-            title="Mark call completed"
-          >
-            <CheckCircle size={16} /> Complete
-          </button>
-
-          {/* CANCEL / NO-SHOW BUTTON */}
-          <button
-            onClick={handleCancel}
-            disabled={!currentCalled || actionLoading}
-            className="btn-secondary"
-            style={{
-              padding: '11px 14px', borderRadius: '12px', fontSize: '0.88rem',
-              fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6,
-              color: '#dc2626', borderColor: '#fca5a5',
-              opacity: !currentCalled ? 0.5 : 1
-            }}
-            title="Cancel or mark No-Show"
-          >
-            <XCircle size={16} /> Cancel
+            <span>Next Patient ({stationWaitingList.length})</span>
           </button>
 
           {/* TV DISPLAY BUTTON */}
@@ -649,13 +678,13 @@ export default function QueuePage() {
             style={{
               padding: '11px 18px', borderRadius: '12px', fontSize: '0.88rem',
               fontWeight: 700, display: 'flex', alignItems: 'center', gap: 7,
-              background: 'linear-gradient(135deg, #0f172a, #1e293b)',
-              color: '#fff', border: '1px solid #334155', cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(15,23,42,0.15)'
+              background: 'linear-gradient(135deg, #022018, #064030)',
+              color: '#34d399', border: '1px solid #10b981', cursor: 'pointer',
+              boxShadow: '0 4px 14px rgba(6, 64, 48, 0.3)'
             }}
-            title="Launch full-screen waiting room TV display with 60% YouTube player"
+            title="Launch full-screen waiting room TV display"
           >
-            <Tv size={16} color="#38bdf8" /> TV Display (60/40)
+            <Tv size={16} color="#34d399" /> TV Display (Hospital Green)
           </button>
 
           {/* REFRESH BUTTON */}
@@ -793,7 +822,7 @@ export default function QueuePage() {
                   <th>Category</th>
                   <th>Attending / Doctor</th>
                   <th>Priority</th>
-                  <th style={{ width: '120px', textAlign: 'center' }}>Action</th>
+                  <th style={{ width: '280px', textAlign: 'center' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -804,8 +833,13 @@ export default function QueuePage() {
                     </td>
                   </tr>
                 ) : (
-                  stationWaitingList.map((item, idx) => (
-                    <tr key={item.id} style={{ background: idx === 0 ? 'rgba(0,113,227,0.02)' : undefined }}>
+                  stationWaitingList.map((item, idx) => {
+                    const isCurrentlyCalled = currentCalled?.mrnNumber === item.mrnNumber;
+                    return (
+                    <tr key={item.id ? `q-${item.id}-${idx}` : `q-row-${idx}`} style={{
+                      background: isCurrentlyCalled ? 'rgba(0,113,227,0.06)' : idx === 0 ? 'rgba(0,113,227,0.02)' : undefined,
+                      border: isCurrentlyCalled ? '1px solid rgba(0,113,227,0.3)' : undefined
+                    }}>
                       <td>
                         <span style={{
                           fontFamily: 'monospace', fontWeight: 900, fontSize: '1.05rem',
@@ -836,17 +870,76 @@ export default function QueuePage() {
                         </span>
                       </td>
                       <td style={{ textAlign: 'center' }}>
-                        <button
-                          onClick={() => handleCallTicket(item)}
-                          disabled={actionLoading}
-                          className="btn-primary"
-                          style={{ padding: '6px 14px', fontSize: '0.76rem', borderRadius: 8, display: 'inline-flex', alignItems: 'center', gap: 5 }}
-                        >
-                          <Play size={12} fill="#fff" /> Call #{item.mrnNumber}
-                        </button>
+                        <div style={{ display: 'flex', gap: 5, justifyContent: 'center', flexWrap: 'wrap' }}>
+                          {/* 1. CALL BUTTON */}
+                          <button
+                            onClick={() => handleCallTicket(item)}
+                            disabled={actionLoading}
+                            className={isCurrentlyCalled ? "btn-secondary" : "btn-primary"}
+                            style={{
+                              padding: '5px 11px', fontSize: '0.74rem', borderRadius: 7,
+                              display: 'inline-flex', alignItems: 'center', gap: 4,
+                              background: isCurrentlyCalled ? '#0284c7' : undefined,
+                              color: isCurrentlyCalled ? '#fff' : undefined,
+                              fontWeight: 700
+                            }}
+                            title={`Call patient #${item.mrnNumber} to ${activeCounter}`}
+                          >
+                            <Play size={11} fill="currentColor" /> {isCurrentlyCalled ? `Calling #${item.mrnNumber}` : `Call #${item.mrnNumber}`}
+                          </button>
+
+                          {/* 2. RECALL BUTTON */}
+                          <button
+                            onClick={() => handleRecallTicket(item)}
+                            disabled={actionLoading}
+                            className="btn-secondary"
+                            style={{
+                              padding: '5px 9px', fontSize: '0.74rem', borderRadius: 7,
+                              display: 'inline-flex', alignItems: 'center', gap: 4,
+                              color: '#0284c7', borderColor: 'rgba(2, 132, 199, 0.4)',
+                              fontWeight: 600
+                            }}
+                            title={`Re-announce patient #${item.mrnNumber}`}
+                          >
+                            <RotateCcw size={11} /> Recall
+                          </button>
+
+                          {/* 3. COMPLETE BUTTON */}
+                          <button
+                            onClick={() => handleCompleteTicket(item)}
+                            disabled={actionLoading}
+                            className="btn-secondary"
+                            style={{
+                              padding: '5px 9px', fontSize: '0.74rem', borderRadius: 7,
+                              display: 'inline-flex', alignItems: 'center', gap: 4,
+                              color: '#16a34a', borderColor: '#86efac',
+                              fontWeight: 600
+                            }}
+                            title={`Mark patient #${item.mrnNumber} call completed`}
+                          >
+                            <CheckCircle size={11} /> Complete
+                          </button>
+
+                          {/* 4. CANCEL BUTTON */}
+                          <button
+                            onClick={() => handleCancelTicket(item)}
+                            disabled={actionLoading}
+                            className="btn-secondary"
+                            style={{
+                              padding: '5px 9px', fontSize: '0.74rem', borderRadius: 7,
+                              display: 'inline-flex', alignItems: 'center', gap: 4,
+                              color: '#dc2626', borderColor: '#fca5a5',
+                              fontWeight: 600
+                            }}
+                            title={`Cancel or mark No-Show for patient #${item.mrnNumber}`}
+                          >
+                            <XCircle size={11} /> Cancel
+                          </button>
+                        </div>
                       </td>
                     </tr>
-                  ))
+                    );
+                  })
                 )}
               </tbody>
             </table>

@@ -82,7 +82,7 @@ public class QueueService
         return (await conn.QueryAsync<PatientQueueDto>(sql, new { TenantId = tenantId, Date = date })).ToList();
     }
 
-    public async Task<string> CheckInPatientAsync(CheckInQueueDto dto)
+    public async Task<(string TokenNumber, long TicketId)> CheckInPatientAsync(CheckInQueueDto dto)
     {
         using var conn = _dbFactory.CreateConnection();
 
@@ -105,9 +105,9 @@ public class QueueService
         var sql = @"
             INSERT INTO PatientQueues (TenantId, TokenNumber, PatientId, ServiceType, PriorityLevel, StatusId, AssignedDoctorId, Notes)
             VALUES (@TenantId, @TokenNumber, @PatientId, @ServiceType, @PriorityLevel, 1, @AssignedDoctorId, @Notes);
-            SELECT SCOPE_IDENTITY();";
+            SELECT CAST(SCOPE_IDENTITY() AS BIGINT);";
 
-        await conn.ExecuteScalarAsync<long>(sql, new {
+        long ticketId = await conn.ExecuteScalarAsync<long>(sql, new {
             dto.TenantId, TokenNumber = token, dto.PatientId, dto.ServiceType,
             dto.PriorityLevel, dto.AssignedDoctorId, dto.Notes
         });
@@ -121,13 +121,18 @@ public class QueueService
         }
         catch { /* non-blocking notification */ }
 
-        return token;
+        return (token, ticketId);
     }
 
     public async Task CallNextTicketAsync(long ticketId, int counterId, int staffId, string? stationType = null)
     {
         using var conn = _dbFactory.CreateConnection();
         var sql = @"
+            -- Move any prior called ticket at this counter to InProgress (3)
+            UPDATE PatientQueues
+            SET StatusId = 3
+            WHERE AssignedCounterId = @CounterId AND StatusId = 2 AND Id != @TicketId;
+
             UPDATE PatientQueues
             SET StatusId = 2, AssignedCounterId = @CounterId, CallTime = GETDATE()
             WHERE Id = @TicketId;

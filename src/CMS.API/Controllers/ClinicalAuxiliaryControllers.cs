@@ -9,6 +9,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CMS.API.Controllers;
 
+[ApiController]
+[Route("api/v1/queue")]
 public class QueueController : ControllerBase
 {
     private readonly QueueService _queueService;
@@ -39,8 +41,8 @@ public class QueueController : ControllerBase
     {
         byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
         var dtoWithTenant = dto with { TenantId = tenantId };
-        var token = await _queueService.CheckInPatientAsync(dtoWithTenant);
-        return Ok(ApiResponse<object>.Ok(new { TokenNumber = token }));
+        var (token, ticketId) = await _queueService.CheckInPatientAsync(dtoWithTenant);
+        return Ok(ApiResponse<object>.Ok(new { TokenNumber = token, TicketId = ticketId }));
     }
 
     [HttpPost("call")]
