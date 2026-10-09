@@ -102,11 +102,10 @@ public class LabResultIngestionService : ILabResultIngestionService
                 new { OrderItemId = orderItemId, OrderId = orderId });
 
             string refRange = parsed.Parameters.FirstOrDefault(p => p.NumericValue == parsed.PrimaryNumeric)?.ReferenceRange ?? "";
-            string unit = parsed.PrimaryUnit ?? "10^3/μL";
+            string safeUnit = "";
             string safeFlag = string.IsNullOrWhiteSpace(parsed.OverallFlag) ? "Normal" : (parsed.OverallFlag.Length > 20 ? parsed.OverallFlag[..20] : parsed.OverallFlag);
-            string safeUnit = string.IsNullOrWhiteSpace(unit) ? "" : (unit.Length > 30 ? unit[..30] : unit);
             string safeRefRange = string.IsNullOrWhiteSpace(refRange) ? "" : (refRange.Length > 100 ? refRange[..100] : refRange);
-            string safeTextValue = string.IsNullOrWhiteSpace(parsed.SummaryText) ? "" : (parsed.SummaryText.Length > 500 ? parsed.SummaryText[..500] : parsed.SummaryText);
+            string safeTextValue = parsed.SummaryText ?? "";
 
             if (existingResultId.HasValue && existingResultId.Value > 0)
             {

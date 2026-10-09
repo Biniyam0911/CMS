@@ -28,7 +28,7 @@ public class Hl7Adapter : IHl7Adapter
                 RawMessage = hl7RawMessage,
                 NumericValue = parsed.PrimaryNumeric,
                 TextValue = parsed.SummaryText,
-                Unit = parsed.PrimaryUnit ?? "CBC",
+                Unit = "",
                 Flag = parsed.OverallFlag,
                 ReferenceRange = parsed.Parameters.FirstOrDefault(p => p.NumericValue == parsed.PrimaryNumeric)?.ReferenceRange ?? "",
                 IsCritical = parsed.IsCritical,
@@ -184,15 +184,15 @@ public class Hl7Adapter : IHl7Adapter
         decimal? primaryNumeric = primaryParam?.NumericValue;
         string? primaryUnit = primaryParam?.Unit;
 
-        // Compile Summary Text: e.g. "WBC: 0.06 10^3/μL (L~A) | RBC: 4.5 | HGB: 14.2 ..."
+        // Compile Summary Text: clean parameter values only without unit of measurement or flags
         var summaryParts = parameters
             .Where(p => !p.Name.Contains("Mode") && !p.Name.Contains("Group") && !p.Name.Contains("Age"))
-            .Select(p => $"{p.Code}: {p.TextValue} {p.Unit}{(string.IsNullOrWhiteSpace(p.Flag) || p.Flag == "Normal" || p.Flag == "OK" ? "" : $" ({p.Flag})")}".Trim());
+            .Select(p => $"{p.Code}: {p.TextValue}".Trim());
 
         string summaryText = string.Join(" | ", summaryParts);
         if (string.IsNullOrWhiteSpace(summaryText) && parameters.Count > 0)
         {
-            summaryText = string.Join(" | ", parameters.Select(p => $"{p.Name}: {p.TextValue}"));
+            summaryText = string.Join(" | ", parameters.Select(p => $"{p.Name}: {p.TextValue}".Trim()));
         }
 
         bool hasCritical = parameters.Any(p => p.IsCritical);

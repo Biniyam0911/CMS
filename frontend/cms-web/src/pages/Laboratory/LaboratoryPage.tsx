@@ -9,6 +9,7 @@ import { api } from '../../api/apiClient';
 
 interface OrderTestItem {
   itemId: number;
+  testId?: number;
   testCode: string;
   testName: string;
   sampleType: string;
@@ -443,14 +444,20 @@ export default function LaboratoryPage() {
       return str;
     }
 
-    // 1. Remove bracketed flags like [Normal], [High], [H], [HH], [LL], [Critical], etc.
-    str = str.replace(/\s*\[\s*(Normal|High|Low|Critical|Panic|Abnormal|HH|LL|H|L|POS|NEG|\+|\-)\s*\]\s*$/gi, '').trim();
-    // 2. Remove parenthetical flags or analyzer annotations like (N), (H), (L), (High), (Low)
-    str = str.replace(/\s*\(\s*(N|H|L|Normal|High|Low|Critical|HH|LL|\+|\-)\s*\)\s*$/gi, '').trim();
-    // 3. Remove known trailing units of measurement
-    str = str.replace(/\s*(10\^3\/[μu]L|10\*3\/UL|10\^6\/[μu]L|10\*6\/UL|10\^9\/L|10\*9\/L|g\/dL|mg\/dL|mmol\/L|μmol\/L|umol\/L|U\/L|IU\/L|%|pg|fL|fl|mm\/hr|sec|min|cells?\/[μu]L|\/HPF|\/LPF|copies\/mL)\s*$/gi, '').trim();
-    // 4. If it's a number (optionally with prefix <, >, or range -), extract the clean value
-    const numMatch = str.match(/^([<>]?\s*-?\d+(\.\d+)?(\s*-\s*-?\d+(\.\d+)?)?)/);
+    // Repeatedly strip trailing bracketed flags, parenthetical flags/annotations, or known units
+    let prev = '';
+    while (prev !== str) {
+      prev = str;
+      // 1. Remove bracketed flags like [Normal], [High], [H], [HH], etc.
+      str = str.replace(/\s*\[[^\]]+\]\s*$/g, '').trim();
+      // 2. Remove parenthetical flags/annotations like (N), (H), (L), (High), (Low)
+      str = str.replace(/\s*\([^\)]+\)\s*$/g, '').trim();
+      // 3. Remove known trailing units of measurement
+      str = str.replace(/\s*(10\^3\/[μu]L|10\*3\/[Uu]L|10\^6\/[μu]L|10\*6\/[Uu]L|10\^9\/L|10\*9\/L|g\/d[Ll]|mg\/d[Ll]|mmol\/[Ll]|μmol\/[Ll]|umol\/[Ll]|U\/[Ll]|IU\/[Ll]|%|pg|f[Ll]|fl|mm\/hr|sec|min|cells?\/[μu][Ll]|\/[Hh][Pp][Ff]|\/[Ll][Pp][Ff]|copies\/m[Ll])\s*$/gi, '').trim();
+    }
+
+    // If it starts with a number (optionally with prefix <, >, or range -), extract the clean value
+    const numMatch = str.match(/^([<>]?\s*-?\d+(?:\.\d+)?(?:\s*-\s*-?\d+(?:\.\d+)?)?)/);
     if (numMatch) {
       return numMatch[1].trim();
     }
@@ -466,14 +473,12 @@ export default function LaboratoryPage() {
     rawMsg?: string,
     catalogParams?: { code: string; name: string }[]
   ) => {
-    // 1. Assign numeric value if available
+    // 1. Assign numeric value if available - strictly scoped to itemId
     if (numVal !== null && numVal !== undefined && numVal !== '') {
       const cleanNum = extractCleanResultValue(numVal) || String(numVal);
       if (cleanNum) {
         resultsMap[`${itemId}:${testCode}`] = cleanNum;
         resultsMap[`${itemId}:VAL`] = cleanNum;
-        resultsMap[testCode] = cleanNum;
-        resultsMap['VAL'] = cleanNum;
         if (catalogParams && catalogParams.length > 0) {
           for (const p of catalogParams) {
             resultsMap[`${itemId}:${p.code}`] = cleanNum;
@@ -497,13 +502,10 @@ export default function LaboratoryPage() {
             const cleanVal = extractCleanResultValue(valPart) || valPart.trim();
             if (pCode && cleanVal) {
               resultsMap[`${itemId}:${pCode}`] = cleanVal;
-              resultsMap[pCode] = cleanVal;
               if (pName) {
                 resultsMap[`${itemId}:${pName}`] = cleanVal;
-                resultsMap[pName] = cleanVal;
               }
               resultsMap[`${itemId}:${testCode}`] = cleanVal;
-              resultsMap[testCode] = cleanVal;
             }
           }
         }
@@ -525,7 +527,6 @@ export default function LaboratoryPage() {
             if (rawParam && cleanVal) {
               matchedAnySegment = true;
               resultsMap[`${itemId}:${rawParam}`] = cleanVal;
-              resultsMap[rawParam] = cleanVal;
 
               // Match against catalog parameters by code or name
               if (catalogParams && catalogParams.length > 0) {
@@ -538,48 +539,34 @@ export default function LaboratoryPage() {
                 if (matched) {
                   resultsMap[`${itemId}:${matched.code}`] = cleanVal;
                   resultsMap[`${itemId}:${matched.name}`] = cleanVal;
-                  resultsMap[matched.code] = cleanVal;
-                  resultsMap[matched.name] = cleanVal;
                 }
               }
 
               const lower = rawParam.toLowerCase();
               if (lower.includes('white blood') || lower === 'wbc') {
                 resultsMap[`${itemId}:WBC`] = cleanVal;
-                resultsMap['WBC'] = cleanVal;
               } else if (lower.includes('red blood') || lower === 'rbc') {
                 resultsMap[`${itemId}:RBC`] = cleanVal;
-                resultsMap['RBC'] = cleanVal;
               } else if (lower.includes('hemo') || lower === 'hgb') {
                 resultsMap[`${itemId}:HGB`] = cleanVal;
-                resultsMap['HGB'] = cleanVal;
               } else if (lower.includes('plate') || lower === 'plt') {
                 resultsMap[`${itemId}:PLT`] = cleanVal;
-                resultsMap['PLT'] = cleanVal;
               } else if (lower.includes('hematocrit') || lower === 'hct') {
                 resultsMap[`${itemId}:HCT`] = cleanVal;
-                resultsMap['HCT'] = cleanVal;
               } else if (lower.includes('alt') || lower.includes('alanine')) {
                 resultsMap[`${itemId}:ALT`] = cleanVal;
-                resultsMap['ALT'] = cleanVal;
               } else if (lower.includes('ast') || lower.includes('aspartate')) {
                 resultsMap[`${itemId}:AST`] = cleanVal;
-                resultsMap['AST'] = cleanVal;
               } else if (lower.includes('creat')) {
                 resultsMap[`${itemId}:CREAT`] = cleanVal;
-                resultsMap['CREAT'] = cleanVal;
               } else if (lower.includes('bun') || lower.includes('urea')) {
                 resultsMap[`${itemId}:BUN`] = cleanVal;
-                resultsMap['BUN'] = cleanVal;
               } else if (lower.includes('chol')) {
                 resultsMap[`${itemId}:CHOL`] = cleanVal;
-                resultsMap['CHOL'] = cleanVal;
               } else if (lower.includes('trig')) {
                 resultsMap[`${itemId}:TRIG`] = cleanVal;
-                resultsMap['TRIG'] = cleanVal;
               } else if (lower.includes('glucose') || lower.includes('fbs')) {
                 resultsMap[`${itemId}:FBS`] = cleanVal;
-                resultsMap['FBS'] = cleanVal;
               }
             }
           }
@@ -590,8 +577,6 @@ export default function LaboratoryPage() {
           const cleanDirect = extractCleanResultValue(trimmedText) || trimmedText;
           resultsMap[`${itemId}:${testCode}`] = cleanDirect;
           resultsMap[`${itemId}:VAL`] = cleanDirect;
-          resultsMap[testCode] = cleanDirect;
-          resultsMap['VAL'] = cleanDirect;
           if (catalogParams && catalogParams.length > 0) {
             for (const p of catalogParams) {
               resultsMap[`${itemId}:${p.code}`] = cleanDirect;
@@ -748,6 +733,7 @@ export default function LaboratoryPage() {
 
           grp.tests.push({
             itemId,
+            testId: Number(w.TestId ?? w.testId ?? 0),
             testCode,
             testName,
             sampleType,
@@ -818,14 +804,14 @@ export default function LaboratoryPage() {
       const resultItems: any[] = [];
 
       for (const test of order.tests) {
-        const testCatalogItem = catalog.find(c => c.code === test.testCode) || {
+        const testCatalogItem = catalog.find(c => c.code === test.testCode || (test.testId && c.id === test.testId)) || {
           parameters: [{ code: test.testCode, name: test.testName, unit: '', min: undefined, max: undefined }]
         };
         const params = (testCatalogItem.parameters && testCatalogItem.parameters.length > 0)
           ? testCatalogItem.parameters
           : [{ code: test.testCode, name: test.testName, unit: '', min: undefined, max: undefined }];
 
-        // Collect sub-parameter values
+        // Collect sub-parameter values strictly for this test item
         const paramSummaries: string[] = [];
         let primaryNum: number | null = null;
         let primaryFlag = 'Normal';
@@ -837,8 +823,6 @@ export default function LaboratoryPage() {
             || order.results[`${test.itemId}:${p.name}`]
             || order.results[`${test.itemId}:${test.testCode}`]
             || order.results[`${test.itemId}:VAL`]
-            || order.results[p.code]
-            || order.results[p.name]
             || (params.length === 1 ? (test.textValue || (test.numericValue !== null && test.numericValue !== undefined ? String(test.numericValue) : '')) : '')
             || '';
           if (val) {
@@ -869,8 +853,6 @@ export default function LaboratoryPage() {
         if (paramSummaries.length === 0) {
           const directVal = order.results[`${test.itemId}:${test.testCode}`]
             || order.results[`${test.itemId}:VAL`]
-            || order.results[test.testCode]
-            || order.results['VAL']
             || (test.textValue || (test.numericValue !== null && test.numericValue !== undefined ? String(test.numericValue) : ''))
             || '';
           if (directVal) {
@@ -879,6 +861,16 @@ export default function LaboratoryPage() {
             const num = parseFloat(cleanDirect);
             if (!isNaN(num)) primaryNum = num;
           }
+        }
+
+        // Check if there is an actual result for this test
+        const hasResult = paramSummaries.length > 0
+          || (test.numericValue !== null && test.numericValue !== undefined)
+          || (test.textValue && test.textValue.trim() !== '' && test.textValue !== 'Results recorded');
+
+        // If no results for this test, do not save fake values or leak other test data
+        if (!hasResult) {
+          continue;
         }
 
         // Preserve existing machine or previously saved test values if not re-entered
@@ -958,16 +950,18 @@ export default function LaboratoryPage() {
       if (res && res.parameters) {
         const receivedParams = res.parameters as Record<string, string>;
 
-        // Update local order results
+        // Update local order results strictly for the target test item
         setOrders(orders.map(o => {
           if (o.id === orderId) {
             const updatedResults = { ...o.results };
             for (const t of o.tests) {
-              if (!testItemId || t.itemId === testItemId || t.testCode === targetTestCode) {
+              const isTargetTest = testItemId
+                ? (t.itemId === testItemId)
+                : (t.testCode === targetTestCode || t.testName.toLowerCase().includes(targetTestCode.toLowerCase()));
+              if (isTargetTest) {
                 for (const [pCode, pVal] of Object.entries(receivedParams)) {
                   const cleanVal = extractCleanResultValue(pVal);
                   updatedResults[`${t.itemId}:${pCode}`] = cleanVal;
-                  updatedResults[pCode] = cleanVal;
                 }
               }
             }
@@ -976,7 +970,12 @@ export default function LaboratoryPage() {
               results: updatedResults,
               status: 'Resulted',
               custodyStep: 'ResultsSaved',
-              tests: o.tests.map(t => (!testItemId || t.itemId === testItemId ? { ...t, status: 'Resulted' } : t))
+              tests: o.tests.map(t => {
+                const isTargetTest = testItemId
+                  ? (t.itemId === testItemId)
+                  : (t.testCode === targetTestCode || t.testName.toLowerCase().includes(targetTestCode.toLowerCase()));
+                return isTargetTest ? { ...t, status: 'Resulted' } : t;
+              })
             };
           }
           return o;
@@ -1703,7 +1702,7 @@ export default function LaboratoryPage() {
                         </div>
 
                         {o.tests.map((test, tIdx) => {
-                          const testCatalogItem = catalog.find(c => c.code === test.testCode) || { parameters: [{ code: test.testCode, name: test.testName, unit: '', min: undefined, max: undefined }] };
+                          const testCatalogItem = catalog.find(c => c.code === test.testCode || (test.testId && c.id === test.testId)) || { parameters: [{ code: test.testCode, name: test.testName, unit: '', min: undefined, max: undefined }] };
                           return (
                             <div key={test.itemId || tIdx} style={{ marginBottom: tIdx < o.tests.length - 1 ? '18px' : 0 }}>
                               {/* Per-test header */}
@@ -1741,8 +1740,6 @@ export default function LaboratoryPage() {
                                         || o.results[`${test.itemId}:${p.name}`]
                                         || o.results[`${test.itemId}:${test.testCode}`]
                                         || o.results[`${test.itemId}:VAL`]
-                                        || o.results[p.code]
-                                        || o.results[p.name]
                                         || ((testCatalogItem.parameters || []).length === 1 ? (test.textValue || (test.numericValue !== null && test.numericValue !== undefined ? String(test.numericValue) : '')) : '')
                                         || '';
                                       const flag = calculateParamFlag(currentVal, p.min, p.max);
@@ -1966,7 +1963,7 @@ export default function LaboratoryPage() {
                       {isExpanded && (
                         <div style={{ padding: '18px 20px', borderTop: '1px solid #e2e8f0', background: '#f8fafc' }}>
                           {o.tests.map((test, tIdx) => {
-                            const testCatalogItem = catalog.find(c => c.code === test.testCode) || {
+                            const testCatalogItem = catalog.find(c => c.code === test.testCode || (test.testId && c.id === test.testId)) || {
                               parameters: [{ code: test.testCode, name: test.testName, unit: '', min: undefined, max: undefined }]
                             };
                             const params = testCatalogItem.parameters || [];
@@ -2000,8 +1997,6 @@ export default function LaboratoryPage() {
                                           || o.results[`${test.itemId}:${p.name}`]
                                           || o.results[`${test.itemId}:${test.testCode}`]
                                           || o.results[`${test.itemId}:VAL`]
-                                          || o.results[p.code]
-                                          || o.results[p.name]
                                           || ((params || []).length === 1 ? (test.textValue || (test.numericValue !== null && test.numericValue !== undefined ? String(test.numericValue) : '')) : '')
                                           || '---';
                                         const flag = calculateParamFlag(val, p.min, p.max);
@@ -2528,7 +2523,7 @@ export default function LaboratoryPage() {
                   ? printModalOrder.tests
                   : [{ itemId: 0, testCode: printModalOrder.testCode, testName: printModalOrder.testName, barcode: printModalOrder.barcode, sampleType: printModalOrder.sampleType, status: printModalOrder.status, results: {} }]
                 ).map((test: OrderTestItem, tIdx: number) => {
-                  const testCatalogItem = catalog.find(c => c.code === test.testCode) || { parameters: [{ code: test.testCode, name: test.testName, unit: 'U/L', min: 0, max: 100 }] };
+                  const testCatalogItem = catalog.find(c => c.code === test.testCode || (test.testId && c.id === test.testId)) || { parameters: [{ code: test.testCode, name: test.testName, unit: 'U/L', min: 0, max: 100 }] };
                   const params = testCatalogItem.parameters || [];
                   return (
                     <div key={test.itemId || tIdx} style={{ marginBottom: tIdx < (printModalOrder.tests?.length ?? 1) - 1 ? '22px' : 0 }}>
@@ -2557,8 +2552,6 @@ export default function LaboratoryPage() {
                               || printModalOrder.results[`${test.itemId}:${p.name}`]
                               || printModalOrder.results[`${test.itemId}:${test.testCode}`]
                               || printModalOrder.results[`${test.itemId}:VAL`]
-                              || printModalOrder.results[p.code]
-                              || printModalOrder.results[p.name]
                               || ((params || []).length === 1 ? (test.textValue || (test.numericValue !== null && test.numericValue !== undefined ? String(test.numericValue) : '')) : '')
                               || '---';
                             const flag = calculateParamFlag(val, p.min, p.max);

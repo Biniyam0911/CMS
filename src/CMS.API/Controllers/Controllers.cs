@@ -1336,7 +1336,7 @@ public class LaboratoryController : ControllerBase
 
                     int orderItemId = matchedItem.OrderItemId;
                     int testId = res.TestId ?? matchedItem.TestId;
-                    string unit = res.Unit != null ? res.Unit : (matchedItem.Unit ?? "");
+                    string unit = res.Unit ?? "";
                     string refRange = res.ReferenceRange ?? $"{matchedItem.NormalRangeLow} - {matchedItem.NormalRangeHigh} {unit}".Trim();
                     string flag = res.Flag != null ? (res.Flag.Length > 5 ? res.Flag[..5] : res.Flag) : "OK";
                     bool isCritical = res.IsCritical ?? (flag == "HH" || flag == "LL");
@@ -1354,15 +1354,17 @@ public class LaboratoryController : ControllerBase
                     {
                         int resId = existingResult.Id;
 
-                        // Safely preserve machine or manual values without unboxing cast crashes
-                        decimal? numVal = res.NumericValue ?? existingResult.NumericValue;
                         string incomingText = (res.TextValue ?? "").Trim();
                         string dbText = existingResult.TextValue ?? "";
+                        decimal? numVal = res.NumericValue.HasValue
+                            ? res.NumericValue
+                            : (string.IsNullOrWhiteSpace(incomingText) ? existingResult.NumericValue : null);
+
                         string txtVal = (!string.IsNullOrWhiteSpace(incomingText) && incomingText != "Results recorded")
                             ? incomingText
                             : (!string.IsNullOrWhiteSpace(dbText) ? dbText : (string.IsNullOrWhiteSpace(incomingText) ? "Results recorded" : incomingText));
 
-                        string finalUnit = res.Unit != null ? res.Unit : (existingResult.Unit ?? safeUnit);
+                        string finalUnit = res.Unit ?? "";
                         string finalFlag = !string.IsNullOrWhiteSpace(res.Flag) ? res.Flag : (existingResult.Flag ?? safeFlag);
                         string finalRef = !string.IsNullOrWhiteSpace(res.ReferenceRange) ? res.ReferenceRange : (existingResult.ReferenceRange ?? safeRefRange);
 
@@ -1556,8 +1558,8 @@ public class LaboratoryController : ControllerBase
         var paramValues = new Dictionary<string, string>();
         decimal? primaryNumeric = null;
         string primaryText = "";
-        string unit = (string)targetItem.Unit ?? "";
-        string refRange = $"{targetItem.NormalRangeLow} - {targetItem.NormalRangeHigh} {unit}".Trim();
+        string unit = "";
+        string refRange = $"{targetItem.NormalRangeLow} - {targetItem.NormalRangeHigh}".Trim();
         string flag = "OK";
 
         if (testCode.Contains("CBC"))
@@ -1568,27 +1570,24 @@ public class LaboratoryController : ControllerBase
             paramValues["HCT"] = "43.2";
             paramValues["PLT"] = "245";
             primaryNumeric = 14.8m;
-            primaryText = "WBC: 6.8 10^3/uL | RBC: 4.95 10^6/uL | HGB: 14.8 g/dL | HCT: 43.2% | PLT: 245 10^3/uL";
-            unit = "g/dL";
-            refRange = "12.0 - 17.5 g/dL";
+            primaryText = "WBC: 6.8 | RBC: 4.95 | HGB: 14.8 | HCT: 43.2 | PLT: 245";
+            refRange = "12.0 - 17.5";
         }
         else if (testCode.Contains("LFT"))
         {
             paramValues["ALT"] = "26.0";
             paramValues["AST"] = "22.0";
             primaryNumeric = 26.0m;
-            primaryText = "ALT: 26.0 U/L (Normal) | AST: 22.0 U/L (Normal)";
-            unit = "U/L";
-            refRange = "7.0 - 56.0 U/L";
+            primaryText = "ALT: 26.0 | AST: 22.0";
+            refRange = "7.0 - 56.0";
         }
         else if (testCode.Contains("RFT") || testCode.Contains("KIDNEY"))
         {
             paramValues["CREAT"] = "0.92";
             paramValues["BUN"] = "16.5";
             primaryNumeric = 0.92m;
-            primaryText = "Creatinine: 0.92 mg/dL | BUN: 16.5 mg/dL";
-            unit = "mg/dL";
-            refRange = "0.6 - 1.2 mg/dL";
+            primaryText = "Creatinine: 0.92 | BUN: 16.5";
+            refRange = "0.6 - 1.2";
         }
         else if (testCode.Contains("LIPID"))
         {
@@ -1597,17 +1596,15 @@ public class LaboratoryController : ControllerBase
             paramValues["HDL"] = "48";
             paramValues["LDL"] = "106";
             primaryNumeric = 182m;
-            primaryText = "Total Chol: 182 mg/dL | Triglycerides: 140 mg/dL | HDL: 48 mg/dL | LDL: 106 mg/dL";
-            unit = "mg/dL";
-            refRange = "< 200 mg/dL";
+            primaryText = "Total Chol: 182 | Triglycerides: 140 | HDL: 48 | LDL: 106";
+            refRange = "< 200";
         }
         else if (testCode.Contains("FBS") || testCode.Contains("GLUCOSE"))
         {
             paramValues["FBS"] = "94.0";
             primaryNumeric = 94.0m;
-            primaryText = "Fasting Blood Glucose: 94.0 mg/dL";
-            unit = "mg/dL";
-            refRange = "70 - 100 mg/dL";
+            primaryText = "Fasting Blood Glucose: 94.0";
+            refRange = "70 - 100";
         }
         else if (testCode.Contains("UA") || testCode.Contains("URINE"))
         {
@@ -1616,7 +1613,6 @@ public class LaboratoryController : ControllerBase
             paramValues["PROT"] = "Negative";
             paramValues["GLU"] = "Negative";
             primaryText = "pH: 6.5 | SG: 1.020 | Protein: Negative | Glucose: Negative";
-            unit = "Routine";
             refRange = "Normal / Negative";
         }
         else
@@ -1624,7 +1620,7 @@ public class LaboratoryController : ControllerBase
             decimal defVal = targetItem.NormalRangeLow != null ? (decimal)targetItem.NormalRangeLow + 5m : 50m;
             paramValues[testCode] = defVal.ToString("F1");
             primaryNumeric = defVal;
-            primaryText = $"{targetItem.TestName}: {defVal} {unit}";
+            primaryText = $"{targetItem.TestName}: {defVal.ToString("F1")}";
         }
 
         // Save into LabResults
