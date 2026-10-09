@@ -216,6 +216,9 @@ public class QueueController : ControllerBase
                 else baseHref += "/";
             }
 
+            // Remove any meta CSP or X-Frame-Options tags inside the HTML content
+            content = System.Text.RegularExpressions.Regex.Replace(content, @"<meta[^>]*http-equiv=[""']?(?:X-Frame-Options|Content-Security-Policy)[""']?[^>]*>", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
             var baseTag = $"<base href=\"{baseHref}\">";
             var headIdx = content.IndexOf("<head>", StringComparison.OrdinalIgnoreCase);
             if (headIdx >= 0)
@@ -227,8 +230,10 @@ public class QueueController : ControllerBase
                 content = baseTag + "\n" + content;
             }
 
-            // Add client-side caching header so subsequent iframe navigations/reloads are instantaneous
-            Response.Headers.CacheControl = "public, max-age=60";
+            // Ensure our response allows framing everywhere & caches
+            Response.Headers["X-Frame-Options"] = "ALLOWALL";
+            Response.Headers["Content-Security-Policy"] = "frame-ancestors *";
+            Response.Headers.CacheControl = "public, max-age=120";
             return Content(content, "text/html; charset=utf-8");
         }
         catch (Exception ex)

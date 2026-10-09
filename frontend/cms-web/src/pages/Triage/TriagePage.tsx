@@ -3,7 +3,7 @@ import {
   HeartPulse, Activity, PauseCircle, PlayCircle, UserCheck, AlertTriangle,
   Clock, Plus, Search, CheckCircle2, ShieldAlert, ChevronRight, User, Stethoscope,
   Thermometer, Gauge, Sparkles, RefreshCw, Loader2, X, ArrowRight, History,
-  Receipt, CreditCard, DollarSign, Calendar, ChevronLeft
+  Receipt, CreditCard, DollarSign, Calendar, ChevronLeft, Globe
 } from 'lucide-react';
 import { api } from '../../api/apiClient';
 
@@ -619,7 +619,14 @@ export default function TriagePage() {
 
   // Filter Queue by Status and Search Query
   const filteredQueue = triageQueue.filter(item => {
-    const matchesStatus = statusFilter === 'ALL' || item.status === statusFilter;
+    let matchesStatus = true;
+    if (statusFilter === 'ONLINE') {
+      const mrnUpper = (item.mrn || '').toUpperCase();
+      matchesStatus = mrnUpper.startsWith('ON-') || mrnUpper.startsWith('ON') || Boolean(item.isOnline);
+    } else if (statusFilter !== 'ALL') {
+      matchesStatus = item.status === statusFilter;
+    }
+
     const q = searchQuery.toLowerCase();
     const matchesSearch = !q ||
       item.patientName?.toLowerCase().includes(q) ||
@@ -826,22 +833,32 @@ export default function TriagePage() {
             </div>
 
             <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-              {['ALL', 'WaitingTriage', 'Triaged', 'OnHold', 'AssignedToDoctor'].map(st => (
-                <button
-                  key={st}
-                  onClick={() => { setStatusFilter(st); setCurrentPage(1); }}
-                  className="btn-secondary"
-                  style={{
-                    padding: '3px 7px',
-                    fontSize: '0.7rem',
-                    background: statusFilter === st ? '#0284c7' : undefined,
-                    color: statusFilter === st ? '#ffffff' : undefined,
-                    borderColor: statusFilter === st ? '#0284c7' : undefined
-                  }}
-                >
-                  {st === 'ALL' ? 'All' : (st === 'WaitingTriage' ? 'Waiting' : (st === 'OnHold' ? 'On Hold' : (st === 'AssignedToDoctor' ? 'Assigned' : 'Triaged')))}
-                </button>
-              ))}
+              {['ALL', 'ONLINE', 'WaitingTriage', 'Triaged', 'OnHold', 'AssignedToDoctor'].map(st => {
+                const isOnlineTab = st === 'ONLINE';
+                const label = st === 'ALL' ? 'All' :
+                  st === 'ONLINE' ? '🌐 Online' :
+                  st === 'WaitingTriage' ? 'Waiting' :
+                  st === 'OnHold' ? 'On Hold' :
+                  st === 'AssignedToDoctor' ? 'Assigned' : 'Triaged';
+                
+                return (
+                  <button
+                    key={st}
+                    onClick={() => { setStatusFilter(st); setCurrentPage(1); }}
+                    className="btn-secondary"
+                    style={{
+                      padding: '3px 8px',
+                      fontSize: '0.7rem',
+                      fontWeight: statusFilter === st ? 700 : 500,
+                      background: statusFilter === st ? (isOnlineTab ? '#0284c7' : '#0284c7') : (isOnlineTab ? '#f0f9ff' : undefined),
+                      color: statusFilter === st ? '#ffffff' : (isOnlineTab ? '#0369a1' : undefined),
+                      borderColor: statusFilter === st ? '#0284c7' : (isOnlineTab ? '#bae6fd' : undefined)
+                    }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -924,7 +941,25 @@ export default function TriagePage() {
                     onClick={() => setSelectedItem(item)}
                   >
                     <td>
-                      <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{item.patientName}</div>
+                      <div style={{ fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        {item.patientName}
+                        {((item.mrn || '').toUpperCase().startsWith('ON-') || (item.mrn || '').toUpperCase().startsWith('ON') || Boolean(item.isOnline)) && (
+                          <span style={{
+                            fontSize: '0.62rem',
+                            fontWeight: 700,
+                            padding: '1px 5px',
+                            borderRadius: '4px',
+                            background: '#e0f2fe',
+                            color: '#0284c7',
+                            border: '1px solid #bae6fd',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '3px'
+                          }}>
+                            <Globe size={10} /> Online
+                          </span>
+                        )}
+                      </div>
                       <div style={{ fontSize: '0.72rem', color: '#0369a1', fontFamily: 'monospace' }}>{item.mrn} ({item.tokenNumber})</div>
                       {item.visitType && (
                         <span style={{

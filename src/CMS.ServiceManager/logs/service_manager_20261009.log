@@ -290,3 +290,19 @@
 2026-10-09 21:49:44.062 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-10-09T21:49:44.0621783+03:00"
 2026-10-09 21:50:44.127 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-10-09T21:50:44.1272487+03:00"
 2026-10-09 21:50:46.905 +03:00 [INF] Application is shutting down...
+2026-10-09 21:54:30.457 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-10-09T21:54:30.4064723+03:00"
+2026-10-09 21:54:30.553 +03:00 [INF] Application started. Press Ctrl+C to shut down.
+2026-10-09 21:54:30.556 +03:00 [INF] Hosting environment: Development
+2026-10-09 21:54:30.559 +03:00 [INF] Content root path: C:\Users\ASUS\source\repos\CMS\src\CMS.ServiceManager
+2026-10-09 21:55:30.560 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-10-09T21:55:30.5605452+03:00"
+2026-10-09 21:56:30.571 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-10-09T21:56:30.5708868+03:00"
+2026-10-09 21:57:30.579 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-10-09T21:57:30.5788298+03:00"
+2026-10-09 21:58:30.594 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-10-09T21:58:30.5939271+03:00"
+2026-10-09 21:58:50.296 +03:00 [INF] Application is shutting down...
+2026-10-09 22:03:23.192 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-10-09T22:03:23.1418555+03:00"
+2026-10-09 22:03:23.289 +03:00 [INF] Application started. Press Ctrl+C to shut down.
+2026-10-09 22:03:23.292 +03:00 [INF] Hosting environment: Development
+2026-10-09 22:03:23.295 +03:00 [INF] Content root path: C:\Users\ASUS\source\repos\CMS\src\CMS.ServiceManager
+2026-10-09 22:04:23.287 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-10-09T22:04:23.2871005+03:00"
+2026-10-09 22:05:23.297 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-10-09T22:05:23.2969771+03:00"
+2026-10-09 22:06:23.312 +03:00 [INF] ServiceManager Heartbeat: DB, Redis, and Services Healthy at "2026-10-09T22:06:23.3118064+03:00"

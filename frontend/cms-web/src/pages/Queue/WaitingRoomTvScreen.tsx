@@ -75,7 +75,7 @@ export default function WaitingRoomTvScreen({ onExit }: TvScreenProps) {
   const [browserUrl, setBrowserUrl] = useState(() => localStorage.getItem('cms_tv_browser_url') || 'https://www.wikipedia.org');
   const [browserInput, setBrowserInput] = useState(() => localStorage.getItem('cms_tv_browser_url') || 'https://www.wikipedia.org');
   const [useProxy, setUseProxy] = useState<boolean>(() => localStorage.getItem('cms_tv_use_proxy') !== 'false');
-  const [edgeMode, setEdgeMode] = useState<boolean>(() => localStorage.getItem('cms_tv_edge_mode') !== 'false');
+  const [edgeMode, setEdgeMode] = useState<boolean>(() => localStorage.getItem('cms_tv_edge_mode') === 'true');
   const [edgeLaunched, setEdgeLaunched] = useState<{ url: string; ts: number } | null>(null);
   const [browserKey, setBrowserKey] = useState(0);
 
@@ -178,16 +178,16 @@ export default function WaitingRoomTvScreen({ onExit }: TvScreenProps) {
     localStorage.setItem('cms_tv_browser_url', clean);
 
     if (edgeMode) {
-      // Launch Microsoft Edge in --app mode (dedicated window, no browser chrome)
+      // Launch external Microsoft Edge window
       try {
         await api.post('/queue/launch-browser', { url: clean, browser: 'edge', mode: 'app' });
         setEdgeLaunched({ url: clean, ts: Date.now() });
       } catch {
-        // Fallback: open in a new tab
         window.open(clean, '_blank', 'noopener,noreferrer');
         setEdgeLaunched({ url: clean, ts: Date.now() });
       }
     } else {
+      // Navigate inside the TV screen app display
       setBrowserKey(k => k + 1);
     }
   };
