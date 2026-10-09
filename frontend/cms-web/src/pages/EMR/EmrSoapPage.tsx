@@ -4901,7 +4901,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
               {/* Header with Clinic & Doctor */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #059669', paddingBottom: '16px', marginBottom: '20px' }}>
                 <div>
-                  <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#059669' }}>Huderma Specialty Clinic</div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#059669' }}>Huderma Dermatology Specialty Clinic</div>
                   <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>Department of Outpatient Consultation &amp; Clinical Care</div>
                   <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Tel: +251 949 74 44 44 | Addis Ababa, Ethiopia</div>
                 </div>

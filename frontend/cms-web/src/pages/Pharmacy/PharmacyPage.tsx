@@ -1416,9 +1416,9 @@ export default function PharmacyPage() {
                   onError={(e: any) => { e.currentTarget.style.display = 'none'; }}
                 />
                 <div>
-                  <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0071e3', letterSpacing: '0.03em' }}>HUDERMA SPECIALTY CLINIC</div>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0071e3', letterSpacing: '0.03em' }}>HUDERMA DERMATOLOGY SPECIALTY CLINIC</div>
                   <div style={{ fontSize: '0.75rem', color: '#4b5563', fontWeight: 500 }}>Dermatology &amp; Venereology Specialty Center</div>
-                  <div style={{ fontSize: '0.72rem', color: '#6b7280' }}>Addis Ababa, Ethiopia · Tel: +251 911 000 000</div>
+                  <div style={{ fontSize: '0.72rem', color: '#6b7280' }}>Addis Ababa, Ethiopia · Tel: +251 949 74 44 44</div>
                 </div>
               </div>
               <div style={{ textAlign: 'right' }}>
