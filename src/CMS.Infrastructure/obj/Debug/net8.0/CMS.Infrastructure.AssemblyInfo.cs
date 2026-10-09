@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("CMS.Infrastructure")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b13038a965d745c11ad35dadd90f118749981259")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+faa0ca2f8aa4e0f14b8ad4c1716aada961dbccae")]
 [assembly: System.Reflection.AssemblyProductAttribute("CMS.Infrastructure")]
 [assembly: System.Reflection.AssemblyTitleAttribute("CMS.Infrastructure")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

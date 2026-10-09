@@ -961,7 +961,7 @@ public class LaboratoryController : ControllerBase
     }
 
     [HttpGet("worklist")]
-    public async Task<IActionResult> GetWorklist([FromQuery] DateTime? date = null, [FromQuery] byte? statusId = null)
+    public async Task<IActionResult> GetWorklist([FromQuery] DateTime? date = null, [FromQuery] byte? statusId = null, [FromQuery] DateTime? dateFrom = null, [FromQuery] DateTime? dateTo = null)
     {
         byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
         using var conn = _dbFactory.CreateConnection();
@@ -1030,14 +1030,16 @@ public class LaboratoryController : ControllerBase
             WHERE o.TenantId = @TenantId
               AND (@StatusId IS NULL OR o.StatusId = @StatusId)
               AND (@Date IS NULL OR CAST(o.OrderedAt AS DATE) = CAST(@Date AS DATE))
+              AND (@DateFrom IS NULL OR CAST(o.OrderedAt AS DATE) >= CAST(@DateFrom AS DATE))
+              AND (@DateTo IS NULL OR CAST(o.OrderedAt AS DATE) <= CAST(@DateTo AS DATE))
             ORDER BY o.Priority ASC, o.OrderedAt DESC";
 
-        var worklist = await conn.QueryAsync(sql, new { TenantId = tenantId, StatusId = statusId, Date = date });
+        var worklist = await conn.QueryAsync(sql, new { TenantId = tenantId, StatusId = statusId, Date = date, DateFrom = dateFrom?.Date, DateTo = dateTo?.Date });
         return Ok(ApiResponse<object>.Ok(worklist));
     }
 
     [HttpGet("orders")]
-    public async Task<IActionResult> GetOrders([FromQuery] int? patientId = null, [FromQuery] DateTime? date = null, [FromQuery] bool? onlyPaid = null)
+    public async Task<IActionResult> GetOrders([FromQuery] int? patientId = null, [FromQuery] DateTime? date = null, [FromQuery] bool? onlyPaid = null, [FromQuery] DateTime? dateFrom = null, [FromQuery] DateTime? dateTo = null)
     {
         byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
         using var conn = _dbFactory.CreateConnection();
@@ -1110,6 +1112,8 @@ public class LaboratoryController : ControllerBase
             WHERE o.TenantId = @TenantId
               AND (@PatientId IS NULL OR o.PatientId = @PatientId)
               AND (@Date IS NULL OR CAST(o.OrderedAt AS DATE) = CAST(@Date AS DATE))
+              AND (@DateFrom IS NULL OR CAST(o.OrderedAt AS DATE) >= CAST(@DateFrom AS DATE))
+              AND (@DateTo IS NULL OR CAST(o.OrderedAt AS DATE) <= CAST(@DateTo AS DATE))
               AND (@OnlyPaid IS NULL OR @OnlyPaid = 0 OR EXISTS (
                   SELECT 1 FROM InvoiceItems ii 
                   JOIN Invoices inv ON inv.Id = ii.InvoiceId 
@@ -1117,7 +1121,7 @@ public class LaboratoryController : ControllerBase
               ))
             ORDER BY o.OrderedAt DESC";
 
-        var orders = await conn.QueryAsync(sql, new { TenantId = tenantId, PatientId = patientId, Date = date, OnlyPaid = onlyPaid });
+        var orders = await conn.QueryAsync(sql, new { TenantId = tenantId, PatientId = patientId, Date = date, OnlyPaid = onlyPaid, DateFrom = dateFrom?.Date, DateTo = dateTo?.Date });
         return Ok(ApiResponse<object>.Ok(orders));
     }
 
@@ -1259,212 +1263,241 @@ public class LaboratoryController : ControllerBase
         return Ok(ApiResponse<object>.Ok(new { OrderId = orderId }));
     }
 
+    public class ExistingLabResultDto
+    {
+        public int Id { get; set; }
+        public decimal? NumericValue { get; set; }
+        public string? TextValue { get; set; }
+        public string? Unit { get; set; }
+        public string? Flag { get; set; }
+        public string? ReferenceRange { get; set; }
+        public bool? IsVerified { get; set; }
+        public byte? SourceType { get; set; }
+    }
+
+    public class OrderItemInfoDto
+    {
+        public int OrderItemId { get; set; }
+        public int TestId { get; set; }
+        public string? TestCode { get; set; }
+        public string? TestName { get; set; }
+        public string? Unit { get; set; }
+        public decimal? NormalRangeLow { get; set; }
+        public decimal? NormalRangeHigh { get; set; }
+    }
+
     [HttpPost("results/save")]
     [HttpPost("results/batch")]
     public async Task<IActionResult> SaveResultsBatch([FromBody] SaveOrderResultsRequest req)
     {
-        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
-        using var conn = _dbFactory.CreateConnection();
-
-        // 1. Fetch the order and patient information
-        var order = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT Id, PatientId, TenantId, OrderedBy FROM LabOrders WHERE Id = @OrderId AND TenantId = @TenantId",
-            new { req.OrderId, TenantId = tenantId });
-
-        if (order == null)
-            return NotFound(ApiResponse<object>.Fail($"Order #{req.OrderId} not found."));
-
-        int patientId = req.PatientId ?? (int)order.PatientId;
-
-        // 2. Fetch order items for this order
-        var orderItems = (await conn.QueryAsync<dynamic>(
-            @"SELECT oi.Id AS OrderItemId, oi.TestId, t.TestCode, t.TestName, t.Unit, t.NormalRangeLow, t.NormalRangeHigh
-              FROM LabOrderItems oi
-              JOIN LabTestCatalog t ON t.Id = oi.TestId
-              WHERE oi.OrderId = @OrderId",
-            new { req.OrderId })).ToList();
-
-        if (req.Results != null && req.Results.Count > 0)
+        try
         {
-            foreach (var res in req.Results)
+            byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+            using var conn = _dbFactory.CreateConnection();
+
+            // 1. Fetch the order and patient information
+            var order = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                "SELECT Id, PatientId, TenantId, OrderedBy FROM LabOrders WHERE Id = @OrderId AND TenantId = @TenantId",
+                new { req.OrderId, TenantId = tenantId });
+
+            if (order == null)
+                return NotFound(ApiResponse<object>.Fail($"Order #{req.OrderId} not found."));
+
+            int patientId = req.PatientId ?? (int)order.PatientId;
+
+            // 2. Fetch order items for this order
+            var orderItems = (await conn.QueryAsync<OrderItemInfoDto>(
+                @"SELECT oi.Id AS OrderItemId, oi.TestId, t.TestCode, t.TestName, t.Unit, t.NormalRangeLow, t.NormalRangeHigh
+                  FROM LabOrderItems oi
+                  JOIN LabTestCatalog t ON t.Id = oi.TestId
+                  WHERE oi.OrderId = @OrderId",
+                new { req.OrderId })).ToList();
+
+            if (req.Results != null && req.Results.Count > 0)
             {
-                // Match to an order item
-                dynamic? matchedItem = null;
-                if (res.OrderItemId.HasValue && res.OrderItemId.Value > 0)
+                foreach (var res in req.Results)
                 {
-                    matchedItem = orderItems.FirstOrDefault(oi => (int)oi.OrderItemId == res.OrderItemId.Value);
+                    // Match to an order item
+                    OrderItemInfoDto? matchedItem = null;
+                    if (res.OrderItemId.HasValue && res.OrderItemId.Value > 0)
+                    {
+                        matchedItem = orderItems.FirstOrDefault(oi => oi.OrderItemId == res.OrderItemId.Value);
+                    }
+                    if (matchedItem == null && !string.IsNullOrWhiteSpace(res.TestCode))
+                    {
+                        matchedItem = orderItems.FirstOrDefault(oi => string.Equals(oi.TestCode, res.TestCode, StringComparison.OrdinalIgnoreCase));
+                    }
+                    if (matchedItem == null && orderItems.Count > 0)
+                    {
+                        matchedItem = orderItems[0];
+                    }
+
+                    if (matchedItem == null) continue;
+
+                    int orderItemId = matchedItem.OrderItemId;
+                    int testId = res.TestId ?? matchedItem.TestId;
+                    string unit = res.Unit ?? matchedItem.Unit ?? "";
+                    string refRange = res.ReferenceRange ?? $"{matchedItem.NormalRangeLow} - {matchedItem.NormalRangeHigh} {unit}".Trim();
+                    string flag = res.Flag != null ? (res.Flag.Length > 5 ? res.Flag[..5] : res.Flag) : "OK";
+                    bool isCritical = res.IsCritical ?? (flag == "HH" || flag == "LL");
+
+                    // Check if result already exists for this order item
+                    var existingResult = await conn.QueryFirstOrDefaultAsync<ExistingLabResultDto>(
+                        "SELECT Id, NumericValue, TextValue, Unit, Flag, ReferenceRange, IsVerified, SourceType FROM LabResults WHERE OrderItemId = @OrderItemId AND OrderId = @OrderId",
+                        new { OrderItemId = orderItemId, req.OrderId });
+
+                    string safeUnit = string.IsNullOrWhiteSpace(unit) ? "" : (unit.Length > 30 ? unit[..30] : unit);
+                    string safeFlag = string.IsNullOrWhiteSpace(flag) ? "Normal" : (flag.Length > 20 ? flag[..20] : flag);
+                    string safeRefRange = string.IsNullOrWhiteSpace(refRange) ? "" : (refRange.Length > 100 ? refRange[..100] : refRange);
+
+                    if (existingResult != null)
+                    {
+                        int resId = existingResult.Id;
+
+                        // Safely preserve machine or manual values without unboxing cast crashes
+                        decimal? numVal = res.NumericValue ?? existingResult.NumericValue;
+                        string incomingText = (res.TextValue ?? "").Trim();
+                        string dbText = existingResult.TextValue ?? "";
+                        string txtVal = (!string.IsNullOrWhiteSpace(incomingText) && incomingText != "Results recorded")
+                            ? incomingText
+                            : (!string.IsNullOrWhiteSpace(dbText) ? dbText : (string.IsNullOrWhiteSpace(incomingText) ? "Results recorded" : incomingText));
+
+                        string finalUnit = !string.IsNullOrWhiteSpace(res.Unit) ? res.Unit : (existingResult.Unit ?? safeUnit);
+                        string finalFlag = !string.IsNullOrWhiteSpace(res.Flag) ? res.Flag : (existingResult.Flag ?? safeFlag);
+                        string finalRef = !string.IsNullOrWhiteSpace(res.ReferenceRange) ? res.ReferenceRange : (existingResult.ReferenceRange ?? safeRefRange);
+
+                        safeUnit = finalUnit.Length > 30 ? finalUnit[..30] : finalUnit;
+                        safeFlag = finalFlag.Length > 20 ? finalFlag[..20] : finalFlag;
+                        safeRefRange = finalRef.Length > 100 ? finalRef[..100] : finalRef;
+
+                        await conn.ExecuteAsync(@"
+                            UPDATE LabResults
+                            SET NumericValue = @NumericValue,
+                                TextValue = @TextValue,
+                                Unit = @Unit,
+                                Flag = @Flag,
+                                ReferenceRange = @ReferenceRange,
+                                IsCritical = @IsCritical,
+                                IsVerified = @IsVerified,
+                                VerifiedBy = CASE WHEN @IsVerified = 1 THEN 1 ELSE VerifiedBy END,
+                                VerifiedAt = CASE WHEN @IsVerified = 1 THEN GETDATE() ELSE VerifiedAt END,
+                                EnteredAt = GETDATE()
+                            WHERE Id = @ResultId",
+                            new {
+                                ResultId = resId,
+                                NumericValue = numVal,
+                                TextValue = txtVal,
+                                Unit = safeUnit,
+                                Flag = safeFlag,
+                                ReferenceRange = safeRefRange,
+                                IsCritical = isCritical,
+                                req.IsVerified
+                            });
+                    }
+                    else
+                    {
+                        await conn.ExecuteAsync(@"
+                            INSERT INTO LabResults (
+                                OrderItemId, OrderId, TestId, PatientId, NumericValue, TextValue,
+                                Unit, Flag, ReferenceRange, IsCritical, EnteredBy, EnteredAt,
+                                VerifiedBy, VerifiedAt, IsVerified, SourceType
+                            ) VALUES (
+                                @OrderItemId, @OrderId, @TestId, @PatientId, @NumericValue, @TextValue,
+                                @Unit, @Flag, @ReferenceRange, @IsCritical, 1, GETDATE(),
+                                CASE WHEN @IsVerified = 1 THEN 1 ELSE NULL END,
+                                CASE WHEN @IsVerified = 1 THEN GETDATE() ELSE NULL END,
+                                @IsVerified, 1
+                            )",
+                            new {
+                                OrderItemId = orderItemId,
+                                req.OrderId,
+                                TestId = testId,
+                                PatientId = patientId,
+                                res.NumericValue,
+                                res.TextValue,
+                                Unit = safeUnit,
+                                Flag = safeFlag,
+                                ReferenceRange = safeRefRange,
+                                IsCritical = isCritical,
+                                req.IsVerified
+                            });
+                    }
+
+                    // Update OrderItem status (5 = Completed/Approved, 4 = Resulted, 3 = InProcess)
+                    byte itemStatus = (byte)(req.IsVerified ? 5 : 4);
+                    await conn.ExecuteAsync(
+                        "UPDATE LabOrderItems SET StatusId = @StatusId WHERE Id = @OrderItemId",
+                        new { StatusId = itemStatus, OrderItemId = orderItemId });
                 }
-                if (matchedItem == null && !string.IsNullOrWhiteSpace(res.TestCode))
+            }
+
+            // When verifying/approving, ensure ALL existing results and items for this order are marked verified
+            if (req.IsVerified)
+            {
+                await conn.ExecuteAsync(@"
+                    UPDATE LabResults
+                    SET IsVerified = 1,
+                        VerifiedBy = ISNULL(VerifiedBy, 1),
+                        VerifiedAt = ISNULL(VerifiedAt, GETDATE())
+                    WHERE OrderId = @OrderId",
+                    new { req.OrderId });
+
+                await conn.ExecuteAsync(
+                    "UPDATE LabOrderItems SET StatusId = 5 WHERE OrderId = @OrderId",
+                    new { req.OrderId });
+            }
+
+            // Update overall Order status (5 = Completed/Approved, 4 = Resulted, 3 = InProcess)
+            byte orderStatus = (byte)(req.IsVerified ? 5 : 4);
+            await conn.ExecuteAsync(
+                "UPDATE LabOrders SET StatusId = @StatusId, UpdatedAt = GETDATE() WHERE Id = @OrderId",
+                new { StatusId = orderStatus, req.OrderId });
+
+            try
+            {
+                var patName = await conn.QueryFirstOrDefaultAsync<string>(
+                    "SELECT FirstName + ' ' + LastName FROM Patients WHERE Id = @PatientId", new { PatientId = patientId }) ?? $"Patient #{patientId}";
+                var orderNo = await conn.QueryFirstOrDefaultAsync<string>(
+                    "SELECT OrderNumber FROM LabOrders WHERE Id = @OrderId", new { req.OrderId }) ?? $"LAB-{req.OrderId}";
+
+                if (req.IsVerified)
                 {
-                    matchedItem = orderItems.FirstOrDefault(oi => string.Equals((string)oi.TestCode, res.TestCode, StringComparison.OrdinalIgnoreCase));
-                }
-                if (matchedItem == null && orderItems.Count > 0)
-                {
-                    matchedItem = orderItems[0];
-                }
-
-                if (matchedItem == null) continue;
-
-                int orderItemId = (int)matchedItem.OrderItemId;
-                int testId = res.TestId ?? (int)matchedItem.TestId;
-                string unit = res.Unit ?? (string)matchedItem.Unit ?? "";
-                string refRange = res.ReferenceRange ?? $"{matchedItem.NormalRangeLow} - {matchedItem.NormalRangeHigh} {unit}".Trim();
-                string flag = res.Flag != null ? (res.Flag.Length > 5 ? res.Flag[..5] : res.Flag) : "OK";
-                bool isCritical = res.IsCritical ?? (flag == "HH" || flag == "LL");
-
-                // Check if result already exists for this order item
-                var existingResult = await conn.QueryFirstOrDefaultAsync<dynamic>(
-                    "SELECT Id, NumericValue, TextValue, Unit, Flag, ReferenceRange, IsVerified, SourceType FROM LabResults WHERE OrderItemId = @OrderItemId AND OrderId = @OrderId",
-                    new { OrderItemId = orderItemId, req.OrderId });
-
-                string safeUnit = string.IsNullOrWhiteSpace(unit) ? "" : (unit.Length > 30 ? unit[..30] : unit);
-                string safeFlag = string.IsNullOrWhiteSpace(flag) ? "Normal" : (flag.Length > 20 ? flag[..20] : flag);
-                string safeRefRange = string.IsNullOrWhiteSpace(refRange) ? "" : (refRange.Length > 100 ? refRange[..100] : refRange);
-
-                if (existingResult != null)
-                {
-                    int resId = (int)existingResult.Id;
-                    byte currentSourceType = (byte)(existingResult.SourceType ?? 1);
-
-                    // If source is machine (2), preserve machine's existing values if incoming is empty or default placeholder
-                    decimal? numVal = res.NumericValue ?? (decimal?)existingResult.NumericValue;
-                    string incomingText = (res.TextValue ?? "").Trim();
-                    string dbText = (string)(existingResult.TextValue ?? "");
-                    string txtVal = (!string.IsNullOrWhiteSpace(incomingText) && incomingText != "Results recorded")
-                        ? incomingText
-                        : (!string.IsNullOrWhiteSpace(dbText) ? dbText : (string.IsNullOrWhiteSpace(incomingText) ? "Results recorded" : incomingText));
-
-                    string finalUnit = !string.IsNullOrWhiteSpace(res.Unit) ? res.Unit : ((string)(existingResult.Unit ?? "") ?? safeUnit);
-                    string finalFlag = !string.IsNullOrWhiteSpace(res.Flag) ? res.Flag : ((string)(existingResult.Flag ?? "") ?? safeFlag);
-                    string finalRef = !string.IsNullOrWhiteSpace(res.ReferenceRange) ? res.ReferenceRange : ((string)(existingResult.ReferenceRange ?? "") ?? safeRefRange);
-
-                    safeUnit = finalUnit.Length > 30 ? finalUnit[..30] : finalUnit;
-                    safeFlag = finalFlag.Length > 20 ? finalFlag[..20] : finalFlag;
-                    safeRefRange = finalRef.Length > 100 ? finalRef[..100] : finalRef;
-
                     await conn.ExecuteAsync(@"
-                        UPDATE LabResults
-                        SET NumericValue = @NumericValue,
-                            TextValue = @TextValue,
-                            Unit = @Unit,
-                            Flag = @Flag,
-                            ReferenceRange = @ReferenceRange,
-                            IsCritical = @IsCritical,
-                            IsVerified = @IsVerified,
-                            VerifiedBy = CASE WHEN @IsVerified = 1 THEN 1 ELSE VerifiedBy END,
-                            VerifiedAt = CASE WHEN @IsVerified = 1 THEN GETDATE() ELSE VerifiedAt END,
-                            EnteredAt = GETDATE()
-                        WHERE Id = @ResultId",
+                        INSERT INTO Notifications (TenantId, RecipientUserId, Channel, Subject, Body, Priority, NotificationType, RefType, RefId, StatusId, CreatedAt)
+                        VALUES (@TenantId, NULL, 3, @Subject, @Body, 1, 'LabResultApproved', 'Doctor,Nurse,LabTechnician,Admin', @RefId, 1, GETDATE())",
                         new {
-                            ResultId = resId,
-                            NumericValue = numVal,
-                            TextValue = txtVal,
-                            Unit = safeUnit,
-                            Flag = safeFlag,
-                            ReferenceRange = safeRefRange,
-                            IsCritical = isCritical,
-                            req.IsVerified
+                            TenantId = tenantId,
+                            Subject = $"Lab Result Approved: {orderNo}",
+                            Body = $"Laboratory test results for {patName} ({orderNo}) verified and approved by laboratory.",
+                            RefId = req.OrderId
                         });
                 }
                 else
                 {
                     await conn.ExecuteAsync(@"
-                        INSERT INTO LabResults (
-                            OrderItemId, OrderId, TestId, PatientId, NumericValue, TextValue,
-                            Unit, Flag, ReferenceRange, IsCritical, EnteredBy, EnteredAt,
-                            VerifiedBy, VerifiedAt, IsVerified, SourceType
-                        ) VALUES (
-                            @OrderItemId, @OrderId, @TestId, @PatientId, @NumericValue, @TextValue,
-                            @Unit, @Flag, @ReferenceRange, @IsCritical, 1, GETDATE(),
-                            CASE WHEN @IsVerified = 1 THEN 1 ELSE NULL END,
-                            CASE WHEN @IsVerified = 1 THEN GETDATE() ELSE NULL END,
-                            @IsVerified, 1
-                        )",
+                        INSERT INTO Notifications (TenantId, RecipientUserId, Channel, Subject, Body, Priority, NotificationType, RefType, RefId, StatusId, CreatedAt)
+                        VALUES (@TenantId, NULL, 3, @Subject, @Body, 2, 'LabResultSaved', 'Doctor,Nurse,LabTechnician,Admin', @RefId, 1, GETDATE())",
                         new {
-                            OrderItemId = orderItemId,
-                            req.OrderId,
-                            TestId = testId,
-                            PatientId = patientId,
-                            res.NumericValue,
-                            res.TextValue,
-                            Unit = safeUnit,
-                            Flag = safeFlag,
-                            ReferenceRange = safeRefRange,
-                            IsCritical = isCritical,
-                            req.IsVerified
+                            TenantId = tenantId,
+                            Subject = $"Lab Results Saved: {orderNo}",
+                            Body = $"Laboratory test results recorded for {patName} ({orderNo}). Pending verification & sign-off.",
+                            RefId = req.OrderId
                         });
                 }
-
-                // Update OrderItem status (5 = Completed/Approved, 4 = Resulted, 3 = InProcess)
-                byte itemStatus = (byte)(req.IsVerified ? 5 : 4);
-                await conn.ExecuteAsync(
-                    "UPDATE LabOrderItems SET StatusId = @StatusId WHERE Id = @OrderItemId",
-                    new { StatusId = itemStatus, OrderItemId = orderItemId });
             }
-        }
+            catch { /* non-blocking */ }
 
-        // When verifying/approving, ensure ALL existing results and items for this order are marked verified
-        if (req.IsVerified)
+            return Ok(ApiResponse<object>.Ok(new {
+                Success = true,
+                OrderId = req.OrderId,
+                IsVerified = req.IsVerified,
+                Message = req.IsVerified ? "Results verified and approved for EMR." : "Results saved successfully."
+            }));
+        }
+        catch (Exception ex)
         {
-            await conn.ExecuteAsync(@"
-                UPDATE LabResults
-                SET IsVerified = 1,
-                    VerifiedBy = ISNULL(VerifiedBy, 1),
-                    VerifiedAt = ISNULL(VerifiedAt, GETDATE())
-                WHERE OrderId = @OrderId",
-                new { req.OrderId });
-
-            await conn.ExecuteAsync(
-                "UPDATE LabOrderItems SET StatusId = 5 WHERE OrderId = @OrderId",
-                new { req.OrderId });
+            return StatusCode(500, ApiResponse<object>.Fail($"Error saving laboratory results: {ex.Message}"));
         }
-
-        // Update overall Order status (5 = Completed/Approved, 4 = Resulted, 3 = InProcess)
-        byte orderStatus = (byte)(req.IsVerified ? 5 : 4);
-        await conn.ExecuteAsync(
-            "UPDATE LabOrders SET StatusId = @StatusId, UpdatedAt = GETDATE() WHERE Id = @OrderId",
-            new { StatusId = orderStatus, req.OrderId });
-
-        try
-        {
-            var patName = await conn.QueryFirstOrDefaultAsync<string>(
-                "SELECT FirstName + ' ' + LastName FROM Patients WHERE Id = @PatientId", new { PatientId = patientId }) ?? $"Patient #{patientId}";
-            var orderNo = await conn.QueryFirstOrDefaultAsync<string>(
-                "SELECT OrderNumber FROM LabOrders WHERE Id = @OrderId", new { req.OrderId }) ?? $"LAB-{req.OrderId}";
-
-            if (req.IsVerified)
-            {
-                await conn.ExecuteAsync(@"
-                    INSERT INTO Notifications (TenantId, RecipientUserId, Channel, Subject, Body, Priority, NotificationType, RefType, RefId, StatusId, CreatedAt)
-                    VALUES (@TenantId, NULL, 3, @Subject, @Body, 1, 'LabResultApproved', 'Doctor,Nurse,LabTechnician,Admin', @RefId, 1, GETDATE())",
-                    new {
-                        TenantId = tenantId,
-                        Subject = $"Lab Result Approved: {orderNo}",
-                        Body = $"Laboratory test results for {patName} ({orderNo}) verified and approved by laboratory.",
-                        RefId = req.OrderId
-                    });
-            }
-            else
-            {
-                await conn.ExecuteAsync(@"
-                    INSERT INTO Notifications (TenantId, RecipientUserId, Channel, Subject, Body, Priority, NotificationType, RefType, RefId, StatusId, CreatedAt)
-                    VALUES (@TenantId, NULL, 3, @Subject, @Body, 2, 'LabResultSaved', 'Doctor,Nurse,LabTechnician,Admin', @RefId, 1, GETDATE())",
-                    new {
-                        TenantId = tenantId,
-                        Subject = $"Lab Results Saved: {orderNo}",
-                        Body = $"Laboratory test results recorded for {patName} ({orderNo}). Pending verification & sign-off.",
-                        RefId = req.OrderId
-                    });
-            }
-        }
-        catch { /* non-blocking */ }
-
-        return Ok(ApiResponse<object>.Ok(new {
-            Success = true,
-            OrderId = req.OrderId,
-            IsVerified = req.IsVerified,
-            Message = req.IsVerified ? "Results verified and approved for EMR." : "Results saved successfully."
-        }));
     }
 
     [HttpPost("results/verify")]

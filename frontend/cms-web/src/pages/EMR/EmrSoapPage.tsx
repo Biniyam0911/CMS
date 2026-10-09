@@ -693,7 +693,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
   const [orderRxFreq, setOrderRxFreq] = useState('Once Daily (OD)');
   const [orderRxDuration, setOrderRxDuration] = useState('7 Days');
   const [orderRxQty, setOrderRxQty] = useState(14);
-  const [orderRxTiming, setOrderRxTiming] = useState('Take after meals');
+  const [orderRxTiming, setOrderRxTiming] = useState('');
 
   // ==========================================
   // DEDICATED PRESCRIBE MODAL STATE
@@ -724,7 +724,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
   const [customFreq, setCustomFreq] = useState('Twice Daily (BID)');
   const [customDuration, setCustomDuration] = useState('7 Days');
   const [customQty, setCustomQty] = useState<number>(10);
-  const [customInstructions, setCustomInstructions] = useState('Take after meals');
+  const [customInstructions, setCustomInstructions] = useState('');
   const [customPrice, setCustomPrice] = useState<number>(0);
   const [isSubmittingPrescription, setIsSubmittingPrescription] = useState(false);
 
@@ -869,7 +869,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
     { id: 'CLOTR', name: 'Clotrimazole 1% Topical Cream (20g)', class: 'Antifungal', defaultDosage: 'Apply thin layer', defaultRoute: 'Topical', defaultFreq: 'Twice Daily (BID)', defaultDuration: '14 Days', defaultDurationDays: 14, defaultQty: 1, unitPrice: 95.0, instructions: 'Continue 1 week after resolution of rash' },
     { id: 'CETIR', name: 'Cetirizine 10mg Tablet', class: 'Antihistamine', defaultDosage: '1 Tablet (10mg)', defaultRoute: 'Oral', defaultFreq: 'Once Daily at Bedtime (OD)', defaultDuration: '10 Days', defaultDurationDays: 10, defaultQty: 10, unitPrice: 6.0, instructions: 'Take at night with water' },
     { id: 'DOXY', name: 'Doxycycline 100mg Capsule', class: 'Tetracycline Antibiotic', defaultDosage: '1 Capsule (100mg)', defaultRoute: 'Oral', defaultFreq: 'Twice Daily (BID)', defaultDuration: '14 Days', defaultDurationDays: 14, defaultQty: 28, unitPrice: 12.0, instructions: 'Take with full glass of water. Avoid sun.' },
-    { id: 'AMOX', name: 'Amoxicillin 500mg Capsule', class: 'Penicillin Antibiotic', defaultDosage: '1 Capsule (500mg)', defaultRoute: 'Oral', defaultFreq: 'Three Times Daily (TID)', defaultDuration: '7 Days', defaultDurationDays: 7, defaultQty: 21, unitPrice: 12.0, instructions: 'Complete full 7-day course. Take after meals.' },
+    { id: 'AMOX', name: 'Amoxicillin 500mg Capsule', class: 'Penicillin Antibiotic', defaultDosage: '1 Capsule (500mg)', defaultRoute: 'Oral', defaultFreq: 'Three Times Daily (TID)', defaultDuration: '7 Days', defaultDurationDays: 7, defaultQty: 21, unitPrice: 12.0, instructions: 'Complete full 7-day course.' },
     { id: 'PARA', name: 'Paracetamol 500mg Tablet', class: 'Analgesic / Antipyretic', defaultDosage: '1-2 Tablets (500-1000mg)', defaultRoute: 'Oral', defaultFreq: 'Three Times Daily (TID) PRN', defaultDuration: '5 Days', defaultDurationDays: 5, defaultQty: 20, unitPrice: 4.0, instructions: 'Take as needed for pain or fever. Max 4g daily.' }
   ]);
 
@@ -1956,7 +1956,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
         duration: customDuration || '7 Days',
         qty: Number(customQty) || 1,
         unitPrice: Number(customPrice) || 0,
-        instructions: customInstructions.trim() || 'Take as directed'
+        instructions: customInstructions.trim()
       }
     ]);
 
@@ -1965,7 +1965,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
     setCustomDosage('1 Tablet');
     setCustomQty(10);
     setCustomPrice(0);
-    setCustomInstructions('Take after meals');
+    setCustomInstructions('');
   };
 
   const handleRemoveFromPrescribeBasket = (id: string) => {
@@ -4619,7 +4619,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                             type="text"
                             value={customInstructions}
                             onChange={e => setCustomInstructions(e.target.value)}
-                            placeholder="e.g. Take after meals with plenty of water. Avoid sun exposure."
+                            placeholder="e.g. As directed by physician"
                             style={{ width: '100%', padding: '7px 10px', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
                           />
                         </div>
@@ -4945,7 +4945,9 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                       <td style={{ padding: '5px 6px', fontWeight: 700, color: '#64748b' }}>{i + 1}.</td>
                       <td style={{ padding: '5px 6px' }}>
                         <div style={{ fontWeight: 700, color: '#0f172a' }}>{med.drugName}</div>
-                        <div style={{ fontSize: '0.68rem', color: '#0369a1', marginTop: '1px' }}>{med.instructions || 'Take as directed'}</div>
+                        {med.instructions ? (
+                          <div style={{ fontSize: '0.68rem', color: '#0369a1', marginTop: '1px' }}>{med.instructions}</div>
+                        ) : null}
                       </td>
                       <td style={{ padding: '5px 6px' }}>
                         <div>{med.dosage} ({med.route})</div>

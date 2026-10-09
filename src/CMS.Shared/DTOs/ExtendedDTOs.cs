@@ -71,13 +71,22 @@ public record PatientQueueDto(
     long Id, byte TenantId, string TokenNumber, int PatientId, string PatientName,
     string ServiceType, byte PriorityLevel, string PriorityName, byte StatusId, string StatusName,
     int? AssignedCounterId, string? CounterName, int? AssignedDoctorId, string? DoctorName,
-    int? EstimatedWaitMin, DateTime CheckInTime, DateTime? CallTime);
+    int? EstimatedWaitMin, DateTime CheckInTime, DateTime? CallTime,
+    string? MRN = null, string? MrnNumber = null, DateTime? EndTime = null);
 
 public record CheckInQueueDto(
     byte TenantId, int PatientId, string ServiceType, byte PriorityLevel = 2,
     int? AssignedDoctorId = null, string? Notes = null);
 
-public record CallQueueTicketDto(long TicketId, int CounterId, int StaffId);
+public record CallQueueTicketDto(long TicketId, int CounterId, int StaffId, string? StationType = null);
+public record RecallQueueTicketDto(long TicketId, int CounterId, int StaffId);
+public record CompleteQueueTicketDto(long TicketId, int StaffId);
+public record CancelQueueTicketDto(long TicketId, int StaffId, string? Reason = null);
+
+public record CompletedQueueTicketDto(
+    long Id, int PatientId, string? MRN, string MrnNumber, string PatientName,
+    string ServiceType, string? CounterName, string? StaffName,
+    DateTime CheckInTime, DateTime? CallTime, DateTime? EndTime, int? DurationMinutes);
 
 // --- Batch F: Settings, API Keys, Integrations & Dashboard ---
 public record ApiKeyDto(

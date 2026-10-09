@@ -1,4 +1,11 @@
-export function playTicketChimeAndSpeech(tokenNumber: string, counterName: string) {
+export function extractMrnNumber(mrn?: string | null, fallbackId?: string | number | null): string {
+  if (!mrn && fallbackId) return String(fallbackId);
+  if (!mrn) return '';
+  const digits = String(mrn).replace(/\D/g, '');
+  return digits || String(fallbackId || '');
+}
+
+export function playTicketChimeAndSpeech(mrnNumber: string, counterName: string, patientName?: string) {
   try {
     // 1. Web Audio API Chime Tone
     const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
@@ -27,9 +34,12 @@ export function playTicketChimeAndSpeech(tokenNumber: string, counterName: strin
   // 2. Speech Synthesis Announcer
   if ('speechSynthesis' in window) {
     window.speechSynthesis.cancel(); // cancel previous speech if playing
-    const message = `Attention ticket ${tokenNumber.split('').join(' ')}, please proceed to ${counterName}`;
+    const cleanedNumber = extractMrnNumber(mrnNumber);
+    const spokenNumber = cleanedNumber.split('').join(' ');
+    const namePart = patientName ? `${patientName}, ` : '';
+    const message = `Attention, Patient Number ${spokenNumber}, ${namePart}please proceed to ${counterName}`;
     const utterance = new SpeechSynthesisUtterance(message);
-    utterance.rate = 0.95;
+    utterance.rate = 0.92;
     utterance.pitch = 1.0;
     utterance.volume = 1.0;
     window.speechSynthesis.speak(utterance);

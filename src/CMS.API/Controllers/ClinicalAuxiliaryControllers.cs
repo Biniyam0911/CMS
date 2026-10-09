@@ -46,8 +46,37 @@ public class QueueController : ControllerBase
     [HttpPost("call")]
     public async Task<IActionResult> CallNext([FromBody] CallQueueTicketDto dto)
     {
-        await _queueService.CallNextTicketAsync(dto.TicketId, dto.CounterId, dto.StaffId);
+        await _queueService.CallNextTicketAsync(dto.TicketId, dto.CounterId, dto.StaffId, dto.StationType);
         return Ok(ApiResponse<string>.Ok("Ticket summoned to counter."));
+    }
+
+    [HttpPost("recall")]
+    public async Task<IActionResult> Recall([FromBody] RecallQueueTicketDto dto)
+    {
+        await _queueService.RecallTicketAsync(dto.TicketId, dto.CounterId, dto.StaffId);
+        return Ok(ApiResponse<string>.Ok("Ticket recalled."));
+    }
+
+    [HttpPost("complete")]
+    public async Task<IActionResult> Complete([FromBody] CompleteQueueTicketDto dto)
+    {
+        await _queueService.CompleteTicketAsync(dto.TicketId, dto.StaffId);
+        return Ok(ApiResponse<string>.Ok("Ticket completed."));
+    }
+
+    [HttpPost("cancel")]
+    public async Task<IActionResult> Cancel([FromBody] CancelQueueTicketDto dto)
+    {
+        await _queueService.CancelTicketAsync(dto.TicketId, dto.StaffId, dto.Reason);
+        return Ok(ApiResponse<string>.Ok("Ticket cancelled."));
+    }
+
+    [HttpGet("completed")]
+    public async Task<IActionResult> GetCompleted([FromQuery] DateTime? date = null)
+    {
+        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+        var completed = await _queueService.GetCompletedQueueAsync(tenantId, date);
+        return Ok(ApiResponse<List<CompletedQueueTicketDto>>.Ok(completed));
     }
 }
 

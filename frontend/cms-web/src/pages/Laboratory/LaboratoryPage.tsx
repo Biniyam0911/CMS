@@ -263,9 +263,12 @@ export default function LaboratoryPage() {
   const [activeTab, setActiveTab] = useState<'worklist' | 'verified' | 'custody' | 'catalog'>('worklist');
   const [loading, setLoading] = useState(true);
 
-  // Date Filter State for Worklist
-  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  // Date Range & Search State for Worklist
+  const todayStr = new Date().toISOString().split('T')[0];
+  const [dateFrom, setDateFrom] = useState<string>(todayStr);
+  const [dateTo, setDateTo] = useState<string>(todayStr);
   const [showAllDates, setShowAllDates] = useState(false);
+  const [worklistSearchQuery, setWorklistSearchQuery] = useState('');
 
   // Test Catalog State
   const [catalog, setCatalog] = useState<any[]>([]);
@@ -470,71 +473,93 @@ export default function LaboratoryPage() {
       }
     }
 
-    // 3. Parse pipe-separated parameters in textVal
+    // 3. Parse textVal (supports pipe-separated key-value pairs or arbitrary nvarchar strings)
     if (textVal && typeof textVal === 'string') {
-      const segments = textVal.split('|');
-      for (const seg of segments) {
-        const match = seg.match(/^\s*([^:]+?):\s*([0-9\.]+|Negative|Positive|Reactive|Non-Reactive)/i);
-        if (match) {
-          const rawParam = match[1].trim();
-          const val = match[2].trim();
-          resultsMap[`${itemId}:${rawParam}`] = val;
-          resultsMap[rawParam] = val;
+      const trimmedText = textVal.trim();
+      if (trimmedText && trimmedText !== 'Results recorded') {
+        const segments = trimmedText.split('|');
+        let matchedAnySegment = false;
+        for (const seg of segments) {
+          const colonIdx = seg.indexOf(':');
+          if (colonIdx > 0) {
+            const rawParam = seg.substring(0, colonIdx).trim();
+            const restVal = seg.substring(colonIdx + 1).trim();
+            // Remove any trailing flag brackets like "[Normal]" or "[H]" if present
+            const cleanVal = restVal.replace(/\s*\[.*?\]$/, '').trim();
+            if (rawParam && cleanVal) {
+              matchedAnySegment = true;
+              resultsMap[`${itemId}:${rawParam}`] = cleanVal;
+              resultsMap[rawParam] = cleanVal;
 
-          const lower = rawParam.toLowerCase();
-          if (lower.includes('white blood') || lower === 'wbc') {
-            resultsMap[`${itemId}:WBC`] = val;
-            resultsMap['WBC'] = val;
-          } else if (lower.includes('red blood') || lower === 'rbc') {
-            resultsMap[`${itemId}:RBC`] = val;
-            resultsMap['RBC'] = val;
-          } else if (lower.includes('hemo') || lower === 'hgb') {
-            resultsMap[`${itemId}:HGB`] = val;
-            resultsMap['HGB'] = val;
-          } else if (lower.includes('plate') || lower === 'plt') {
-            resultsMap[`${itemId}:PLT`] = val;
-            resultsMap['PLT'] = val;
-          } else if (lower.includes('hematocrit') || lower === 'hct') {
-            resultsMap[`${itemId}:HCT`] = val;
-            resultsMap['HCT'] = val;
-          } else if (lower.includes('alt') || lower.includes('alanine')) {
-            resultsMap[`${itemId}:ALT`] = val;
-            resultsMap['ALT'] = val;
-          } else if (lower.includes('ast') || lower.includes('aspartate')) {
-            resultsMap[`${itemId}:AST`] = val;
-            resultsMap['AST'] = val;
-          } else if (lower.includes('creat')) {
-            resultsMap[`${itemId}:CREAT`] = val;
-            resultsMap['CREAT'] = val;
-          } else if (lower.includes('bun') || lower.includes('urea')) {
-            resultsMap[`${itemId}:BUN`] = val;
-            resultsMap['BUN'] = val;
-          } else if (lower.includes('chol')) {
-            resultsMap[`${itemId}:CHOL`] = val;
-            resultsMap['CHOL'] = val;
-          } else if (lower.includes('trig')) {
-            resultsMap[`${itemId}:TRIG`] = val;
-            resultsMap['TRIG'] = val;
-          } else if (lower.includes('glucose') || lower.includes('fbs')) {
-            resultsMap[`${itemId}:FBS`] = val;
-            resultsMap['FBS'] = val;
-          } else {
-            resultsMap[`${itemId}:${testCode}`] = val;
-            resultsMap[`${itemId}:VAL`] = val;
-            resultsMap[testCode] = val;
+              const lower = rawParam.toLowerCase();
+              if (lower.includes('white blood') || lower === 'wbc') {
+                resultsMap[`${itemId}:WBC`] = cleanVal;
+                resultsMap['WBC'] = cleanVal;
+              } else if (lower.includes('red blood') || lower === 'rbc') {
+                resultsMap[`${itemId}:RBC`] = cleanVal;
+                resultsMap['RBC'] = cleanVal;
+              } else if (lower.includes('hemo') || lower === 'hgb') {
+                resultsMap[`${itemId}:HGB`] = cleanVal;
+                resultsMap['HGB'] = cleanVal;
+              } else if (lower.includes('plate') || lower === 'plt') {
+                resultsMap[`${itemId}:PLT`] = cleanVal;
+                resultsMap['PLT'] = cleanVal;
+              } else if (lower.includes('hematocrit') || lower === 'hct') {
+                resultsMap[`${itemId}:HCT`] = cleanVal;
+                resultsMap['HCT'] = cleanVal;
+              } else if (lower.includes('alt') || lower.includes('alanine')) {
+                resultsMap[`${itemId}:ALT`] = cleanVal;
+                resultsMap['ALT'] = cleanVal;
+              } else if (lower.includes('ast') || lower.includes('aspartate')) {
+                resultsMap[`${itemId}:AST`] = cleanVal;
+                resultsMap['AST'] = cleanVal;
+              } else if (lower.includes('creat')) {
+                resultsMap[`${itemId}:CREAT`] = cleanVal;
+                resultsMap['CREAT'] = cleanVal;
+              } else if (lower.includes('bun') || lower.includes('urea')) {
+                resultsMap[`${itemId}:BUN`] = cleanVal;
+                resultsMap['BUN'] = cleanVal;
+              } else if (lower.includes('chol')) {
+                resultsMap[`${itemId}:CHOL`] = cleanVal;
+                resultsMap['CHOL'] = cleanVal;
+              } else if (lower.includes('trig')) {
+                resultsMap[`${itemId}:TRIG`] = cleanVal;
+                resultsMap['TRIG'] = cleanVal;
+              } else if (lower.includes('glucose') || lower.includes('fbs')) {
+                resultsMap[`${itemId}:FBS`] = cleanVal;
+                resultsMap['FBS'] = cleanVal;
+              } else {
+                resultsMap[`${itemId}:${testCode}`] = cleanVal;
+                resultsMap[`${itemId}:VAL`] = cleanVal;
+                resultsMap[testCode] = cleanVal;
+              }
+            }
           }
+        }
+
+        // If no colon was found or it was a single plain string (e.g. "Negative", "Clear", "Normal")
+        if (!matchedAnySegment && trimmedText) {
+          resultsMap[`${itemId}:${testCode}`] = trimmedText;
+          resultsMap[`${itemId}:VAL`] = trimmedText;
+          resultsMap[testCode] = trimmedText;
+          resultsMap['VAL'] = trimmedText;
         }
       }
     }
   };
 
-  const loadLabData = async (filterDate?: string, allDates?: boolean) => {
+  const loadLabData = async (from?: string, to?: string, allDates?: boolean) => {
     try {
       setLoading(true);
-      const activeDate = allDates ? undefined : (filterDate || selectedDate);
+      const effectiveFrom = allDates ? undefined : (from || dateFrom);
+      const effectiveTo = allDates ? undefined : (to || dateTo);
+      const queryParams: Record<string, string> = {};
+      if (effectiveFrom) queryParams.dateFrom = effectiveFrom;
+      if (effectiveTo) queryParams.dateTo = effectiveTo;
+
       const [catalogData, worklistData] = await Promise.all([
         api.get<any[]>('/laboratory/catalog').catch(() => []),
-        api.get<any[]>('/laboratory/worklist', activeDate ? { date: activeDate } : {}).catch(() => [])
+        api.get<any[]>('/laboratory/worklist', queryParams).catch(() => [])
       ]);
 
       if (catalogData && catalogData.length > 0) {
@@ -703,8 +728,8 @@ export default function LaboratoryPage() {
   };
 
   useEffect(() => {
-    loadLabData(selectedDate, showAllDates);
-  }, [selectedDate, showAllDates]);
+    loadLabData(dateFrom, dateTo, showAllDates);
+  }, [dateFrom, dateTo, showAllDates]);
 
   const [toastMsg, setToastMsg] = useState<{ text: string; type: 'success' | 'info' | 'error' } | null>(null);
 
@@ -734,7 +759,9 @@ export default function LaboratoryPage() {
         const testCatalogItem = catalog.find(c => c.code === test.testCode) || {
           parameters: [{ code: test.testCode, name: test.testName, unit: '', min: undefined, max: undefined }]
         };
-        const params = testCatalogItem.parameters || [];
+        const params = (testCatalogItem.parameters && testCatalogItem.parameters.length > 0)
+          ? testCatalogItem.parameters
+          : [{ code: test.testCode, name: test.testName, unit: '', min: undefined, max: undefined }];
 
         // Collect sub-parameter values
         const paramSummaries: string[] = [];
@@ -745,7 +772,13 @@ export default function LaboratoryPage() {
 
         for (const p of params) {
           const resultKey = `${test.itemId}:${p.code}`;
-          const val = order.results[resultKey] || order.results[p.code] || '';
+          const val = order.results[resultKey]
+            || order.results[`${test.itemId}:${test.testCode}`]
+            || order.results[`${test.itemId}:VAL`]
+            || order.results[p.code]
+            || order.results[test.testCode]
+            || order.results['VAL']
+            || '';
           if (val) {
             const flag = calculateParamFlag(val, p.min, p.max);
             paramSummaries.push(`${p.name || p.code}: ${val} ${p.unit || ''} [${flag}]`.trim());
@@ -757,22 +790,47 @@ export default function LaboratoryPage() {
               if (p.min !== undefined && p.max !== undefined) {
                 primaryRef = `${p.min} - ${p.max} ${p.unit || ''}`.trim();
               }
+            } else if (isNaN(num) && primaryFlag === 'Normal' && (flag === 'H' || flag === 'HH')) {
+              primaryFlag = flag;
             }
           }
         }
 
-        const summaryText = paramSummaries.join(' | ') || (primaryNum !== null ? `${primaryNum} ${primaryUnit}` : 'Results recorded');
+        // Direct fallback if no parameter matched
+        if (paramSummaries.length === 0) {
+          const directVal = order.results[`${test.itemId}:${test.testCode}`]
+            || order.results[`${test.itemId}:VAL`]
+            || order.results[test.testCode]
+            || order.results['VAL']
+            || '';
+          if (directVal) {
+            paramSummaries.push(directVal);
+            const num = parseFloat(directVal);
+            if (!isNaN(num)) primaryNum = num;
+          }
+        }
+
+        // Preserve existing machine or previously saved test values if not re-entered
+        const finalNum = primaryNum !== null
+          ? primaryNum
+          : (test.numericValue !== null && test.numericValue !== undefined ? Number(test.numericValue) : null);
+        const finalUnit = primaryUnit || test.unit || '';
+        const finalFlag = primaryFlag !== 'Normal' ? primaryFlag : (test.flag || 'Normal');
+        const finalRef = primaryRef || test.referenceRange || '';
+        const finalSummaryText = paramSummaries.length > 0
+          ? paramSummaries.join(' | ')
+          : (test.textValue || (finalNum !== null ? `${finalNum} ${finalUnit}`.trim() : 'Results recorded'));
 
         resultItems.push({
           orderItemId: test.itemId,
           testCode: test.testCode,
           testName: test.testName,
-          numericValue: primaryNum,
-          textValue: summaryText,
-          unit: primaryUnit,
-          flag: primaryFlag,
-          referenceRange: primaryRef,
-          isCritical: primaryFlag === 'HH' || primaryFlag === 'LL',
+          numericValue: finalNum,
+          textValue: finalSummaryText,
+          unit: finalUnit,
+          flag: finalFlag,
+          referenceRange: finalRef,
+          isCritical: finalFlag === 'HH' || finalFlag === 'LL',
           isVerified
         });
       }
@@ -874,6 +932,9 @@ export default function LaboratoryPage() {
   };
 
   const calculateParamFlag = (val: string, min?: number, max?: number) => {
+    const trimmed = (val || '').trim().toLowerCase();
+    if (trimmed === 'positive' || trimmed === 'reactive' || trimmed === 'abnormal') return 'H';
+    if (trimmed === 'negative' || trimmed === 'non-reactive' || trimmed === 'normal') return 'Normal';
     const num = parseFloat(val);
     if (isNaN(num) || min === undefined || max === undefined) return 'Normal';
     if (num > max * 1.3) return 'HH';
@@ -1196,6 +1257,17 @@ export default function LaboratoryPage() {
   });
 
   const worklistOrders = orders.filter(o => o.status !== 'Verified');
+  const filteredWorklistOrders = worklistOrders.filter(o => {
+    if (!worklistSearchQuery.trim()) return true;
+    const q = worklistSearchQuery.toLowerCase();
+    return (
+      o.patientName.toLowerCase().includes(q) ||
+      o.orderNo.toLowerCase().includes(q) ||
+      (o.mrn && o.mrn.toLowerCase().includes(q)) ||
+      (o.doctorName && o.doctorName.toLowerCase().includes(q)) ||
+      o.tests.some(t => t.testName.toLowerCase().includes(q) || t.testCode.toLowerCase().includes(q))
+    );
+  });
   const verifiedOrders = orders.filter(o => o.status === 'Verified');
 
   return (
@@ -1228,7 +1300,9 @@ export default function LaboratoryPage() {
         <div className="glass-panel" style={{ padding: '14px 18px', background: '#ffffff', borderRadius: '10px', border: '1px solid var(--border-color)', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
           <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Lab Orders</div>
           <div style={{ fontSize: '1.45rem', fontWeight: 800, color: 'var(--text-main)', marginTop: '3px' }}>{orders.length}</div>
-          <div style={{ fontSize: '0.72rem', color: '#0284c7', marginTop: '2px' }}>{showAllDates ? 'All-time requisitions' : `Orders for ${selectedDate}`}</div>
+          <div style={{ fontSize: '0.72rem', color: '#0284c7', marginTop: '2px' }}>
+            {showAllDates ? 'All-time requisitions' : (dateFrom === dateTo ? `Orders for ${dateFrom}` : `Orders: ${dateFrom} to ${dateTo}`)}
+          </div>
         </div>
 
         <div className="glass-panel" style={{ padding: '14px 18px', background: '#ffffff', borderRadius: '10px', border: '1px solid var(--border-color)', borderLeft: '4px solid #f59e0b', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
@@ -1285,7 +1359,7 @@ export default function LaboratoryPage() {
       {activeTab === 'worklist' && (
         <div className="glass-panel" style={{ padding: '22px', background: '#ffffff', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
           
-          {/* Worklist Date Filter Toolbar with Native Date Picker */}
+          {/* Worklist Date Filter & Search Toolbar */}
           <div style={{
             display: 'flex',
             justifyContent: 'space-between',
@@ -1298,37 +1372,58 @@ export default function LaboratoryPage() {
             flexWrap: 'wrap',
             gap: '12px'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Calendar size={17} color="#0284c7" />
-                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)' }}>Select Date:</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <Calendar size={16} color="#0284c7" />
+                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)' }}>From:</span>
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={e => {
+                    setDateFrom(e.target.value);
+                    setShowAllDates(false);
+                  }}
+                  style={{
+                    padding: '5px 10px',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    borderRadius: '6px',
+                    border: '1.5px solid #0284c7',
+                    background: '#ffffff',
+                    color: 'var(--text-main)',
+                    cursor: 'pointer'
+                  }}
+                />
               </div>
-              
-              {/* Native Date Picker */}
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={e => {
-                  setSelectedDate(e.target.value);
-                  setShowAllDates(false);
-                }}
-                style={{
-                  padding: '6px 12px',
-                  fontSize: '0.82rem',
-                  fontWeight: 600,
-                  borderRadius: '6px',
-                  border: '1.5px solid #0284c7',
-                  background: '#ffffff',
-                  color: 'var(--text-main)',
-                  cursor: 'pointer'
-                }}
-              />
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)' }}>To:</span>
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={e => {
+                    setDateTo(e.target.value);
+                    setShowAllDates(false);
+                  }}
+                  style={{
+                    padding: '5px 10px',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    borderRadius: '6px',
+                    border: '1.5px solid #0284c7',
+                    background: '#ffffff',
+                    color: 'var(--text-main)',
+                    cursor: 'pointer'
+                  }}
+                />
+              </div>
 
               <button
                 type="button"
                 onClick={() => {
                   const today = new Date().toISOString().split('T')[0];
-                  setSelectedDate(today);
+                  setDateFrom(today);
+                  setDateTo(today);
                   setShowAllDates(false);
                 }}
                 className="btn-secondary"
@@ -1336,9 +1431,9 @@ export default function LaboratoryPage() {
                   padding: '5px 10px',
                   fontSize: '0.74rem',
                   fontWeight: 600,
-                  background: (!showAllDates && selectedDate === new Date().toISOString().split('T')[0]) ? '#0284c7' : '#ffffff',
-                  color: (!showAllDates && selectedDate === new Date().toISOString().split('T')[0]) ? '#ffffff' : undefined,
-                  borderColor: (!showAllDates && selectedDate === new Date().toISOString().split('T')[0]) ? '#0284c7' : undefined
+                  background: (!showAllDates && dateFrom === todayStr && dateTo === todayStr) ? '#0284c7' : '#ffffff',
+                  color: (!showAllDates && dateFrom === todayStr && dateTo === todayStr) ? '#ffffff' : undefined,
+                  borderColor: (!showAllDates && dateFrom === todayStr && dateTo === todayStr) ? '#0284c7' : undefined
                 }}
               >
                 Today
@@ -1361,15 +1456,36 @@ export default function LaboratoryPage() {
               </button>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span className="badge badge-info" style={{ fontSize: '0.76rem', padding: '4px 10px', background: '#e0f2fe', color: '#0369a1', fontWeight: 600 }}>
-                {worklistOrders.length} Order{worklistOrders.length === 1 ? '' : 's'} {showAllDates ? '(All Time)' : `on ${selectedDate}`}
+            {/* Instant Search Bar & Refresh */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: '1 1 260px', maxWidth: '440px', justifyContent: 'flex-end' }}>
+              <div style={{ position: 'relative', width: '100%' }}>
+                <Search size={14} color="#94a3b8" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                <input
+                  type="text"
+                  placeholder="Search patient, MRN, order #, test, doctor..."
+                  value={worklistSearchQuery}
+                  onChange={e => setWorklistSearchQuery(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '6px 12px 6px 30px',
+                    fontSize: '0.8rem',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    background: '#ffffff',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+
+              <span className="badge badge-info" style={{ fontSize: '0.76rem', padding: '4px 10px', background: '#e0f2fe', color: '#0369a1', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                {filteredWorklistOrders.length} Order{filteredWorklistOrders.length === 1 ? '' : 's'}
               </span>
+
               <button
                 type="button"
-                onClick={() => loadLabData(selectedDate, showAllDates)}
+                onClick={() => loadLabData(dateFrom, dateTo, showAllDates)}
                 className="btn-secondary"
-                style={{ padding: '5px 10px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', background: '#ffffff' }}
+                style={{ padding: '5px 10px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', background: '#ffffff', whiteSpace: 'nowrap' }}
               >
                 <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
               </button>
@@ -1377,16 +1493,18 @@ export default function LaboratoryPage() {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {worklistOrders.length === 0 ? (
+            {filteredWorklistOrders.length === 0 ? (
               <div style={{ padding: '44px 20px', textAlign: 'center', color: 'var(--text-muted)', background: '#faf8f5', borderRadius: '10px', border: '1px dashed var(--border-color)' }}>
                 <FlaskConical size={42} color="var(--text-muted)" style={{ margin: '0 auto 12px', opacity: 0.5 }} />
                 <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-main)' }}>No Active Lab Orders on Worklist</div>
                 <div style={{ fontSize: '0.82rem', marginTop: '4px' }}>
-                  All lab requisitions for {showAllDates ? 'all dates' : selectedDate} have been completed &amp; verified, or no requisitions exist. Check the "Verified Results" tab or choose a different date.
+                  {worklistSearchQuery.trim()
+                    ? `No orders matching "${worklistSearchQuery}". Try clearing the search query.`
+                    : `All lab requisitions for ${showAllDates ? 'all dates' : (dateFrom === dateTo ? dateFrom : `${dateFrom} to ${dateTo}`)} have been completed & verified, or no requisitions exist. Check the "Verified Results" tab or adjust date range.`}
                 </div>
               </div>
             ) : (
-              worklistOrders.map(o => {
+              filteredWorklistOrders.map(o => {
                 const isExpanded = expandedOrderId === o.id;
                 const isStat = o.priority === 1 || o.priority === 'STAT';
 
