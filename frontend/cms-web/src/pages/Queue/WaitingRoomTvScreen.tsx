@@ -74,7 +74,18 @@ export default function WaitingRoomTvScreen({ onExit }: TvScreenProps) {
   // Browser State
   const [browserUrl, setBrowserUrl] = useState(() => localStorage.getItem('cms_tv_browser_url') || 'https://www.wikipedia.org');
   const [browserInput, setBrowserInput] = useState(() => localStorage.getItem('cms_tv_browser_url') || 'https://www.wikipedia.org');
+  const [useProxy, setUseProxy] = useState<boolean>(() => localStorage.getItem('cms_tv_use_proxy') !== 'false');
+  const [edgeMode, setEdgeMode] = useState<boolean>(() => localStorage.getItem('cms_tv_edge_mode') !== 'false');
+  const [edgeLaunched, setEdgeLaunched] = useState<{ url: string; ts: number } | null>(null);
   const [browserKey, setBrowserKey] = useState(0);
+
+  const getEffectiveBrowserUrl = (targetUrl: string, proxyEnabled: boolean) => {
+    if (!targetUrl) return '';
+    if (proxyEnabled) {
+      return `/api/v1/queue/web-proxy?url=${encodeURIComponent(targetUrl)}`;
+    }
+    return targetUrl;
+  };
 
   // Media Player State
   const [localMediaUrl, setLocalMediaUrl] = useState<string | null>(null);
@@ -153,7 +164,7 @@ export default function WaitingRoomTvScreen({ onExit }: TvScreenProps) {
   };
 
   // Browser Navigation Helpers
-  const handleNavigateBrowser = (urlToGo: string) => {
+  const handleNavigateBrowser = async (urlToGo: string) => {
     let clean = urlToGo.trim();
     if (clean && !clean.startsWith('http://') && !clean.startsWith('https://')) {
       if (clean.includes('.') && !clean.includes(' ')) {
@@ -165,7 +176,20 @@ export default function WaitingRoomTvScreen({ onExit }: TvScreenProps) {
     setBrowserUrl(clean);
     setBrowserInput(clean);
     localStorage.setItem('cms_tv_browser_url', clean);
-    setBrowserKey(k => k + 1);
+
+    if (edgeMode) {
+      // Launch Microsoft Edge in --app mode (dedicated window, no browser chrome)
+      try {
+        await api.post('/queue/launch-browser', { url: clean, browser: 'edge', mode: 'app' });
+        setEdgeLaunched({ url: clean, ts: Date.now() });
+      } catch {
+        // Fallback: open in a new tab
+        window.open(clean, '_blank', 'noopener,noreferrer');
+        setEdgeLaunched({ url: clean, ts: Date.now() });
+      }
+    } else {
+      setBrowserKey(k => k + 1);
+    }
   };
 
   // Local Media Picker
@@ -189,7 +213,7 @@ export default function WaitingRoomTvScreen({ onExit }: TvScreenProps) {
     try {
       const todayIsoDate = new Date().toISOString().split('T')[0];
       const [liveData, triageData, labData, procData] = await Promise.all([
-        api.get<any[]>(`/queue/live?date=${todayIsoDate}`).catch(() => []),
+        api.get<any[]>('/queue/live').catch(() => []),
         api.get<any>(`/triage/queue?date=${todayIsoDate}`).catch(() => []),
         api.get<any>(`/lab/orders?date=${todayIsoDate}`).catch(() =>
           api.get<any>(`/lab/worklist?date=${todayIsoDate}`).catch(() => [])),
@@ -218,6 +242,7 @@ export default function WaitingRoomTvScreen({ onExit }: TvScreenProps) {
           service: sType,
           counter: q.counterName || q.CounterName || 'Station 1',
           status: (q.statusId ?? q.StatusId) === 2 ? 'Called' : 'Waiting',
+          callTime: q.callTime || q.CallTime || null,
           isProcedure: sType.toLowerCase().includes('procedure'),
           isLab: sType.toLowerCase().includes('lab') || sType.toLowerCase().includes('phleb')
         };
@@ -281,8 +306,16 @@ export default function WaitingRoomTvScreen({ onExit }: TvScreenProps) {
           };
         });
 
-      // Check DB for active Called ticket
-      const activeDbCalled = liveTickets.find((t: any) => t.status === 'Called');
+      // Check DB for active Called ticket (take the most recently called one by callTime or ID)
+      const allCalled = liveTickets
+        .filter((t: any) => t.status === 'Called')
+        .sort((a: any, b: any) => {
+          const tA = a.callTime ? new Date(a.callTime).getTime() : 0;
+          const tB = b.callTime ? new Date(b.callTime).getTime() : 0;
+          return tB - tA;
+        });
+      const activeDbCalled = allCalled[0] || null;
+
       let localCalled: CalledTicketInfo | null = null;
       try {
         const stored = localStorage.getItem('cms_queue_current_called');
@@ -343,10 +376,10 @@ export default function WaitingRoomTvScreen({ onExit }: TvScreenProps) {
     }
   }, []);
 
-  // Polling every 4 seconds
+  // Polling every 2 seconds for rapid cross-PC response
   useEffect(() => {
     fetchQueue();
-    const interval = setInterval(fetchQueue, 4000);
+    const interval = setInterval(fetchQueue, 2000);
     return () => clearInterval(interval);
   }, [fetchQueue]);
 
@@ -650,18 +683,254 @@ export default function WaitingRoomTvScreen({ onExit }: TvScreenProps) {
           )}
 
           {/* ======================================================== */}
-          {/* TAB 2: GENERAL WEB BROWSER                              */}
+          {/* TAB 2: GENERAL WEB BROWSER (POWERED BY WEB PROXY)        */}
           {/* ======================================================== */}
           {activeMediaTab === 'browser' && (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#000' }}>
+              {/* ── Toolbar ── */}
               <div style={{
                 display: 'flex', alignItems: 'center', gap: 8, padding: '7px 12px',
-                background: 'rgba(0, 0, 0, 0.65)', borderBottom: '1px solid rgba(52, 199, 89, 0.15)',
-                fontSize: '0.78rem'
+                background: 'rgba(0, 0, 0, 0.75)', borderBottom: '1px solid rgba(52, 199, 89, 0.2)',
+                fontSize: '0.78rem', flexWrap: 'wrap'
               }}>
+                {/* URL Bar + Go */}
                 <form
                   onSubmit={(e) => { e.preventDefault(); handleNavigateBrowser(browserInput); }}
-                  style={{ flex: 1, display: 'flex', gap: 6 }}
+                  style={{ flex: '1 1 280px', display: 'flex', gap: 6 }}
+                >
+                  <div style={{
+                    flex: 1, display: 'flex', alignItems: 'center', gap: 6,
+                    background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(52, 199, 89, 0.3)',
+                    borderRadius: 6, padding: '4px 10px'
+                  }}>
+                    {/* Edge logo (SVG) */}
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" fill="#0078d4"/>
+                      <path d="M17.5 9c-.5-3-3-5-6-5C8 4 5.5 7 5.5 10.5c0 2 .8 3.7 2 5C5.5 15 4 13.5 4 11.5 4 8 7 5 11 5c3 0 5.5 1.7 6.5 4z" fill="#50e6ff"/>
+                      <path d="M12 20c2.5 0 4.5-1 5.8-2.5-1 .5-2.3.8-3.8.8-3.3 0-6-2.7-6-6 0-1.5.5-2.8 1.4-3.8C7.5 9.5 7 11 7 12.7c0 4 2.7 7.3 5 7.3z" fill="#0078d4"/>
+                    </svg>
+                    <input
+                      type="text"
+                      value={browserInput}
+                      onChange={(e) => setBrowserInput(e.target.value)}
+                      placeholder="Type web address (e.g. wikipedia.org, bbc.com)..."
+                      style={{
+                        flex: 1, background: 'transparent', border: 'none',
+                        color: '#fff', fontSize: '0.76rem', outline: 'none'
+                      }}
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    style={{
+                      background: edgeMode ? '#0078d4' : '#10b981', border: 'none', borderRadius: 6, padding: '5px 14px',
+                      color: '#fff', cursor: 'pointer', fontWeight: 800, fontSize: '0.75rem',
+                      display: 'flex', alignItems: 'center', gap: 5
+                    }}
+                  >
+                    {edgeMode ? '🚀 Open' : 'Go'}
+                  </button>
+                </form>
+
+                {/* Quick Presets */}
+                <button
+                  type="button"
+                  onClick={() => handleNavigateBrowser('https://www.wikipedia.org')}
+                  style={{
+                    background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)',
+                    borderRadius: 6, padding: '5px 8px', color: '#a7f3d0', cursor: 'pointer', fontSize: '0.72rem'
+                  }}
+                  title="Wikipedia"
+                >Wikipedia</button>
+
+                <button
+                  type="button"
+                  onClick={() => handleNavigateBrowser('https://www.who.int/emergencies/disease-outbreak-news')}
+                  style={{
+                    background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)',
+                    borderRadius: 6, padding: '5px 8px', color: '#a7f3d0', cursor: 'pointer', fontSize: '0.72rem'
+                  }}
+                  title="WHO Health Updates"
+                >WHO Health</button>
+
+                {/* Edge / Proxy toggle */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !edgeMode;
+                    setEdgeMode(next);
+                    localStorage.setItem('cms_tv_edge_mode', String(next));
+                    setEdgeLaunched(null);
+                    setBrowserKey(k => k + 1);
+                  }}
+                  style={{
+                    background: edgeMode ? 'rgba(0, 120, 212, 0.2)' : 'rgba(16, 185, 129, 0.2)',
+                    border: `1px solid ${edgeMode ? '#0078d4' : '#10b981'}`,
+                    borderRadius: 6, padding: '5px 10px',
+                    color: edgeMode ? '#60c7ff' : '#34d399',
+                    cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700,
+                    display: 'flex', alignItems: 'center', gap: 5
+                  }}
+                  title={edgeMode ? 'Using Microsoft Edge (click to switch to Proxy iframe)' : 'Using Proxy iframe (click to switch to Edge)'}
+                >
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: edgeMode ? '#0078d4' : '#10b981' }} />
+                  {edgeMode ? '⊞ Edge Browser' : '🛡 Proxy Shield'}
+                </button>
+
+                {/* Reload (only relevant for proxy mode) */}
+                {!edgeMode && (
+                  <button
+                    onClick={() => setBrowserKey(k => k + 1)}
+                    style={{
+                      background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)',
+                      borderRadius: 6, padding: '5px 8px', color: '#fff', cursor: 'pointer'
+                    }}
+                    title="Reload webpage"
+                  >
+                    <RotateCw size={13} />
+                  </button>
+                )}
+
+                {/* Open in browser tab */}
+                <a
+                  href={browserUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)',
+                    borderRadius: 6, padding: '5px 10px', color: '#a7f3d0', textDecoration: 'none',
+                    display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.72rem', whiteSpace: 'nowrap'
+                  }}
+                  title="Open site in full browser tab"
+                >
+                  <ExternalLink size={12} /> Open in Tab
+                </a>
+              </div>
+
+              {/* Status Banner */}
+              <div style={{
+                padding: '4px 12px', background: edgeMode ? 'rgba(0, 30, 60, 0.9)' : 'rgba(2, 32, 24, 0.85)',
+                borderBottom: `1px solid ${edgeMode ? 'rgba(0, 120, 212, 0.3)' : 'rgba(52, 199, 89, 0.2)'}`,
+                fontSize: '0.68rem', color: edgeMode ? '#93c5fd' : '#a7f3d0',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+              }}>
+                <span>
+                  {edgeMode ? '⊞' : '🌐'} Viewing: <strong style={{ color: '#fff' }}>{browserUrl}</strong>
+                  {edgeMode
+                    ? <span style={{ color: '#60c7ff', marginLeft: 8 }}>• Opens in Microsoft Edge window (on this machine)</span>
+                    : <span style={{ color: '#34d399', marginLeft: 8 }}>• Clean Web Proxy active (strips X-Frame-Options)</span>
+                  }
+                </span>
+                <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.65rem' }}>
+                  {edgeMode ? 'Edge Browser Mode' : 'Proxy Iframe Mode'}
+                </span>
+              </div>
+
+              {/* Content Area */}
+              <div style={{ flex: 1, position: 'relative', overflow: 'hidden', background: edgeMode ? '#060e1a' : '#0f172a' }}>
+                {edgeMode ? (
+                  /* ── Edge Launcher Placeholder ── */
+                  <div style={{
+                    width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', justifyContent: 'center', gap: 20, padding: 32
+                  }}>
+                    {/* Edge Logo large */}
+                    <div style={{ position: 'relative' }}>
+                      <svg width="80" height="80" viewBox="0 0 24 24" fill="none" style={{ filter: 'drop-shadow(0 0 24px #0078d4aa)' }}>
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" fill="#0078d4"/>
+                        <path d="M17.5 9c-.5-3-3-5-6-5C8 4 5.5 7 5.5 10.5c0 2 .8 3.7 2 5C5.5 15 4 13.5 4 11.5 4 8 7 5 11 5c3 0 5.5 1.7 6.5 4z" fill="#50e6ff"/>
+                        <path d="M12 20c2.5 0 4.5-1 5.8-2.5-1 .5-2.3.8-3.8.8-3.3 0-6-2.7-6-6 0-1.5.5-2.8 1.4-3.8C7.5 9.5 7 11 7 12.7c0 4 2.7 7.3 5 7.3z" fill="#0078d4"/>
+                      </svg>
+                    </div>
+
+                    {edgeLaunched ? (
+                      <>
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#60c7ff', marginBottom: 6 }}>
+                            ✓ Launched in Microsoft Edge
+                          </div>
+                          <div style={{ fontSize: '0.85rem', color: '#93c5fd', maxWidth: 460, wordBreak: 'break-all' }}>
+                            {edgeLaunched.url}
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)', marginTop: 8 }}>
+                            Edge opened in a dedicated app window on this machine.
+                          </div>
+                        </div>
+
+                        {/* Re-launch button */}
+                        <button
+                          onClick={() => handleNavigateBrowser(browserUrl)}
+                          style={{
+                            background: '#0078d4', border: 'none', borderRadius: 8, padding: '10px 28px',
+                            color: '#fff', cursor: 'pointer', fontWeight: 800, fontSize: '0.88rem',
+                            display: 'flex', alignItems: 'center', gap: 8,
+                            boxShadow: '0 0 18px rgba(0,120,212,0.5)'
+                          }}
+                        >
+                          <ExternalLink size={16} /> Re-launch in Edge
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#fff', marginBottom: 8 }}>
+                            Microsoft Edge Browser
+                          </div>
+                          <div style={{ fontSize: '0.82rem', color: '#93c5fd', maxWidth: 420, lineHeight: 1.6 }}>
+                            Enter a URL above and click <strong style={{ color: '#60c7ff' }}>🚀 Open</strong> to launch any website in a
+                            dedicated Edge app window — no iframe restrictions, no proxy, full speed.
+                          </div>
+                        </div>
+
+                        {/* Quick presets as cards */}
+                        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
+                          {[
+                            { label: '📖 Wikipedia', url: 'https://www.wikipedia.org' },
+                            { label: '🌍 WHO Health', url: 'https://www.who.int' },
+                            { label: '📰 BBC News', url: 'https://www.bbc.com/news' },
+                            { label: '🔬 PubMed', url: 'https://pubmed.ncbi.nlm.nih.gov' },
+                          ].map(({ label, url }) => (
+                            <button
+                              key={url}
+                              onClick={() => handleNavigateBrowser(url)}
+                              style={{
+                                background: 'rgba(0, 120, 212, 0.15)', border: '1px solid rgba(0, 120, 212, 0.4)',
+                                borderRadius: 10, padding: '10px 18px', color: '#93c5fd',
+                                cursor: 'pointer', fontWeight: 700, fontSize: '0.8rem',
+                                transition: 'all 0.2s'
+                              }}
+                            >{label}</button>
+                          ))}
+                        </div>
+
+                        <div style={{
+                          fontSize: '0.68rem', color: 'rgba(255,255,255,0.3)', textAlign: 'center',
+                          padding: '8px 24px', borderTop: '1px solid rgba(255,255,255,0.08)', width: '100%', marginTop: 8
+                        }}>
+                          💡 Switch to <strong style={{ color: '#34d399' }}>🛡 Proxy Shield</strong> mode (top toolbar) to embed pages directly inside this TV display panel.
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  /* ── Proxy Iframe ── */
+                  <iframe
+                    key={`${browserUrl}-${useProxy}-${browserKey}`}
+                    src={getEffectiveBrowserUrl(browserUrl, useProxy)}
+                    title="Waiting Room Web Browser"
+                    style={{ width: '100%', height: '100%', border: 'none', position: 'absolute', inset: 0, background: '#ffffff' }}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                )}
+              </div>
+            </div>
+          )}
+
+
+                <form
+                  onSubmit={(e) => { e.preventDefault(); handleNavigateBrowser(browserInput); }}
+                  style={{ flex: '1 1 280px', display: 'flex', gap: 6 }}
                 >
                   <div style={{
                     flex: 1, display: 'flex', alignItems: 'center', gap: 6,
@@ -673,7 +942,7 @@ export default function WaitingRoomTvScreen({ onExit }: TvScreenProps) {
                       type="text"
                       value={browserInput}
                       onChange={(e) => setBrowserInput(e.target.value)}
-                      placeholder="Type web address (e.g. wikipedia.org, cnn.com, clinic portal)..."
+                      placeholder="Type web address (e.g. wikipedia.org, bbc.com, clinic portal)..."
                       style={{
                         flex: 1, background: 'transparent', border: 'none',
                         color: '#fff', fontSize: '0.76rem', outline: 'none'
@@ -691,6 +960,52 @@ export default function WaitingRoomTvScreen({ onExit }: TvScreenProps) {
                     Go
                   </button>
                 </form>
+
+                {/* Quick Presets */}
+                <button
+                  type="button"
+                  onClick={() => handleNavigateBrowser('https://www.wikipedia.org')}
+                  style={{
+                    background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)',
+                    borderRadius: 6, padding: '5px 8px', color: '#a7f3d0', cursor: 'pointer', fontSize: '0.72rem'
+                  }}
+                  title="Wikipedia"
+                >
+                  Wikipedia
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleNavigateBrowser('https://www.who.int/emergencies/disease-outbreak-news')}
+                  style={{
+                    background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)',
+                    borderRadius: 6, padding: '5px 8px', color: '#a7f3d0', cursor: 'pointer', fontSize: '0.72rem'
+                  }}
+                  title="WHO Health Updates"
+                >
+                  WHO Health
+                </button>
+
+                {/* Proxy Toggle Pill */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !useProxy;
+                    setUseProxy(next);
+                    localStorage.setItem('cms_tv_use_proxy', String(next));
+                    setBrowserKey(k => k + 1);
+                  }}
+                  style={{
+                    background: useProxy ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.08)',
+                    border: `1px solid ${useProxy ? '#10b981' : 'rgba(255, 255, 255, 0.2)'}`,
+                    borderRadius: 6, padding: '5px 10px', color: useProxy ? '#34d399' : '#94a3b8',
+                    cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 5
+                  }}
+                  title={useProxy ? 'Web Proxy Active: Bypasses X-Frame-Options & connects inside TV display' : 'Direct iframe connection'}
+                >
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: useProxy ? '#10b981' : '#64748b' }} />
+                  {useProxy ? 'Proxy Shield (ON)' : 'Direct Embed'}
+                </button>
 
                 <button
                   onClick={() => setBrowserKey(k => k + 1)}
@@ -718,12 +1033,27 @@ export default function WaitingRoomTvScreen({ onExit }: TvScreenProps) {
                 </a>
               </div>
 
-              <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+              {/* Status Banner */}
+              <div style={{
+                padding: '4px 12px', background: 'rgba(2, 32, 24, 0.85)',
+                borderBottom: '1px solid rgba(52, 199, 89, 0.2)', fontSize: '0.68rem',
+                color: '#a7f3d0', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+              }}>
+                <span>
+                  🌐 Viewing: <strong style={{ color: '#fff' }}>{browserUrl}</strong>
+                  {useProxy && <span style={{ color: '#34d399', marginLeft: 8 }}>• Clean Web Proxy active (strips X-Frame-Options)</span>}
+                </span>
+                <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.65rem' }}>
+                  TV Display Embedded Browser
+                </span>
+              </div>
+
+              <div style={{ flex: 1, position: 'relative', overflow: 'hidden', background: '#0f172a' }}>
                 <iframe
-                  key={browserKey}
-                  src={browserUrl}
+                  key={`${browserUrl}-${useProxy}-${browserKey}`}
+                  src={getEffectiveBrowserUrl(browserUrl, useProxy)}
                   title="Waiting Room Web Browser"
-                  style={{ width: '100%', height: '100%', border: 'none', position: 'absolute', inset: 0 }}
+                  style={{ width: '100%', height: '100%', border: 'none', position: 'absolute', inset: 0, background: '#ffffff' }}
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
                 />

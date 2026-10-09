@@ -437,10 +437,7 @@ export default function QueuePage() {
         counter: activeCounter
       };
 
-      // 1. Play dew chime & announcement immediately
-      playTicketChimeAndSpeech(updatedTicket.mrnNumber, activeCounter, updatedTicket.patientName);
-
-      // 2. Set current called state for immediate UI response
+      // 1. Set current called state for immediate UI response (Announcement is played on TV Display)
       setCurrentCalled(updatedTicket);
 
       // 3. Save to localStorage for instant cross-tab TV display sync
@@ -494,10 +491,7 @@ export default function QueuePage() {
         counter: activeCounter
       };
 
-      // 1. Re-play dew chime & speech
-      playTicketChimeAndSpeech(updatedTicket.mrnNumber, activeCounter, updatedTicket.patientName);
-
-      // 2. Update state & localStorage
+      // 1. Set current called state for immediate UI response (Announcement is played on TV Display)
       setCurrentCalled(updatedTicket);
       localStorage.setItem('cms_queue_current_called', JSON.stringify({
         mrnNumber: updatedTicket.mrnNumber,
