@@ -72,7 +72,10 @@ public record PatientQueueDto(
     string ServiceType, byte PriorityLevel, string PriorityName, byte StatusId, string StatusName,
     int? AssignedCounterId, string? CounterName, int? AssignedDoctorId, string? DoctorName,
     int? EstimatedWaitMin, DateTime CheckInTime, DateTime? CallTime,
-    string? MRN = null, string? MrnNumber = null, DateTime? EndTime = null);
+    string? MRN = null, string? MrnNumber = null, DateTime? EndTime = null)
+{
+    public PatientQueueDto() : this(0, 1, "", 0, "", "", 2, "Normal", 1, "Waiting", null, null, null, null, null, DateTime.UtcNow, null, null, null, null) { }
+}
 
 public record CheckInQueueDto(
     byte TenantId, int PatientId, string ServiceType, byte PriorityLevel = 2,

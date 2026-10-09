@@ -74,7 +74,10 @@ public class DashboardService
                 CAST(ISNULL(s.FirstName + ' ' + s.LastName, 'Attending Doctor') AS NVARCHAR(150)) AS DoctorName,
                 CAST(10 AS INT) AS EstimatedWaitMin,
                 t.TriagedAt AS CheckInTime,
-                CAST(t.UpdatedAt AS DATETIME) AS CallTime
+                CAST(t.UpdatedAt AS DATETIME) AS CallTime,
+                p.MRN AS MRN,
+                COALESCE(NULLIF(REPLACE(REPLACE(REPLACE(p.MRN, 'HD-', ''), 'HD', ''), 'MRN-', ''), ''), CAST(p.Id AS NVARCHAR)) AS MrnNumber,
+                CAST(NULL AS DATETIME) AS EndTime
             FROM PatientTriage t WITH (NOLOCK)
             JOIN Patients p WITH (NOLOCK) ON p.Id = t.PatientId
             LEFT JOIN PatientQueues q WITH (NOLOCK) ON q.Id = t.QueueId

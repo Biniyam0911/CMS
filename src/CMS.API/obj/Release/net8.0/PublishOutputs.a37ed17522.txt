@@ -43,12 +43,14 @@ C:\inetpub\wwwroot\cms-api\Microsoft.EntityFrameworkCore.dll
 C:\inetpub\wwwroot\cms-api\Microsoft.EntityFrameworkCore.Abstractions.dll
 C:\inetpub\wwwroot\cms-api\Microsoft.EntityFrameworkCore.Relational.dll
 C:\inetpub\wwwroot\cms-api\Microsoft.EntityFrameworkCore.SqlServer.dll
+C:\inetpub\wwwroot\cms-api\Microsoft.Extensions.Caching.Memory.dll
 C:\inetpub\wwwroot\cms-api\Microsoft.Extensions.Configuration.FileExtensions.dll
 C:\inetpub\wwwroot\cms-api\Microsoft.Extensions.Configuration.Json.dll
 C:\inetpub\wwwroot\cms-api\Microsoft.Extensions.DependencyInjection.Abstractions.dll
 C:\inetpub\wwwroot\cms-api\Microsoft.Extensions.DependencyModel.dll
 C:\inetpub\wwwroot\cms-api\Microsoft.Extensions.Diagnostics.Abstractions.dll
 C:\inetpub\wwwroot\cms-api\Microsoft.Extensions.Hosting.Abstractions.dll
+C:\inetpub\wwwroot\cms-api\Microsoft.Extensions.Hosting.WindowsServices.dll
 C:\inetpub\wwwroot\cms-api\Microsoft.Extensions.Identity.Core.dll
 C:\inetpub\wwwroot\cms-api\Microsoft.Extensions.Identity.Stores.dll
 C:\inetpub\wwwroot\cms-api\Microsoft.Extensions.Logging.Abstractions.dll
@@ -104,6 +106,7 @@ C:\inetpub\wwwroot\cms-api\System.Runtime.Caching.dll
 C:\inetpub\wwwroot\cms-api\System.Security.Cryptography.Pkcs.dll
 C:\inetpub\wwwroot\cms-api\System.Security.Cryptography.ProtectedData.dll
 C:\inetpub\wwwroot\cms-api\System.Security.Permissions.dll
+C:\inetpub\wwwroot\cms-api\System.ServiceProcess.ServiceController.dll
 C:\inetpub\wwwroot\cms-api\System.Windows.Extensions.dll
 C:\inetpub\wwwroot\cms-api\runtimes\unix\lib\net6.0\Microsoft.Data.SqlClient.dll
 C:\inetpub\wwwroot\cms-api\runtimes\win\lib\net6.0\Microsoft.Data.SqlClient.dll
@@ -123,6 +126,7 @@ C:\inetpub\wwwroot\cms-api\runtimes\win\lib\net7.0\System.Drawing.Common.dll
 C:\inetpub\wwwroot\cms-api\runtimes\win\lib\net6.0\System.Runtime.Caching.dll
 C:\inetpub\wwwroot\cms-api\runtimes\win\lib\net8.0\System.Security.Cryptography.Pkcs.dll
 C:\inetpub\wwwroot\cms-api\runtimes\win\lib\net6.0\System.Security.Cryptography.ProtectedData.dll
+C:\inetpub\wwwroot\cms-api\runtimes\win\lib\net8.0\System.ServiceProcess.ServiceController.dll
 C:\inetpub\wwwroot\cms-api\runtimes\win\lib\net6.0\System.Windows.Extensions.dll
 C:\inetpub\wwwroot\cms-api\CMS.Application.dll
 C:\inetpub\wwwroot\cms-api\CMS.Domain.dll
