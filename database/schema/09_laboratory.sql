@@ -147,7 +147,7 @@ CREATE TABLE LabResults (
     TestId          INT             NOT NULL,
     PatientId       INT             NOT NULL,
     NumericValue    DECIMAL(12,4)   NULL,
-    TextValue       NVARCHAR(500)   NULL,
+    TextValue       NVARCHAR(MAX)   NULL,
     Unit            VARCHAR(30)     NULL,
     Flag            VARCHAR(5)      NULL,    -- H, L, HH, LL, Normal, POS, NEG
     ReferenceRange  NVARCHAR(100)   NULL,

@@ -1336,7 +1336,7 @@ public class LaboratoryController : ControllerBase
 
                     int orderItemId = matchedItem.OrderItemId;
                     int testId = res.TestId ?? matchedItem.TestId;
-                    string unit = res.Unit ?? matchedItem.Unit ?? "";
+                    string unit = res.Unit != null ? res.Unit : (matchedItem.Unit ?? "");
                     string refRange = res.ReferenceRange ?? $"{matchedItem.NormalRangeLow} - {matchedItem.NormalRangeHigh} {unit}".Trim();
                     string flag = res.Flag != null ? (res.Flag.Length > 5 ? res.Flag[..5] : res.Flag) : "OK";
                     bool isCritical = res.IsCritical ?? (flag == "HH" || flag == "LL");
@@ -1362,11 +1362,11 @@ public class LaboratoryController : ControllerBase
                             ? incomingText
                             : (!string.IsNullOrWhiteSpace(dbText) ? dbText : (string.IsNullOrWhiteSpace(incomingText) ? "Results recorded" : incomingText));
 
-                        string finalUnit = !string.IsNullOrWhiteSpace(res.Unit) ? res.Unit : (existingResult.Unit ?? safeUnit);
+                        string finalUnit = res.Unit != null ? res.Unit : (existingResult.Unit ?? safeUnit);
                         string finalFlag = !string.IsNullOrWhiteSpace(res.Flag) ? res.Flag : (existingResult.Flag ?? safeFlag);
                         string finalRef = !string.IsNullOrWhiteSpace(res.ReferenceRange) ? res.ReferenceRange : (existingResult.ReferenceRange ?? safeRefRange);
 
-                        safeUnit = finalUnit.Length > 30 ? finalUnit[..30] : finalUnit;
+                        safeUnit = string.IsNullOrWhiteSpace(finalUnit) ? "" : (finalUnit.Length > 30 ? finalUnit[..30] : finalUnit);
                         safeFlag = finalFlag.Length > 20 ? finalFlag[..20] : finalFlag;
                         safeRefRange = finalRef.Length > 100 ? finalRef[..100] : finalRef;
 

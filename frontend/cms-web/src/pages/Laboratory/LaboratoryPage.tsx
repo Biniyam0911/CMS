@@ -433,22 +433,54 @@ export default function LaboratoryPage() {
   const [formBaudRate, setFormBaudRate] = useState<number>(9600);
   const [formDescription, setFormDescription] = useState<string>('');
 
+  const extractCleanResultValue = (raw: any): string => {
+    if (raw === null || raw === undefined) return '';
+    let str = String(raw).trim();
+    if (!str) return '';
+
+    // If it's a qualitative test result (e.g. Negative, Positive, Normal, Reactive, etc.), preserve it
+    if (/^(positive|negative|normal|reactive|non-reactive|detected|not detected|present|absent|clear|turbid|cloudy|yellow|amber|trace|nil)$/i.test(str)) {
+      return str;
+    }
+
+    // 1. Remove bracketed flags like [Normal], [High], [H], [HH], [LL], [Critical], etc.
+    str = str.replace(/\s*\[\s*(Normal|High|Low|Critical|Panic|Abnormal|HH|LL|H|L|POS|NEG|\+|\-)\s*\]\s*$/gi, '').trim();
+    // 2. Remove parenthetical flags or analyzer annotations like (N), (H), (L), (High), (Low)
+    str = str.replace(/\s*\(\s*(N|H|L|Normal|High|Low|Critical|HH|LL|\+|\-)\s*\)\s*$/gi, '').trim();
+    // 3. Remove known trailing units of measurement
+    str = str.replace(/\s*(10\^3\/[μu]L|10\*3\/UL|10\^6\/[μu]L|10\*6\/UL|10\^9\/L|10\*9\/L|g\/dL|mg\/dL|mmol\/L|μmol\/L|umol\/L|U\/L|IU\/L|%|pg|fL|fl|mm\/hr|sec|min|cells?\/[μu]L|\/HPF|\/LPF|copies\/mL)\s*$/gi, '').trim();
+    // 4. If it's a number (optionally with prefix <, >, or range -), extract the clean value
+    const numMatch = str.match(/^([<>]?\s*-?\d+(\.\d+)?(\s*-\s*-?\d+(\.\d+)?)?)/);
+    if (numMatch) {
+      return numMatch[1].trim();
+    }
+    return str.trim();
+  };
+
   const parseResultsIntoMap = (
     resultsMap: Record<string, string>,
     itemId: number,
     testCode: string,
     numVal?: any,
     textVal?: string,
-    rawMsg?: string
+    rawMsg?: string,
+    catalogParams?: { code: string; name: string }[]
   ) => {
     // 1. Assign numeric value if available
     if (numVal !== null && numVal !== undefined && numVal !== '') {
-      const strNum = String(numVal);
-      const cleanNum = !isNaN(Number(strNum)) ? String(Number(strNum)) : strNum;
-      resultsMap[`${itemId}:${testCode}`] = cleanNum;
-      resultsMap[`${itemId}:VAL`] = cleanNum;
-      resultsMap[testCode] = cleanNum;
-      resultsMap['VAL'] = cleanNum;
+      const cleanNum = extractCleanResultValue(numVal) || String(numVal);
+      if (cleanNum) {
+        resultsMap[`${itemId}:${testCode}`] = cleanNum;
+        resultsMap[`${itemId}:VAL`] = cleanNum;
+        resultsMap[testCode] = cleanNum;
+        resultsMap['VAL'] = cleanNum;
+        if (catalogParams && catalogParams.length > 0) {
+          for (const p of catalogParams) {
+            resultsMap[`${itemId}:${p.code}`] = cleanNum;
+            resultsMap[`${itemId}:${p.name}`] = cleanNum;
+          }
+        }
+      }
     }
 
     // 2. Parse from HL7 OBX segments in rawMsg (e.g. OBX|1|NM|WBC^White Blood Cell||6.8|10^3/uL|...)
@@ -461,10 +493,15 @@ export default function LaboratoryPage() {
             const idPart = parts[3] || '';
             const valPart = parts[5] || '';
             const pCode = idPart.split('^')[0].trim();
-            const cleanVal = valPart.trim();
+            const pName = (idPart.split('^')[1] || '').trim();
+            const cleanVal = extractCleanResultValue(valPart) || valPart.trim();
             if (pCode && cleanVal) {
               resultsMap[`${itemId}:${pCode}`] = cleanVal;
               resultsMap[pCode] = cleanVal;
+              if (pName) {
+                resultsMap[`${itemId}:${pName}`] = cleanVal;
+                resultsMap[pName] = cleanVal;
+              }
               resultsMap[`${itemId}:${testCode}`] = cleanVal;
               resultsMap[testCode] = cleanVal;
             }
@@ -484,12 +521,27 @@ export default function LaboratoryPage() {
           if (colonIdx > 0) {
             const rawParam = seg.substring(0, colonIdx).trim();
             const restVal = seg.substring(colonIdx + 1).trim();
-            // Remove any trailing flag brackets like "[Normal]" or "[H]" if present
-            const cleanVal = restVal.replace(/\s*\[.*?\]$/, '').trim();
+            const cleanVal = extractCleanResultValue(restVal) || restVal.trim();
             if (rawParam && cleanVal) {
               matchedAnySegment = true;
               resultsMap[`${itemId}:${rawParam}`] = cleanVal;
               resultsMap[rawParam] = cleanVal;
+
+              // Match against catalog parameters by code or name
+              if (catalogParams && catalogParams.length > 0) {
+                const matched = catalogParams.find(cp =>
+                  cp.code.toLowerCase() === rawParam.toLowerCase() ||
+                  cp.name.toLowerCase() === rawParam.toLowerCase() ||
+                  rawParam.toLowerCase().includes(cp.code.toLowerCase()) ||
+                  rawParam.toLowerCase().includes(cp.name.toLowerCase())
+                );
+                if (matched) {
+                  resultsMap[`${itemId}:${matched.code}`] = cleanVal;
+                  resultsMap[`${itemId}:${matched.name}`] = cleanVal;
+                  resultsMap[matched.code] = cleanVal;
+                  resultsMap[matched.name] = cleanVal;
+                }
+              }
 
               const lower = rawParam.toLowerCase();
               if (lower.includes('white blood') || lower === 'wbc') {
@@ -528,21 +580,24 @@ export default function LaboratoryPage() {
               } else if (lower.includes('glucose') || lower.includes('fbs')) {
                 resultsMap[`${itemId}:FBS`] = cleanVal;
                 resultsMap['FBS'] = cleanVal;
-              } else {
-                resultsMap[`${itemId}:${testCode}`] = cleanVal;
-                resultsMap[`${itemId}:VAL`] = cleanVal;
-                resultsMap[testCode] = cleanVal;
               }
             }
           }
         }
 
-        // If no colon was found or it was a single plain string (e.g. "Negative", "Clear", "Normal")
+        // If no colon was found or it was a single plain string (e.g. "Negative", "Clear", "Normal", "7.39")
         if (!matchedAnySegment && trimmedText) {
-          resultsMap[`${itemId}:${testCode}`] = trimmedText;
-          resultsMap[`${itemId}:VAL`] = trimmedText;
-          resultsMap[testCode] = trimmedText;
-          resultsMap['VAL'] = trimmedText;
+          const cleanDirect = extractCleanResultValue(trimmedText) || trimmedText;
+          resultsMap[`${itemId}:${testCode}`] = cleanDirect;
+          resultsMap[`${itemId}:VAL`] = cleanDirect;
+          resultsMap[testCode] = cleanDirect;
+          resultsMap['VAL'] = cleanDirect;
+          if (catalogParams && catalogParams.length > 0) {
+            for (const p of catalogParams) {
+              resultsMap[`${itemId}:${p.code}`] = cleanDirect;
+              resultsMap[`${itemId}:${p.name}`] = cleanDirect;
+            }
+          }
         }
       }
     }
@@ -562,8 +617,9 @@ export default function LaboratoryPage() {
         api.get<any[]>('/laboratory/worklist', queryParams).catch(() => [])
       ]);
 
+      let effectiveCatalog: any[] = [];
       if (catalogData && catalogData.length > 0) {
-        const mappedCatalog = catalogData.map((c: any) => {
+        effectiveCatalog = catalogData.map((c: any) => {
           const rawParams: any[] = c.parameters || c.Parameters || [];
           const hasParams = rawParams && rawParams.length > 0;
           return {
@@ -594,9 +650,9 @@ export default function LaboratoryPage() {
             ])
           };
         });
-        setCatalog(mappedCatalog.sort((a: any, b: any) => (a.displayOrder ?? 1) - (b.displayOrder ?? 1)));
+        setCatalog(effectiveCatalog.sort((a: any, b: any) => (a.displayOrder ?? 1) - (b.displayOrder ?? 1)));
       } else {
-        setCatalog([
+        effectiveCatalog = [
           {
             id: 1, code: 'CBC', name: 'Complete Blood Count (CBC Profile)', category: 'Hematology', sample: 'Whole Blood', price: 150.0,
             parameters: [
@@ -614,7 +670,8 @@ export default function LaboratoryPage() {
               { code: 'AST', name: 'Aspartate Aminotransferase', unit: 'U/L', min: 10.0, max: 40.0 }
             ]
           }
-        ]);
+        ];
+        setCatalog(effectiveCatalog);
       }
 
       if (worklistData && worklistData.length > 0) {
@@ -664,6 +721,9 @@ export default function LaboratoryPage() {
 
           const grp = grouped.get(ordId)!;
 
+          const catItem = effectiveCatalog.find((c: any) => c.code === testCode || c.id === Number(w.TestId ?? w.testId));
+          const catalogParams = catItem?.parameters || [];
+
           // Parse results for this item into grp.results
           parseResultsIntoMap(
             grp.results,
@@ -671,7 +731,8 @@ export default function LaboratoryPage() {
             testCode,
             w.NumericValue ?? w.numericValue,
             w.TextValue ?? w.textValue,
-            w.RawMessage ?? w.rawMessage
+            w.RawMessage ?? w.rawMessage,
+            catalogParams
           );
 
           const testResults: Record<string, string> = {};
@@ -681,7 +742,8 @@ export default function LaboratoryPage() {
             testCode,
             w.NumericValue ?? w.numericValue,
             w.TextValue ?? w.textValue,
-            w.RawMessage ?? w.rawMessage
+            w.RawMessage ?? w.rawMessage,
+            catalogParams
           );
 
           grp.tests.push({
@@ -767,28 +829,35 @@ export default function LaboratoryPage() {
         const paramSummaries: string[] = [];
         let primaryNum: number | null = null;
         let primaryFlag = 'Normal';
-        let primaryUnit = '';
         let primaryRef = '';
 
         for (const p of params) {
           const resultKey = `${test.itemId}:${p.code}`;
           const val = order.results[resultKey]
+            || order.results[`${test.itemId}:${p.name}`]
             || order.results[`${test.itemId}:${test.testCode}`]
             || order.results[`${test.itemId}:VAL`]
             || order.results[p.code]
-            || order.results[test.testCode]
-            || order.results['VAL']
+            || order.results[p.name]
+            || (params.length === 1 ? (test.textValue || (test.numericValue !== null && test.numericValue !== undefined ? String(test.numericValue) : '')) : '')
             || '';
           if (val) {
-            const flag = calculateParamFlag(val, p.min, p.max);
-            paramSummaries.push(`${p.name || p.code}: ${val} ${p.unit || ''} [${flag}]`.trim());
-            const num = parseFloat(val);
+            const cleanVal = extractCleanResultValue(val) || val;
+            const flag = calculateParamFlag(cleanVal, p.min, p.max);
+            
+            // Insert the result ONLY without unit of measurement or bracketed flag
+            if (params.length > 1) {
+              paramSummaries.push(`${p.code || p.name}: ${cleanVal}`.trim());
+            } else {
+              paramSummaries.push(cleanVal);
+            }
+
+            const num = parseFloat(cleanVal);
             if (!isNaN(num) && primaryNum === null) {
               primaryNum = num;
               primaryFlag = flag;
-              primaryUnit = p.unit || '';
               if (p.min !== undefined && p.max !== undefined) {
-                primaryRef = `${p.min} - ${p.max} ${p.unit || ''}`.trim();
+                primaryRef = `${p.min} - ${p.max}`.trim();
               }
             } else if (isNaN(num) && primaryFlag === 'Normal' && (flag === 'H' || flag === 'HH')) {
               primaryFlag = flag;
@@ -802,10 +871,12 @@ export default function LaboratoryPage() {
             || order.results[`${test.itemId}:VAL`]
             || order.results[test.testCode]
             || order.results['VAL']
+            || (test.textValue || (test.numericValue !== null && test.numericValue !== undefined ? String(test.numericValue) : ''))
             || '';
           if (directVal) {
-            paramSummaries.push(directVal);
-            const num = parseFloat(directVal);
+            const cleanDirect = extractCleanResultValue(directVal) || directVal;
+            paramSummaries.push(cleanDirect);
+            const num = parseFloat(cleanDirect);
             if (!isNaN(num)) primaryNum = num;
           }
         }
@@ -814,12 +885,19 @@ export default function LaboratoryPage() {
         const finalNum = primaryNum !== null
           ? primaryNum
           : (test.numericValue !== null && test.numericValue !== undefined ? Number(test.numericValue) : null);
-        const finalUnit = primaryUnit || test.unit || '';
         const finalFlag = primaryFlag !== 'Normal' ? primaryFlag : (test.flag || 'Normal');
         const finalRef = primaryRef || test.referenceRange || '';
-        const finalSummaryText = paramSummaries.length > 0
-          ? paramSummaries.join(' | ')
-          : (test.textValue || (finalNum !== null ? `${finalNum} ${finalUnit}`.trim() : 'Results recorded'));
+        
+        let finalSummaryText = '';
+        if (paramSummaries.length > 0) {
+          finalSummaryText = paramSummaries.join(' | ');
+        } else if (test.textValue) {
+          finalSummaryText = extractCleanResultValue(test.textValue) || test.textValue;
+        } else if (finalNum !== null) {
+          finalSummaryText = String(finalNum);
+        } else {
+          finalSummaryText = 'Results recorded';
+        }
 
         resultItems.push({
           orderItemId: test.itemId,
@@ -827,7 +905,7 @@ export default function LaboratoryPage() {
           testName: test.testName,
           numericValue: finalNum,
           textValue: finalSummaryText,
-          unit: finalUnit,
+          unit: '', // Strip unit of measurement on insertion
           flag: finalFlag,
           referenceRange: finalRef,
           isCritical: finalFlag === 'HH' || finalFlag === 'LL',
@@ -841,21 +919,8 @@ export default function LaboratoryPage() {
         results: resultItems
       });
 
-      // Update local state
-      setOrders(orders.map(o => {
-        if (o.id === orderId) {
-          return {
-            ...o,
-            status: isVerified ? 'Verified' : 'Resulted',
-            custodyStep: isVerified ? 'Verified' : 'ResultsSaved',
-            tests: o.tests.map(t => ({
-              ...t,
-              status: isVerified ? 'Verified' : 'Resulted'
-            }))
-          };
-        }
-        return o;
-      }));
+      // Reload fresh data from database so interface reflects saved state immediately
+      await loadLabData();
 
       showToast(
         isVerified
@@ -900,8 +965,9 @@ export default function LaboratoryPage() {
             for (const t of o.tests) {
               if (!testItemId || t.itemId === testItemId || t.testCode === targetTestCode) {
                 for (const [pCode, pVal] of Object.entries(receivedParams)) {
-                  updatedResults[`${t.itemId}:${pCode}`] = pVal;
-                  updatedResults[pCode] = pVal;
+                  const cleanVal = extractCleanResultValue(pVal);
+                  updatedResults[`${t.itemId}:${pCode}`] = cleanVal;
+                  updatedResults[pCode] = cleanVal;
                 }
               }
             }
@@ -1671,7 +1737,14 @@ export default function LaboratoryPage() {
                                   <tbody>
                                     {(testCatalogItem.parameters || []).map((p: any) => {
                                       const resultKey = `${test.itemId}:${p.code}`;
-                                      const currentVal = o.results[resultKey] || '';
+                                      const currentVal = o.results[resultKey]
+                                        || o.results[`${test.itemId}:${p.name}`]
+                                        || o.results[`${test.itemId}:${test.testCode}`]
+                                        || o.results[`${test.itemId}:VAL`]
+                                        || o.results[p.code]
+                                        || o.results[p.name]
+                                        || ((testCatalogItem.parameters || []).length === 1 ? (test.textValue || (test.numericValue !== null && test.numericValue !== undefined ? String(test.numericValue) : '')) : '')
+                                        || '';
                                       const flag = calculateParamFlag(currentVal, p.min, p.max);
                                       const delta = calculateDeltaShift(currentVal, o.prevValue);
                                       return (
@@ -1923,7 +1996,14 @@ export default function LaboratoryPage() {
                                     <tbody>
                                       {params.map((p: any) => {
                                         const resultKey = `${test.itemId}:${p.code}`;
-                                        const val = o.results[resultKey] || o.results[p.code] || '---';
+                                        const val = o.results[resultKey]
+                                          || o.results[`${test.itemId}:${p.name}`]
+                                          || o.results[`${test.itemId}:${test.testCode}`]
+                                          || o.results[`${test.itemId}:VAL`]
+                                          || o.results[p.code]
+                                          || o.results[p.name]
+                                          || ((params || []).length === 1 ? (test.textValue || (test.numericValue !== null && test.numericValue !== undefined ? String(test.numericValue) : '')) : '')
+                                          || '---';
                                         const flag = calculateParamFlag(val, p.min, p.max);
                                         const isAbnormal = flag !== 'Normal' && val !== '---';
 
@@ -2473,7 +2553,14 @@ export default function LaboratoryPage() {
                         <tbody>
                           {params.map((p: any) => {
                             const resultKey = `${test.itemId}:${p.code}`;
-                            const val = printModalOrder.results[resultKey] || printModalOrder.results[p.code] || '---';
+                            const val = printModalOrder.results[resultKey]
+                              || printModalOrder.results[`${test.itemId}:${p.name}`]
+                              || printModalOrder.results[`${test.itemId}:${test.testCode}`]
+                              || printModalOrder.results[`${test.itemId}:VAL`]
+                              || printModalOrder.results[p.code]
+                              || printModalOrder.results[p.name]
+                              || ((params || []).length === 1 ? (test.textValue || (test.numericValue !== null && test.numericValue !== undefined ? String(test.numericValue) : '')) : '')
+                              || '---';
                             const flag = calculateParamFlag(val, p.min, p.max);
                             const isAbnormal = flag !== 'Normal' && val !== '---';
                             return (
