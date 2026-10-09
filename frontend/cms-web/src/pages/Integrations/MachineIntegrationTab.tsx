@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import {
   Server, Zap, Plus, Loader2, Square, Play, Sliders,
   RefreshCw, Save, Activity, Search, Cpu, CheckCircle,
-  AlertTriangle, WifiOff, Wifi, Edit3, Trash2, X, ArrowRightLeft, Radio
+  AlertTriangle, WifiOff, Wifi, Edit3, Trash2, X, ArrowRightLeft, Radio,
+  Send, Terminal, Check, Info, Globe, RotateCcw
 } from 'lucide-react';
 import { api } from '../../api/apiClient';
 
@@ -174,6 +175,109 @@ export const DEFAULT_LAB_MACHINES: LabMachine[] = [
   }
 ];
 
+export const SIMULATOR_PRESETS: Record<string, {
+  name: string;
+  machineId: string;
+  protocol: string;
+  defaultPort: number;
+  payload: string;
+}> = {
+  ZYBIO_Z3: {
+    name: 'Zybio Z3 Hematology Analyzer (3-Part Diff)',
+    machineId: 'Z3',
+    protocol: 'HL7 v2.3.1 MLLP',
+    defaultPort: 8004,
+    payload:
+`MSH|^~\\&|Z3|Zybio|||20261009185000||ORU^R01|MSG-Z3-00109|P|2.3.1||||||UNICODE
+PID|1||HD-0001^^^^MR||Kewser^Beshier||19960512|F
+PV1|1|0|^^|||||||||||||||||0
+OBR|1||177119|01001^Automated Count^99MRC|||20261009185000|||||||||||||||||HM||||||||admin
+OBX|1|IS|03001^Take Mode^99MRC||O||||||F
+OBX|2|IS|03002^Blood Mode^99MRC||W||||||F
+OBX|3|IS|03003^Test Mode^99MRC||CBC||||||F
+OBX|6|NM|6790-2^WBC^LN||7.39|10^3/μL|3.5000-9.5000|N|||F
+OBX|7|NM|731-0^LYM#^LN||2.33|10^3/μL|1.1000-3.2000|N|||F
+OBX|8|NM|33154-7^MID#^LN||0.41|10^3/μL|0.1000-1.5000|N|||F
+OBX|9|NM|19023-1^GRAN#^LN||4.65|10^3/μL|1.8000-6.3000|N|||F
+OBX|10|NM|736-9^LYM%^LN||31.5|%|20.0000-50.0000|N|||F
+OBX|11|NM|33155-4^MID%^LN||5.5|%|3.0000-15.0000|N|||F
+OBX|12|NM|21482-6^GRAN%^LN||63.0|%|40.0000-75.0000|N|||F
+OBX|13|NM|789-8^RBC^LN||4.97|10^6/μL|3.8000-5.1000|N|||F
+OBX|14|NM|718-7^HGB^LN||14.8|g/dL|11.5000-15.0000|N|||F
+OBX|15|NM|4544-3^HCT^LN||43.4|%|35.0000-45.0000|N|||F
+OBX|16|NM|787-2^MCV^LN||87.3|fL|82.0000-100.0000|N|||F
+OBX|17|NM|785-6^MCH^LN||29.8|pg|27.0000-34.0000|N|||F
+OBX|18|NM|786-4^MCHC^LN||341|g/L|316.0000-354.0000|N|||F
+OBX|19|NM|21000-5^RDW-CV^LN||12.8|%|11.0000-16.0000|N|||F
+OBX|20|NM|32207-3^RDW-SD^LN||42.5|fL|35.0000-56.0000|N|||F
+OBX|21|NM|777-3^PLT^LN||263|10^3/μL|125.0000-350.0000|N|||F
+OBX|22|NM|32623-1^MPV^LN||9.4|fL|6.5000-12.0000|N|||F
+OBX|23|NM|687-9^PDW^LN||15.9|fL|9.0000-17.0000|N|||F
+OBX|24|NM|688-7^PCT^LN||0.247|%|0.1080-0.2820|N|||F`
+  },
+  SYSMEX_XN550: {
+    name: 'Sysmex XN-550 Automated Hematology Analyzer (5-Part Diff)',
+    machineId: 'XN-550',
+    protocol: 'HL7 v2.5.1 MLLP',
+    defaultPort: 8004,
+    payload:
+`MSH|^~\\&|XN-550|Sysmex|||20261009185000||ORU^R01|MSG-XN-94021|P|2.5.1||||||UNICODE
+PID|1||HD-0001^^^^MR||Tigist^Biniyam||19940512|F
+PV1|1|0|^^|||||||||||||||||0
+OBR|1||ORD-101|CBC^Complete Blood Count|||20261009185000|||||||||||||||||HM||||||||admin
+OBX|1|NM|6790-2^WBC^LN||7.40|10^3/μL|4.0-11.0|N|||F
+OBX|2|NM|789-8^RBC^LN||4.85|10^6/μL|3.8-5.8|N|||F
+OBX|3|NM|718-7^HGB^LN||14.2|g/dL|12.0-16.0|N|||F
+OBX|4|NM|4544-3^HCT^LN||42.1|%|36.0-48.0|N|||F
+OBX|5|NM|777-3^PLT^LN||245|10^3/μL|150-450|N|||F`
+  },
+  MINDRAY_BC5000: {
+    name: 'Mindray BC-5000 Auto 5-Part Hematology Analyzer',
+    machineId: 'BC-5000',
+    protocol: 'HL7 v2.3.1 MLLP',
+    defaultPort: 8004,
+    payload:
+`MSH|^~\\&|BC-5000|Mindray|||20261009185000||ORU^R01|BC5000-00812|P|2.3.1||||||UNICODE
+PID|1||HD-0001^^^^MR||Abebe^Kebede||19880315|M
+PV1|1|0|^^|||||||||||||||||0
+OBR|1||ORD-102|CBC^Complete Blood Count+DIFF|||20261009185000|||||||||||||||||HM||||||||admin
+OBX|1|NM|6790-2^WBC^LN||6.85|10^3/μL|4.0-10.0|N|||F
+OBX|2|NM|770-8^NEU#^LN||4.12|10^3/μL|2.0-7.0|N|||F
+OBX|3|NM|731-0^LYM#^LN||2.10|10^3/μL|0.8-4.0|N|||F
+OBX|4|NM|5905-5^MON#^LN||0.38|10^3/μL|0.1-0.9|N|||F
+OBX|5|NM|711-2^EOS#^LN||0.18|10^3/μL|0.02-0.5|N|||F
+OBX|6|NM|704-7^BAS#^LN||0.07|10^3/μL|0.0-0.1|N|||F
+OBX|7|NM|789-8^RBC^LN||4.92|10^6/μL|4.0-5.5|N|||F
+OBX|8|NM|718-7^HGB^LN||15.1|g/dL|12.0-16.0|N|||F
+OBX|9|NM|777-3^PLT^LN||220|10^3/μL|150-400|N|||F`
+  },
+  ROCHE_COBAS: {
+    name: 'Roche Cobas c311 Clinical Chemistry Analyzer',
+    machineId: 'Roche-Cobas-c311',
+    protocol: 'ASTM 1394 / E1381',
+    defaultPort: 8004,
+    payload:
+`H|\\^&|||RocheCobasC311|||||||P|1394-97|20261009185000
+P|1||HD-0001||Tigist^Biniyam||19940512|F
+O|1|LAB-101||^^^ALT\\^^^AST\\^^^CREAT|R|20261009185000|||||A
+R|1|^^^ALT|24.5|U/L|7.0-56.0|N||F
+R|2|^^^AST|21.0|U/L|10.0-40.0|N||F
+R|3|^^^CREAT|0.92|mg/dL|0.6-1.3|N||F
+L|1|N`
+  },
+  CUSTOM: {
+    name: 'Custom Analyzer Frame (Raw Frame)',
+    machineId: 'CUSTOM-ANALYZER',
+    protocol: 'HL7 v2.3.1 MLLP',
+    defaultPort: 8004,
+    payload:
+`MSH|^~\\&|CUSTOM|LAB|||20261009185000||ORU^R01|MSG-001|P|2.3.1||||||UNICODE
+PID|1||HD-0001^^^^MR||Test^Patient||20000101|M
+OBR|1||ORD-999|CBC^Automated Count|||20261009185000|||||||||||||||||HM||||||||admin
+OBX|1|NM|6790-2^WBC^LN||6.50|10^3/μL|4.0-10.0|N|||F`
+  }
+};
+
 export default function MachineIntegrationTab() {
   const [machines, setMachines] = useState<LabMachine[]>(() => {
     try {
@@ -218,20 +322,100 @@ export default function MachineIntegrationTab() {
     setTimeout(() => setToastMsg(null), 4500);
   };
 
-  // LIS Feed Simulator State
+  // LIS Feed Simulator State (Direct Physical Analyzer Simulation)
   const [showFeedSimulatorModal, setShowFeedSimulatorModal] = useState(false);
-  const [simProtocol, setSimProtocol] = useState<'HL7' | 'ASTM'>('HL7');
-  const [simOrderId, setSimOrderId] = useState<string>('');
-  const [simMachineId, setSimMachineId] = useState('Sysmex-XN550-HEM');
-  const [simPayload, setSimPayload] = useState(
-    'MSH|^~\\&|ANALYZER|LAB|CMS|CLINIC|20260913210000||ORU^R01|MSG-94021|P|2.3\r' +
-    'PID|1||HD-0001||Tigist^Biniyam||19940512|F\r' +
-    'OBR|1|ORD-101|LAB-101|CBC^Complete Blood Count|||20260913210000\r' +
-    'OBX|1|NM|WBC^White Blood Cell||7.4|10^3/uL|4.0-11.0|N|||F\r' +
-    'OBX|2|NM|HGB^Hemoglobin||14.2|g/dL|12.0-16.0|N|||F'
-  );
-  const [feedIngestResult, setFeedIngestResult] = useState<any>(null);
-  const [isIngestingFeed, setIsIngestingFeed] = useState(false);
+  const [simMachinePreset, setSimMachinePreset] = useState<string>('ZYBIO_Z3');
+  const [simIp, setSimIp] = useState<string>('127.0.0.1');
+  const [simPort, setSimPort] = useState<number>(8004);
+  const [simProtocol, setSimProtocol] = useState<string>('HL7 v2.3.1 MLLP');
+  const [simMachineName, setSimMachineName] = useState<string>('Z3');
+  const [simPayload, setSimPayload] = useState<string>(SIMULATOR_PRESETS.ZYBIO_Z3.payload);
+  const [isSimulatingSocketTest, setIsSimulatingSocketTest] = useState(false);
+  const [isSimulatingSend, setIsSimulatingSend] = useState(false);
+  const [simResult, setSimResult] = useState<any>(null);
+
+  const handleSelectPreset = (key: string) => {
+    setSimMachinePreset(key);
+    const preset = SIMULATOR_PRESETS[key];
+    if (preset) {
+      setSimMachineName(preset.machineId);
+      setSimProtocol(preset.protocol);
+      setSimPort(preset.defaultPort);
+      setSimPayload(preset.payload);
+      setSimResult(null);
+    }
+  };
+
+  const handleSimulateSocketTest = async () => {
+    try {
+      setIsSimulatingSocketTest(true);
+      setSimResult(null);
+      const res: any = await api.post('/laboratory/analyzer/simulate-tcp-send', {
+        ipAddress: simIp,
+        port: Number(simPort) || 8004,
+        testOnly: true,
+        timeoutMs: 3500
+      });
+      const data = res?.data ?? res;
+      setSimResult(data);
+      if (data?.success) {
+        showToast(data.message || `✓ Connected to ${simIp}:${simPort}`, 'success');
+      } else {
+        showToast(data.message || `Failed to connect to ${simIp}:${simPort}`, 'error');
+      }
+      fetchLisListenerStatus();
+    } catch (err: any) {
+      setSimResult({
+        success: false,
+        connected: false,
+        host: simIp,
+        port: simPort,
+        message: err?.response?.data?.message || err?.message || 'Socket connection failed'
+      });
+      showToast('Socket test failed', 'error');
+    } finally {
+      setIsSimulatingSocketTest(false);
+    }
+  };
+
+  const handleSimulateTcpSend = async () => {
+    if (!simPayload.trim()) {
+      showToast('Payload message cannot be empty', 'error');
+      return;
+    }
+    try {
+      setIsSimulatingSend(true);
+      setSimResult(null);
+      const res: any = await api.post('/laboratory/analyzer/simulate-tcp-send', {
+        ipAddress: simIp,
+        port: Number(simPort) || 8004,
+        payload: simPayload,
+        protocol: simProtocol,
+        machineName: simMachineName,
+        timeoutMs: 6000,
+        testOnly: false
+      });
+      const data = res?.data ?? res;
+      setSimResult(data);
+      if (data?.success) {
+        showToast(data.message || `✓ TCP transmission completed as ${simMachineName}`, 'success');
+      } else {
+        showToast(data.message || 'TCP transmission error', 'error');
+      }
+      fetchLisListenerStatus();
+    } catch (err: any) {
+      setSimResult({
+        success: false,
+        connected: false,
+        host: simIp,
+        port: simPort,
+        message: err?.response?.data?.message || err?.message || 'Transmission error'
+      });
+      showToast('Transmission error', 'error');
+    } finally {
+      setIsSimulatingSend(false);
+    }
+  };
 
   // Form State for Machine Add / Edit Modal
   const [formDept, setFormDept] = useState<string>('Hematology');
@@ -1599,163 +1783,337 @@ export default function MachineIntegrationTab() {
         </div>
       )}
 
-      {/* MODAL: DIRECT ANALYZER MACHINE LIS / HL7 / ASTM FEED SIMULATOR */}
+      {/* MODAL: DIRECT ANALYZER PHYSICAL MACHINE TCP CLIENT SIMULATOR */}
       {showFeedSimulatorModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '640px', maxHeight: '90vh', overflowY: 'auto', background: '#ffffff', borderRadius: '12px', border: '1px solid #cbd5e1', boxShadow: '0 20px 40px rgba(0,0,0,0.25)' }}>
-            <div style={{ padding: '16px 20px', background: 'linear-gradient(135deg, #0f172a, #1e293b)', color: '#ffffff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Zap size={18} color="#38bdf8" />
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0 }}>Direct Analyzer LIS Feed Injector</h3>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '880px', maxHeight: '92vh', overflowY: 'auto', background: '#ffffff', borderRadius: '14px', border: '1px solid #cbd5e1', boxShadow: '0 25px 50px rgba(0,0,0,0.3)' }}>
+            
+            {/* Modal Header */}
+            <div style={{ padding: '16px 22px', background: 'linear-gradient(135deg, #090d16, #1e293b)', color: '#ffffff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTopLeftRadius: '13px', borderTopRightRadius: '13px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: 'rgba(56, 189, 248, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(56, 189, 248, 0.4)' }}>
+                  <Radio size={20} color="#38bdf8" />
+                </div>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, letterSpacing: '-0.01em', color: '#ffffff' }}>
+                      LIS Feed Simulator (Physical Machine Emulation)
+                    </h3>
+                    <span style={{ fontSize: '0.68rem', padding: '2px 8px', borderRadius: '999px', background: 'rgba(34, 197, 94, 0.2)', color: '#4ade80', fontWeight: 700, border: '1px solid rgba(34, 197, 94, 0.3)' }}>
+                      RAW TCP SOCKET CLIENT
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.74rem', color: '#94a3b8', marginTop: '2px' }}>
+                    Directly dials target LIS IP & Port over real TCP, transmits protocol-framed analyzer results, and awaits server ACK.
+                  </div>
+                </div>
               </div>
               <button
                 type="button"
                 onClick={() => {
                   setShowFeedSimulatorModal(false);
-                  setFeedIngestResult(null);
+                  setSimResult(null);
                 }}
-                style={{ background: 'none', border: 'none', color: '#ffffff', cursor: 'pointer' }}
+                style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '6px', color: '#e2e8f0', cursor: 'pointer', padding: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                title="Close simulator"
               >
                 <X size={18} />
               </button>
             </div>
 
-            <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0 }}>
-                Directly inject raw ORU_R01 HL7 pipes or ASTM frames from connected hematology or biochemistry analyzers. The backend NHapi / ASTM parser extracts results and pairs them to the laboratory order.
-              </p>
+            <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              {/* Machine Selection & Protocol Selection */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: '14px' }}>
                 <div>
-                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>Protocol Standard</label>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '6px' }}>
+                    <Cpu size={14} color="#0284c7" /> Machine Selection (Pre-fills Authentic Instrument Frames)
+                  </label>
                   <select
-                    value={simProtocol}
-                    onChange={e => {
-                      const proto = e.target.value as 'HL7' | 'ASTM';
-                      setSimProtocol(proto);
-                      if (proto === 'ASTM') {
-                        setSimMachineId('Roche-Cobas-c311-CHM');
-                        setSimPayload(
-                          'H|\\^&|||RocheCobasC311|||||||P|1394-97|20260913210000\r' +
-                          'P|1||HD-0001||Tigist^Biniyam||19940512|F\r' +
-                          'O|1|LAB-101||^^^ALT\\^^^AST|R|20260913210000|||||A\r' +
-                          'R|1|^^^ALT|24.5|U/L|7.0-56.0|N||F\r' +
-                          'R|2|^^^AST|21.0|U/L|10.0-40.0|N||F\r' +
-                          'L|1|N'
-                        );
-                      } else {
-                        setSimMachineId('Sysmex-XN550-HEM');
-                        setSimPayload(
-                          'MSH|^~\\&|ANALYZER|LAB|CMS|CLINIC|20260913210000||ORU^R01|MSG-94021|P|2.3\r' +
-                          'PID|1||HD-0001||Tigist^Biniyam||19940512|F\r' +
-                          'OBR|1|ORD-101|LAB-101|CBC^Complete Blood Count|||20260913210000\r' +
-                          'OBX|1|NM|WBC^White Blood Cell||7.4|10^3/uL|4.0-11.0|N|||F\r' +
-                          'OBX|2|NM|HGB^Hemoglobin||14.2|g/dL|12.0-16.0|N|||F'
-                        );
-                      }
-                    }}
-                    style={{ width: '100%', padding: '6px 10px', fontSize: '0.8rem' }}
+                    value={simMachinePreset}
+                    onChange={e => handleSelectPreset(e.target.value)}
+                    style={{ width: '100%', padding: '9px 12px', fontSize: '0.85rem', fontWeight: 600, border: '1px solid #cbd5e1', borderRadius: '8px', background: '#f8fafc', color: '#0f172a' }}
                   >
-                    <option value="HL7">HL7 v2.x (Pipe Delimited ORU_R01)</option>
-                    <option value="ASTM">ASTM 1394 / E1381 (Standard Clinical Chemistry)</option>
+                    <option value="ZYBIO_Z3">⭐ Zybio Z3 Hematology Analyzer (3-Part Diff - Authentic Clinic Payload)</option>
+                    <option value="SYSMEX_XN550">Sysmex XN-550 Automated Hematology Analyzer (5-Part Diff)</option>
+                    <option value="MINDRAY_BC5000">Mindray BC-5000 Auto Hematology Analyzer (5-Part Diff)</option>
+                    <option value="ROCHE_COBAS">Roche Cobas c311 Chemistry Analyzer (ASTM 1394 Protocol)</option>
+                    <option value="CUSTOM">Custom Analyzer Payload</option>
                   </select>
                 </div>
 
                 <div>
-                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>Target Order # (Optional)</label>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '6px' }}>
+                    <ArrowRightLeft size={14} color="#0284c7" /> Protocol Selection
+                  </label>
+                  <select
+                    value={simProtocol}
+                    onChange={e => setSimProtocol(e.target.value)}
+                    style={{ width: '100%', padding: '9px 12px', fontSize: '0.85rem', fontWeight: 600, border: '1px solid #cbd5e1', borderRadius: '8px', background: '#f8fafc', color: '#0f172a' }}
+                  >
+                    <option value="HL7 v2.3.1 MLLP">HL7 v2.3.1 MLLP (\x0B VT ... \x1C\x0D FS/CR Frame)</option>
+                    <option value="HL7 v2.5.1 MLLP">HL7 v2.5.1 MLLP (\x0B VT ... \x1C\x0D FS/CR Frame)</option>
+                    <option value="HL7 Plain TCP">HL7 Plain TCP (No MLLP Envelope)</option>
+                    <option value="ASTM 1394 / E1381">ASTM 1394 / E1381 (Clinical Chemistry)</option>
+                    <option value="Raw TCP Stream">Raw TCP Socket Stream</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Server IP, Port, and Machine Identifier */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr', gap: '14px', background: '#f1f5f9', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
+                    <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#334155' }}>
+                      Server IP Address
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setSimIp('127.0.0.1')}
+                      style={{ background: 'none', border: 'none', fontSize: '0.7rem', color: '#0284c7', fontWeight: 700, cursor: 'pointer', padding: 0 }}
+                    >
+                      Use 127.0.0.1
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    value={simIp}
+                    onChange={e => setSimIp(e.target.value)}
+                    placeholder="127.0.0.1 or server IP"
+                    style={{ width: '100%', padding: '8px 10px', fontSize: '0.84rem', fontFamily: 'monospace', fontWeight: 600, border: '1px solid #cbd5e1', borderRadius: '6px', background: '#ffffff' }}
+                  />
+                </div>
+
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
+                    <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#334155' }}>
+                      Destination Port
+                    </label>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      {(lisServerStatus?.ports && lisServerStatus.ports.length > 0 ? lisServerStatus.ports : [8004, 10001, 10002]).map(p => (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => setSimPort(p)}
+                          style={{
+                            background: simPort === p ? '#0284c7' : '#e2e8f0',
+                            color: simPort === p ? '#ffffff' : '#334155',
+                            border: 'none',
+                            fontSize: '0.68rem',
+                            fontWeight: 700,
+                            borderRadius: '4px',
+                            padding: '1px 5px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {p}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   <input
                     type="number"
-                    value={simOrderId}
-                    onChange={e => setSimOrderId(e.target.value)}
-                    placeholder="Leave blank for latest active order"
-                    style={{ width: '100%', padding: '6px 10px', fontSize: '0.8rem' }}
+                    value={simPort}
+                    onChange={e => setSimPort(parseInt(e.target.value) || 8004)}
+                    style={{ width: '100%', padding: '8px 10px', fontSize: '0.84rem', fontFamily: 'monospace', fontWeight: 600, border: '1px solid #cbd5e1', borderRadius: '6px', background: '#ffffff' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '5px' }}>
+                    Machine Identifier
+                  </label>
+                  <input
+                    type="text"
+                    value={simMachineName}
+                    onChange={e => setSimMachineName(e.target.value)}
+                    placeholder="Z3 or Machine ID"
+                    style={{ width: '100%', padding: '8px 10px', fontSize: '0.84rem', fontFamily: 'monospace', fontWeight: 600, border: '1px solid #cbd5e1', borderRadius: '6px', background: '#ffffff' }}
                   />
                 </div>
               </div>
 
+              {/* Message Box Area (Payload Textarea) */}
               <div>
-                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>Analyzer Source Identifier</label>
-                <input
-                  type="text"
-                  value={simMachineId}
-                  onChange={e => setSimMachineId(e.target.value)}
-                  style={{ width: '100%', padding: '6px 10px', fontSize: '0.8rem', fontFamily: 'monospace' }}
-                />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Terminal size={14} color="#0284c7" /> Message Box Area (Raw Analyzer Payload Frame)
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontFamily: 'monospace' }}>
+                      {simPayload.split('\n').length} lines | {simPayload.length} chars
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const preset = SIMULATOR_PRESETS[simMachinePreset];
+                        if (preset) {
+                          setSimPayload(preset.payload);
+                          showToast('Payload reset to machine default template', 'info');
+                        }
+                      }}
+                      className="btn-secondary"
+                      style={{ padding: '2px 8px', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      <RotateCcw size={11} /> Reset Template
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', border: '1px solid #334155', boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.4)' }}>
+                  <textarea
+                    rows={11}
+                    value={simPayload}
+                    onChange={e => setSimPayload(e.target.value)}
+                    placeholder="Enter raw instrument payload frame..."
+                    spellCheck={false}
+                    style={{
+                      width: '100%',
+                      padding: '12px 14px',
+                      fontSize: '0.78rem',
+                      fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
+                      lineHeight: '1.45',
+                      background: '#090d16',
+                      color: '#38bdf8',
+                      border: 'none',
+                      outline: 'none',
+                      resize: 'vertical',
+                      boxSizing: 'border-box',
+                      display: 'block'
+                    }}
+                  />
+                </div>
+                <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '4px' }}>
+                  💡 Tip: You can edit any parameter (e.g. WBC, RBC, HGB, PLT, or Order ID in OBR segment) to simulate specific clinical scenarios.
+                </div>
               </div>
 
-              <div>
-                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>Raw Instrument Frame Payload</label>
-                <textarea
-                  rows={5}
-                  value={simPayload}
-                  onChange={e => setSimPayload(e.target.value)}
-                  style={{ width: '100%', padding: '8px 10px', fontSize: '0.74rem', fontFamily: 'monospace', background: '#f8fafc' }}
-                />
-              </div>
+              {/* Socket Transmission Diagnostics Result */}
+              {simResult && (
+                <div
+                  style={{
+                    padding: '14px 16px',
+                    borderRadius: '10px',
+                    background: simResult.success ? '#f0fdf4' : '#fef2f2',
+                    border: `1px solid ${simResult.success ? '#86efac' : '#fca5a5'}`,
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {simResult.success ? (
+                        <CheckCircle size={18} color="#16a34a" />
+                      ) : (
+                        <AlertTriangle size={18} color="#dc2626" />
+                      )}
+                      <span style={{ fontWeight: 800, fontSize: '0.88rem', color: simResult.success ? '#15803d' : '#991b1b' }}>
+                        {simResult.success ? 'Real TCP Transmission Successful & Server ACK Received' : 'TCP Socket Transmission Failed'}
+                      </span>
+                    </div>
 
-              {feedIngestResult && (
-                <div style={{ padding: '12px', borderRadius: '8px', background: feedIngestResult.success ? '#ecfdf5' : '#fef2f2', border: `1px solid ${feedIngestResult.success ? '#86efac' : '#fca5a5'}` }}>
-                  <div style={{ fontWeight: 700, fontSize: '0.82rem', color: feedIngestResult.success ? '#15803d' : '#991b1b', marginBottom: '4px' }}>
-                    {feedIngestResult.success ? '✓ Machine Result Ingestion Succeeded' : '✕ Ingestion Failed'}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {simResult.totalLatencyMs != null && (
+                        <span style={{ fontSize: '0.72rem', padding: '2px 8px', borderRadius: '6px', background: '#e0f2fe', color: '#0369a1', fontWeight: 700, border: '1px solid #bae6fd' }}>
+                          ⚡ Latency: {simResult.totalLatencyMs} ms
+                        </span>
+                      )}
+                      {simResult.bytesSent != null && (
+                        <span style={{ fontSize: '0.72rem', padding: '2px 8px', borderRadius: '6px', background: '#f1f5f9', color: '#475569', fontWeight: 600 }}>
+                          Sent: {simResult.bytesSent} B | Recv: {simResult.bytesReceived} B
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: '#334155' }}>
-                    {feedIngestResult.message}
+
+                  <div style={{ fontSize: '0.78rem', color: '#334155', marginBottom: '8px', fontWeight: 500 }}>
+                    {simResult.message}
                   </div>
-                  {feedIngestResult.numericValue != null && (
-                    <div style={{ fontSize: '0.72rem', color: '#0369a1', marginTop: '4px', fontWeight: 600 }}>
-                      Extracted Value: {feedIngestResult.numericValue} (Source: {feedIngestResult.machine})
+
+                  {simResult.ackReceived && (
+                    <div style={{ marginTop: '8px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                          Server ACK Frame (Received from LIS over TCP Socket):
+                        </span>
+                        {simResult.isAckAccepted && (
+                          <span style={{ fontSize: '0.68rem', padding: '1px 6px', borderRadius: '4px', background: '#dcfce7', color: '#15803d', fontWeight: 700 }}>
+                            ✓ MSA|AA (Application Accept)
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ background: '#090d16', padding: '10px 12px', borderRadius: '6px', border: '1px solid #334155' }}>
+                        <pre style={{ margin: 0, fontSize: '0.74rem', color: '#4ade80', fontFamily: 'monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+                          {simResult.ackReceived}
+                        </pre>
+                      </div>
                     </div>
                   )}
                 </div>
               )}
+
             </div>
 
-            <div style={{ padding: '14px 20px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+            {/* Modal Footer with Actions */}
+            <div style={{ padding: '16px 24px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottomLeftRadius: '13px', borderBottomRightRadius: '13px' }}>
               <button
                 type="button"
                 onClick={() => {
                   setShowFeedSimulatorModal(false);
-                  setFeedIngestResult(null);
+                  setSimResult(null);
                 }}
                 className="btn-secondary"
+                style={{ padding: '8px 16px', fontSize: '0.84rem' }}
               >
-                Close
+                Close Simulator
               </button>
-              <button
-                type="button"
-                disabled={isIngestingFeed}
-                onClick={async () => {
-                  try {
-                    setIsIngestingFeed(true);
-                    setFeedIngestResult(null);
-                    const res = await api.post('/laboratory/analyzer/feed', {
-                      rawMessage: simPayload,
-                      machineIdentifier: simMachineId,
-                      protocol: simProtocol,
-                      targetOrderId: simOrderId ? parseInt(simOrderId) : undefined
-                    });
-                    setFeedIngestResult({
-                      success: true,
-                      message: (res as any)?.message || 'Result payload parsed and ingested successfully.',
-                      numericValue: (res as any)?.parsedData?.numericValue,
-                      machine: simMachineId
-                    });
-                  } catch (err: any) {
-                    setFeedIngestResult({
-                      success: false,
-                      message: err?.response?.data?.message || err?.message || 'Error processing instrument feed payload.'
-                    });
-                  } finally {
-                    setIsIngestingFeed(false);
-                  }
-                }}
-                className="btn-primary"
-                style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-              >
-                {isIngestingFeed ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
-                Ingest Payload
-              </button>
+
+              <div style={{ display: 'flex', gap: '10px' }}>
+                {/* Button 1: Test Socket Connection */}
+                <button
+                  type="button"
+                  disabled={isSimulatingSocketTest || isSimulatingSend}
+                  onClick={handleSimulateSocketTest}
+                  className="btn-secondary"
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '9px 16px', fontSize: '0.84rem', fontWeight: 700, borderColor: '#0284c7', color: '#0284c7' }}
+                  title="Test whether the target IP and port is reachable over TCP"
+                >
+                  {isSimulatingSocketTest ? <Loader2 size={15} className="animate-spin" /> : <Activity size={15} />}
+                  Connect & Test Socket
+                </button>
+
+                {/* Button 2: Connect & Transmit Payload like real machine */}
+                <button
+                  type="button"
+                  disabled={isSimulatingSend || isSimulatingSocketTest}
+                  onClick={handleSimulateTcpSend}
+                  className="btn-primary"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '9px 20px',
+                    fontSize: '0.85rem',
+                    fontWeight: 800,
+                    background: 'linear-gradient(135deg, #0284c7, #0369a1)',
+                    boxShadow: '0 4px 12px rgba(2, 132, 199, 0.35)'
+                  }}
+                  title="Connect to server from IP and Port like a real physical analyzer and transmit payload over TCP"
+                >
+                  {isSimulatingSend ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      Connecting & Transmitting...
+                    </>
+                  ) : (
+                    <>
+                      <Send size={16} />
+                      Connect & Send Payload
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
+
           </div>
         </div>
       )}

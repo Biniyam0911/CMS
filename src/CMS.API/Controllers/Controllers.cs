@@ -5,6 +5,7 @@ using CMS.Shared.DTOs;
 using Dapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Text;
 
 namespace CMS.API.Controllers;
 
@@ -1790,6 +1791,212 @@ public class LaboratoryController : ControllerBase
                 TextValue = parsed?.TextValue,
                 RawMessage = req.RawPayload,
                 Message = $"Parsed {protocol} message successfully."
+            }));
+        }
+    }
+
+    public record SimulateTcpSendRequest(
+        string? IpAddress,
+        int? Port,
+        string? Payload,
+        string? Protocol = "HL7 v2.3.1 MLLP",
+        string? MachineName = "Zybio Z3",
+        int TimeoutMs = 5000,
+        bool TestOnly = false
+    );
+
+    [HttpPost("analyzer/simulate-tcp-send")]
+    public async Task<IActionResult> SimulateAnalyzerTcpSend([FromBody] SimulateTcpSendRequest req)
+    {
+        string host = string.IsNullOrWhiteSpace(req.IpAddress) ? "127.0.0.1" : req.IpAddress.Trim();
+        int port = req.Port is > 0 and <= 65535 ? req.Port.Value : 8004;
+        string protocol = req.Protocol ?? "HL7 v2.3.1 MLLP";
+        string machineName = req.MachineName ?? "Zybio Z3";
+        int timeoutMs = req.TimeoutMs > 0 ? req.TimeoutMs : 5000;
+        string remoteEndPointStr = $"{host}:{port}";
+
+        // If test only socket check
+        if (req.TestOnly)
+        {
+            var testSw = System.Diagnostics.Stopwatch.StartNew();
+            try
+            {
+                using var tcpClient = new System.Net.Sockets.TcpClient();
+                using var cts = new CancellationTokenSource(timeoutMs);
+                await tcpClient.ConnectAsync(host, port, cts.Token);
+                testSw.Stop();
+
+                string local = tcpClient.Client.LocalEndPoint?.ToString() ?? "Client";
+                _lisListener.LogEvent($"[SIMULATOR] Socket probe successful to {remoteEndPointStr} in {testSw.ElapsedMilliseconds}ms.");
+                return Ok(ApiResponse<object>.Ok(new {
+                    Success = true,
+                    Connected = true,
+                    Host = host,
+                    Port = port,
+                    RemoteEndPoint = remoteEndPointStr,
+                    LocalEndPoint = local,
+                    LatencyMs = (int)testSw.ElapsedMilliseconds,
+                    Message = $"✓ Socket connection verified. Connected to {remoteEndPointStr} in {testSw.ElapsedMilliseconds}ms."
+                }));
+            }
+            catch (Exception ex)
+            {
+                testSw.Stop();
+                return Ok(ApiResponse<object>.Ok(new {
+                    Success = false,
+                    Connected = false,
+                    Host = host,
+                    Port = port,
+                    LatencyMs = (int)testSw.ElapsedMilliseconds,
+                    Message = $"Socket connection failed to {remoteEndPointStr}: {ex.Message}. Check if LIS listener is running."
+                }));
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(req.Payload))
+            return BadRequest(ApiResponse<object>.Fail("Payload cannot be empty."));
+
+        // Frame the payload according to protocol
+        byte[] payloadBytes;
+        bool isMllp = protocol.Contains("MLLP", StringComparison.OrdinalIgnoreCase) || 
+                      protocol.Equals("HL7", StringComparison.OrdinalIgnoreCase);
+
+        if (isMllp)
+        {
+            // Standard MLLP framing: <VT> + HL7 (with \r segment delimiters) + <FS><CR>
+            string normalizedHl7 = req.Payload.Replace("\r\n", "\r").Replace("\n", "\r").Trim('\r');
+            if (!normalizedHl7.EndsWith("\r"))
+                normalizedHl7 += "\r";
+
+            byte[] hl7Bytes = Encoding.UTF8.GetBytes(normalizedHl7);
+            var mllpList = new List<byte>(hl7Bytes.Length + 3) { 0x0B }; // VT
+            mllpList.AddRange(hl7Bytes);
+            mllpList.Add(0x1C); // FS
+            mllpList.Add(0x0D); // CR
+            payloadBytes = mllpList.ToArray();
+        }
+        else if (protocol.Contains("ASTM", StringComparison.OrdinalIgnoreCase))
+        {
+            string normalizedAstm = req.Payload.Replace("\r\n", "\r").Replace("\n", "\r");
+            payloadBytes = Encoding.UTF8.GetBytes(normalizedAstm);
+        }
+        else
+        {
+            string rawNorm = req.Payload.Replace("\r\n", "\n").Replace("\r", "\n").Replace("\n", "\r\n");
+            payloadBytes = Encoding.UTF8.GetBytes(rawNorm);
+        }
+
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+
+        try
+        {
+            using var tcpClient = new System.Net.Sockets.TcpClient();
+            using var cts = new CancellationTokenSource(timeoutMs);
+
+            await tcpClient.ConnectAsync(host, port, cts.Token);
+            sw.Stop();
+            long connectLatencyMs = sw.ElapsedMilliseconds;
+
+            string localEndPointStr = tcpClient.Client.LocalEndPoint?.ToString() ?? "Client";
+            _lisListener.LogEvent($"[SIMULATOR CLIENT] Connected to {remoteEndPointStr} from {localEndPointStr} ({machineName}) in {connectLatencyMs}ms.");
+
+            sw.Restart();
+            using var stream = tcpClient.GetStream();
+            stream.ReadTimeout = timeoutMs;
+            stream.WriteTimeout = timeoutMs;
+
+            await stream.WriteAsync(payloadBytes, 0, payloadBytes.Length, cts.Token);
+            await stream.FlushAsync(cts.Token);
+
+            _lisListener.LogEvent($"[SIMULATOR CLIENT] Sent {payloadBytes.Length} bytes to {remoteEndPointStr}. Awaiting LIS server ACK...");
+
+            var readBuffer = new byte[8192];
+            var responseList = new List<byte>();
+
+            while (!cts.Token.IsCancellationRequested)
+            {
+                int bytesRead = await stream.ReadAsync(readBuffer, 0, readBuffer.Length, cts.Token);
+                if (bytesRead <= 0) break;
+
+                for (int i = 0; i < bytesRead; i++)
+                    responseList.Add(readBuffer[i]);
+
+                if (responseList.Count >= 2 && responseList[^2] == 0x1C && responseList[^1] == 0x0D)
+                    break;
+
+                if (!stream.DataAvailable)
+                {
+                    await Task.Delay(50, cts.Token);
+                    if (!stream.DataAvailable) break;
+                }
+            }
+
+            sw.Stop();
+            long roundTripMs = connectLatencyMs + sw.ElapsedMilliseconds;
+
+            string rawAckStr = Encoding.UTF8.GetString(responseList.ToArray());
+            string cleanAck = rawAckStr.TrimStart((char)0x0B).TrimEnd((char)0x0D, (char)0x1C).Replace("\r", "\n").Trim();
+
+            bool isAckAccepted = cleanAck.Contains("MSA|AA") || cleanAck.Contains("MSA|CA");
+
+            _lisListener.LogEvent($"[SIMULATOR CLIENT] Received {responseList.Count} bytes ACK from {remoteEndPointStr} in {sw.ElapsedMilliseconds}ms. Ack: {cleanAck.Replace("\n", " | ")}");
+
+            return Ok(ApiResponse<object>.Ok(new {
+                Success = true,
+                Connected = true,
+                Host = host,
+                Port = port,
+                RemoteEndPoint = remoteEndPointStr,
+                LocalEndPoint = localEndPointStr,
+                MachineName = machineName,
+                Protocol = protocol,
+                BytesSent = payloadBytes.Length,
+                BytesReceived = responseList.Count,
+                ConnectLatencyMs = connectLatencyMs,
+                TransmissionLatencyMs = sw.ElapsedMilliseconds,
+                TotalLatencyMs = roundTripMs,
+                AckReceived = cleanAck,
+                IsAckAccepted = isAckAccepted,
+                Message = $"✓ Connected to {remoteEndPointStr} as {machineName}. Transmitted {payloadBytes.Length} bytes, received {responseList.Count} bytes ACK in {roundTripMs}ms."
+            }));
+        }
+        catch (OperationCanceledException)
+        {
+            sw.Stop();
+            _lisListener.LogEvent($"[SIMULATOR CLIENT] Timeout ({timeoutMs}ms) communicating with {remoteEndPointStr}.");
+            return Ok(ApiResponse<object>.Ok(new {
+                Success = false,
+                Connected = false,
+                Host = host,
+                Port = port,
+                LatencyMs = (int)sw.ElapsedMilliseconds,
+                Message = $"Socket timed out after {timeoutMs}ms while connecting or awaiting ACK from {remoteEndPointStr}. Ensure LIS server is listening on port {port}."
+            }));
+        }
+        catch (System.Net.Sockets.SocketException ex)
+        {
+            sw.Stop();
+            _lisListener.LogEvent($"[SIMULATOR CLIENT] SocketException ({ex.SocketErrorCode}) reaching {remoteEndPointStr}: {ex.Message}");
+            return Ok(ApiResponse<object>.Ok(new {
+                Success = false,
+                Connected = false,
+                Host = host,
+                Port = port,
+                LatencyMs = (int)sw.ElapsedMilliseconds,
+                Message = $"Socket error ({ex.SocketErrorCode}): Unable to connect to {remoteEndPointStr}. Ensure LIS server is started on port {port}."
+            }));
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            _lisListener.LogEvent($"[SIMULATOR CLIENT] Exception communicating with {remoteEndPointStr}: {ex.Message}");
+            return Ok(ApiResponse<object>.Ok(new {
+                Success = false,
+                Connected = false,
+                Host = host,
+                Port = port,
+                LatencyMs = (int)sw.ElapsedMilliseconds,
+                Message = $"Transmission error to {remoteEndPointStr}: {ex.Message}"
             }));
         }
     }
