@@ -624,7 +624,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
             * { box-sizing: border-box; margin: 0; padding: 0; }
             body { font-family: 'Plus Jakarta Sans', Arial, -apple-system, sans-serif; background: #ffffff; color: #1c1917; padding: 24px; }
             table { width: 100%; border-collapse: collapse; }
-            @page { size: auto; margin: 10mm; }
+            @page { size: A5 landscape; margin: 8mm; }
           </style>
         </head>
         <body>

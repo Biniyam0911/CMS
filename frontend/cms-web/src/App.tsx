@@ -91,10 +91,9 @@ export default function App() {
     setToken(null);
     setActiveModule('DASHBOARD');
     setSelectedEmrPatientId(null);
-    // Clear both storage locations
-    sessionStorage.removeItem('current_user');
-    localStorage.removeItem('current_user');
-    localStorage.removeItem('auth_token'); // Legacy cleanup
+    // Clear ALL local/session storage (themes, drafts, tokens, etc.)
+    localStorage.clear();
+    sessionStorage.clear();
     applyUserTheme('default');
     setShowTimeoutWarning(false);
     if (reason) {

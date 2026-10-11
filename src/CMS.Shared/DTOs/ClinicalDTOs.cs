@@ -100,6 +100,7 @@ public class StaffDetailDto
     public string? StaffCode { get; set; }
     public string? Title { get; set; }
     public string FirstName { get; set; } = string.Empty;
+    public string? MiddleName { get; set; }
     public string LastName { get; set; } = string.Empty;
     public string? Phone { get; set; }
     public string? Email { get; set; }
@@ -121,6 +122,7 @@ public class UpdateStaffDto
     public int? UserId { get; set; }
     public string? Title { get; set; }
     public string FirstName { get; set; } = string.Empty;
+    public string? MiddleName { get; set; }
     public string LastName { get; set; } = string.Empty;
     public string? Phone { get; set; }
     public string? Email { get; set; }

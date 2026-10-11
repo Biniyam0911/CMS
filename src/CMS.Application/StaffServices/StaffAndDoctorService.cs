@@ -24,7 +24,7 @@ public class StaffAndDoctorService
         using var conn = _dbFactory.CreateConnection();
         var sql = @"
             SELECT d.Id, d.StaffId, st.StaffCode,
-                   st.Title + ' ' + st.FirstName + ' ' + st.LastName AS DoctorName,
+                   st.Title + ' ' + st.FirstName + ' ' + ISNULL(st.MiddleName + ' ', '') + st.LastName AS DoctorName,
                    d.LicenseNumber, d.SpecializationId, sp.Name AS SpecializationName,
                    d.SubSpecialization, d.ConsultationFee, d.IsAvailable
             FROM Doctors d
@@ -62,7 +62,7 @@ public class StaffAndDoctorService
     {
         using var conn = _dbFactory.CreateConnection();
         var sql = @"
-            SELECT s.Id, s.TenantId, s.UserId, s.StaffCode, s.Title, s.FirstName, s.LastName,
+            SELECT s.Id, s.TenantId, s.UserId, s.StaffCode, s.Title, s.FirstName, s.MiddleName, s.LastName,
                    s.Phone, s.Email, s.PrimaryRoleId, ISNULL(r.Name, 'Staff') AS RoleName,
                    s.Department, s.IsActive,
                    d.Id AS DoctorId, d.LicenseNumber, d.SpecializationId,
@@ -87,6 +87,7 @@ public class StaffAndDoctorService
             UPDATE Staff
             SET Title = @Title,
                 FirstName = @FirstName,
+                MiddleName = @MiddleName,
                 LastName = @LastName,
                 Phone = @Phone,
                 Email = @Email,
@@ -101,6 +102,7 @@ public class StaffAndDoctorService
             TenantId = tenantId,
             dto.Title,
             dto.FirstName,
+            dto.MiddleName,
             dto.LastName,
             dto.Phone,
             dto.Email,

@@ -129,7 +129,7 @@ public class SoapAndClinicalService
         var sql = @"
             WITH CombinedProcedures AS (
                 -- 1. Procedures from ProcedureOrders table
-                SELECT po.Id, po.EncounterId, po.PatientId, p.FirstName + ' ' + p.LastName AS PatientName,
+                SELECT po.Id, po.EncounterId, po.PatientId, p.FirstName + ' ' + ISNULL(p.MiddleName + ' ', '') + p.LastName AS PatientName,
                        po.OrderedBy, ISNULL(s.FirstName + ' ' + s.LastName, 'Attending Physician') AS DoctorName,
                        po.ProcedureCode, po.ProcedureName, po.ClinicalNotes, po.StatusId,
                        CASE po.StatusId WHEN 1 THEN 'Ordered' WHEN 2 THEN 'Scheduled' WHEN 3 THEN 'InProgress' WHEN 4 THEN 'Completed' ELSE 'Cancelled' END AS StatusName,
@@ -147,7 +147,7 @@ public class SoapAndClinicalService
                     (ii.Id + 1000000) AS Id,
                     ISNULL(inv.EncounterId, 0) AS EncounterId,
                     inv.PatientId,
-                    p.FirstName + ' ' + p.LastName AS PatientName,
+                    p.FirstName + ' ' + ISNULL(p.MiddleName + ' ', '') + p.LastName AS PatientName,
                     ISNULL(inv.DoctorId, 0) AS OrderedBy,
                     ISNULL(doc.DoctorName, 'Attending Physician') AS DoctorName,
                     ISNULL(s.Code, 'PROC') AS ProcedureCode,

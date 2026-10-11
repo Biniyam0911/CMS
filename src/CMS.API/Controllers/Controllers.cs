@@ -969,7 +969,7 @@ public class LaboratoryController : ControllerBase
         var sql = @"
             SELECT
                 o.Id AS OrderId, o.OrderNumber, o.PatientId, o.Priority, o.OrderedAt, o.ClinicalInfo,
-                p.FirstName + ' ' + p.LastName AS PatientName, p.DateOfBirth, p.Gender, p.MRN,
+                p.FirstName + ' ' + ISNULL(p.MiddleName + ' ', '') + p.LastName AS PatientName, p.DateOfBirth, p.Gender, p.MRN,
                 COALESCE(
                     ord_doc_s.Title + ' ' + ord_doc_s.FirstName + ' ' + ord_doc_s.LastName,
                     ord_doc_s.FirstName + ' ' + ord_doc_s.LastName,
@@ -1047,7 +1047,7 @@ public class LaboratoryController : ControllerBase
         var sql = @"
             SELECT
                 o.Id, o.Id AS OrderId, o.OrderNumber, o.PatientId, o.Priority, o.OrderedAt, o.OrderedAt AS OrderDate, o.ClinicalInfo,
-                p.FirstName + ' ' + p.LastName AS PatientName, p.DateOfBirth, p.Gender, p.MRN,
+                p.FirstName + ' ' + ISNULL(p.MiddleName + ' ', '') + p.LastName AS PatientName, p.DateOfBirth, p.Gender, p.MRN,
                 COALESCE(
                     ord_doc_s.Title + ' ' + ord_doc_s.FirstName + ' ' + ord_doc_s.LastName,
                     ord_doc_s.FirstName + ' ' + ord_doc_s.LastName,

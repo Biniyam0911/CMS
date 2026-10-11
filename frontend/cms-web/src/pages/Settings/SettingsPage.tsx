@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Save, Building, CheckCircle2, Loader2, HeartPulse, Stethoscope, FileHeart, Activity, ShieldCheck, Cross, FlaskConical, Palette, Type, Layers, ToggleLeft, Monitor, Sidebar, Database, HardDrive, Download, Clock } from 'lucide-react';
+import { Settings, Save, Building, CheckCircle2, Loader2, HeartPulse, Stethoscope, FileHeart, Activity, ShieldCheck, Cross, FlaskConical, Palette, Type, Layers, ToggleLeft, Monitor, Sidebar, Database, HardDrive, Download, Clock, Trash2 } from 'lucide-react';
 import { api } from '../../api/apiClient';
 
 const APP_ICONS = [
@@ -338,6 +338,28 @@ export default function SettingsPage() {
             <button type="submit" className="btn-primary" style={{ marginTop: '12px', alignSelf: 'flex-start' }}>
               <Save size={16} /> Save Clinic Settings
             </button>
+            <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid var(--border-color)' }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Trash2 size={15} color="#ef4444" /> Browser Cache Management
+              </div>
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '12px' }}>
+                Clears all locally cached data on this browser (themes, drafts, preferences, tokens). All users on this browser will be logged out and their settings reset.
+              </p>
+              <button
+                type="button"
+                className="btn-secondary"
+                style={{ borderColor: '#ef4444', color: '#ef4444' }}
+                onClick={() => {
+                  if (window.confirm('This will clear ALL browser cache and log out all users on this device. Continue?')) {
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    window.location.reload();
+                  }
+                }}
+              >
+                <Trash2 size={15} /> Clear All Cache &amp; Log Out All Users
+              </button>
+            </div>
           </form>
         </div>
       )}
