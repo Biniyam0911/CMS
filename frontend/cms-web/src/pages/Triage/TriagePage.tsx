@@ -3,7 +3,7 @@ import {
   HeartPulse, Activity, PauseCircle, PlayCircle, UserCheck, AlertTriangle,
   Clock, Plus, Search, CheckCircle2, ShieldAlert, ChevronRight, User, Stethoscope,
   Thermometer, Gauge, Sparkles, RefreshCw, Loader2, X, ArrowRight, History,
-  Receipt, CreditCard, DollarSign, Calendar, ChevronLeft, Globe
+  Receipt, CreditCard, DollarSign, Calendar, ChevronLeft, Globe, Printer
 } from 'lucide-react';
 import { api } from '../../api/apiClient';
 
@@ -735,6 +735,45 @@ export default function TriagePage() {
   const selectedServiceObj = consultationServices.find(s => s.id === selectedServiceId) || consultationServices[0];
   const calculatedFee = visitType === 'Repeat' ? 0 : selectedServiceObj.fee;
 
+  const handlePrintVisitSlip = (item: any) => {
+    const visitTime = item.createdAt || item.triageTime || item.assessedAt || new Date().toISOString();
+    const timeStr = new Date(visitTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+    const dateStr = new Date(visitTime).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit' });
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0';
+    document.body.appendChild(iframe);
+    const doc = iframe.contentWindow?.document;
+    if (!doc) return;
+    doc.open();
+    doc.write(`<!DOCTYPE html>
+<html><head><title>Visit Slip - ${item.mrn}</title><style>
+@page { size: 5in 2in; margin: 0; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { width: 5in; height: 2in; font-family: 'Courier New', Courier, monospace; background: #fff; color: #000; padding: 0.12in 0.18in; display: flex; flex-direction: column; justify-content: space-between; }
+.clinic { font-size: 10pt; font-weight: bold; text-align: center; letter-spacing: 0.04em; border-bottom: 1px dashed #000; padding-bottom: 4px; margin-bottom: 6px; }
+.lbl { font-size: 7.5pt; color: #555; text-transform: uppercase; letter-spacing: 0.05em; }
+.val { font-size: 11pt; font-weight: bold; }
+.mrn { font-size: 14pt; font-weight: bold; letter-spacing: 0.1em; font-family: monospace; }
+.row { margin-bottom: 4px; }
+.footer { border-top: 1px dashed #000; padding-top: 4px; font-size: 7.5pt; text-align: center; color: #444; }
+</style></head>
+<body>
+<div class="clinic">Huderma Dermatology Specialty Clinic</div>
+<div>
+  <div class="row"><div class="lbl">Card No. (MRN)</div><div class="mrn">${item.mrn || '\u2014'}</div></div>
+  <div class="row"><div class="lbl">Patient Name</div><div class="val">${item.patientName || '\u2014'}</div></div>
+  <div class="row"><div class="lbl">Time of Visit</div><div class="val">${timeStr} &nbsp; ${dateStr}</div></div>
+</div>
+<div class="footer">Thank you for visiting Huderma &mdash; Love Your Skin</div>
+</body></html>`);
+    doc.close();
+    setTimeout(() => {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+      setTimeout(() => { try { document.body.removeChild(iframe); } catch {} }, 1500);
+    }, 200);
+  };
+
   return (
     <div>
       {/* Toast Notification */}
@@ -1002,7 +1041,15 @@ export default function TriagePage() {
                       )}
                     </td>
                     <td onClick={e => e.stopPropagation()}>
-                      <div style={{ display: 'flex', gap: '5px' }}>
+                      <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+                        <button
+                          onClick={() => handlePrintVisitSlip(item)}
+                          className="btn-secondary"
+                          style={{ padding: '3px 6px', fontSize: '0.72rem', color: '#6b7280' }}
+                          title="Print Visit Slip (5×2 in)"
+                        >
+                          <Printer size={13} /> Print
+                        </button>
                         {item.status === 'OnHold' ? (
                           <button onClick={() => handleResume(item)} className="btn-secondary" style={{ padding: '3px 6px', fontSize: '0.72rem', color: '#059669' }} title="Resume from Hold">
                             <PlayCircle size={13} /> Resume
