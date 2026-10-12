@@ -240,6 +240,8 @@ public class PatientsController : ControllerBase
             finalMrn = $"HD-{nextId:D4}";
         }
 
+        int userId = HttpContext.Items["UserId"] is int uid && uid > 0 ? uid : 1;
+
         var insertSql = @"
             INSERT INTO Patients (
                 TenantId, MRN, FirstName, MiddleName, LastName, DateOfBirth, Gender,
@@ -249,7 +251,7 @@ public class PatientsController : ControllerBase
             VALUES (
                 @TenantId, @MRN, @FirstName, @MiddleName, @LastName, @DateOfBirth, @Gender,
                 @PrimaryPhone, @Email, @Address, @InsuranceProvider, @InsuranceCopayPercent,
-                @Allergies, @NationalId, 1, GETDATE(), 1
+                @Allergies, @NationalId, 1, GETDATE(), @CreatedBy
             );
             SELECT SCOPE_IDENTITY();";
 
@@ -268,7 +270,8 @@ public class PatientsController : ControllerBase
             dto.InsuranceProvider,
             InsuranceCopayPercent = dto.InsuranceCopayPercent ?? 0,
             dto.Allergies,
-            NationalId = dto.NationalId ?? $"ETH-{DateTime.UtcNow.Ticks % 1000000:D6}"
+            NationalId = dto.NationalId ?? $"ETH-{DateTime.UtcNow.Ticks % 1000000:D6}",
+            CreatedBy = userId
         });
 
         await _cache.RemoveByPrefixAsync($"tenant:{tenantId}:patients");
@@ -277,7 +280,6 @@ public class PatientsController : ControllerBase
         try
         {
             var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
-            int userId = HttpContext.Items["UserId"] is int uid ? uid : 1;
             await conn.ExecuteAsync(@"
                 INSERT INTO AuditLog (TenantId, TableName, RecordId, Operation, OldValues, NewValues, ChangedBy, ChangedAt, IpAddress)
                 VALUES (@TenantId, 'Patients', @RecordId, 'CREATE_PATIENT', NULL, @NewValues, @ChangedBy, SYSUTCDATETIME(), @IpAddress)",
@@ -324,7 +326,12 @@ public class PatientsController : ControllerBase
     public async Task<IActionResult> Update(int id, [FromBody] CreatePatientDto dto)
     {
         byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+        int userId = CMS.API.Middleware.TenantMiddleware.GetUserId(HttpContext);
         using var conn = _dbFactory.CreateConnection();
+
+        // Set SESSION_CONTEXT so the audit trigger can read the real acting user
+        if (userId > 0)
+            await conn.ExecuteAsync("EXEC sp_set_session_context N'UserId', @UserId;", new { UserId = userId });
 
         var updateSql = @"
             UPDATE Patients
@@ -367,11 +374,10 @@ public class PatientsController : ControllerBase
         try
         {
             var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
-            int userId = HttpContext.Items["UserId"] is int uid ? uid : 1;
             await conn.ExecuteAsync(@"
                 INSERT INTO AuditLog (TenantId, TableName, RecordId, Operation, OldValues, NewValues, ChangedBy, ChangedAt, IpAddress)
                 VALUES (@TenantId, 'Patients', @RecordId, 'UPDATE_PATIENT', NULL, @NewValues, @ChangedBy, SYSUTCDATETIME(), @IpAddress)",
-                new { TenantId = tenantId, RecordId = id.ToString(), NewValues = System.Text.Json.JsonSerializer.Serialize(dto), ChangedBy = userId, IpAddress = ip });
+                new { TenantId = tenantId, RecordId = id.ToString(), NewValues = System.Text.Json.JsonSerializer.Serialize(dto), ChangedBy = userId > 0 ? userId : (int?)null, IpAddress = ip });
         }
         catch { }
 
@@ -1294,6 +1300,7 @@ public class LaboratoryController : ControllerBase
         try
         {
             byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+            int userId = HttpContext.Items["UserId"] is int uid && uid > 0 ? uid : 1;
             using var conn = _dbFactory.CreateConnection();
 
             // 1. Fetch the order and patient information
@@ -1382,8 +1389,9 @@ public class LaboratoryController : ControllerBase
                                 ReferenceRange = @ReferenceRange,
                                 IsCritical = @IsCritical,
                                 IsVerified = @IsVerified,
-                                VerifiedBy = CASE WHEN @IsVerified = 1 THEN 1 ELSE VerifiedBy END,
+                                VerifiedBy = CASE WHEN @IsVerified = 1 THEN @UserId ELSE VerifiedBy END,
                                 VerifiedAt = CASE WHEN @IsVerified = 1 THEN GETDATE() ELSE VerifiedAt END,
+                                EnteredBy = ISNULL(EnteredBy, @UserId),
                                 EnteredAt = GETDATE()
                             WHERE Id = @ResultId",
                             new {
@@ -1394,7 +1402,8 @@ public class LaboratoryController : ControllerBase
                                 Flag = safeFlag,
                                 ReferenceRange = safeRefRange,
                                 IsCritical = isCritical,
-                                req.IsVerified
+                                req.IsVerified,
+                                UserId = userId
                             });
                     }
                     else
@@ -1406,8 +1415,8 @@ public class LaboratoryController : ControllerBase
                                 VerifiedBy, VerifiedAt, IsVerified, SourceType
                             ) VALUES (
                                 @OrderItemId, @OrderId, @TestId, @PatientId, @NumericValue, @TextValue,
-                                @Unit, @Flag, @ReferenceRange, @IsCritical, 1, GETDATE(),
-                                CASE WHEN @IsVerified = 1 THEN 1 ELSE NULL END,
+                                @Unit, @Flag, @ReferenceRange, @IsCritical, @UserId, GETDATE(),
+                                CASE WHEN @IsVerified = 1 THEN @UserId ELSE NULL END,
                                 CASE WHEN @IsVerified = 1 THEN GETDATE() ELSE NULL END,
                                 @IsVerified, 1
                             )",
@@ -1422,7 +1431,8 @@ public class LaboratoryController : ControllerBase
                                 Flag = safeFlag,
                                 ReferenceRange = safeRefRange,
                                 IsCritical = isCritical,
-                                req.IsVerified
+                                req.IsVerified,
+                                UserId = userId
                             });
                     }
 
@@ -1440,10 +1450,10 @@ public class LaboratoryController : ControllerBase
                 await conn.ExecuteAsync(@"
                     UPDATE LabResults
                     SET IsVerified = 1,
-                        VerifiedBy = ISNULL(VerifiedBy, 1),
+                        VerifiedBy = ISNULL(VerifiedBy, @UserId),
                         VerifiedAt = ISNULL(VerifiedAt, GETDATE())
                     WHERE OrderId = @OrderId",
-                    new { req.OrderId });
+                    new { req.OrderId, UserId = userId });
 
                 await conn.ExecuteAsync(
                     "UPDATE LabOrderItems SET StatusId = 5 WHERE OrderId = @OrderId",
@@ -1515,6 +1525,7 @@ public class LaboratoryController : ControllerBase
     public async Task<IActionResult> ReceiveFromMachine([FromBody] ReceiveMachineResultRequest req)
     {
         byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+        int userId = HttpContext.Items["UserId"] is int uid && uid > 0 ? uid : 1;
         using var conn = _dbFactory.CreateConnection();
 
         var order = await conn.QueryFirstOrDefaultAsync<dynamic>(
@@ -1663,7 +1674,7 @@ public class LaboratoryController : ControllerBase
                     IsVerified, SourceType, RawMessage
                 ) VALUES (
                     @OrderItemId, @OrderId, @TestId, @PatientId, @NumericValue, @TextValue,
-                    @Unit, @Flag, @ReferenceRange, 0, 1, GETDATE(),
+                    @Unit, @Flag, @ReferenceRange, 0, @EnteredBy, GETDATE(),
                     0, 2, @RawMessage
                 )",
                 new {
@@ -1676,7 +1687,8 @@ public class LaboratoryController : ControllerBase
                     Unit = unit,
                     Flag = flag,
                     ReferenceRange = refRange,
-                    RawMessage = rawMsg
+                    RawMessage = rawMsg,
+                    EnteredBy = userId
                 });
         }
 

@@ -4,7 +4,7 @@ import {
   Loader2, Search, Filter, RefreshCw, ArrowRight, FileText, Check, AlertCircle,
   Building, User, Calendar, Receipt, ShieldCheck, QrCode, Shield, FileSpreadsheet, Send, ExternalLink
 } from 'lucide-react';
-import { api } from '../../api/apiClient';
+import { api, logAudit } from '../../api/apiClient';
 
 export default function BillingPage() {
   const [invoices, setInvoices] = useState<any[]>([]);
@@ -643,6 +643,14 @@ export default function BillingPage() {
         paymentMethod: payMethod,
         receivedBy: 1,
         reference: payReference || (isWaived ? 'Waived / Free Service' : 'Cash Payment at Counter')
+      });
+
+      await logAudit({
+        tableName: 'Invoices',
+        recordId: targetInvoiceId,
+        operation: isWaived ? 'WAIVE_PAYMENT' : 'ACCEPT_PAYMENT',
+        oldValues: { invoiceNo: selectedInvoice.invoiceNo, previousPaid: selectedInvoice.paid, status: selectedInvoice.status },
+        newValues: { invoiceNo: selectedInvoice.invoiceNo, paidAmount: apiAmount, paymentMethod: payMethod, reference: payReference, patientId: selectedInvoice.patientId }
       });
 
       setPaySuccessMsg(isWaived

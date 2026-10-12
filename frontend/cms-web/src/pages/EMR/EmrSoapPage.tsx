@@ -7,7 +7,7 @@ import {
   Sparkles, CheckSquare, Layers, FileCheck, ShieldCheck, CreditCard, Eye,
   ChevronLeft, Users, ChevronUp, DollarSign, RefreshCw, Lock
 } from 'lucide-react';
-import { api } from '../../api/apiClient';
+import { api, logAudit } from '../../api/apiClient';
 import { evaluateCdsAlerts, CdsAlert } from '../../utils/cdsRuleEngine';
 import { searchIcd10, Icd10Item } from '../../utils/icd10Catalog';
 import RadiologyViewerModal, { RadiologyStudy } from '../../components/RadiologyViewerModal';
@@ -1751,6 +1751,13 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
           if (presId && Number(presId) > 0) {
             createdPrescriptionId = Number(presId);
           }
+          await logAudit({
+            tableName: 'Prescriptions',
+            recordId: createdPrescriptionId || `RX-${patId}`,
+            operation: 'CREATE_PRESCRIPTION',
+            oldValues: null,
+            newValues: { patientId: patId, doctorId: selectedDoctorId, itemsCount: rxItems.length, items: rxItems.map(r => r.title) }
+          });
         } catch (rxErr) {
           console.warn('Prescription backend dispatch error:', rxErr);
         }
@@ -1825,6 +1832,13 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
         }).catch(() => {});
         setIssuedCerts(prev => [certObj, ...prev]);
         setExpandedCertId(certObj.id || 1);
+        await logAudit({
+          tableName: 'MedicalCertificates',
+          recordId: certObj.id || `CERT-${patId}`,
+          operation: 'ISSUE_MEDICAL_CERTIFICATE',
+          oldValues: null,
+          newValues: { patientId: patId, doctorName: certDoctorName, diagnosis: certObj.diagnosis, daysExcused: certObj.daysExcused, recommendation: certObj.recommendation }
+        });
       }
 
       // 5. Database Billing Invoice Creation for Billable Items
@@ -2003,6 +2017,13 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
         });
         const presId = rxRes?.prescriptionId || rxRes?.PrescriptionId || rxRes?.data?.prescriptionId || rxRes?.data?.PrescriptionId;
         if (presId && Number(presId) > 0) createdPresId = Number(presId);
+        await logAudit({
+          tableName: 'Prescriptions',
+          recordId: createdPresId || `RX-${patId}`,
+          operation: 'CREATE_PRESCRIPTION',
+          oldValues: null,
+          newValues: { patientId: patId, doctorId: selectedDoctorId, diagnosis: diagText, items: prescribeBasket.map(i => ({ drug: i.drugName, qty: i.qty, dosage: i.dosage })) }
+        });
       } catch (err) {
         console.warn('Backend prescription dispatch error:', err);
       }
@@ -2095,6 +2116,13 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
         endDate: new Date(Date.now() + daysExcused * 86400000).toISOString().split('T')[0],
         daysExcused
       }).catch(() => {});
+      await logAudit({
+        tableName: 'MedicalCertificates',
+        recordId: newCert.certNo || `CERT-${activePatient.id}`,
+        operation: 'ISSUE_MEDICAL_CERTIFICATE',
+        oldValues: null,
+        newValues: { patientId: activePatient.id, patientName: activePatient.name, doctorName: certDoctorName, diagnosis: newCert.diagnosis, daysExcused, recommendation }
+      });
     } catch (err) {
       console.error('Issue certificate error:', err);
     }

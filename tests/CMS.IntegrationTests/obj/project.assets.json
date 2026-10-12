@@ -11914,11 +11914,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\ASUS\\source\\repos\\CMS\\tests\\CMS.IntegrationTests\\CMS.IntegrationTests.csproj",
+      "projectUniqueName": "c:\\Users\\ASUS\\source\\repos\\CMS\\tests\\CMS.IntegrationTests\\CMS.IntegrationTests.csproj",
       "projectName": "CMS.IntegrationTests",
-      "projectPath": "C:\\Users\\ASUS\\source\\repos\\CMS\\tests\\CMS.IntegrationTests\\CMS.IntegrationTests.csproj",
+      "projectPath": "c:\\Users\\ASUS\\source\\repos\\CMS\\tests\\CMS.IntegrationTests\\CMS.IntegrationTests.csproj",
       "packagesPath": "C:\\Users\\ASUS\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\ASUS\\source\\repos\\CMS\\tests\\CMS.IntegrationTests\\obj\\",
+      "outputPath": "c:\\Users\\ASUS\\source\\repos\\CMS\\tests\\CMS.IntegrationTests\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files\\DevExpress 24.1\\Components\\Offline Packages",
@@ -11945,11 +11945,11 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "projectReferences": {
-            "C:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.API\\CMS.API.csproj": {
-              "projectPath": "C:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.API\\CMS.API.csproj"
+            "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.API\\CMS.API.csproj": {
+              "projectPath": "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.API\\CMS.API.csproj"
             },
-            "C:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Infrastructure\\CMS.Infrastructure.csproj": {
-              "projectPath": "C:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Infrastructure\\CMS.Infrastructure.csproj"
+            "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Infrastructure\\CMS.Infrastructure.csproj": {
+              "projectPath": "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Infrastructure\\CMS.Infrastructure.csproj"
             }
           }
         }
@@ -12020,13 +12020,5 @@
         "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.202/PortableRuntimeIdentifierGraph.json"
       }
     }
-  },
-  "logs": [
-    {
-      "code": "NU1900",
-      "level": "Warning",
-      "warningLevel": 1,
-      "message": "Error occurred while getting package vulnerability data: No such host is known. (api.nuget.org:443)"
-    }
-  ]
+  }
 }

@@ -54,7 +54,7 @@ public record CreateMedicalCertificateDto(
 public record ProcedureOrderDto(
     int Id, int EncounterId, int PatientId, string PatientName, int OrderedBy, string DoctorName,
     string ProcedureCode, string ProcedureName, string? ClinicalNotes, byte StatusId, string StatusName,
-    DateTime CreatedAt, DateTime? PerformedAt, string? ProcedureResult);
+    DateTime CreatedAt, DateTime? PerformedAt, string? ProcedureResult, string? Mrn = null);
 
 public record CreateProcedureOrderDto(
     byte TenantId, int? EncounterId, int PatientId, int OrderedBy,

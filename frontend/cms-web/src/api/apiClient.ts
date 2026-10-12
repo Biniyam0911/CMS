@@ -19,13 +19,25 @@ function unwrapResponse<T>(json: any): T {
 class ApiClient {
   private getHeaders(): HeadersInit {
     // NOTE: The access token is now delivered via HttpOnly cookie (set by the server on login).
-    // The browser sends it automatically with credentials:'include'. We still send X-Tenant-ID
-    // as a convenience header for the login endpoint (before JWT is verified).
+    // The browser sends it automatically with credentials:'include'. We also send X-Tenant-ID
+    // and X-User-ID as convenient metadata headers.
     const tenantId = localStorage.getItem('tenant_id') || '1';
+    let userId: string | null = null;
+    try {
+      const raw = sessionStorage.getItem('current_user') || localStorage.getItem('current_user');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed?.id || parsed?.Id) userId = String(parsed.id || parsed.Id);
+      }
+    } catch {}
+
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'x-tenant-id': tenantId
     };
+    if (userId) {
+      headers['x-user-id'] = userId;
+    }
     return headers;
   }
 
@@ -137,6 +149,46 @@ class ApiClient {
 
     return this.handleResponse(res, endpoint, 'DELETE');
   }
+
+  async logAudit(entry: {
+    tableName: string;
+    recordId: string | number;
+    operation: string;
+    oldValues?: any;
+    newValues?: any;
+    changedBy?: number;
+  }): Promise<void> {
+    try {
+      let storedUser: any = null;
+      try {
+        const raw = sessionStorage.getItem('current_user') || localStorage.getItem('current_user');
+        if (raw) storedUser = JSON.parse(raw);
+      } catch {}
+
+      const userId = entry.changedBy || (storedUser?.id ? Number(storedUser.id) : (storedUser?.Id ? Number(storedUser.Id) : 1));
+
+      await this.post('/audit/log', {
+        tableName: entry.tableName,
+        recordId: String(entry.recordId),
+        operation: entry.operation,
+        oldValues: entry.oldValues ? (typeof entry.oldValues === 'string' ? entry.oldValues : JSON.stringify(entry.oldValues)) : null,
+        newValues: entry.newValues ? (typeof entry.newValues === 'string' ? entry.newValues : JSON.stringify(entry.newValues)) : null,
+        changedBy: userId
+      });
+    } catch (e) {
+      // Non-blocking background audit log error suppression
+      console.warn('Audit log write skipped:', e);
+    }
+  }
 }
 
 export const api = new ApiClient();
+
+export const logAudit = (entry: {
+  tableName: string;
+  recordId: string | number;
+  operation: string;
+  oldValues?: any;
+  newValues?: any;
+  changedBy?: number;
+}) => api.logAudit(entry);

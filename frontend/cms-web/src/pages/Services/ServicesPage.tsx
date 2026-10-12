@@ -5,7 +5,7 @@ import {
   Percent, ShieldCheck, Stethoscope, FlaskConical, Scissors, Pill, HeartPulse,
   Clock, ChevronDown, ChevronUp, AlertCircle
 } from 'lucide-react';
-import { api } from '../../api/apiClient';
+import { api, logAudit } from '../../api/apiClient';
 
 interface ServiceCategory {
   id: number;
@@ -317,7 +317,7 @@ export default function ServicesPage() {
 
     try {
       if (editingService) {
-        await api.put(`/services/${editingService.id}`, {
+        const payload = {
           code: formCode,
           name: formName,
           category: cat.name,
@@ -326,10 +326,18 @@ export default function ServicesPage() {
           taxable: formTaxable,
           isActive: formIsActive,
           description: formDescription
+        };
+        await api.put(`/services/${editingService.id}`, payload);
+        await logAudit({
+          tableName: 'Services',
+          recordId: editingService.id,
+          operation: 'EDIT_CLINICAL_SERVICE',
+          oldValues: { name: editingService.name, code: editingService.code, fee: editingService.standardFee, category: editingService.categoryName },
+          newValues: payload
         });
         showToast(`Updated service: "${formName}"`);
       } else {
-        await api.post('/services', {
+        const payload = {
           code: formCode,
           name: formName,
           category: cat.name,
@@ -337,6 +345,14 @@ export default function ServicesPage() {
           standardFee: fee,
           taxable: formTaxable,
           description: formDescription
+        };
+        const res: any = await api.post('/services', payload);
+        await logAudit({
+          tableName: 'Services',
+          recordId: res?.id || formCode,
+          operation: 'ADD_CLINICAL_SERVICE',
+          oldValues: null,
+          newValues: payload
         });
         showToast(`Created new clinical service: "${formName}"`);
       }
@@ -439,9 +455,23 @@ export default function ServicesPage() {
     try {
       if (editingLab) {
         await api.put(`/lab/catalog/${editingLab.id}`, payload);
+        await logAudit({
+          tableName: 'LabTestCatalog',
+          recordId: editingLab.id,
+          operation: 'EDIT_LAB_TEST',
+          oldValues: { name: editingLab.name, code: editingLab.code, price: editingLab.price, category: editingLab.category },
+          newValues: { name: labFormName, code: labFormCode, price: priceNum, category: labFormCat }
+        });
         showToast(`Updated Lab Test & Sub-Tests: "${labFormName}"`);
       } else {
-        await api.post('/lab/catalog', payload);
+        const res: any = await api.post('/lab/catalog', payload);
+        await logAudit({
+          tableName: 'LabTestCatalog',
+          recordId: res?.id || labFormCode,
+          operation: 'ADD_NEW_LAB_TEST',
+          oldValues: null,
+          newValues: { name: labFormName, code: labFormCode, price: priceNum, category: labFormCat }
+        });
         showToast(`Created Lab Test & Sub-Tests: "${labFormName}"`);
       }
       await loadBackendServicesAndCategories();

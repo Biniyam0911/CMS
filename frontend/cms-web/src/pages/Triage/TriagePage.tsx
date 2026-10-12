@@ -5,7 +5,7 @@ import {
   Thermometer, Gauge, Sparkles, RefreshCw, Loader2, X, ArrowRight, History,
   Receipt, CreditCard, DollarSign, Calendar, ChevronLeft, Globe, Printer
 } from 'lucide-react';
-import { api } from '../../api/apiClient';
+import { api, logAudit } from '../../api/apiClient';
 
 interface ConsultationService {
   id: number;
@@ -438,6 +438,14 @@ export default function TriagePage() {
         triagedBy: 1
       });
 
+      await logAudit({
+        tableName: 'PatientTriage',
+        recordId: targetTriageId || selectedItem.patientId || selectedItem.id,
+        operation: targetTriageId ? 'UPDATE_VITALS' : 'INSERT_VITALS',
+        oldValues: targetTriageId ? { systolicBP: selectedItem.systolicBP, diastolicBP: selectedItem.diastolicBP, heartRate: selectedItem.heartRate, temp: selectedItem.temperature } : null,
+        newValues: { systolicBP: sysBP, diastolicBP: diaBP, heartRate, temperature: temp, spo2, weight: w, height: h, bmi: bmiVal, chiefComplaint }
+      });
+
       // Update selectedItem and queue locally immediately so table updates without waiting
       const updatedItem = {
         ...selectedItem,
@@ -536,6 +544,15 @@ export default function TriagePage() {
         visitType: visitType
       });
 
+      const selectedDoc = doctors.find(d => d.id === Number(selectedDoctorId));
+      await logAudit({
+        tableName: 'PatientTriage',
+        recordId: trgId,
+        operation: isReassign ? 'CHANGE_DOCTOR' : 'ASSIGN_DOCTOR',
+        oldValues: isReassign ? { assignedDoctor: showAssignModal.assignedDoctorName, status: showAssignModal.status } : null,
+        newValues: { doctorId: selectedDoctorId, doctorName: selectedDoc?.name || '', room: selectedRoomId, service: selectedService.name, fee: finalFee, visitType }
+      });
+
       // 2. Real Database Billing Invoice Creation for Paid Visits (Only for fresh assignments)
       if (finalFee > 0 && !isReassign) {
         let currentUserId = 1;
@@ -602,13 +619,21 @@ export default function TriagePage() {
     e.preventDefault();
     if (!newSelectedPatient) return;
     try {
-      await api.post('/triage', {
+      const payload = {
         tenantId: 1,
         patientId: newSelectedPatient.id,
         triageCategory: 'Yellow',
         priorityLevel: 3,
         chiefComplaint: '',
         triagedBy: 1
+      };
+      const res: any = await api.post('/triage', payload);
+      await logAudit({
+        tableName: 'PatientTriage',
+        recordId: res?.id || res?.triageId || newSelectedPatient.id,
+        operation: 'NEW_TRIAGE_INTAKE',
+        oldValues: null,
+        newValues: { patientId: newSelectedPatient.id, patientName: newSelectedPatient.name, mrn: newSelectedPatient.mrn, triageCategory: 'Yellow' }
       });
       setShowNewTriageModal(false);
       await fetchTriageData();
@@ -770,6 +795,13 @@ body { width: 5in; height: 2in; font-family: 'Courier New', Courier, monospace; 
     setTimeout(() => {
       iframe.contentWindow?.focus();
       iframe.contentWindow?.print();
+      logAudit({
+        tableName: 'PatientTriage',
+        recordId: item.id || item.mrn || 'VisitSlip',
+        operation: 'PRINT_VISIT_SLIP',
+        oldValues: null,
+        newValues: { mrn: item.mrn, patientName: item.patientName, visitTime, size: '5x2in' }
+      });
       setTimeout(() => { try { document.body.removeChild(iframe); } catch {} }, 1500);
     }, 200);
   };

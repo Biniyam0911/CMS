@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Boxes, Check, Power, Shield, Info, Loader2, Search, Filter, Sparkles } from 'lucide-react';
-import { api } from '../../api/apiClient';
+import { api, logAudit } from '../../api/apiClient';
 
 interface AppModuleItem {
   id: number;
@@ -288,6 +288,14 @@ export default function ModuleManagementPage() {
     } catch (err) {
       console.error('Toggle module error:', err);
     }
+
+    logAudit({
+      tableName: 'Modules',
+      recordId: target.code || String(id),
+      operation: newState ? 'ENABLE_MODULE' : 'DISABLE_MODULE',
+      oldValues: { moduleId: id, code: target.code, name: target.name, isEnabled: target.isEnabled },
+      newValues: { moduleId: id, code: target.code, name: target.name, isEnabled: newState }
+    });
 
     const updated = modules.map(m => (m.id === id ? { ...m, isEnabled: newState } : m));
     setModules(updated);

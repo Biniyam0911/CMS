@@ -5,7 +5,7 @@ import {
   AlertTriangle, WifiOff, Wifi, Edit3, Trash2, X, ArrowRightLeft, Radio,
   Send, Terminal, Check, Info, Globe, RotateCcw
 } from 'lucide-react';
-import { api } from '../../api/apiClient';
+import { api, logAudit } from '../../api/apiClient';
 
 export interface LabMachine {
   id: string;
@@ -717,6 +717,13 @@ export default function MachineIntegrationTab() {
         console.warn('Could not delete instrument from DB:', e);
       }
     }
+    logAudit({
+      tableName: 'LabInstruments',
+      recordId: target?.dbId ? String(target.dbId) : mId,
+      operation: 'DELETE_LAB_MACHINE',
+      oldValues: target || { id: mId },
+      newValues: null
+    });
     setMachines(prev => {
       const updated = prev.filter(m => m.id !== mId);
       localStorage.setItem('lab_integrated_machines_v2', JSON.stringify(updated));
@@ -731,6 +738,13 @@ export default function MachineIntegrationTab() {
       const res = await api.post<any>('/laboratory/instruments/listener/start', {});
       if (res) {
         setLisServerStatus(res);
+        logAudit({
+          tableName: 'LabInstruments',
+          recordId: 'LIS_LISTENER',
+          operation: 'START_LIS_LISTENER',
+          oldValues: lisServerStatus,
+          newValues: res
+        });
         showToast('LIS Passive TCP Server started successfully.', 'success');
       }
     } catch (err: any) {
@@ -746,6 +760,13 @@ export default function MachineIntegrationTab() {
       const res = await api.post<any>('/laboratory/instruments/listener/stop', {});
       if (res) {
         setLisServerStatus(res);
+        logAudit({
+          tableName: 'LabInstruments',
+          recordId: 'LIS_LISTENER',
+          operation: 'STOP_LIS_LISTENER',
+          oldValues: lisServerStatus,
+          newValues: res
+        });
         showToast('LIS Passive TCP Server stopped.', 'success');
       }
     } catch (err: any) {
@@ -770,6 +791,13 @@ export default function MachineIntegrationTab() {
       if (res) {
         setLisServerStatus(res);
         setShowPortConfig(false);
+        logAudit({
+          tableName: 'LabInstruments',
+          recordId: 'LIS_PORTS',
+          operation: 'CONFIGURE_PORTS',
+          oldValues: { ports: lisServerStatus?.configuredPorts || lisServerStatus?.ports || [] },
+          newValues: { ports: parsedPorts, result: res }
+        });
         showToast(`LIS server ports updated: ${parsedPorts.join(', ')}`, 'success');
       }
     } catch (err: any) {
@@ -845,6 +873,27 @@ export default function MachineIntegrationTab() {
         description: formDescription,
         lastPing: 'Updated just now'
       } : m);
+      logAudit({
+        tableName: 'LabInstruments',
+        recordId: targetDbId ? String(targetDbId) : editingMachineId,
+        operation: 'EDIT_LAB_MACHINE',
+        oldValues: existing,
+        newValues: {
+          name: formName,
+          department: formDept,
+          model: finalModel,
+          protocol: formProtocol,
+          ipAddress: formIp,
+          port: formPort,
+          mode: formMode,
+          connectionMode: formConnectionMode,
+          remoteIp: formRemoteIp || formIp,
+          remotePort: formRemotePort || formPort,
+          stationId: formStationId,
+          baudRate: formBaudRate,
+          description: formDescription
+        }
+      });
       setMachines(updated);
       localStorage.setItem('lab_integrated_machines_v2', JSON.stringify(updated));
     } else {
@@ -866,6 +915,14 @@ export default function MachineIntegrationTab() {
         baudRate: formBaudRate,
         description: formDescription
       };
+
+      logAudit({
+        tableName: 'LabInstruments',
+        recordId: newMachine.id,
+        operation: 'ADD_LAB_MACHINE',
+        oldValues: null,
+        newValues: newMachine
+      });
 
       const updated = [newMachine, ...machines];
       setMachines(updated);

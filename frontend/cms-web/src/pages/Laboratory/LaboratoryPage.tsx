@@ -5,7 +5,7 @@ import {
   Wifi, WifiOff, Activity, RefreshCw, Trash2, Edit3, Server, Network, Sliders, AlertTriangle, Printer,
   Save, Zap, Play, Square
 } from 'lucide-react';
-import { api } from '../../api/apiClient';
+import { api, logAudit } from '../../api/apiClient';
 
 interface OrderTestItem {
   itemId: number;
@@ -323,6 +323,17 @@ export default function LaboratoryPage() {
     const byId = o.id && lateOrders[String(o.id)];
     const byPat = o.patientName && (lateOrders[o.patientName] || Object.values(lateOrders).some(v => v?.patientName && v.patientName.toLowerCase() === o.patientName.toLowerCase()));
     return !!(byNo || byId || byPat);
+  };
+
+  const getPatientAge = (dob?: string) => {
+    if (!dob) return null;
+    const b = new Date(dob);
+    if (isNaN(b.getTime())) return null;
+    const now = new Date();
+    let age = now.getFullYear() - b.getFullYear();
+    const m = now.getMonth() - b.getMonth();
+    if (m < 0 || (m === 0 && now.getDate() < b.getDate())) age--;
+    return age >= 0 ? `${age} Yrs` : null;
   };
 
   // New Test Catalog Form State
@@ -909,6 +920,14 @@ export default function LaboratoryPage() {
         orderId,
         isVerified,
         results: resultItems
+      });
+
+      await logAudit({
+        tableName: 'LabResults',
+        recordId: orderId,
+        operation: isVerified ? 'VERIFY_APPROVE_LAB_RESULT' : 'SAVE_LAB_RESULT',
+        oldValues: null,
+        newValues: { orderNo: order.orderNo, patientName: order.patientName, isVerified, testsCount: resultItems.length, tests: resultItems.map(r => r.testName) }
       });
 
       // Reload fresh data from database so interface reflects saved state immediately
@@ -1604,6 +1623,16 @@ export default function LaboratoryPage() {
                             <span style={{ fontWeight: 800, color: '#0284c7', fontFamily: 'monospace', fontSize: '0.88rem' }}>{o.orderNo}</span>
                             <span style={{ color: 'var(--text-muted)' }}>•</span>
                             <strong style={{ color: 'var(--text-main)', fontSize: '0.92rem' }}>{o.patientName}</strong>
+                            {getPatientAge(o.dateOfBirth) && (
+                              <span style={{ fontSize: '0.72rem', background: '#f8fafc', color: '#475569', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, border: '1px solid #e2e8f0' }}>
+                                Age: {getPatientAge(o.dateOfBirth)}
+                              </span>
+                            )}
+                            {o.mrn && (
+                              <span style={{ fontSize: '0.72rem', background: '#f1f5f9', color: '#475569', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                                MRN: {o.mrn}
+                              </span>
+                            )}
                             {isOrderFlaggedLate(o) && (
                               <span style={{ color: '#dc2626', fontWeight: 'bold', fontStyle: 'italic', fontSize: '0.85rem' }}>
                                 patient {o.patientName} order is late
@@ -1910,6 +1939,11 @@ export default function LaboratoryPage() {
                               <span style={{ fontWeight: 800, color: '#0369a1', fontFamily: 'monospace', fontSize: '0.88rem' }}>{o.orderNo}</span>
                               <span style={{ color: 'var(--text-muted)' }}>•</span>
                               <strong style={{ color: 'var(--text-main)', fontSize: '0.92rem' }}>{o.patientName}</strong>
+                              {getPatientAge(o.dateOfBirth) && (
+                                <span style={{ fontSize: '0.72rem', background: '#f8fafc', color: '#475569', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, border: '1px solid #e2e8f0' }}>
+                                  Age: {getPatientAge(o.dateOfBirth)}
+                                </span>
+                              )}
                               {isOrderFlaggedLate(o) && (
                                 <span style={{ color: '#dc2626', fontWeight: 'bold', fontStyle: 'italic', fontSize: '0.85rem' }}>
                                   patient {o.patientName} order is late
@@ -2090,6 +2124,11 @@ export default function LaboratoryPage() {
                   </div>
                   <div style={{ fontWeight: 700, fontSize: '0.94rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <span>{o.patientName} — {o.testName}</span>
+                    {getPatientAge(o.dateOfBirth) && (
+                      <span style={{ fontSize: '0.72rem', background: '#f8fafc', color: '#475569', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, border: '1px solid #e2e8f0' }}>
+                        Age: {getPatientAge(o.dateOfBirth)}
+                      </span>
+                    )}
                     {isOrderFlaggedLate(o) && (
                       <span style={{ color: '#dc2626', fontWeight: 'bold', fontStyle: 'italic', fontSize: '0.85rem' }}>
                         patient {o.patientName} order is late
@@ -2333,7 +2372,16 @@ export default function LaboratoryPage() {
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button
                   type="button"
-                  onClick={() => window.print()}
+                  onClick={() => {
+                    logAudit({
+                      tableName: 'LabOrders',
+                      recordId: printModalOrder.id || printModalOrder.orderNo,
+                      operation: 'PRINT_LAB_RESULT',
+                      oldValues: null,
+                      newValues: { orderNo: printModalOrder.orderNo, patientName: printModalOrder.patientName, mode: printModalMode }
+                    });
+                    window.print();
+                  }}
                   className="btn-primary"
                   style={{ background: '#0284c7', display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 16px', fontWeight: 700 }}
                 >

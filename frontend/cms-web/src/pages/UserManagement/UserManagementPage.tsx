@@ -5,7 +5,7 @@ import {
   Edit3, Stethoscope, Briefcase, Bell, Send, Volume2, Flame, Pill, FlaskConical, DollarSign, Search,
   Plus, Trash2
 } from 'lucide-react';
-import { api } from '../../api/apiClient';
+import { api, logAudit } from '../../api/apiClient';
 import { MODULE_ITEMS, ModuleKey } from '../../components/Sidebar';
 import {
   getRolePermissions,
@@ -37,6 +37,7 @@ export default function UserManagementPage() {
   const [loadingAudit, setLoadingAudit] = useState(false);
   const [auditTableFilter, setAuditTableFilter] = useState('');
   const [auditOpFilter, setAuditOpFilter] = useState('');
+  const [selectedAuditLog, setSelectedAuditLog] = useState<any | null>(null);
 
   // Users & Staff State
   const [users, setUsers] = useState<any[]>([]);
@@ -103,6 +104,13 @@ export default function UserManagementPage() {
     saveRoleNotificationRules(notificationRules);
     try {
       await api.post('/notifications/rules', { settingKey: 'Notification.RoleRules', settingValue: JSON.stringify(notificationRules) });
+      await logAudit({
+        tableName: 'NotificationRules',
+        recordId: 'Notification.RoleRules',
+        operation: 'UPDATE_NOTIFICATION_RULES',
+        oldValues: null,
+        newValues: notificationRules
+      });
     } catch {}
     setSaveSuccessToast('✓ Role notification rules saved successfully to database and active clinic profile!');
     setTimeout(() => setSaveSuccessToast(null), 4000);
@@ -204,6 +212,13 @@ export default function UserManagementPage() {
           name: roleFormName.trim(),
           description: roleFormDesc.trim()
         });
+        await logAudit({
+          tableName: 'Roles',
+          recordId: editingRole.id,
+          operation: 'EDIT_ROLE',
+          oldValues: { name: editingRole.name, description: editingRole.description },
+          newValues: { name: roleFormName.trim(), description: roleFormDesc.trim() }
+        });
         setRoles(prev => prev.map(r => r.id === editingRole.id ? { ...r, name: roleFormName.trim(), description: roleFormDesc.trim() } : r));
         setEditingRole(null);
         setSaveSuccessToast(`✓ Role "${roleFormName}" updated successfully!`);
@@ -213,6 +228,13 @@ export default function UserManagementPage() {
           description: roleFormDesc.trim()
         });
         const newId = created?.id || created?.roleId || Date.now();
+        await logAudit({
+          tableName: 'Roles',
+          recordId: newId,
+          operation: 'ADD_ROLE',
+          oldValues: null,
+          newValues: { name: roleFormName.trim(), description: roleFormDesc.trim() }
+        });
         setRoles(prev => [...prev, { id: newId, name: roleFormName.trim(), description: roleFormDesc.trim() }]);
         setShowAddRoleModal(false);
         setSaveSuccessToast(`✓ Role "${roleFormName}" created! Automatically available across Permissions and Notifications.`);
@@ -235,6 +257,13 @@ export default function UserManagementPage() {
 
     try {
       await api.delete(`/users/roles/${r.id}`);
+      await logAudit({
+        tableName: 'Roles',
+        recordId: r.id,
+        operation: 'DELETE_ROLE',
+        oldValues: { name: r.name, description: r.description },
+        newValues: null
+      });
       setRoles(prev => prev.filter(item => item.id !== r.id));
       setSaveSuccessToast(`✓ Role "${r.name}" deleted successfully.`);
       setTimeout(() => setSaveSuccessToast(null), 4000);
@@ -255,6 +284,13 @@ export default function UserManagementPage() {
 
     try {
       await api.delete(`/users/${u.id}`);
+      await logAudit({
+        tableName: 'Users',
+        recordId: u.id,
+        operation: 'DELETE_USER',
+        oldValues: { username: u.username, name: u.name, roles: u.roles },
+        newValues: null
+      });
       setUsers(prev => prev.filter(item => item.id !== u.id));
       setSaveSuccessToast(`✓ User "${u.username || u.name}" deleted successfully.`);
       setTimeout(() => setSaveSuccessToast(null), 4000);
@@ -396,6 +432,13 @@ export default function UserManagementPage() {
       };
 
       await api.put(`/staff/${showEditStaffModal.staffId}`, payload);
+      await logAudit({
+        tableName: 'Staff',
+        recordId: showEditStaffModal.staffId,
+        operation: 'EDIT_STAFF',
+        oldValues: null,
+        newValues: payload
+      });
       setSaveSuccessToast(`✓ Staff profile for ${showEditStaffModal.firstName} ${showEditStaffModal.lastName} updated successfully!`);
       setShowEditStaffModal(null);
       await fetchUsersAndRoles();
@@ -416,7 +459,7 @@ export default function UserManagementPage() {
   const handleAddUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await api.post('/users', {
+      const res: any = await api.post('/users', {
         tenantId: 1,
         username: newUsername,
         email: newEmail,
@@ -424,6 +467,13 @@ export default function UserManagementPage() {
         firstName: newFirstName,
         lastName: newLastName,
         roleIds: [newRoleId]
+      });
+      await logAudit({
+        tableName: 'Users',
+        recordId: res?.userId || res?.id || newUsername,
+        operation: 'ADD_STAFF_USER',
+        oldValues: null,
+        newValues: { username: newUsername, email: newEmail, firstName: newFirstName, lastName: newLastName, roleId: newRoleId }
       });
       await fetchUsersAndRoles();
     } catch (err) {
@@ -462,6 +512,13 @@ export default function UserManagementPage() {
       await api.post(`/users/${showResetPasswordModal.id}/reset-password`, {
         newPassword,
         confirmPassword
+      });
+      await logAudit({
+        tableName: 'Users',
+        recordId: showResetPasswordModal.id,
+        operation: 'RESET_PASSWORD',
+        oldValues: null,
+        newValues: { userId: showResetPasswordModal.id, username: showResetPasswordModal.username }
       });
       setResetSuccess(true);
       setTimeout(() => {
@@ -524,7 +581,15 @@ export default function UserManagementPage() {
   };
 
   const handleSavePermissions = async () => {
+    const oldPerms = rolePermissions[selectedRole];
     await saveRolePermissions(rolePermissions);
+    logAudit({
+      tableName: 'RolePermissions',
+      recordId: selectedRole,
+      operation: 'UPDATE_ROLE_PERMISSIONS',
+      oldValues: { role: selectedRole, permissions: oldPerms },
+      newValues: { role: selectedRole, permissions: rolePermissions[selectedRole] }
+    });
     setSaveSuccessToast(`✓ Permissions for role "${selectedRole}" saved to database and active clinic profile!`);
     setTimeout(() => setSaveSuccessToast(null), 4000);
   };
@@ -1619,65 +1684,195 @@ export default function UserManagementPage() {
             </div>
           </div>
 
-          {/* Audit Log Table */}
-          <div className="glass-panel" style={{ padding: isMobile ? '14px 10px' : '20px', background: '#ffffff', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-            {loadingAudit ? (
-              <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-                <Loader2 size={24} className="animate-spin" style={{ margin: '0 auto 8px' }} />
-                Loading cryptographic access audit logs...
-              </div>
-            ) : auditLogs.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                No audit log entries found matching criteria. Actions taken by practitioners across EMR, billing, and pharmacy will log here.
-              </div>
-            ) : (
-              <div className="table-responsive">
-                <table className="cms-table" style={{ fontSize: '0.78rem' }}>
-                  <thead>
-                    <tr>
-                      <th>Log ID</th>
-                      <th>Timestamp (UTC)</th>
-                      <th>User / Actor</th>
-                      <th>IP Address</th>
-                      <th>Target Entity</th>
-                      <th>Record ID</th>
-                      <th>Operation</th>
-                      <th>Changes / Payload</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {auditLogs.map(log => {
-                      const opBadge =
-                        log.operation === 'I' ? { text: 'INSERT', bg: '#dcfce7', col: '#15803d' } :
-                        log.operation === 'U' ? { text: 'UPDATE', bg: '#e0f2fe', col: '#0369a1' } :
-                        log.operation === 'D' ? { text: 'DELETE', bg: '#fee2e2', col: '#991b1b' } :
-                        { text: 'ACCESS', bg: '#fef3c7', col: '#92400e' };
+          {/* Audit Log Table and Side-by-Side Change Viewer */}
+          <div style={{ display: 'grid', gridTemplateColumns: selectedAuditLog ? (isMobile ? '1fr' : '1.3fr 1fr') : '1fr', gap: '16px', alignItems: 'start' }}>
+            <div className="glass-panel" style={{ padding: isMobile ? '14px 10px' : '20px', background: '#ffffff', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+              {loadingAudit ? (
+                <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+                  <Loader2 size={24} className="animate-spin" style={{ margin: '0 auto 8px' }} />
+                  Loading cryptographic access audit logs...
+                </div>
+              ) : auditLogs.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                  No audit log entries found matching criteria. Actions taken by practitioners across EMR, billing, and pharmacy will log here.
+                </div>
+              ) : (
+                <div className="table-responsive">
+                  <table className="cms-table" style={{ fontSize: '0.78rem' }}>
+                    <thead>
+                      <tr>
+                        <th>Log ID</th>
+                        <th>Timestamp (UTC)</th>
+                        <th>User / Actor</th>
+                        <th>Entity</th>
+                        <th>Record</th>
+                        <th>Operation</th>
+                        <th>Inspect</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {auditLogs.map(log => {
+                        const opBadge =
+                          log.operation === 'I' || log.operation?.includes('CREATE') ? { text: 'INSERT', bg: '#dcfce7', col: '#15803d' } :
+                          log.operation === 'U' || log.operation?.includes('UPDATE') ? { text: 'UPDATE', bg: '#e0f2fe', col: '#0369a1' } :
+                          log.operation === 'D' || log.operation?.includes('DELETE') ? { text: 'DELETE', bg: '#fee2e2', col: '#991b1b' } :
+                          { text: log.operation || 'ACCESS', bg: '#fef3c7', col: '#92400e' };
 
-                      return (
-                        <tr key={log.id}>
-                          <td style={{ fontFamily: 'monospace', fontWeight: 700 }}>#{log.id}</td>
-                          <td style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                            {log.changedAt ? new Date(log.changedAt).toLocaleString() : 'Recent'}
-                          </td>
-                          <td style={{ fontWeight: 700, color: 'var(--text-main)' }}>
-                            {log.userName || `User #${log.changedBy || 1}`}
-                          </td>
-                          <td style={{ fontFamily: 'monospace', color: '#64748b' }}>{log.ipAddress || '127.0.0.1'}</td>
-                          <td style={{ fontWeight: 600 }}>{log.tableName}</td>
-                          <td style={{ fontFamily: 'monospace' }}>{log.recordId}</td>
-                          <td>
-                            <span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 800, background: opBadge.bg, color: opBadge.col }}>
-                              {opBadge.text}
-                            </span>
-                          </td>
-                          <td style={{ maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-muted)', fontSize: '0.72rem' }}>
-                            {log.newValues || log.oldValues || 'Action recorded successfully.'}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                        const isSelected = selectedAuditLog?.id === log.id;
+
+                        return (
+                          <tr
+                            key={log.id}
+                            onClick={() => setSelectedAuditLog(isSelected ? null : log)}
+                            style={{
+                              background: isSelected ? '#f0f9ff' : undefined,
+                              cursor: 'pointer',
+                              borderLeft: isSelected ? '3px solid #0284c7' : undefined
+                            }}
+                          >
+                            <td style={{ fontFamily: 'monospace', fontWeight: 700 }}>#{log.id}</td>
+                            <td style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                              {log.changedAt ? new Date(log.changedAt).toLocaleString() : 'Recent'}
+                            </td>
+                            <td style={{ fontWeight: 700, color: 'var(--text-main)' }}>
+                              {log.userName || `User #${log.changedBy || 1}`}
+                            </td>
+                            <td style={{ fontWeight: 600 }}>{log.tableName}</td>
+                            <td style={{ fontFamily: 'monospace' }}>{log.recordId}</td>
+                            <td>
+                              <span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 800, background: opBadge.bg, color: opBadge.col }}>
+                                {opBadge.text}
+                              </span>
+                            </td>
+                            <td>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedAuditLog(isSelected ? null : log);
+                                }}
+                                className="btn-secondary"
+                                style={{ padding: '2px 8px', fontSize: '0.7rem', color: isSelected ? '#0284c7' : undefined }}
+                              >
+                                {isSelected ? 'Close' : 'View Changes'}
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Change Viewer on the Right Side: Columns Before and After */}
+            {selectedAuditLog && (
+              <div
+                className="glass-panel"
+                style={{
+                  padding: '20px',
+                  background: '#ffffff',
+                  borderRadius: '12px',
+                  border: '2px solid #0284c7',
+                  boxShadow: '0 4px 16px rgba(2, 132, 199, 0.1)',
+                  position: 'sticky',
+                  top: '16px'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>
+                  <div>
+                    <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-main)', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Eye size={16} color="#0284c7" /> Change Viewer (Before &amp; After)
+                    </h4>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                      Log #{selectedAuditLog.id} • {selectedAuditLog.tableName} (ID: {selectedAuditLog.recordId}) • By: <strong>{selectedAuditLog.userName || 'User'}</strong>
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedAuditLog(null)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  {/* Before Column */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <div style={{ fontWeight: 800, fontSize: '0.75rem', color: '#b91c1c', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444' }}></span>
+                      BEFORE (Old Values)
+                    </div>
+                    <pre
+                      style={{
+                        background: '#fef2f2',
+                        border: '1px solid #fecaca',
+                        borderRadius: '6px',
+                        padding: '10px',
+                        fontSize: '0.72rem',
+                        color: '#991b1b',
+                        maxHeight: '340px',
+                        overflow: 'auto',
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word',
+                        fontFamily: 'monospace',
+                        margin: 0
+                      }}
+                    >
+                      {selectedAuditLog.oldValues
+                        ? (() => {
+                            try {
+                              return JSON.stringify(JSON.parse(selectedAuditLog.oldValues), null, 2);
+                            } catch {
+                              return selectedAuditLog.oldValues;
+                            }
+                          })()
+                        : '(None / Initial Creation)'}
+                    </pre>
+                  </div>
+
+                  {/* After Column */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <div style={{ fontWeight: 800, fontSize: '0.75rem', color: '#15803d', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e' }}></span>
+                      AFTER (New Values)
+                    </div>
+                    <pre
+                      style={{
+                        background: '#f0fdf4',
+                        border: '1px solid #bbf7d0',
+                        borderRadius: '6px',
+                        padding: '10px',
+                        fontSize: '0.72rem',
+                        color: '#166534',
+                        maxHeight: '340px',
+                        overflow: 'auto',
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word',
+                        fontFamily: 'monospace',
+                        margin: 0
+                      }}
+                    >
+                      {selectedAuditLog.newValues
+                        ? (() => {
+                            try {
+                              return JSON.stringify(JSON.parse(selectedAuditLog.newValues), null, 2);
+                            } catch {
+                              return selectedAuditLog.newValues;
+                            }
+                          })()
+                        : '(None / Record Deleted)'}
+                    </pre>
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px dashed var(--border-color)', fontSize: '0.7rem', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between' }}>
+                  <span>IP: {selectedAuditLog.ipAddress || '127.0.0.1'}</span>
+                  <span>Op: <strong>{selectedAuditLog.operation}</strong></span>
+                  <span>Time: {selectedAuditLog.changedAt ? new Date(selectedAuditLog.changedAt).toLocaleString() : ''}</span>
+                </div>
               </div>
             )}
           </div>
@@ -1814,7 +2009,15 @@ export default function UserManagementPage() {
                   try {
                     const targetId = showRoleModal.id;
                     const assignedRoles = showRoleModal.roles || [];
+                    const prevUser = users.find(u => u.id === targetId);
                     await api.put(`/users/${targetId}/roles`, { roles: assignedRoles });
+                    logAudit({
+                      tableName: 'UserRoles',
+                      recordId: String(targetId),
+                      operation: 'ASSIGN_USER_ROLES',
+                      oldValues: { userId: targetId, username: prevUser?.username || showRoleModal.name, roles: prevUser?.roles || [] },
+                      newValues: { userId: targetId, username: showRoleModal.name, roles: assignedRoles }
+                    });
                     setUsers(users.map(u => u.id === targetId ? { ...u, roles: assignedRoles } : u));
                     setShowRoleModal(null);
                     setSaveSuccessToast(`✓ Successfully updated and saved roles for ${showRoleModal.name}!`);

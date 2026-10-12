@@ -2,9 +2,10 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   Users, Search, Plus, FileText, Phone, Mail, Calendar, Activity, X,
   Stethoscope, Camera, ShieldCheck, Copy, Loader2, ChevronLeft, ChevronRight,
-  MapPin, CreditCard, User, Building, Hash, Edit3, Globe
+  MapPin, CreditCard, User, Building, Hash, Edit3, Globe, ShoppingCart
 } from 'lucide-react';
-import { api } from '../../api/apiClient';
+import { api, logAudit } from '../../api/apiClient';
+import ClinicalOrderModal from '../../components/ClinicalOrderModal';
 
 interface PatientsPageProps {
   onSelectEmrPatient?: (patientId: number) => void;
@@ -13,6 +14,8 @@ interface PatientsPageProps {
 export default function PatientsPage({ onSelectEmrPatient }: PatientsPageProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPatient, setSelectedPatient] = useState<any>(null);
+  const [orderModalPatient, setOrderModalPatient] = useState<any>(null);
+  const [orderSuccessToast, setOrderSuccessToast] = useState<string | null>(null);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [showMpiModal, setShowMpiModal] = useState(false);
@@ -133,9 +136,9 @@ export default function PatientsPage({ onSelectEmrPatient }: PatientsPageProps) 
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editPatientId) return;
+    const oldPatient = patients.find(p => p.id === editPatientId);
     try {
-      await api.put(`/patients/${editPatientId}`, {
+      const payload = {
         tenantId: 1,
         mrn: editMrn,
         firstName: editFirstName,
@@ -150,6 +153,14 @@ export default function PatientsPage({ onSelectEmrPatient }: PatientsPageProps) 
         insuranceCopayPercent: editPaymentType === 'Insurance' ? (parseFloat(editCopayPercent) || 0) : 0,
         allergies: 'None',
         nationalId: editNationalId || null
+      };
+      await api.put(`/patients/${editPatientId}`, payload);
+      await logAudit({
+        tableName: 'Patients',
+        recordId: editPatientId ?? '',
+        operation: 'UPDATE_PATIENT',
+        oldValues: oldPatient ? { firstName: oldPatient.firstName, middleName: oldPatient.middleName, lastName: oldPatient.lastName, phone: oldPatient.phone, address: oldPatient.address } : null,
+        newValues: payload
       });
       setShowEditModal(false);
       await fetchPatients(searchQuery);
@@ -229,7 +240,7 @@ export default function PatientsPage({ onSelectEmrPatient }: PatientsPageProps) 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await api.post('/patients', {
+      const payload = {
         tenantId: 1,
         mrn: mrnPreview,
         firstName,
@@ -244,6 +255,15 @@ export default function PatientsPage({ onSelectEmrPatient }: PatientsPageProps) 
         insuranceCopayPercent: paymentType === 'Insurance' ? (parseFloat(copayPercent) || 0) : 0,
         allergies: 'None',
         nationalId: nationalId || `ETH-${Math.floor(100000 + Math.random() * 900000)}`
+      };
+      const res: any = await api.post('/patients', payload);
+      const newPatId = res?.patientId || res?.PatientId || res?.id || mrnPreview;
+      await logAudit({
+        tableName: 'Patients',
+        recordId: newPatId,
+        operation: 'CREATE_PATIENT',
+        oldValues: null,
+        newValues: payload
       });
       setShowRegisterModal(false);
       await fetchPatients(searchQuery);
@@ -481,6 +501,14 @@ export default function PatientsPage({ onSelectEmrPatient }: PatientsPageProps) 
                           style={{ padding: '3px 8px', fontSize: '0.72rem' }}
                         >
                           View
+                        </button>
+                        <button
+                          onClick={() => setOrderModalPatient(p)}
+                          className="btn-primary"
+                          style={{ padding: '3px 8px', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '3px', background: '#0284c7' }}
+                          title="Create Clinical Order (Lab, Procedure, etc.)"
+                        >
+                          <ShoppingCart size={11} /> Order
                         </button>
                         <button
                           onClick={() => openEditModal(p)}
@@ -1014,6 +1042,37 @@ export default function PatientsPage({ onSelectEmrPatient }: PatientsPageProps) 
               <button onClick={() => setShowMpiModal(false)} className="btn-secondary">Close</button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Clinical Order Hub Modal */}
+      {orderModalPatient && (
+        <ClinicalOrderModal
+          patient={orderModalPatient}
+          onClose={() => setOrderModalPatient(null)}
+          onSuccess={(msg) => {
+            setOrderSuccessToast(msg);
+            setTimeout(() => setOrderSuccessToast(null), 5000);
+          }}
+        />
+      )}
+
+      {/* Order Toast notification */}
+      {orderSuccessToast && (
+        <div style={{
+          position: 'fixed',
+          bottom: '24px',
+          right: '24px',
+          zIndex: 1100,
+          background: '#047857',
+          color: '#ffffff',
+          padding: '12px 20px',
+          borderRadius: '10px',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.25)',
+          fontWeight: 700,
+          fontSize: '0.85rem'
+        }}>
+          {orderSuccessToast}
         </div>
       )}
     </div>

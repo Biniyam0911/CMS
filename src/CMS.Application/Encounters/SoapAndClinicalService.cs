@@ -130,19 +130,42 @@ public class SoapAndClinicalService
             WITH CombinedProcedures AS (
                 -- 1. Procedures from ProcedureOrders table
                 SELECT po.Id, po.EncounterId, po.PatientId, p.FirstName + ' ' + ISNULL(p.MiddleName + ' ', '') + p.LastName AS PatientName,
-                       po.OrderedBy, ISNULL(s.FirstName + ' ' + s.LastName, 'Attending Physician') AS DoctorName,
+                       po.OrderedBy,
+                       COALESCE(
+                           docUser.DoctorName,
+                           docTable.DoctorName,
+                           staffDirect.DoctorName,
+                           'Attending Physician'
+                       ) AS DoctorName,
                        po.ProcedureCode, po.ProcedureName, po.ClinicalNotes, po.StatusId,
                        CASE po.StatusId WHEN 1 THEN 'Ordered' WHEN 2 THEN 'Scheduled' WHEN 3 THEN 'InProgress' WHEN 4 THEN 'Completed' ELSE 'Cancelled' END AS StatusName,
-                       po.CreatedAt, po.PerformedAt, po.ProcedureResult
+                       po.CreatedAt, po.PerformedAt, po.ProcedureResult,
+                       p.MRN AS Mrn
                 FROM ProcedureOrders po WITH (NOLOCK)
                 JOIN Patients p WITH (NOLOCK) ON p.Id = po.PatientId
-                LEFT JOIN Staff s WITH (NOLOCK) ON s.UserId = po.OrderedBy OR s.Id = po.OrderedBy
+                OUTER APPLY (
+                    SELECT TOP 1 st.Title + ' ' + st.FirstName + ' ' + st.LastName AS DoctorName
+                    FROM Doctors d WITH (NOLOCK)
+                    JOIN Staff st WITH (NOLOCK) ON st.Id = d.StaffId
+                    WHERE d.Id = po.OrderedBy
+                ) docTable
+                OUTER APPLY (
+                    SELECT TOP 1 st.Title + ' ' + st.FirstName + ' ' + st.LastName AS DoctorName
+                    FROM Users u WITH (NOLOCK)
+                    JOIN Staff st WITH (NOLOCK) ON st.UserId = u.Id
+                    WHERE u.Id = po.OrderedBy
+                ) docUser
+                OUTER APPLY (
+                    SELECT TOP 1 st.Title + ' ' + st.FirstName + ' ' + st.LastName AS DoctorName
+                    FROM Staff st WITH (NOLOCK)
+                    WHERE st.Id = po.OrderedBy
+                ) staffDirect
                 WHERE po.TenantId = @TenantId
                   AND (@Date IS NULL OR CAST(po.CreatedAt AS DATE) = CAST(@Date AS DATE))
 
                 UNION ALL
 
-                -- 2. Billed procedures from InvoiceItems (ItemType = 4 or Procedure items) so existing clinical procedures show in the nurse queue
+                -- 2. Billed procedures from InvoiceItems ONLY if not already recorded in ProcedureOrders
                 SELECT 
                     (ii.Id + 1000000) AS Id,
                     ISNULL(inv.EncounterId, 0) AS EncounterId,
@@ -157,18 +180,25 @@ public class SoapAndClinicalService
                     CASE inv.StatusId WHEN 4 THEN 'Completed' ELSE 'Ordered' END AS StatusName,
                     ISNULL(inv.IssueDate, GETDATE()) AS CreatedAt,
                     CASE WHEN inv.StatusId = 4 THEN inv.IssueDate ELSE NULL END AS PerformedAt,
-                    NULL AS ProcedureResult
+                    NULL AS ProcedureResult,
+                    p.MRN AS Mrn
                 FROM InvoiceItems ii WITH (NOLOCK)
                 JOIN Invoices inv WITH (NOLOCK) ON inv.Id = ii.InvoiceId
                 JOIN Patients p WITH (NOLOCK) ON p.Id = inv.PatientId
                 LEFT JOIN Services s WITH (NOLOCK) ON s.Name = ii.Description
                 OUTER APPLY (
-                    SELECT TOP 1 ISNULL(st.FirstName + ' ' + st.LastName, 'Attending Physician') AS DoctorName
+                    SELECT TOP 1 st.Title + ' ' + st.FirstName + ' ' + st.LastName AS DoctorName
                     FROM Doctors d WITH (NOLOCK)
                     JOIN Staff st WITH (NOLOCK) ON st.Id = d.StaffId
                     WHERE d.Id = inv.DoctorId
                 ) doc
                 WHERE inv.TenantId = @TenantId
+                  AND NOT EXISTS (
+                      SELECT 1 FROM ProcedureOrders existingPo WITH (NOLOCK)
+                      WHERE existingPo.PatientId = inv.PatientId
+                        AND (existingPo.ProcedureName = ii.Description OR ii.Description LIKE existingPo.ProcedureName + '%')
+                        AND CAST(existingPo.CreatedAt AS DATE) = CAST(ISNULL(inv.IssueDate, inv.CreatedAt) AS DATE)
+                  )
                   AND (ii.ItemType = 4 
                        OR ii.ItemType = 3
                        OR EXISTS (SELECT 1 FROM Services s2 WITH (NOLOCK) WHERE s2.Name = ii.Description AND s2.Category IN ('Procedure', 'Facial'))

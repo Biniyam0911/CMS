@@ -158,6 +158,52 @@ public class AuthManagementService
                 new { UserId = userId, RoleId = roleId });
         }
 
+        // Automatically create matching Staff record
+        try
+        {
+            short primaryRoleId = dto.RoleIds != null && dto.RoleIds.Any() ? dto.RoleIds.First() : (short)4; // Default to Staff/Nurse
+            string staffCode = $"emp-{userId}";
+            string title = "Staff";
+
+            // Check if any assigned role is Doctor
+            var roleNames = (await conn.QueryAsync<string>(
+                "SELECT Name FROM Roles WHERE Id IN @RoleIds", new { RoleIds = dto.RoleIds })).ToList();
+            bool isDoctor = roleNames.Any(r => r.Equals("Doctor", StringComparison.OrdinalIgnoreCase) || r.Contains("Doctor", StringComparison.OrdinalIgnoreCase));
+            if (isDoctor) title = "Dr.";
+
+            var insertStaffSql = @"
+                INSERT INTO Staff (TenantId, UserId, StaffCode, Title, FirstName, LastName, Phone, Email, PrimaryRoleId, IsActive, CreatedAt)
+                VALUES (@TenantId, @UserId, @StaffCode, @Title, @FirstName, @LastName, @Phone, @Email, @PrimaryRoleId, 1, SYSDATETIME());
+                SELECT SCOPE_IDENTITY();";
+
+            int staffId = await conn.ExecuteScalarAsync<int>(insertStaffSql, new
+            {
+                dto.TenantId,
+                UserId = userId,
+                StaffCode = staffCode,
+                Title = title,
+                FirstName = !string.IsNullOrWhiteSpace(dto.FirstName) ? dto.FirstName : dto.Username,
+                LastName = !string.IsNullOrWhiteSpace(dto.LastName) ? dto.LastName : dto.Username,
+                Phone = dto.Phone ?? "",
+                Email = dto.Email ?? "",
+                PrimaryRoleId = primaryRoleId
+            });
+
+            // If Doctor role, also create Doctor record
+            if (isDoctor && staffId > 0)
+            {
+                var insertDocSql = @"
+                    INSERT INTO Doctors (StaffId, LicenseNumber, SpecializationId, SubSpecialization, ConsultationFee, IsAvailable)
+                    VALUES (@StaffId, @LicenseNumber, 1, 'General Medicine', 0, 1);";
+                await conn.ExecuteAsync(insertDocSql, new
+                {
+                    StaffId = staffId,
+                    LicenseNumber = $"LIC-{staffCode}"
+                });
+            }
+        }
+        catch { }
+
         return userId;
     }
 

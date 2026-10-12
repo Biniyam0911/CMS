@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plug, CheckCircle2, AlertCircle, RefreshCw, X, Save, Loader2, Send, MessageSquare, Phone, Server } from 'lucide-react';
-import { api } from '../../api/apiClient';
+import { api, logAudit } from '../../api/apiClient';
 import MachineIntegrationTab from './MachineIntegrationTab';
 
 export default function IntegrationsPage() {
@@ -108,6 +108,14 @@ export default function IntegrationsPage() {
     } catch (err) {
       console.error('Update integration error:', err);
     }
+
+    logAudit({
+      tableName: 'Integrations',
+      recordId: showConfigModal.code,
+      operation: 'UPDATE_INTEGRATION_CONFIG',
+      oldValues: { isEnabled: showConfigModal.active, configJson: showConfigModal.config },
+      newValues: { isEnabled, configJson: configText }
+    });
 
     setIntegrations(integrations.map(i => i.code === showConfigModal.code ? {
       ...i,

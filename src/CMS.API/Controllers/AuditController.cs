@@ -51,10 +51,16 @@ public class AuditController : ControllerBase
             SELECT TOP 200
                 a.Id, a.TenantId, a.TableName, a.RecordId, a.Operation,
                 a.OldValues, a.NewValues, a.ChangedBy,
-                ISNULL(u.Username, 'System / Dr. Tigist') AS UserName,
+                COALESCE(
+                    NULLIF(TRIM(ISNULL(st.FirstName, '') + ' ' + ISNULL(st.LastName, '')), ''),
+                    NULLIF(TRIM(ISNULL(u.FirstName, '') + ' ' + ISNULL(u.LastName, '')), ''),
+                    u.Username,
+                    'System Administrator'
+                ) AS UserName,
                 a.ChangedAt, a.IpAddress
             FROM AuditLog a
             LEFT JOIN Users u ON u.Id = a.ChangedBy
+            LEFT JOIN Staff st ON st.UserId = u.Id
             WHERE a.TenantId = @TenantId
               AND (@TableName IS NULL OR a.TableName = @TableName)
               AND (@Operation IS NULL OR a.Operation = @Operation)
@@ -81,8 +87,10 @@ public class AuditController : ControllerBase
 
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
         
-        // Extract authenticated UserId if available from context
-        int changedBy = dto.ChangedBy ?? (HttpContext.Items["UserId"] is int uid ? uid : 1);
+        // Extract authenticated UserId if available from context, fallback to 1
+        int changedBy = (dto.ChangedBy.HasValue && dto.ChangedBy.Value > 0)
+            ? dto.ChangedBy.Value
+            : (HttpContext.Items["UserId"] is int uid && uid > 0 ? uid : 1);
 
         var sql = @"
             INSERT INTO AuditLog (TenantId, TableName, RecordId, Operation, OldValues, NewValues, ChangedBy, ChangedAt, IpAddress)

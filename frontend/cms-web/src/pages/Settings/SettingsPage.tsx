@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Settings, Save, Building, CheckCircle2, Loader2, HeartPulse, Stethoscope, FileHeart, Activity, ShieldCheck, Cross, FlaskConical, Palette, Type, Layers, ToggleLeft, Monitor, Sidebar, Database, HardDrive, Download, Clock, Trash2 } from 'lucide-react';
-import { api } from '../../api/apiClient';
+import { api, logAudit } from '../../api/apiClient';
 
 const APP_ICONS = [
   { name: 'HeartPulse', label: 'Heart Pulse', Icon: HeartPulse },
@@ -170,6 +170,21 @@ export default function SettingsPage() {
         api.post('/settings', { settingKey: 'AppIcon', settingValue: appIcon }),
         api.post('/settings', { settingKey: 'SessionTimeoutMinutes', settingValue: sessionTimeoutMinutes }),
       ]);
+      logAudit({
+        tableName: 'ClinicSettings',
+        recordId: 'CLINIC_PROFILE',
+        operation: 'UPDATE_CLINIC_SETTINGS',
+        oldValues: null,
+        newValues: {
+          clinicName,
+          address,
+          phone,
+          currency,
+          vat,
+          appIcon,
+          sessionTimeoutMinutes
+        }
+      });
       localStorage.setItem('cms_session_timeout_minutes', sessionTimeoutMinutes);
       window.dispatchEvent(new Event('clinic_settings_changed'));
       setSavedAlert(true); setTimeout(() => setSavedAlert(false), 3000);
@@ -202,6 +217,13 @@ export default function SettingsPage() {
       const isOk = res?.success === true || res?.Success === true || !!fileName;
       if (isOk) {
         setBackupAlert(`✓ Full database snapshot created: ${fileName || 'ClinicDB.bak'} (${sizeFormatted || 'Verified .BAK'})`);
+        logAudit({
+          tableName: 'DatabaseBackup',
+          recordId: fileName || 'MANUAL_BACKUP',
+          operation: 'TRIGGER_DATABASE_BACKUP',
+          oldValues: null,
+          newValues: { fileName, sizeFormatted }
+        });
       } else {
         setBackupAlert(`⚠ Backup completed with notes: ${res?.message || res?.Message || 'Done'}`);
       }
@@ -217,6 +239,13 @@ export default function SettingsPage() {
     e.preventDefault();
     try {
       await api.post('/backup/schedule', backupSchedule);
+      logAudit({
+        tableName: 'BackupSchedule',
+        recordId: 'BACKUP_SCHEDULE',
+        operation: 'UPDATE_BACKUP_SCHEDULE',
+        oldValues: null,
+        newValues: backupSchedule
+      });
       setBackupAlert(`✓ Automated database backup schedule updated!`);
       setTimeout(() => setBackupAlert(null), 4000);
     } catch (err: any) {
