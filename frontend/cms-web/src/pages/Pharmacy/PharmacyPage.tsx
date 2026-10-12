@@ -25,6 +25,8 @@ export default function PharmacyPage() {
   // Prescriptions Queue State & Expandable Rows
   const [prescriptions, setPrescriptions] = useState<any[]>([]);
   const [expandedPrescriptionIds, setExpandedPrescriptionIds] = useState<Record<number, boolean>>({});
+  const [dispensarySearch, setDispensarySearch] = useState('');
+  const [dispensarySearchCriteria, setDispensarySearchCriteria] = useState<'ALL' | 'PATIENT' | 'MRN' | 'DOCTOR' | 'DRUG'>('ALL');
 
   const toggleExpandPrescription = (id: number) => {
     setExpandedPrescriptionIds(prev => ({ ...prev, [id]: !prev[id] }));
@@ -394,7 +396,30 @@ export default function PharmacyPage() {
 
       {/* SUB TAB 1: FEFO Prescriptions Queue */}
       {activeSubTab === 'prescriptions' && (() => {
-        const filteredDispensary = prescriptions.filter(p => !dispensaryDate || p.date === dispensaryDate);
+        const q = dispensarySearch.trim().toLowerCase();
+        const filteredDispensary = prescriptions.filter(p => {
+          if (dispensaryDate && p.date !== dispensaryDate) return false;
+          if (!q) return true;
+
+          const pName = (p.patientName || '').toLowerCase();
+          const pMrn = (p.mrn || '').toLowerCase();
+          const pDoc = (p.doctorName || '').toLowerCase();
+          const pDrugs = (p.drug || '').toLowerCase() + ' ' + (p.items || []).map((i: any) => i.drugName || '').join(' ').toLowerCase();
+
+          switch (dispensarySearchCriteria) {
+            case 'PATIENT':
+              return pName.includes(q);
+            case 'MRN':
+              return pMrn.includes(q);
+            case 'DOCTOR':
+              return pDoc.includes(q);
+            case 'DRUG':
+              return pDrugs.includes(q);
+            case 'ALL':
+            default:
+              return pName.includes(q) || pMrn.includes(q) || pDoc.includes(q) || pDrugs.includes(q);
+          }
+        });
         return (
           <div className="glass-panel" style={{ padding: '24px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
@@ -407,39 +432,92 @@ export default function PharmacyPage() {
                 </p>
               </div>
 
-              {/* Date Filter Controls */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-dark)', padding: '6px 12px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
-                <Calendar size={15} color="#06b6d4" />
-                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Date:</span>
-                <input
-                  type="date"
-                  value={dispensaryDate}
-                  onChange={e => setDispensaryDate(e.target.value)}
-                  style={{
-                    background: 'var(--bg-main)',
-                    border: '1px solid var(--border-color)',
-                    color: 'var(--text-main)',
-                    borderRadius: '6px',
-                    padding: '3px 8px',
-                    fontSize: '0.8rem',
-                    outline: 'none'
-                  }}
-                />
-                <button
-                  onClick={() => setDispensaryDate(todayDateStr)}
-                  className={dispensaryDate === todayDateStr ? 'btn-primary' : 'btn-secondary'}
-                  style={{ padding: '3px 10px', fontSize: '0.75rem' }}
-                >
-                  Today
-                </button>
-                <button
-                  onClick={() => setDispensaryDate('')}
-                  className={!dispensaryDate ? 'btn-primary' : 'btn-secondary'}
-                  style={{ padding: '3px 10px', fontSize: '0.75rem' }}
-                >
-                  All Dates
-                </button>
-                {loading && <Loader2 size={16} className="animate-spin" color="#06b6d4" />}
+              {/* Filters Bar: Search & Date */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                {/* Multi-Criteria Search */}
+                <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-dark)', borderRadius: '10px', border: '1px solid var(--border-color)', padding: '4px 8px', gap: '6px' }}>
+                  <Search size={15} color="var(--text-muted)" />
+                  <select
+                    value={dispensarySearchCriteria}
+                    onChange={e => setDispensarySearchCriteria(e.target.value as any)}
+                    style={{
+                      background: 'var(--bg-main)',
+                      border: '1px solid var(--border-color)',
+                      color: 'var(--text-main)',
+                      borderRadius: '6px',
+                      padding: '3px 6px',
+                      fontSize: '0.78rem',
+                      outline: 'none',
+                      cursor: 'pointer'
+                    }}
+                    title="Filter search by criteria"
+                  >
+                    <option value="ALL">All Fields</option>
+                    <option value="PATIENT">Patient Name</option>
+                    <option value="MRN">MRN</option>
+                    <option value="DOCTOR">Doctor</option>
+                    <option value="DRUG">Medication</option>
+                  </select>
+                  <input
+                    type="text"
+                    value={dispensarySearch}
+                    onChange={e => setDispensarySearch(e.target.value)}
+                    placeholder={`Search ${dispensarySearchCriteria === 'ALL' ? 'prescriptions' : dispensarySearchCriteria.toLowerCase()}...`}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--text-main)',
+                      fontSize: '0.8rem',
+                      outline: 'none',
+                      minWidth: '160px'
+                    }}
+                  />
+                  {dispensarySearch && (
+                    <button
+                      type="button"
+                      onClick={() => setDispensarySearch('')}
+                      style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', padding: '2px' }}
+                      title="Clear search"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+
+                {/* Date Filter Controls */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-dark)', padding: '6px 12px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                  <Calendar size={15} color="#06b6d4" />
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Date:</span>
+                  <input
+                    type="date"
+                    value={dispensaryDate}
+                    onChange={e => setDispensaryDate(e.target.value)}
+                    style={{
+                      background: 'var(--bg-main)',
+                      border: '1px solid var(--border-color)',
+                      color: 'var(--text-main)',
+                      borderRadius: '6px',
+                      padding: '3px 8px',
+                      fontSize: '0.8rem',
+                      outline: 'none'
+                    }}
+                  />
+                  <button
+                    onClick={() => setDispensaryDate(todayDateStr)}
+                    className={dispensaryDate === todayDateStr ? 'btn-primary' : 'btn-secondary'}
+                    style={{ padding: '3px 10px', fontSize: '0.75rem' }}
+                  >
+                    Today
+                  </button>
+                  <button
+                    onClick={() => setDispensaryDate('')}
+                    className={!dispensaryDate ? 'btn-primary' : 'btn-secondary'}
+                    style={{ padding: '3px 10px', fontSize: '0.75rem' }}
+                  >
+                    All Dates
+                  </button>
+                  {loading && <Loader2 size={16} className="animate-spin" color="#06b6d4" />}
+                </div>
               </div>
             </div>
 
@@ -463,7 +541,7 @@ export default function PharmacyPage() {
                   {filteredDispensary.length === 0 ? (
                     <tr>
                       <td colSpan={10} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
-                        No prescriptions found for {dispensaryDate ? `date ${dispensaryDate}` : 'the selected filter'}.
+                        No prescriptions found {dispensarySearch ? `matching "${dispensarySearch}"` : ''} {dispensaryDate ? `for date ${dispensaryDate}` : 'for the selected filter'}.
                       </td>
                     </tr>
                   ) : (

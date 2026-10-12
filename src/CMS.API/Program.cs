@@ -21,6 +21,7 @@ using CMS.Infrastructure.Cache;
 using CMS.Infrastructure.Data;
 using CMS.Infrastructure.LabIntegration;
 using CMS.Infrastructure.Notifications;
+using CMS.Infrastructure.BackgroundServices;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting.WindowsServices;
@@ -90,6 +91,7 @@ builder.Services.AddTransient<ILabResultIngestionService, LabResultIngestionServ
 builder.Services.AddSingleton<LisTcpListenerService>();
 builder.Services.AddSingleton<ILisTcpListenerService>(sp => sp.GetRequiredService<LisTcpListenerService>());
 builder.Services.AddHostedService<LisTcpListenerService>(sp => sp.GetRequiredService<LisTcpListenerService>());
+builder.Services.AddHostedService<DatabaseBackupBackgroundService>();
 
 
 builder.Services.AddScoped<AuthManagementService>();

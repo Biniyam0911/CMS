@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Shared\\CMS.Shared.csproj": {}
+    "C:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Shared\\CMS.Shared.csproj": {}
   },
   "projects": {
-    "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Shared\\CMS.Shared.csproj": {
+    "C:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Shared\\CMS.Shared.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Shared\\CMS.Shared.csproj",
+        "projectUniqueName": "C:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Shared\\CMS.Shared.csproj",
         "projectName": "CMS.Shared",
-        "projectPath": "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Shared\\CMS.Shared.csproj",
+        "projectPath": "C:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Shared\\CMS.Shared.csproj",
         "packagesPath": "C:\\Users\\ASUS\\.nuget\\packages\\",
-        "outputPath": "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Shared\\obj\\",
+        "outputPath": "C:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.Shared\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files\\DevExpress 24.1\\Components\\Offline Packages",

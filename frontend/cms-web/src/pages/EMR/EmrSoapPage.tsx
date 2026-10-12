@@ -700,6 +700,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
   // ==========================================
   const [showPrescribeModal, setShowPrescribeModal] = useState(false);
   const [showPrescriptionSlipModal, setShowPrescriptionSlipModal] = useState(false);
+  const [activePrescriptionSlipItems, setActivePrescriptionSlipItems] = useState<any[]>([]);
   const [prescribeSearch, setPrescribeSearch] = useState('');
   const [prescribeCategoryFilter, setPrescribeCategoryFilter] = useState('ALL');
   const [prescribeActiveTab, setPrescribeActiveTab] = useState<'catalog' | 'custom'>('catalog');
@@ -1990,9 +1991,12 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
     setPrescribeBasket(prev => prev.map(b => (b.id === id ? { ...b, [field]: val } : b)));
   };
 
-  const handlePrescribeSubmit = async () => {
+  const handlePrescribeSubmit = async (shouldOpenPrintModal = false) => {
     if (!activePatient || prescribeBasket.length === 0) return;
     setIsSubmittingPrescription(true);
+    // Keep snapshot of items for printing slip
+    const slipItems = [...prescribeBasket];
+    setActivePrescriptionSlipItems(slipItems);
     try {
       const patId = activePatient.id;
       const diagText = diagnosis || 'Clinical Consultation';
@@ -2081,11 +2085,19 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
       setTimeout(() => setOrderDispatchedToast(null), 5000);
       setPrescribeBasket([]);
       setShowPrescribeModal(false);
+
+      if (shouldOpenPrintModal) {
+        setShowPrescriptionSlipModal(true);
+      }
     } catch (err) {
       console.error('Prescribe submit error:', err);
     } finally {
       setIsSubmittingPrescription(false);
     }
+  };
+
+  const handlePrescribeAndPrint = async () => {
+    await handlePrescribeSubmit(true);
   };
 
   const handleIssueCertificateDirect = async (e: React.FormEvent) => {
@@ -4798,8 +4810,8 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <button
                         type="button"
-                        onClick={() => setShowPrescriptionSlipModal(true)}
-                        disabled={prescribeBasket.length === 0}
+                        onClick={handlePrescribeAndPrint}
+                        disabled={prescribeBasket.length === 0 || isSubmittingPrescription}
                         className="btn-secondary"
                         style={{
                           flex: 1,
@@ -4811,14 +4823,14 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                           justifyContent: 'center',
                           gap: '6px'
                         }}
-                        title="Print prescription slip for patient"
+                        title="Save prescription and print prescription slip"
                       >
-                        <Printer size={15} /> Print Rx
+                        <Printer size={15} /> {isSubmittingPrescription ? 'Saving...' : 'Print Rx (Save)'}
                       </button>
 
                       <button
                         type="button"
-                        onClick={handlePrescribeSubmit}
+                        onClick={() => handlePrescribeSubmit(false)}
                         disabled={prescribeBasket.length === 0 || isSubmittingPrescription}
                         className="btn-primary"
                         style={{
@@ -4968,7 +4980,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                   </tr>
                 </thead>
                 <tbody>
-                  {prescribeBasket.map((med, i) => (
+                  {(activePrescriptionSlipItems.length > 0 ? activePrescriptionSlipItems : prescribeBasket).map((med, i) => (
                     <tr key={i} style={{ borderBottom: '1px solid #e2e8f0' }}>
                       <td style={{ padding: '5px 6px', fontWeight: 700, color: '#64748b' }}>{i + 1}.</td>
                       <td style={{ padding: '5px 6px' }}>

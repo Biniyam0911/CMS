@@ -300,6 +300,25 @@ public class BackupController : ControllerBase
 
             var records = (await conn.QueryAsync<dynamic>(sql)).ToList();
 
+            // Load saved schedule from ClinicSettings if present
+            var schedSettings = (await conn.QueryAsync<(string SettingKey, string SettingValue)>(@"
+                SELECT SettingKey, SettingValue FROM ClinicSettings 
+                WHERE TenantId = 1 AND SettingKey IN ('Backup.ScheduleEnabled', 'Backup.Frequency', 'Backup.TimeOfDay')"))
+                .ToDictionary(x => x.SettingKey, x => x.SettingValue, StringComparer.OrdinalIgnoreCase);
+
+            if (schedSettings.ContainsKey("Backup.ScheduleEnabled"))
+            {
+                _currentSchedule.Enabled = schedSettings["Backup.ScheduleEnabled"].Equals("true", StringComparison.OrdinalIgnoreCase) || schedSettings["Backup.ScheduleEnabled"] == "1";
+            }
+            if (schedSettings.TryGetValue("Backup.Frequency", out var freq) && !string.IsNullOrWhiteSpace(freq))
+            {
+                _currentSchedule.Frequency = freq;
+            }
+            if (schedSettings.TryGetValue("Backup.TimeOfDay", out var tod) && !string.IsNullOrWhiteSpace(tod))
+            {
+                _currentSchedule.TimeOfDay = tod;
+            }
+
             var list = records.Select(r =>
             {
                 string rawPath = (string)r.FilePath ?? "";
@@ -379,9 +398,37 @@ public class BackupController : ControllerBase
     }
 
     [HttpPost("schedule")]
-    public IActionResult UpdateSchedule([FromBody] ScheduleBackupDto dto)
+    public async Task<IActionResult> UpdateSchedule([FromBody] ScheduleBackupDto dto)
     {
         _currentSchedule = dto;
+
+        try
+        {
+            using var conn = _dbFactory.CreateConnection();
+            var upsertSql = @"
+                IF EXISTS (SELECT 1 FROM ClinicSettings WHERE TenantId = 1 AND SettingKey = 'Backup.ScheduleEnabled')
+                    UPDATE ClinicSettings SET SettingValue = @Enabled, UpdatedAt = GETDATE() WHERE TenantId = 1 AND SettingKey = 'Backup.ScheduleEnabled';
+                ELSE
+                    INSERT INTO ClinicSettings (TenantId, SettingKey, SettingValue) VALUES (1, 'Backup.ScheduleEnabled', @Enabled);
+
+                IF EXISTS (SELECT 1 FROM ClinicSettings WHERE TenantId = 1 AND SettingKey = 'Backup.Frequency')
+                    UPDATE ClinicSettings SET SettingValue = @Frequency, UpdatedAt = GETDATE() WHERE TenantId = 1 AND SettingKey = 'Backup.Frequency';
+                ELSE
+                    INSERT INTO ClinicSettings (TenantId, SettingKey, SettingValue) VALUES (1, 'Backup.Frequency', @Frequency);
+
+                IF EXISTS (SELECT 1 FROM ClinicSettings WHERE TenantId = 1 AND SettingKey = 'Backup.TimeOfDay')
+                    UPDATE ClinicSettings SET SettingValue = @TimeOfDay, UpdatedAt = GETDATE() WHERE TenantId = 1 AND SettingKey = 'Backup.TimeOfDay';
+                ELSE
+                    INSERT INTO ClinicSettings (TenantId, SettingKey, SettingValue) VALUES (1, 'Backup.TimeOfDay', @TimeOfDay);";
+
+            await conn.ExecuteAsync(upsertSql, new {
+                Enabled = dto.Enabled ? "true" : "false",
+                Frequency = dto.Frequency ?? "Daily",
+                TimeOfDay = dto.TimeOfDay ?? "02:00"
+            });
+        }
+        catch { }
+
         return Ok(ApiResponse<object>.Ok(new {
             Success = true,
             Schedule = _currentSchedule,
