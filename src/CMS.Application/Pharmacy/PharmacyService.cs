@@ -39,7 +39,29 @@ public class PharmacyService
     {
         using var conn = _dbFactory.CreateConnection();
 
-        // 1. Ensure valid EncounterId exists (FK_Prescriptions_Encounters constraint)
+        // 1. Ensure valid PrescribedBy Doctor ID exists (FK_Prescriptions_Doctor constraint)
+        int doctorId = dto.DoctorId.GetValueOrDefault();
+        if (doctorId > 0)
+        {
+            var exists = await conn.ExecuteScalarAsync<int?>(
+                "SELECT TOP 1 Id FROM Doctors WHERE Id = @Id", new { Id = doctorId });
+            if (!exists.HasValue || exists.Value <= 0) doctorId = 0;
+        }
+        if (doctorId <= 0)
+        {
+            doctorId = await conn.ExecuteScalarAsync<int>(@"
+                SELECT TOP 1 d.Id 
+                FROM Doctors d 
+                INNER JOIN Staff s ON d.StaffId = s.Id 
+                WHERE s.TenantId = @TenantId 
+                ORDER BY d.Id ASC",
+                new { dto.TenantId });
+            if (doctorId <= 0)
+                doctorId = await conn.ExecuteScalarAsync<int>("SELECT TOP 1 Id FROM Doctors ORDER BY Id ASC");
+            if (doctorId <= 0) doctorId = 1;
+        }
+
+        // 2. Ensure valid EncounterId exists (FK_Prescriptions_Encounters constraint)
         int encounterId = dto.EncounterId.GetValueOrDefault();
         if (encounterId <= 0)
         {
@@ -55,30 +77,22 @@ public class PharmacyService
             }
             else
             {
-                // Create a basic encounter record
-                var encNo = $"ENC-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..4].ToUpper()}";
-                encounterId = await conn.ExecuteScalarAsync<int>(@"
-                    INSERT INTO Encounters (TenantId, PatientId, EncounterNumber, EncounterDate, StatusId, CreatedAt)
-                    OUTPUT INSERTED.Id
-                    VALUES (@TenantId, @PatientId, @EncounterNumber, GETDATE(), 1, GETDATE())",
-                    new { dto.TenantId, dto.PatientId, EncounterNumber = encNo });
-            }
-        }
+                // Create a basic encounter record matching Encounters table schema
+                // Get a valid UserId for CreatedBy (from the assigned doctor's staff record)
+                var createdBy = await conn.ExecuteScalarAsync<int?>(@"
+                    SELECT TOP 1 s.UserId 
+                    FROM Staff s 
+                    INNER JOIN Doctors d ON d.StaffId = s.Id 
+                    WHERE d.Id = @DoctorId",
+                    new { DoctorId = doctorId }) ?? 1;
+                if (createdBy <= 0) createdBy = 1;
 
-        // 2. Ensure valid PrescribedBy Doctor ID exists (FK_Prescriptions_Doctor constraint)
-        int doctorId = dto.DoctorId.GetValueOrDefault();
-        if (doctorId > 0)
-        {
-            var exists = await conn.ExecuteScalarAsync<int?>(
-                "SELECT TOP 1 Id FROM Doctors WHERE Id = @Id", new { Id = doctorId });
-            if (!exists.HasValue || exists.Value <= 0) doctorId = 0;
-        }
-        if (doctorId <= 0)
-        {
-            doctorId = await conn.ExecuteScalarAsync<int>(
-                "SELECT TOP 1 Id FROM Doctors WHERE TenantId = @TenantId ORDER BY Id ASC",
-                new { dto.TenantId });
-            if (doctorId <= 0) doctorId = 1;
+                encounterId = await conn.ExecuteScalarAsync<int>(@"
+                    INSERT INTO Encounters (TenantId, PatientId, DoctorId, EncounterDate, EncounterTime, IsFinalized, CreatedAt, CreatedBy)
+                    OUTPUT INSERTED.Id
+                    VALUES (@TenantId, @PatientId, @DoctorId, CAST(GETDATE() AS DATE), CAST(GETDATE() AS TIME), 0, GETDATE(), @CreatedBy)",
+                    new { dto.TenantId, dto.PatientId, DoctorId = doctorId, CreatedBy = createdBy });
+            }
         }
 
         // 3. Insert into Prescriptions table
