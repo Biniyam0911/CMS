@@ -142,19 +142,19 @@ export default function PharmacyPage() {
 
       if (prescriptionsData && prescriptionsData.length > 0) {
         const mappedPrescriptions = prescriptionsData.map((p: any) => {
-          const itemsList = (p.items && p.items.length > 0)
-            ? p.items
-            : [{ id: p.id, drugName: 'Prescribed Medication', quantity: 1, dosage: '1 dose', frequency: 'OD', duration: '7 Days', instructions: '' }];
-          const drugSummary = itemsList.map((i: any) => `${i.drugName || 'Medication'} ${i.dosage || ''}`.trim()).join(', ');
+          const itemsList = Array.isArray(p.items) ? p.items : [];
+          const drugSummary = itemsList.length > 0
+            ? itemsList.map((i: any) => `${i.drugName || 'Medication'} ${i.dosage || ''}`.trim()).join(', ')
+            : 'No medications recorded';
           const totalQty = itemsList.reduce((sum: number, it: any) => sum + (Number(it.quantity) || 1), 0);
           return {
             id: p.id || p.Id,
             itemId: itemsList[0]?.id || p.id,
             patientName: p.patientName || p.PatientName || `Patient #${p.patientId}`,
             mrn: p.mrn || p.Mrn || `MRN-000${p.patientId || 101}`,
-            doctorName: p.doctorName || p.DoctorName || 'Dr. Attending',
+            doctorName: p.doctorName || p.DoctorName || 'Dr. Attending Doctor',
             date: p.prescribedAt ? String(p.prescribedAt).split('T')[0] : '2026-08-31',
-            drug: drugSummary || `${itemsList[0]?.drugName || 'Medication'} ${itemsList[0]?.dosage || ''}`.trim(),
+            drug: drugSummary,
             qty: totalQty,
             status: (p.statusId === 2 || p.statusId === 4 || p.isDispensed) ? 'Dispensed' : 'Pending',
             isPaid: Boolean(p.isPaid || p.IsPaid),
@@ -451,8 +451,7 @@ export default function PharmacyPage() {
                     <th>Patient Name</th>
                     <th>MRN</th>
                     <th>Prescribing Doctor</th>
-                    <th>Medication</th>
-                    <th>Quantity</th>
+                    <th>Items</th>
                     <th>Date</th>
                     <th>Payment</th>
                     <th>Substance Class</th>
@@ -463,7 +462,7 @@ export default function PharmacyPage() {
                 <tbody>
                   {filteredDispensary.length === 0 ? (
                     <tr>
-                      <td colSpan={11} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
+                      <td colSpan={10} style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
                         No prescriptions found for {dispensaryDate ? `date ${dispensaryDate}` : 'the selected filter'}.
                       </td>
                     </tr>
@@ -503,16 +502,10 @@ export default function PharmacyPage() {
                             <td style={{ fontFamily: 'monospace', color: '#06b6d4' }}>{p.mrn}</td>
                             <td>{p.doctorName}</td>
                             <td>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <span>{p.drug}</span>
-                                {p.items && p.items.length > 1 && (
-                                  <span style={{ fontSize: '0.7rem', padding: '1px 6px', borderRadius: '10px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
-                                    +{p.items.length - 1} more
-                                  </span>
-                                )}
-                              </div>
+                              <span style={{ fontSize: '0.75rem', padding: '3px 8px', borderRadius: '12px', background: 'rgba(6, 182, 212, 0.1)', color: '#0891b2', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                <Pill size={12} /> {p.items?.length || 0} {p.items?.length === 1 ? 'Medication' : 'Medications'}
+                              </span>
                             </td>
-                            <td style={{ fontWeight: 700 }}>{p.qty}</td>
                             <td style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{p.date}</td>
                             <td>
                               {p.isPaid ? (
@@ -565,7 +558,7 @@ export default function PharmacyPage() {
                           {/* Expanded Items Drawer */}
                           {isExpanded && (
                             <tr key={`${p.id}-items`} style={{ background: 'rgba(6, 182, 212, 0.03)' }}>
-                              <td colSpan={11} style={{ padding: '12px 20px 16px 44px', borderBottom: '2px solid rgba(6, 182, 212, 0.2)' }}>
+                              <td colSpan={10} style={{ padding: '12px 20px 16px 44px', borderBottom: '2px solid rgba(6, 182, 212, 0.2)' }}>
                                 <div style={{ background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '10px', padding: '14px 18px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                                     <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#06b6d4', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -1379,9 +1372,22 @@ export default function PharmacyPage() {
         </div>
       )}
 
-      {/* Print CSS for Prescription Modal */}
+      {/* Print CSS for Prescription Modal: A5 Portrait with small compact typography */}
       <style>{`
+        @page {
+          size: A5 portrait;
+          margin: 6mm 8mm;
+        }
         @media print {
+          html, body {
+            width: 148mm !important;
+            height: 210mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #ffffff !important;
+            font-size: 8.5pt !important;
+            line-height: 1.25 !important;
+          }
           body * { visibility: hidden !important; }
           #huderma-printable-prescription, #huderma-printable-prescription * { visibility: visible !important; }
           #huderma-printable-prescription {
@@ -1391,12 +1397,20 @@ export default function PharmacyPage() {
             width: 100% !important;
             max-width: 100% !important;
             margin: 0 !important;
-            padding: 24px !important;
+            padding: 4mm 6mm !important;
             background: #ffffff !important;
-            color: #1f2937 !important;
+            color: #111827 !important;
             box-shadow: none !important;
             border: none !important;
             border-radius: 0 !important;
+            font-size: 8.5pt !important;
+          }
+          #huderma-printable-prescription table {
+            font-size: 8pt !important;
+          }
+          #huderma-printable-prescription th,
+          #huderma-printable-prescription td {
+            padding: 4px 6px !important;
           }
           .no-print-area { display: none !important; }
         }

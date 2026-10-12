@@ -65,6 +65,8 @@ public class EncounterDto
     public string? VitalSigns { get; set; }
     public bool IsFinalized { get; set; }
     public DateTime? FinalizedAt { get; set; }
+    public string? VisitType { get; set; }
+    public decimal? PaidAmount { get; set; }
     public List<DiagnosisDto> Diagnoses { get; set; } = new();
 
     public EncounterDto() { }

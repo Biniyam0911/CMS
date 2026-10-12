@@ -322,7 +322,27 @@ export default function TriagePage() {
 
         const encList = Array.isArray(encounters) ? encounters : [];
         const invList = Array.isArray(invoices) ? invoices : [];
-        setPatientPreviousVisits(encList);
+
+        // Enrich encounters with VisitType and PaidAmount from matched invoices
+        const enrichedVisits = encList.map((e: any) => {
+          const eDate = e.encounterDate || e.EncounterDate;
+          const eDateStr = eDate ? String(eDate).split('T')[0] : '';
+          const matchedInv = invList.find((inv: any) => {
+            const iDate = inv.issueDate || inv.createdAt || inv.IssueDate;
+            const iDateStr = iDate ? String(iDate).split('T')[0] : '';
+            return iDateStr && iDateStr === eDateStr;
+          });
+          const paidAmt = e.paidAmount !== undefined && e.paidAmount !== null
+            ? Number(e.paidAmount)
+            : (matchedInv ? Number(matchedInv.paidAmount || matchedInv.PaidAmount || 0) : 0);
+          return {
+            ...e,
+            visitType: e.visitType || e.VisitType || (matchedInv?.items?.find((i: any) => (i.description || '').toLowerCase().includes('repeat')) ? 'Repeat' : 'New'),
+            paidAmount: paidAmt
+          };
+        });
+
+        setPatientPreviousVisits(enrichedVisits);
 
         // Find last paid consultation / visit invoice
         const paidInvoices = invList.filter((inv: any) =>
@@ -1500,15 +1520,39 @@ body { width: 5in; height: 2in; font-family: 'Courier New', Courier, monospace; 
                       const docName = enc.doctorName || enc.DoctorName || 'Attending Physician';
                       const diag = enc.assessment || enc.Assessment;
                       const cc = enc.chiefComplaint || enc.ChiefComplaint;
+                      const vType = enc.visitType || enc.VisitType;
+                      const paidAmt = Number(enc.paidAmount ?? 0);
+
                       return (
                         <div key={idx} style={{ padding: '10px', background: '#fdfcf9', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '0.75rem' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#0369a1', fontWeight: 700 }}>
-                            <span>{encDate || 'Consultation'}</span>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#0369a1', fontWeight: 700 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span>{encDate || 'Consultation'}</span>
+                              {vType && (
+                                <span style={{
+                                  fontSize: '0.65rem',
+                                  padding: '1px 6px',
+                                  borderRadius: '4px',
+                                  fontWeight: 700,
+                                  background: vType === 'Repeat' ? '#dcfce7' : vType === 'New Repeat' ? '#fef9c3' : '#e0f2fe',
+                                  color: vType === 'Repeat' ? '#166534' : vType === 'New Repeat' ? '#854d0e' : '#0369a1'
+                                }}>
+                                  {vType}
+                                </span>
+                              )}
+                            </div>
                             <span style={{ color: '#c2410c', background: '#fff7ed', padding: '1px 6px', borderRadius: '4px', fontSize: '0.68rem' }}>
                               {daysAgoStr}
                             </span>
                           </div>
-                          <div style={{ fontWeight: 600, marginTop: '2px' }}>{docName}</div>
+
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
+                            <div style={{ fontWeight: 600 }}>{docName}</div>
+                            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: paidAmt > 0 ? '#059669' : '#94a3b8' }}>
+                              {paidAmt > 0 ? `Paid: Br ${paidAmt.toFixed(2)}` : 'Br 0.00 (Free / Unbilled)'}
+                            </div>
+                          </div>
+
                           {diag && (
                             <div style={{ color: 'var(--text-main)', fontSize: '0.72rem', marginTop: '2px' }}>
                               <strong>Dx:</strong> {diag}

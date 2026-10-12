@@ -68,7 +68,7 @@ public class EncounterService
                 u.PatientId,
                 p.FirstName + ' ' + ISNULL(p.MiddleName + ' ', '') + p.LastName AS PatientName,
                 u.DoctorId,
-                ISNULL(s.FirstName + ' ' + s.LastName, 'Attending Physician') AS DoctorName,
+                ISNULL(s.Title + ' ' + s.FirstName + ' ' + s.LastName, ISNULL(s.FirstName + ' ' + s.LastName, 'Attending Physician')) AS DoctorName,
                 u.EncounterDate,
                 u.ChiefComplaint,
                 u.HistoryOfIllness,
@@ -77,7 +77,9 @@ public class EncounterService
                 u.[Plan],
                 u.VitalSigns,
                 u.IsFinalized,
-                u.FinalizedAt
+                u.FinalizedAt,
+                u.VisitType,
+                inv.PaidAmount
             FROM (
                 -- 1. Clinical Encounters (SOAP notes)
                 SELECT 
@@ -93,7 +95,8 @@ public class EncounterService
                     e.[Plan],
                     e.VitalSigns,
                     e.IsFinalized,
-                    e.FinalizedAt
+                    e.FinalizedAt,
+                    (SELECT TOP 1 pt.VisitType FROM PatientTriage pt WITH (NOLOCK) WHERE pt.PatientId = e.PatientId AND CAST(pt.TriagedAt AS DATE) = CAST(e.EncounterDate AS DATE) ORDER BY pt.Id DESC) AS VisitType
                 FROM Encounters e WITH (NOLOCK)
                 WHERE e.TenantId = @TenantId AND e.PatientId = @PatientId
 
@@ -113,7 +116,8 @@ public class EncounterService
                     t.Status AS [Plan],
                     NULL AS VitalSigns,
                     1 AS IsFinalized,
-                    t.TriagedAt AS FinalizedAt
+                    t.TriagedAt AS FinalizedAt,
+                    t.VisitType
                 FROM PatientTriage t WITH (NOLOCK)
                 WHERE t.TenantId = @TenantId AND t.PatientId = @PatientId
                   AND NOT EXISTS (
@@ -126,6 +130,13 @@ public class EncounterService
             JOIN Patients p WITH (NOLOCK) ON p.Id = u.PatientId
             LEFT JOIN Doctors d WITH (NOLOCK) ON d.Id = u.DoctorId
             LEFT JOIN Staff s WITH (NOLOCK) ON s.Id = d.StaffId
+            OUTER APPLY (
+                SELECT TOP 1 ISNULL(i.PaidAmount, 0) AS PaidAmount
+                FROM Invoices i WITH (NOLOCK)
+                WHERE i.PatientId = u.PatientId
+                  AND CAST(ISNULL(i.IssueDate, i.CreatedAt) AS DATE) = CAST(u.EncounterDate AS DATE)
+                ORDER BY i.Id DESC
+            ) inv
             ORDER BY u.EncounterDate DESC, u.Id DESC";
 
         var encounters = (await conn.QueryAsync<EncounterDto>(sql, new { TenantId = tenantId, PatientId = patientId })).ToList();

@@ -178,14 +178,35 @@ public class PharmacyService
                    p.FirstName + ' ' + ISNULL(p.MiddleName + ' ', '') + p.LastName AS PatientName,
                    p.MRN,
                    pr.PrescribedBy AS DoctorId,
-                   ISNULL(s.FirstName + ' ' + s.LastName, ISNULL(u.FirstName + ' ' + u.LastName, 'Attending Doctor')) AS DoctorName,
+                   COALESCE(
+                       docTable.DoctorName,
+                       userDoc.DoctorName,
+                       staffDirect.DoctorName,
+                       'Attending Doctor'
+                   ) AS DoctorName,
                    pr.PrescribedAt,
                    CAST(CASE WHEN pr.IsDispensed = 1 THEN 4 ELSE 1 END AS TINYINT) AS StatusId,
-                   pr.IsDispensed
+                   pr.IsDispensed,
+                   pr.Notes
             FROM Prescriptions pr WITH (NOLOCK)
             JOIN Patients p WITH (NOLOCK) ON p.Id = pr.PatientId
-            LEFT JOIN Users u WITH (NOLOCK) ON u.Id = pr.PrescribedBy
-            LEFT JOIN Staff s WITH (NOLOCK) ON s.UserId = u.Id
+            OUTER APPLY (
+                SELECT TOP 1 st.Title + ' ' + st.FirstName + ' ' + st.LastName AS DoctorName
+                FROM Doctors d WITH (NOLOCK)
+                JOIN Staff st WITH (NOLOCK) ON st.Id = d.StaffId
+                WHERE d.Id = pr.PrescribedBy
+            ) docTable
+            OUTER APPLY (
+                SELECT TOP 1 st.Title + ' ' + st.FirstName + ' ' + st.LastName AS DoctorName
+                FROM Users u WITH (NOLOCK)
+                JOIN Staff st WITH (NOLOCK) ON st.UserId = u.Id
+                WHERE u.Id = pr.PrescribedBy
+            ) userDoc
+            OUTER APPLY (
+                SELECT TOP 1 st.Title + ' ' + st.FirstName + ' ' + st.LastName AS DoctorName
+                FROM Staff st WITH (NOLOCK)
+                WHERE st.Id = pr.PrescribedBy
+            ) staffDirect
             WHERE pr.TenantId = @TenantId
               AND (@PatientId IS NULL OR pr.PatientId = @PatientId)
             ORDER BY pr.PrescribedAt DESC";
@@ -203,7 +224,12 @@ public class PharmacyService
         {
             var itemsSql = @"
                 SELECT pi.Id, pi.PrescriptionId, pi.DrugId, 
-                       ISNULL(d.GenericName, 'Prescribed Medication') AS DrugName,
+                       COALESCE(
+                           NULLIF(d.GenericName, ''),
+                           NULLIF(d.BrandName, ''),
+                           NULLIF(pi.Instructions, ''),
+                           'Prescribed Medication'
+                       ) AS DrugName,
                        ISNULL(pi.Dosage, '') AS Dosage, 
                        ISNULL(pi.Frequency, '') AS Frequency, 
                        ISNULL(CASE WHEN pi.DurationDays IS NOT NULL THEN CAST(pi.DurationDays AS VARCHAR) + ' Days' ELSE '' END, '') AS Duration,
