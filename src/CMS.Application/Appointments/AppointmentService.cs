@@ -88,8 +88,8 @@ public class AppointmentService
             UPDATE Appointments
             SET StatusId = @StatusId,
                 CancelReason = @CancelReason,
-                CancelledAt = CASE WHEN @StatusId = 4 THEN SYSUTCDATETIME() ELSE CancelledAt END,
-                UpdatedAt = SYSUTCDATETIME()
+                CancelledAt = CASE WHEN @StatusId = 4 THEN GETDATE() ELSE CancelledAt END,
+                UpdatedAt = GETDATE()
             WHERE Id = @AppointmentId AND TenantId = @TenantId";
 
         var rows = await conn.ExecuteAsync(sql, new { StatusId = statusId, CancelReason = cancelReason, AppointmentId = appointmentId, TenantId = tenantId });
@@ -105,7 +105,7 @@ public class AppointmentService
             SET SlotDateTime = @NewSlotDateTime,
                 DurationMinutes = @DurationMinutes,
                 StatusId = 1,
-                UpdatedAt = SYSUTCDATETIME()
+                UpdatedAt = GETDATE()
             WHERE Id = @AppointmentId AND TenantId = @TenantId";
 
         var rows = await conn.ExecuteAsync(sql, new { NewSlotDateTime = newSlotDateTime, DurationMinutes = durationMinutes, AppointmentId = appointmentId, TenantId = tenantId });

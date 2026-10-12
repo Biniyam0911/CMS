@@ -282,7 +282,7 @@ public class PatientsController : ControllerBase
             var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
             await conn.ExecuteAsync(@"
                 INSERT INTO AuditLog (TenantId, TableName, RecordId, Operation, OldValues, NewValues, ChangedBy, ChangedAt, IpAddress)
-                VALUES (@TenantId, 'Patients', @RecordId, 'CREATE_PATIENT', NULL, @NewValues, @ChangedBy, SYSUTCDATETIME(), @IpAddress)",
+                VALUES (@TenantId, 'Patients', @RecordId, 'CREATE_PATIENT', NULL, @NewValues, @ChangedBy, GETDATE(), @IpAddress)",
                 new { TenantId = tenantId, RecordId = newId.ToString(), NewValues = System.Text.Json.JsonSerializer.Serialize(dto), ChangedBy = userId, IpAddress = ip });
         }
         catch { }
@@ -314,7 +314,7 @@ public class PatientsController : ControllerBase
             int userId = HttpContext.Items["UserId"] is int uid ? uid : 1;
             await conn.ExecuteAsync(@"
                 INSERT INTO AuditLog (TenantId, TableName, RecordId, Operation, OldValues, NewValues, ChangedBy, ChangedAt, IpAddress)
-                VALUES (@TenantId, 'Patients', @RecordId, 'VIEW_CHART', NULL, NULL, @ChangedBy, SYSUTCDATETIME(), @IpAddress)",
+                VALUES (@TenantId, 'Patients', @RecordId, 'VIEW_CHART', NULL, NULL, @ChangedBy, GETDATE(), @IpAddress)",
                 new { TenantId = tenantId, RecordId = id.ToString(), ChangedBy = userId, IpAddress = ip });
         }
         catch { }
@@ -369,17 +369,6 @@ public class PatientsController : ControllerBase
         });
 
         await _cache.RemoveByPrefixAsync($"tenant:{tenantId}:patients");
-
-        // Audit Logging
-        try
-        {
-            var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
-            await conn.ExecuteAsync(@"
-                INSERT INTO AuditLog (TenantId, TableName, RecordId, Operation, OldValues, NewValues, ChangedBy, ChangedAt, IpAddress)
-                VALUES (@TenantId, 'Patients', @RecordId, 'UPDATE_PATIENT', NULL, @NewValues, @ChangedBy, SYSUTCDATETIME(), @IpAddress)",
-                new { TenantId = tenantId, RecordId = id.ToString(), NewValues = System.Text.Json.JsonSerializer.Serialize(dto), ChangedBy = userId > 0 ? userId : (int?)null, IpAddress = ip });
-        }
-        catch { }
 
         return Ok(ApiResponse<object>.Ok(new { Success = rows > 0, PatientId = id }));
     }
@@ -492,7 +481,7 @@ public class LaboratoryController : ControllerBase
         {
             var sql = @"
                 INSERT INTO LabTestCatalog (TenantId, TestCode, TestName, Category, SampleType, TurnaroundMinutes, NormalRangeLow, NormalRangeHigh, TextReferenceRange, Unit, Price, DisplayOrder, IsActive, CreatedAt)
-                VALUES (@TenantId, @TestCode, @TestName, @Category, @SampleType, @TurnaroundMinutes, @NormalRangeLow, @NormalRangeHigh, @TextReferenceRange, @Unit, @Price, @DisplayOrder, 1, SYSUTCDATETIME());
+                VALUES (@TenantId, @TestCode, @TestName, @Category, @SampleType, @TurnaroundMinutes, @NormalRangeLow, @NormalRangeHigh, @TextReferenceRange, @Unit, @Price, @DisplayOrder, 1, GETDATE());
                 SELECT CAST(SCOPE_IDENTITY() as int);";
             int id = await conn.ExecuteScalarAsync<int>(sql, new {
                 TenantId = tenantId,
@@ -513,7 +502,7 @@ public class LaboratoryController : ControllerBase
             {
                 var sqlParam = @"
                     INSERT INTO LabTestParameters (TestCatalogId, ParameterCode, ParameterName, Unit, ReferenceLow, ReferenceHigh, TextReferenceRange, DisplayOrder, CreatedAt)
-                    VALUES (@TestCatalogId, @ParameterCode, @ParameterName, @Unit, @ReferenceLow, @ReferenceHigh, @TextReferenceRange, @DisplayOrder, SYSUTCDATETIME());";
+                    VALUES (@TestCatalogId, @ParameterCode, @ParameterName, @Unit, @ReferenceLow, @ReferenceHigh, @TextReferenceRange, @DisplayOrder, GETDATE());";
                 
                 int order = 1;
                 foreach (var p in req.Parameters)
@@ -592,7 +581,7 @@ public class LaboratoryController : ControllerBase
                 {
                     var sqlParam = @"
                         INSERT INTO LabTestParameters (TestCatalogId, ParameterCode, ParameterName, Unit, ReferenceLow, ReferenceHigh, TextReferenceRange, DisplayOrder, CreatedAt)
-                        VALUES (@TestCatalogId, @ParameterCode, @ParameterName, @Unit, @ReferenceLow, @ReferenceHigh, @TextReferenceRange, @DisplayOrder, SYSUTCDATETIME());";
+                        VALUES (@TestCatalogId, @ParameterCode, @ParameterName, @Unit, @ReferenceLow, @ReferenceHigh, @TextReferenceRange, @DisplayOrder, GETDATE());";
                     
                     int order = 1;
                     foreach (var p in req.Parameters)
@@ -886,7 +875,7 @@ public class LaboratoryController : ControllerBase
                      StationId, Department, Description, ConnectionMode, RemoteIp, RemotePort, IsActive, CreatedAt)
                 VALUES
                     (@TenantId, @Name, @Model, @SerialNumber, @Protocol, @IpAddress, @Port, @Category,
-                     @StationId, @Department, @Description, @ConnectionMode, @RemoteIp, @RemotePort, 1, SYSUTCDATETIME());
+                     @StationId, @Department, @Description, @ConnectionMode, @RemoteIp, @RemotePort, 1, GETDATE());
                 SELECT SCOPE_IDENTITY();";
             int newId = await conn.ExecuteScalarAsync<int>(sql, new {
                 TenantId = tenantId,

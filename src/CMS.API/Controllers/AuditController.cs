@@ -94,7 +94,7 @@ public class AuditController : ControllerBase
 
         var sql = @"
             INSERT INTO AuditLog (TenantId, TableName, RecordId, Operation, OldValues, NewValues, ChangedBy, ChangedAt, IpAddress)
-            VALUES (@TenantId, @TableName, @RecordId, @Operation, @OldValues, @NewValues, @ChangedBy, SYSUTCDATETIME(), @IpAddress);
+            VALUES (@TenantId, @TableName, @RecordId, @Operation, @OldValues, @NewValues, @ChangedBy, GETDATE(), @IpAddress);
             SELECT SCOPE_IDENTITY();";
 
         long newId = await conn.ExecuteScalarAsync<long>(sql, new {

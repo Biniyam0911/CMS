@@ -140,7 +140,7 @@ public class UsersController : ControllerBase
             return BadRequest(ApiResponse<object>.Fail("Cannot delete SuperAdmin user."));
 
         int rows = await conn.ExecuteAsync(@"
-            UPDATE Users SET IsActive = 0, LockoutEnd = DATEADD(year, 100, SYSUTCDATETIME()) WHERE Id = @UserId AND TenantId = @TenantId;
+            UPDATE Users SET IsActive = 0, LockoutEnd = DATEADD(year, 100, GETDATE()) WHERE Id = @UserId AND TenantId = @TenantId;
             UPDATE Staff SET IsActive = 0 WHERE UserId = @UserId AND TenantId = @TenantId;
             DELETE FROM RefreshTokens WHERE UserId = @UserId;",
             new { UserId = userId, TenantId = tenantId });
