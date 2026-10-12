@@ -171,60 +171,44 @@ public class PatientsController : ControllerBase
 
     [HttpGet]
     [HttpGet("search")]
-    public async Task<IActionResult> Search([FromQuery] string? q = "", [FromQuery] int page = 1, [FromQuery] int limit = 100)
+    public async Task<IActionResult> Search([FromQuery] string? q = "", [FromQuery] int page = 1, [FromQuery] int pageSize = 25)
     {
         byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
         var queryStr = q?.Trim() ?? "";
-        int maxRows = limit is > 0 and <= 500 ? limit : 100;
-
-        string? cacheKey = string.IsNullOrWhiteSpace(queryStr) ? $"tenant:{tenantId}:patients:top:{maxRows}" : null;
-        if (cacheKey != null)
-        {
-            var cached = await _cache.GetAsync<List<PatientDto>>(cacheKey);
-            if (cached != null)
-                return Ok(ApiResponse<List<PatientDto>>.Ok(cached));
-        }
+        if (page < 1) page = 1;
+        if (pageSize < 1 || pageSize > 200) pageSize = 25;
+        int offset = (page - 1) * pageSize;
 
         using var conn = _dbFactory.CreateConnection();
-        
-        string sql;
-        object param;
 
-        if (string.IsNullOrWhiteSpace(queryStr))
-        {
-            sql = @"
-                SELECT TOP (@Limit) Id, TenantId, MRN, FirstName, MiddleName, LastName, DateOfBirth, Gender,
-                       PrimaryPhone, Email, Address, InsuranceProvider, InsuranceCopayPercent,
-                       Allergies, ChronicConditions, NationalId, BloodGroup, PhotoUrl, IsActive
-                FROM Patients WITH (NOLOCK)
-                WHERE TenantId = @TenantId AND IsActive = 1
-                ORDER BY Id DESC";
-            param = new { TenantId = tenantId, Limit = maxRows };
-        }
-        else
-        {
-            var prefix = queryStr + "%";
-            var contains = "%" + queryStr + "%";
-            sql = @"
-                SELECT TOP (@Limit) Id, TenantId, MRN, FirstName, MiddleName, LastName, DateOfBirth, Gender,
-                       PrimaryPhone, Email, Address, InsuranceProvider, InsuranceCopayPercent,
-                       Allergies, ChronicConditions, NationalId, BloodGroup, PhotoUrl, IsActive
-                FROM Patients WITH (NOLOCK)
-                WHERE TenantId = @TenantId AND IsActive = 1
-                  AND (MRN LIKE @Prefix OR PrimaryPhone LIKE @Prefix OR FirstName LIKE @Prefix OR LastName LIKE @Prefix 
-                       OR FirstName LIKE @Contains OR LastName LIKE @Contains OR MiddleName LIKE @Contains)
-                ORDER BY Id DESC";
-            param = new { TenantId = tenantId, Prefix = prefix, Contains = contains, Limit = maxRows };
-        }
+        string whereSql = string.IsNullOrWhiteSpace(queryStr)
+            ? "WHERE TenantId = @TenantId AND IsActive = 1"
+            : "WHERE TenantId = @TenantId AND IsActive = 1 AND (MRN LIKE @Prefix OR PrimaryPhone LIKE @Prefix OR FirstName LIKE @Prefix OR LastName LIKE @Prefix OR FirstName LIKE @Contains OR LastName LIKE @Contains OR MiddleName LIKE @Contains)";
 
-        var patients = (await conn.QueryAsync<PatientDto>(sql, param)).ToList();
+        var prefix  = queryStr + "%";
+        var contains = "%" + queryStr + "%";
 
-        if (cacheKey != null)
-        {
-            await _cache.SetAsync(cacheKey, patients, TimeSpan.FromSeconds(30));
-        }
+        int total = await conn.ExecuteScalarAsync<int>(
+            $"SELECT COUNT(*) FROM Patients WITH (NOLOCK) {whereSql}",
+            new { TenantId = tenantId, Prefix = prefix, Contains = contains });
 
-        return Ok(ApiResponse<List<PatientDto>>.Ok(patients));
+        var dataSql = $@"
+            SELECT Id, TenantId, MRN, FirstName, MiddleName, LastName, DateOfBirth, Gender,
+                   PrimaryPhone, Email, Address, InsuranceProvider, InsuranceCopayPercent,
+                   Allergies, ChronicConditions, NationalId, BloodGroup, PhotoUrl, IsActive
+            FROM Patients WITH (NOLOCK)
+            {whereSql}
+            ORDER BY Id DESC
+            OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY";
+
+        var patients = (await conn.QueryAsync<PatientDto>(dataSql,
+            new { TenantId = tenantId, Prefix = prefix, Contains = contains, Offset = offset, PageSize = pageSize })).ToList();
+
+        return Ok(new {
+            Success = true,
+            Data = patients,
+            Meta = new { Total = total, Page = page, PageSize = pageSize, TotalPages = (int)Math.Ceiling((double)total / pageSize) }
+        });
     }
 
     [HttpPost]

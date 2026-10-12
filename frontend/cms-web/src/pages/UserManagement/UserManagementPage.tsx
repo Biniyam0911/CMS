@@ -34,9 +34,16 @@ export default function UserManagementPage() {
 
   // HIPAA Compliance Audit State
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [auditTotal, setAuditTotal] = useState(0);
+  const [auditPage, setAuditPage] = useState(1);
+  const [auditPageSize] = useState(25);
+  const [auditTotalPages, setAuditTotalPages] = useState(1);
   const [loadingAudit, setLoadingAudit] = useState(false);
   const [auditTableFilter, setAuditTableFilter] = useState('');
   const [auditOpFilter, setAuditOpFilter] = useState('');
+  const [auditKeyword, setAuditKeyword] = useState('');
+  const [auditDateFrom, setAuditDateFrom] = useState('');
+  const [auditDateTo, setAuditDateTo] = useState('');
   const [selectedAuditLog, setSelectedAuditLog] = useState<any | null>(null);
 
   // Users & Staff State
@@ -374,20 +381,39 @@ export default function UserManagementPage() {
     }
   };
 
-  const loadAuditLogs = async () => {
+  const loadAuditLogs = async (pageOverride?: number) => {
     try {
       setLoadingAudit(true);
-      const params: any = {};
+      const pg = pageOverride ?? auditPage;
+      const params: any = { page: pg, pageSize: auditPageSize };
       if (auditTableFilter) params.tableName = auditTableFilter;
       if (auditOpFilter) params.operation = auditOpFilter;
-      const res = await api.get<any[]>('/audit/logs', params);
-      setAuditLogs(res || []);
+      if (auditKeyword.trim()) params.keyword = auditKeyword.trim();
+      if (auditDateFrom) params.dateFrom = auditDateFrom;
+      if (auditDateTo) params.dateTo = auditDateTo;
+      const res: any = await api.get<any>('/audit/logs', params);
+      const data = res?.data ?? res?.Data ?? res ?? [];
+      const meta = res?.meta ?? res?.Meta ?? {};
+      setAuditLogs(Array.isArray(data) ? data : []);
+      setAuditTotal(meta.Total ?? meta.total ?? 0);
+      setAuditPage(meta.Page ?? meta.page ?? pg);
+      setAuditTotalPages(meta.TotalPages ?? meta.totalPages ?? 1);
     } catch (err) {
       console.error('Failed to load audit logs:', err);
       setAuditLogs([]);
     } finally {
       setLoadingAudit(false);
     }
+  };
+
+  const handleAuditSearch = () => {
+    setAuditPage(1);
+    loadAuditLogs(1);
+  };
+
+  const handleAuditPageChange = (p: number) => {
+    setAuditPage(p);
+    loadAuditLogs(p);
   };
 
   const handleOpenEditStaffModal = (user: any) => {
@@ -1632,137 +1658,237 @@ export default function UserManagementPage() {
       {/* ========================================================================= */}
       {activeTab === 'audit' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {/* Header & Filter Bar */}
-          <div className="glass-panel" style={{ padding: isMobile ? '16px 14px' : '18px 24px', background: '#ffffff', borderRadius: '12px', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Shield size={20} color="#0284c7" />
-                <h3 style={{ fontSize: isMobile ? '1rem' : '1.15rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-                  HIPAA &amp; Privacy Immutable Access Audit Trail
-                </h3>
-              </div>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '4px 0 0' }}>
-                Chronological record of patient medical record access, clinical alterations, billing updates, and credential events.
-              </p>
+          {/* Header */}
+          <div className="glass-panel" style={{ padding: isMobile ? '14px' : '18px 24px', background: '#ffffff', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+              <Shield size={20} color="#0284c7" />
+              <h3 style={{ fontSize: isMobile ? '1rem' : '1.15rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                HIPAA &amp; Privacy Immutable Access Audit Trail
+              </h3>
             </div>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0 0 14px' }}>
+              Chronological record of patient record access, clinical alterations, billing updates, and credential events.
+            </p>
 
-            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', width: isMobile ? '100%' : 'auto' }}>
-              <select
-                value={auditTableFilter}
-                onChange={e => setAuditTableFilter(e.target.value)}
-                style={{ padding: '6px 10px', fontSize: '0.78rem', flex: isMobile ? 1 : 'initial' }}
-              >
-                <option value="">All Entities / Tables</option>
-                <option value="Patients">Patients</option>
-                <option value="Encounters">Encounters / EMR Notes</option>
-                <option value="Prescriptions">Prescriptions</option>
-                <option value="LabOrders">Lab Orders</option>
-                <option value="Invoices">Invoices &amp; Payments</option>
-                <option value="Users">User Accounts</option>
-              </select>
+            {/* Search / Filter Bar */}
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+              {/* Keyword search */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', flex: isMobile ? '1 1 100%' : '1 1 180px' }}>
+                <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>Search (user / record / IP / operation)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. nurse2, patient #42, 192.168..."
+                  value={auditKeyword}
+                  onChange={e => setAuditKeyword(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleAuditSearch()}
+                  style={{ padding: '6px 10px', fontSize: '0.78rem' }}
+                />
+              </div>
 
-              <select
-                value={auditOpFilter}
-                onChange={e => setAuditOpFilter(e.target.value)}
-                style={{ padding: '6px 10px', fontSize: '0.78rem', flex: isMobile ? 1 : 'initial' }}
-              >
-                <option value="">All Operations</option>
-                <option value="I">Insert / Create (I)</option>
-                <option value="U">Update / Edit (U)</option>
-                <option value="D">Delete / Archive (D)</option>
-                <option value="V">View / Read Chart (V)</option>
-              </select>
+              {/* Entity/Table */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', flex: isMobile ? '1 1 45%' : '0 0 160px' }}>
+                <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>Entity / Table</label>
+                <select value={auditTableFilter} onChange={e => setAuditTableFilter(e.target.value)} style={{ padding: '6px 10px', fontSize: '0.78rem' }}>
+                  <option value="">All Entities</option>
+                  <option value="Patients">Patients</option>
+                  <option value="Encounters">Encounters / EMR</option>
+                  <option value="Prescriptions">Prescriptions</option>
+                  <option value="LabOrders">Lab Orders</option>
+                  <option value="Invoices">Invoices &amp; Payments</option>
+                  <option value="Users">User Accounts</option>
+                  <option value="ProcedureOrders">Procedure Orders</option>
+                  <option value="DrugFormulary">Drug Formulary</option>
+                </select>
+              </div>
 
-              <button
-                type="button"
-                onClick={loadAuditLogs}
-                className="btn-secondary"
-                style={{ padding: '6px 12px', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '5px' }}
-              >
-                <RefreshCw size={13} className={loadingAudit ? 'animate-spin' : ''} /> Refresh
-              </button>
+              {/* Operation */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', flex: isMobile ? '1 1 45%' : '0 0 180px' }}>
+                <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>Operation</label>
+                <select value={auditOpFilter} onChange={e => setAuditOpFilter(e.target.value)} style={{ padding: '6px 10px', fontSize: '0.78rem' }}>
+                  <option value="">All Operations</option>
+                  <option value="CREATE">Create / Register</option>
+                  <option value="UPDATE">Update / Edit</option>
+                  <option value="DELETE">Delete / Archive</option>
+                  <option value="VIEW">View / Read Chart</option>
+                  <option value="PRESCRIPTION">Prescription</option>
+                  <option value="LAB">Lab</option>
+                  <option value="PAYMENT">Payment / Billing</option>
+                  <option value="ASSIGN">Assign / Triage</option>
+                  <option value="PRINT">Print</option>
+                  <option value="BACKUP">Backup</option>
+                </select>
+              </div>
+
+              {/* Date From */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', flex: isMobile ? '1 1 45%' : '0 0 140px' }}>
+                <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>Date From</label>
+                <input type="date" value={auditDateFrom} onChange={e => setAuditDateFrom(e.target.value)} style={{ padding: '6px 10px', fontSize: '0.78rem' }} />
+              </div>
+
+              {/* Date To */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', flex: isMobile ? '1 1 45%' : '0 0 140px' }}>
+                <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>Date To</label>
+                <input type="date" value={auditDateTo} onChange={e => setAuditDateTo(e.target.value)} style={{ padding: '6px 10px', fontSize: '0.78rem' }} />
+              </div>
+
+              {/* Buttons */}
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'flex-end', flex: isMobile ? '1 1 100%' : '0 0 auto' }}>
+                <button type="button" onClick={handleAuditSearch} className="btn-primary" style={{ padding: '6px 14px', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <Search size={13} /> Search
+                </button>
+                <button type="button" onClick={() => {
+                  setAuditKeyword(''); setAuditTableFilter(''); setAuditOpFilter('');
+                  setAuditDateFrom(''); setAuditDateTo('');
+                  setAuditPage(1); loadAuditLogs(1);
+                }} className="btn-secondary" style={{ padding: '6px 10px', fontSize: '0.78rem' }}>
+                  Clear
+                </button>
+                <button type="button" onClick={() => loadAuditLogs(auditPage)} className="btn-secondary" style={{ padding: '6px 10px', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <RefreshCw size={13} className={loadingAudit ? 'animate-spin' : ''} />
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Audit Log Table and Side-by-Side Change Viewer */}
+          {/* Table + Change Viewer */}
           <div style={{ display: 'grid', gridTemplateColumns: selectedAuditLog ? (isMobile ? '1fr' : '1.3fr 1fr') : '1fr', gap: '16px', alignItems: 'start' }}>
             <div className="glass-panel" style={{ padding: isMobile ? '14px 10px' : '20px', background: '#ffffff', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
               {loadingAudit ? (
                 <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
                   <Loader2 size={24} className="animate-spin" style={{ margin: '0 auto 8px' }} />
-                  Loading cryptographic access audit logs...
+                  Loading audit logs...
                 </div>
               ) : auditLogs.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                  No audit log entries found matching criteria. Actions taken by practitioners across EMR, billing, and pharmacy will log here.
+                  No audit log entries found. Try adjusting the search filters.
                 </div>
               ) : (
-                <div className="table-responsive">
-                  <table className="cms-table" style={{ fontSize: '0.78rem' }}>
-                    <thead>
-                      <tr>
-                        <th>Log ID</th>
-                        <th>Timestamp (UTC)</th>
-                        <th>User / Actor</th>
-                        <th>Entity</th>
-                        <th>Record</th>
-                        <th>Operation</th>
-                        <th>Inspect</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {auditLogs.map(log => {
-                        const opBadge =
-                          log.operation === 'I' || log.operation?.includes('CREATE') ? { text: 'INSERT', bg: '#dcfce7', col: '#15803d' } :
-                          log.operation === 'U' || log.operation?.includes('UPDATE') ? { text: 'UPDATE', bg: '#e0f2fe', col: '#0369a1' } :
-                          log.operation === 'D' || log.operation?.includes('DELETE') ? { text: 'DELETE', bg: '#fee2e2', col: '#991b1b' } :
-                          { text: log.operation || 'ACCESS', bg: '#fef3c7', col: '#92400e' };
+                <>
+                  {/* Result count + page info */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    <span>{auditTotal.toLocaleString()} entries found</span>
+                    <span>Page {auditPage} of {auditTotalPages}</span>
+                  </div>
 
-                        const isSelected = selectedAuditLog?.id === log.id;
+                  <div className="table-responsive">
+                    <table className="cms-table" style={{ fontSize: '0.78rem' }}>
+                      <thead>
+                        <tr>
+                          <th>Log ID</th>
+                          <th>Timestamp</th>
+                          <th>User / Actor</th>
+                          <th>Entity</th>
+                          <th>Record ID</th>
+                          <th>Operation</th>
+                          <th>IP</th>
+                          <th>Inspect</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {auditLogs.map(log => {
+                          const op = (log.operation || '').toUpperCase();
+                          const opBadge =
+                            op.includes('CREATE') || op.includes('INSERT') || op.includes('REGISTER') ? { text: op, bg: '#dcfce7', col: '#15803d' } :
+                            op.includes('UPDATE') || op.includes('EDIT') || op.includes('CHANGE') ? { text: op, bg: '#e0f2fe', col: '#0369a1' } :
+                            op.includes('DELETE') || op.includes('ARCHIVE') || op.includes('REMOVE') ? { text: op, bg: '#fee2e2', col: '#991b1b' } :
+                            op.includes('VIEW') || op.includes('PRINT') || op.includes('READ') ? { text: op, bg: '#f3e8ff', col: '#7c3aed' } :
+                            op.includes('ASSIGN') || op.includes('TRIAGE') ? { text: op, bg: '#fef9c3', col: '#b45309' } :
+                            { text: op || 'ACCESS', bg: '#f1f5f9', col: '#475569' };
 
-                        return (
-                          <tr
-                            key={log.id}
-                            onClick={() => setSelectedAuditLog(isSelected ? null : log)}
-                            style={{
-                              background: isSelected ? '#f0f9ff' : undefined,
-                              cursor: 'pointer',
-                              borderLeft: isSelected ? '3px solid #0284c7' : undefined
-                            }}
-                          >
-                            <td style={{ fontFamily: 'monospace', fontWeight: 700 }}>#{log.id}</td>
-                            <td style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                              {log.changedAt ? new Date(log.changedAt).toLocaleString() : 'Recent'}
-                            </td>
-                            <td style={{ fontWeight: 700, color: 'var(--text-main)' }}>
-                              {log.userName || `User #${log.changedBy || 1}`}
-                            </td>
-                            <td style={{ fontWeight: 600 }}>{log.tableName}</td>
-                            <td style={{ fontFamily: 'monospace' }}>{log.recordId}</td>
-                            <td>
-                              <span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 800, background: opBadge.bg, color: opBadge.col }}>
-                                {opBadge.text}
-                              </span>
-                            </td>
-                            <td>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedAuditLog(isSelected ? null : log);
-                                }}
-                                className="btn-secondary"
-                                style={{ padding: '2px 8px', fontSize: '0.7rem', color: isSelected ? '#0284c7' : undefined }}
-                              >
-                                {isSelected ? 'Close' : 'View Changes'}
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                          const isSelected = selectedAuditLog?.id === log.id;
+
+                          return (
+                            <tr
+                              key={log.id}
+                              onClick={() => setSelectedAuditLog(isSelected ? null : log)}
+                              style={{ background: isSelected ? '#f0f9ff' : undefined, cursor: 'pointer', borderLeft: isSelected ? '3px solid #0284c7' : undefined }}
+                            >
+                              <td style={{ fontFamily: 'monospace', fontWeight: 700 }}>#{log.id}</td>
+                              <td style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap', fontSize: '0.72rem' }}>
+                                {log.changedAt ? new Date(log.changedAt).toLocaleString() : '—'}
+                              </td>
+                              <td style={{ fontWeight: 700, color: 'var(--text-main)' }}>
+                                {log.userName || `User #${log.changedBy || 1}`}
+                              </td>
+                              <td style={{ fontWeight: 600 }}>{log.tableName}</td>
+                              <td style={{ fontFamily: 'monospace', fontSize: '0.72rem' }}>{log.recordId}</td>
+                              <td>
+                                <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 800, background: opBadge.bg, color: opBadge.col, whiteSpace: 'nowrap' }}>
+                                  {opBadge.text}
+                                </span>
+                              </td>
+                              <td style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>{log.ipAddress || '—'}</td>
+                              <td>
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); setSelectedAuditLog(isSelected ? null : log); }}
+                                  className="btn-secondary"
+                                  style={{ padding: '2px 8px', fontSize: '0.7rem', color: isSelected ? '#0284c7' : undefined }}
+                                >
+                                  {isSelected ? 'Close' : 'Diff'}
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Pagination */}
+                  {auditTotalPages > 1 && (
+                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px', marginTop: '14px', flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleAuditPageChange(1)}
+                        disabled={auditPage === 1}
+                        className="btn-secondary"
+                        style={{ padding: '4px 8px', fontSize: '0.72rem' }}
+                      >«</button>
+                      <button
+                        type="button"
+                        onClick={() => handleAuditPageChange(auditPage - 1)}
+                        disabled={auditPage === 1}
+                        className="btn-secondary"
+                        style={{ padding: '4px 8px', fontSize: '0.72rem' }}
+                      >‹</button>
+                      {Array.from({ length: auditTotalPages }, (_, i) => i + 1)
+                        .filter(p => Math.abs(p - auditPage) <= 2 || p === 1 || p === auditTotalPages)
+                        .reduce<(number | '...')[]>((acc, p, idx, arr) => {
+                          if (idx > 0 && typeof arr[idx - 1] === 'number' && (p as number) - (arr[idx - 1] as number) > 1) acc.push('...');
+                          acc.push(p);
+                          return acc;
+                        }, [])
+                        .map((p, i) =>
+                          p === '...' ? (
+                            <span key={`ellipsis-${i}`} style={{ padding: '4px 6px', fontSize: '0.72rem', color: 'var(--text-muted)' }}>…</span>
+                          ) : (
+                            <button
+                              key={p}
+                              type="button"
+                              onClick={() => handleAuditPageChange(p as number)}
+                              className={auditPage === p ? 'btn-primary' : 'btn-secondary'}
+                              style={{ padding: '4px 10px', fontSize: '0.72rem', minWidth: '32px' }}
+                            >{p}</button>
+                          )
+                        )}
+                      <button
+                        type="button"
+                        onClick={() => handleAuditPageChange(auditPage + 1)}
+                        disabled={auditPage === auditTotalPages}
+                        className="btn-secondary"
+                        style={{ padding: '4px 8px', fontSize: '0.72rem' }}
+                      >›</button>
+                      <button
+                        type="button"
+                        onClick={() => handleAuditPageChange(auditTotalPages)}
+                        disabled={auditPage === auditTotalPages}
+                        className="btn-secondary"
+                        style={{ padding: '4px 8px', fontSize: '0.72rem' }}
+                      >»</button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
 

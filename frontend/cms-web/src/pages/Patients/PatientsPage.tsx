@@ -23,7 +23,9 @@ export default function PatientsPage({ onSelectEmrPatient }: PatientsPageProps) 
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(25);
+  const [totalPatients, setTotalPatients] = useState(0);
+  const [totalPagesServer, setTotalPagesServer] = useState(1);
 
   // Registration Form State
   const [isOnlineRegistry, setIsOnlineRegistry] = useState(false);
@@ -170,11 +172,14 @@ export default function PatientsPage({ onSelectEmrPatient }: PatientsPageProps) 
     }
   };
 
-  const fetchPatients = async (query = '') => {
+  const fetchPatients = async (query = '', pageOverride?: number, pageSizeOverride?: number) => {
     try {
       setLoading(true);
-      const rawData = await api.get<any>('/patients/search', { q: query });
+      const pg = pageOverride ?? currentPage;
+      const ps = pageSizeOverride ?? pageSize;
+      const rawData = await api.get<any>('/patients/search', { q: query, page: pg, pageSize: ps });
       const dataList = Array.isArray(rawData) ? rawData : (rawData?.data || rawData?.Data || []);
+      const meta = rawData?.meta || rawData?.Meta || {};
       const mapped = dataList.map((p: any) => ({
         id: p.id || p.Id,
         mrn: p.mrn || p.MRN || `HD-${p.id || p.Id}`,
@@ -195,6 +200,10 @@ export default function PatientsPage({ onSelectEmrPatient }: PatientsPageProps) 
         histories: p.histories || []
       }));
       setPatients(mapped);
+      const tot = meta.Total ?? meta.total ?? mapped.length;
+      const totPages = meta.TotalPages ?? meta.totalPages ?? Math.max(1, Math.ceil(tot / ps));
+      setTotalPatients(tot);
+      setTotalPagesServer(totPages);
     } catch (err) {
       console.error('Failed to fetch patients from API:', err);
     } finally {
@@ -204,11 +213,16 @@ export default function PatientsPage({ onSelectEmrPatient }: PatientsPageProps) 
 
   useEffect(() => {
     const handler = setTimeout(() => {
-      fetchPatients(searchQuery);
       setCurrentPage(1);
-    }, 250);
+      fetchPatients(searchQuery, 1);
+    }, 350);
     return () => clearTimeout(handler);
   }, [searchQuery]);
+
+  // Fetch when page or pageSize changes (but not on search — that resets page)
+  useEffect(() => {
+    fetchPatients(searchQuery, currentPage, pageSize);
+  }, [currentPage, pageSize]);
 
   const openRegisterModal = async (isOnline = false) => {
     setIsOnlineRegistry(isOnline);
@@ -311,12 +325,10 @@ export default function PatientsPage({ onSelectEmrPatient }: PatientsPageProps) 
     });
   }, [patients, registryFilter]);
 
-  // Pagination Calculations
-  const totalCount = filteredPatients.length;
-  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
-  const startIndex = (currentPage - 1) * pageSize;
-  const endIndex = Math.min(startIndex + pageSize, totalCount);
-  const paginatedPatients = filteredPatients.slice(startIndex, endIndex);
+  // Pagination — server-side: filteredPatients is already the current page slice
+  const totalCount = totalPatients;
+  const totalPages = totalPagesServer;
+  const paginatedPatients = filteredPatients; // server already sliced to page
 
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
 
@@ -531,7 +543,7 @@ export default function PatientsPage({ onSelectEmrPatient }: PatientsPageProps) 
           {!loading && totalCount > 0 && (
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '14px', paddingTop: '12px', borderTop: '1px solid var(--border-color)', fontSize: '0.78rem', color: 'var(--text-muted)', flexWrap: 'wrap', gap: '10px' }}>
               <div>
-                Showing <strong>{startIndex + 1}</strong> to <strong>{endIndex}</strong> of <strong>{totalCount}</strong> patients
+                Showing <strong>{(currentPage - 1) * pageSize + 1}</strong> to <strong>{Math.min(currentPage * pageSize, totalCount)}</strong> of <strong>{totalCount}</strong> patients
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>

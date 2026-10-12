@@ -395,22 +395,24 @@ export default function NurseOrdersFollowupPage() {
             {p === 'today' ? 'Today' : p === 'yesterday' ? 'Yesterday' : 'Last 7 Days'}
           </button>
         ))}
-        <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>or custom:</span>
-        <input
-          type="date"
-          value={dateFrom}
-          max={dateTo}
-          onChange={e => { setDateFrom(e.target.value); setDatePreset('custom'); setCurrentPage(1); }}
-          style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border)', fontSize: '0.8rem', background: 'var(--surface)', color: 'var(--text-main)' }}
-        />
-        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>–</span>
-        <input
-          type="date"
-          value={dateTo}
-          min={dateFrom}
-          onChange={e => { setDateTo(e.target.value); setDatePreset('custom'); setCurrentPage(1); }}
-          style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border)', fontSize: '0.8rem', background: 'var(--surface)', color: 'var(--text-main)' }}
-        />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'nowrap', flexShrink: 0 }}>
+          <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Custom:</span>
+          <input
+            type="date"
+            value={dateFrom}
+            max={dateTo}
+            onChange={e => { setDateFrom(e.target.value); setDatePreset('custom'); setCurrentPage(1); }}
+            style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border)', fontSize: '0.8rem', background: 'var(--surface)', color: 'var(--text-main)', width: '140px' }}
+          />
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>–</span>
+          <input
+            type="date"
+            value={dateTo}
+            min={dateFrom}
+            onChange={e => { setDateTo(e.target.value); setDatePreset('custom'); setCurrentPage(1); }}
+            style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border)', fontSize: '0.8rem', background: 'var(--surface)', color: 'var(--text-main)', width: '140px' }}
+          />
+        </div>
         <button
           onClick={() => fetchOrders()}
           style={{
