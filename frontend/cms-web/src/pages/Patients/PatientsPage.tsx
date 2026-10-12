@@ -26,6 +26,9 @@ export default function PatientsPage({ onSelectEmrPatient }: PatientsPageProps) 
   const [pageSize, setPageSize] = useState(25);
   const [totalPatients, setTotalPatients] = useState(0);
   const [totalPagesServer, setTotalPagesServer] = useState(1);
+  const [totalAllPatients, setTotalAllPatients] = useState(0);
+  const [totalOnlinePatients, setTotalOnlinePatients] = useState(0);
+  const [totalInClinicPatients, setTotalInClinicPatients] = useState(0);
 
   // Registration Form State
   const [isOnlineRegistry, setIsOnlineRegistry] = useState(false);
@@ -172,12 +175,15 @@ export default function PatientsPage({ onSelectEmrPatient }: PatientsPageProps) 
     }
   };
 
-  const fetchPatients = async (query = '', pageOverride?: number, pageSizeOverride?: number) => {
+  const fetchPatients = async (query = '', pageOverride?: number, pageSizeOverride?: number, mrnTypeOverride?: string) => {
     try {
       setLoading(true);
       const pg = pageOverride ?? currentPage;
       const ps = pageSizeOverride ?? pageSize;
-      const rawData = await api.get<any>('/patients/search', { q: query, page: pg, pageSize: ps });
+      const mt = mrnTypeOverride ?? registryFilter;
+      // Map UI filter to backend param
+      const mrnType = mt === 'ONLINE' ? 'ONLINE' : mt === 'IN_CLINIC' ? 'INCLINIC' : 'ALL';
+      const rawData = await api.get<any>('/patients/search', { q: query, page: pg, pageSize: ps, mrnType });
       const dataList = Array.isArray(rawData) ? rawData : (rawData?.data || rawData?.Data || []);
       const meta = rawData?.meta || rawData?.Meta || {};
       const mapped = dataList.map((p: any) => ({
@@ -200,10 +206,14 @@ export default function PatientsPage({ onSelectEmrPatient }: PatientsPageProps) 
         histories: p.histories || []
       }));
       setPatients(mapped);
-      const tot = meta.Total ?? meta.total ?? mapped.length;
+      const tot      = meta.Total      ?? meta.total      ?? mapped.length;
       const totPages = meta.TotalPages ?? meta.totalPages ?? Math.max(1, Math.ceil(tot / ps));
       setTotalPatients(tot);
       setTotalPagesServer(totPages);
+      // Always update all tab counts from meta
+      if (meta.TotalAll     !== undefined) setTotalAllPatients(meta.TotalAll);
+      if (meta.TotalOnline  !== undefined) setTotalOnlinePatients(meta.TotalOnline);
+      if (meta.TotalInClinic!== undefined) setTotalInClinicPatients(meta.TotalInClinic);
     } catch (err) {
       console.error('Failed to fetch patients from API:', err);
     } finally {
@@ -211,18 +221,25 @@ export default function PatientsPage({ onSelectEmrPatient }: PatientsPageProps) 
     }
   };
 
+  // Search query change: reset to page 1
   useEffect(() => {
     const handler = setTimeout(() => {
       setCurrentPage(1);
-      fetchPatients(searchQuery, 1);
+      fetchPatients(searchQuery, 1, pageSize, registryFilter);
     }, 350);
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
-  // Fetch when page or pageSize changes (but not on search — that resets page)
+  // Page change: fetch that page
   useEffect(() => {
-    fetchPatients(searchQuery, currentPage, pageSize);
-  }, [currentPage, pageSize]);
+    fetchPatients(searchQuery, currentPage, pageSize, registryFilter);
+  }, [currentPage]);
+
+  // Page size change: reset to page 1
+  useEffect(() => {
+    setCurrentPage(1);
+    fetchPatients(searchQuery, 1, pageSize, registryFilter);
+  }, [pageSize]);
 
   const openRegisterModal = async (isOnline = false) => {
     setIsOnlineRegistry(isOnline);
@@ -306,29 +323,17 @@ export default function PatientsPage({ onSelectEmrPatient }: PatientsPageProps) 
   // Online / In-Clinic Registry Filter State
   const [registryFilter, setRegistryFilter] = useState<'ALL' | 'ONLINE' | 'IN_CLINIC'>('ALL');
 
-  const onlineCount = useMemo(() => {
-    return patients.filter(p => {
-      const mrnUpper = (p.mrn || '').toUpperCase();
-      return mrnUpper.startsWith('ON-') || mrnUpper.startsWith('ON') || p.isOnline;
-    }).length;
-  }, [patients]);
+  // Tab counts come from server meta — fall back to local count if not yet loaded
+  const onlineCount   = totalOnlinePatients   || 0;
+  const inClinicCount = totalInClinicPatients || 0;
 
-  const inClinicCount = Math.max(0, patients.length - onlineCount);
+  // Current page data is already filtered by server — no client-side re-filter needed
+  const filteredPatients = patients;
 
-  const filteredPatients = useMemo(() => {
-    return patients.filter(p => {
-      const mrnUpper = (p.mrn || '').toUpperCase();
-      const isOnline = mrnUpper.startsWith('ON-') || mrnUpper.startsWith('ON') || p.isOnline;
-      if (registryFilter === 'ONLINE') return isOnline;
-      if (registryFilter === 'IN_CLINIC') return !isOnline;
-      return true;
-    });
-  }, [patients, registryFilter]);
-
-  // Pagination — server-side: filteredPatients is already the current page slice
-  const totalCount = totalPatients;
-  const totalPages = totalPagesServer;
-  const paginatedPatients = filteredPatients; // server already sliced to page
+  // Pagination uses server total for active filter
+  const totalCount      = totalPatients;
+  const totalPages      = totalPagesServer;
+  const paginatedPatients = filteredPatients;
 
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
 
@@ -358,7 +363,7 @@ export default function PatientsPage({ onSelectEmrPatient }: PatientsPageProps) 
           <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-main)', padding: '3px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
             <button
               type="button"
-              onClick={() => { setRegistryFilter('ALL'); setCurrentPage(1); }}
+              onClick={() => { setRegistryFilter('ALL'); setCurrentPage(1); fetchPatients(searchQuery, 1, pageSize, 'ALL'); }}
               style={{
                 padding: '6px 12px', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 700, border: 'none', cursor: 'pointer',
                 background: registryFilter === 'ALL' ? '#0284c7' : 'transparent',
@@ -369,7 +374,7 @@ export default function PatientsPage({ onSelectEmrPatient }: PatientsPageProps) 
             </button>
             <button
               type="button"
-              onClick={() => { setRegistryFilter('ONLINE'); setCurrentPage(1); }}
+              onClick={() => { setRegistryFilter('ONLINE'); setCurrentPage(1); fetchPatients(searchQuery, 1, pageSize, 'ONLINE'); }}
               style={{
                 padding: '6px 12px', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 700, border: 'none', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', gap: '4px',
@@ -381,7 +386,7 @@ export default function PatientsPage({ onSelectEmrPatient }: PatientsPageProps) 
             </button>
             <button
               type="button"
-              onClick={() => { setRegistryFilter('IN_CLINIC'); setCurrentPage(1); }}
+              onClick={() => { setRegistryFilter('IN_CLINIC'); setCurrentPage(1); fetchPatients(searchQuery, 1, pageSize, 'IN_CLINIC'); }}
               style={{
                 padding: '6px 12px', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 700, border: 'none', cursor: 'pointer',
                 background: registryFilter === 'IN_CLINIC' ? '#0284c7' : 'transparent',

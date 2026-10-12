@@ -171,7 +171,11 @@ public class PatientsController : ControllerBase
 
     [HttpGet]
     [HttpGet("search")]
-    public async Task<IActionResult> Search([FromQuery] string? q = "", [FromQuery] int page = 1, [FromQuery] int pageSize = 25)
+    public async Task<IActionResult> Search(
+        [FromQuery] string? q = "",
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25,
+        [FromQuery] string? mrnType = "ALL")   // ALL | ONLINE | INCLINIC
     {
         byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
         var queryStr = q?.Trim() ?? "";
@@ -181,33 +185,60 @@ public class PatientsController : ControllerBase
 
         using var conn = _dbFactory.CreateConnection();
 
-        string whereSql = string.IsNullOrWhiteSpace(queryStr)
-            ? "WHERE TenantId = @TenantId AND IsActive = 1"
-            : "WHERE TenantId = @TenantId AND IsActive = 1 AND (MRN LIKE @Prefix OR PrimaryPhone LIKE @Prefix OR FirstName LIKE @Prefix OR LastName LIKE @Prefix OR FirstName LIKE @Contains OR LastName LIKE @Contains OR MiddleName LIKE @Contains)";
+        // Base search filter
+        string searchClause = string.IsNullOrWhiteSpace(queryStr)
+            ? ""
+            : " AND (MRN LIKE @Prefix OR PrimaryPhone LIKE @Prefix OR FirstName LIKE @Prefix OR LastName LIKE @Prefix OR FirstName LIKE @Contains OR LastName LIKE @Contains OR MiddleName LIKE @Contains)";
 
-        var prefix  = queryStr + "%";
+        // MRN type clause
+        string mrnClause = (mrnType ?? "ALL").ToUpper() switch {
+            "ONLINE"   => " AND MRN LIKE 'ON-%'",
+            "INCLINIC" => " AND MRN NOT LIKE 'ON-%'",
+            _          => ""
+        };
+
+        string baseWhere = $"WHERE TenantId = @TenantId AND IsActive = 1{searchClause}";
+        string fullWhere = $"WHERE TenantId = @TenantId AND IsActive = 1{searchClause}{mrnClause}";
+
+        var prefix   = queryStr + "%";
         var contains = "%" + queryStr + "%";
+        var sqlParams = new { TenantId = tenantId, Prefix = prefix, Contains = contains, Offset = offset, PageSize = pageSize };
 
-        int total = await conn.ExecuteScalarAsync<int>(
-            $"SELECT COUNT(*) FROM Patients WITH (NOLOCK) {whereSql}",
-            new { TenantId = tenantId, Prefix = prefix, Contains = contains });
+        // Counts for all three tabs (always run against base search, no mrnClause)
+        int totalAll      = await conn.ExecuteScalarAsync<int>($"SELECT COUNT(*) FROM Patients WITH (NOLOCK) {baseWhere}", sqlParams);
+        int totalOnline   = await conn.ExecuteScalarAsync<int>($"SELECT COUNT(*) FROM Patients WITH (NOLOCK) {baseWhere} AND MRN LIKE 'ON-%'", sqlParams);
+        int totalInClinic = totalAll - totalOnline;
+
+        // Filtered total for pagination
+        int filteredTotal = (mrnType ?? "ALL").ToUpper() switch {
+            "ONLINE"   => totalOnline,
+            "INCLINIC" => totalInClinic,
+            _          => totalAll
+        };
 
         var dataSql = $@"
             SELECT Id, TenantId, MRN, FirstName, MiddleName, LastName, DateOfBirth, Gender,
                    PrimaryPhone, Email, Address, InsuranceProvider, InsuranceCopayPercent,
                    Allergies, ChronicConditions, NationalId, BloodGroup, PhotoUrl, IsActive
             FROM Patients WITH (NOLOCK)
-            {whereSql}
+            {fullWhere}
             ORDER BY Id DESC
             OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY";
 
-        var patients = (await conn.QueryAsync<PatientDto>(dataSql,
-            new { TenantId = tenantId, Prefix = prefix, Contains = contains, Offset = offset, PageSize = pageSize })).ToList();
+        var patients = (await conn.QueryAsync<PatientDto>(dataSql, sqlParams)).ToList();
 
         return Ok(new {
             Success = true,
             Data = patients,
-            Meta = new { Total = total, Page = page, PageSize = pageSize, TotalPages = (int)Math.Ceiling((double)total / pageSize) }
+            Meta = new {
+                Total        = filteredTotal,
+                TotalAll     = totalAll,
+                TotalOnline  = totalOnline,
+                TotalInClinic= totalInClinic,
+                Page         = page,
+                PageSize     = pageSize,
+                TotalPages   = (int)Math.Ceiling((double)filteredTotal / pageSize)
+            }
         });
     }
 
