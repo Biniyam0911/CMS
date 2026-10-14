@@ -59,10 +59,17 @@ class ApiClient {
         const errorJson = JSON.parse(errorText);
         if (Array.isArray(errorJson.errors) && errorJson.errors.length > 0) {
           cleanMessage = errorJson.errors.filter(Boolean).join(', ');
+        } else if (errorJson.errors && typeof errorJson.errors === 'object') {
+          const allErrs = Object.entries(errorJson.errors).map(([field, msgs]) => 
+            `${field}: ${Array.isArray(msgs) ? msgs.join('; ') : msgs}`
+          );
+          if (allErrs.length > 0) cleanMessage = allErrs.join(', ');
         } else if (errorJson.message) {
           cleanMessage = errorJson.message;
         } else if (errorJson.Message) {
           cleanMessage = errorJson.Message;
+        } else if (errorJson.title) {
+          cleanMessage = errorJson.title;
         } else if (errorJson.error) {
           cleanMessage = typeof errorJson.error === 'string' ? errorJson.error : JSON.stringify(errorJson.error);
         }

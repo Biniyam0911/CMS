@@ -2009,16 +2009,16 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
       try {
         const rxRes: any = await api.post('/pharmacy/prescriptions', {
           tenantId: 1,
-          patientId: patId,
+          patientId: Number(patId) || 1,
           doctorId: selectedDoctorId || currentUser?.doctorId || 1,
           encounterId: null,
           diagnosis: diagText,
           items: prescribeBasket.map(item => ({
-            drugId: item.drugId && item.drugId > 0 ? item.drugId : 1,
-            dosage: item.dosage,
-            frequency: item.frequency,
-            duration: item.duration,
-            quantity: item.qty,
+            drugId: item.drugId && Number(item.drugId) > 0 ? Number(item.drugId) : 1,
+            dosage: item.dosage && item.dosage.trim().length > 0 ? item.dosage.trim() : 'As directed',
+            frequency: item.frequency && item.frequency.trim().length > 0 ? item.frequency.trim() : 'OD',
+            duration: item.duration && item.duration.trim().length > 0 ? item.duration.trim() : '7 Days',
+            quantity: item.qty !== '' && !isNaN(Number(item.qty)) && Number(item.qty) > 0 ? Math.round(Number(item.qty)) : 1,
             instructions: `${item.drugName} - ${item.instructions || item.route || 'Take as directed'}`
           }))
         });
@@ -2039,14 +2039,14 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
       try {
         const billedItems = prescribeBasket.filter(b => b.unitPrice > 0).map(b => ({
           itemType: 'Pharmacy',
-          description: `${b.drugName} (${b.dosage} - ${b.qty} pcs)`,
-          quantity: b.qty,
+          description: `${b.drugName} (${b.dosage || ''} - ${b.qty || 1} pcs)`,
+          quantity: b.qty !== '' && !isNaN(Number(b.qty)) && Number(b.qty) > 0 ? Math.round(Number(b.qty)) : 1,
           unitPrice: b.unitPrice,
           discount: 0
         }));
         if (billedItems.length > 0) {
           await api.post('/billing/invoices', {
-            patientId: patId,
+            patientId: Number(patId) || 1,
             paymentMethod: 'Cash',
             items: billedItems
           }).catch(() => {});
