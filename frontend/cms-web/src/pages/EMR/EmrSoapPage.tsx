@@ -713,7 +713,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
     route: string;
     frequency: string;
     duration: string;
-    qty: number;
+    qty: number | '';
     unitPrice: number;
     instructions: string;
   }[]>([]);
@@ -1942,13 +1942,13 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
         drugId: !isNaN(Number(item.id)) ? Number(item.id) : undefined,
         drugName: item.name,
         isCustom: false,
-        dosage: item.defaultDosage || '1 Tablet',
+        dosage: '',
         route: item.defaultRoute || 'Oral',
-        frequency: item.defaultFreq || 'Twice Daily (BID)',
-        duration: item.defaultDuration || '7 Days',
-        qty: item.defaultQty || 10,
+        frequency: '',
+        duration: '',
+        qty: '' as any,
         unitPrice: item.unitPrice || 0,
-        instructions: item.instructions || 'Take as directed'
+        instructions: ''
       }
     ]);
   };
@@ -1965,11 +1965,11 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
         drugId: undefined,
         drugName: customDrugName.trim(),
         isCustom: true,
-        dosage: customDosage.trim() || '1 Tablet',
+        dosage: customDosage.trim(),
         route: customRoute || 'Oral',
-        frequency: customFreq || 'Twice Daily (BID)',
-        duration: customDuration || '7 Days',
-        qty: Number(customQty) || 1,
+        frequency: customFreq,
+        duration: customDuration,
+        qty: customQty !== '' ? (Number(customQty) || '') : ('' as any),
         unitPrice: Number(customPrice) || 0,
         instructions: customInstructions.trim()
       }
@@ -1977,8 +1977,10 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
 
     // Reset custom inputs
     setCustomDrugName('');
-    setCustomDosage('1 Tablet');
-    setCustomQty(10);
+    setCustomDosage('');
+    setCustomFreq('');
+    setCustomDuration('');
+    setCustomQty('' as any);
     setCustomPrice(0);
     setCustomInstructions('');
   };
@@ -4353,6 +4355,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                               onChange={e => setCustomFreq(e.target.value)}
                               style={{ width: '100%', padding: '7px 10px', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff' }}
                             >
+                              <option value="">-- Select Frequency --</option>
                               <option value="Once Daily (OD)">Once Daily (OD)</option>
                               <option value="Twice Daily (BID)">Twice Daily (BID)</option>
                               <option value="Three Times Daily (TID)">Three Times Daily (TID)</option>
@@ -4372,6 +4375,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                               onChange={e => setCustomDuration(e.target.value)}
                               style={{ width: '100%', padding: '7px 10px', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff' }}
                             >
+                              <option value="">-- Select Duration --</option>
                               <option value="3 Days">3 Days</option>
                               <option value="5 Days">5 Days</option>
                               <option value="7 Days">7 Days</option>
@@ -4391,8 +4395,9 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                             <input
                               type="number"
                               min={1}
+                              placeholder="e.g. 10, 30"
                               value={customQty}
-                              onChange={e => setCustomQty(parseInt(e.target.value) || 1)}
+                              onChange={e => setCustomQty(e.target.value === '' ? ('' as any) : (parseInt(e.target.value) || ('' as any)))}
                               style={{ width: '100%', padding: '7px 10px', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
                             />
                           </div>
@@ -4507,6 +4512,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                               <span style={{ color: '#64748b' }}>Dosage:</span>
                               <input
                                 type="text"
+                                placeholder="Dosage..."
                                 value={item.dosage}
                                 onChange={e => handleUpdatePrescribeItem(item.id, 'dosage', e.target.value)}
                                 style={{ width: '100%', boxSizing: 'border-box', padding: '3px 6px', fontSize: '0.72rem', borderRadius: '4px', border: '1px solid #cbd5e1', marginTop: '2px' }}
@@ -4519,6 +4525,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                                 onChange={e => handleUpdatePrescribeItem(item.id, 'frequency', e.target.value)}
                                 style={{ width: '100%', boxSizing: 'border-box', padding: '3px 6px', fontSize: '0.72rem', borderRadius: '4px', border: '1px solid #cbd5e1', background: '#fff', marginTop: '2px' }}
                               >
+                                <option value="">-- Frequency --</option>
                                 <option value="Once Daily (OD)">Once Daily (OD)</option>
                                 <option value="Twice Daily (BID)">Twice Daily (BID)</option>
                                 <option value="Three Times Daily (TID)">Three Times Daily (TID)</option>
@@ -4527,6 +4534,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                                 <option value="Every 12 Hours (Q12H)">Every 12 Hours (Q12H)</option>
                                 <option value="At Bedtime (HS)">At Bedtime (HS)</option>
                                 <option value="As Needed (PRN)">As Needed (PRN)</option>
+                                <option value="Once Weekly">Once Weekly</option>
                               </select>
                             </div>
                           </div>
@@ -4536,6 +4544,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                               <span style={{ color: '#64748b' }}>Duration:</span>
                               <input
                                 type="text"
+                                placeholder="Duration..."
                                 value={item.duration}
                                 onChange={e => handleUpdatePrescribeItem(item.id, 'duration', e.target.value)}
                                 style={{ width: '100%', boxSizing: 'border-box', padding: '3px 6px', fontSize: '0.72rem', borderRadius: '4px', border: '1px solid #cbd5e1', marginTop: '2px' }}
@@ -4546,8 +4555,12 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                               <input
                                 type="number"
                                 min={1}
-                                value={item.qty}
-                                onChange={e => handleUpdatePrescribeItem(item.id, 'qty', parseInt(e.target.value) || 1)}
+                                placeholder="Qty..."
+                                value={item.qty ?? ''}
+                                onChange={e => {
+                                  const val = e.target.value === '' ? '' : parseInt(e.target.value);
+                                  handleUpdatePrescribeItem(item.id, 'qty', isNaN(val as number) ? '' : val);
+                                }}
                                 style={{ width: '100%', boxSizing: 'border-box', padding: '3px 6px', fontSize: '0.72rem', borderRadius: '4px', border: '1px solid #cbd5e1', marginTop: '2px' }}
                               />
                             </div>
@@ -4763,9 +4776,8 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                   <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
                     Please present this prescription slip to the clinic dispensary or licensed pharmacy.
                   </div>
-                  <div style={{ marginTop: '8px' }}>
-                    <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>Dispenser</div>
-                    <div style={{ borderBottom: '1.5px solid #000', width: '200px', height: '24px' }}></div>
+                  <div style={{ marginTop: '12px', fontSize: '0.82rem', fontWeight: 700, color: '#1e293b' }}>
+                    Dispenser: __________________________________
                   </div>
                 </div>
                 <div style={{ textAlign: 'center', minWidth: '180px' }}>

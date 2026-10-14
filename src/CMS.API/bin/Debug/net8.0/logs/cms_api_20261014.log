@@ -898,3 +898,782 @@ Error Number:207,State:1,Class:16
 2026-10-14 21:07:52.711 +03:00 [INF] DatabaseBackupBackgroundService is stopping.
 2026-10-14 21:07:52.730 +03:00 [INF] [2026-10-14 21:07:52.730] LISTENER STOPPED: Port 10001
 2026-10-14 21:07:52.738 +03:00 [INF] [2026-10-14 21:07:52.738] LISTENER STOPPED: All LIS listeners stopped.
+2026-10-14 21:40:59.598 +03:00 [INF] Cache: Using Redis at localhost:6379
+2026-10-14 21:41:02.501 +03:00 [INF] CMS API Host starting...
+2026-10-14 21:41:02.852 +03:00 [INF] User profile is available. Using 'C:\Users\ASUS\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
+2026-10-14 21:41:03.294 +03:00 [INF] [2026-10-14 21:41:03.235] LISTENER STARTED: Passively waiting for analyzer connections on 0.0.0.0:8004...
+2026-10-14 21:41:03.374 +03:00 [INF] [2026-10-14 21:41:03.374] LISTENER STARTED: Passively waiting for analyzer connections on 0.0.0.0:10001...
+2026-10-14 21:41:03.382 +03:00 [INF] [2026-10-14 21:41:03.382] LISTENER STARTED: Passively waiting for analyzer connections on 0.0.0.0:10002...
+2026-10-14 21:41:03.397 +03:00 [INF] DatabaseBackupBackgroundService is starting...
+2026-10-14 21:41:03.903 +03:00 [INF] Now listening on: http://localhost:5010
+2026-10-14 21:41:03.982 +03:00 [INF] Application started. Press Ctrl+C to shut down.
+2026-10-14 21:41:03.985 +03:00 [INF] Hosting environment: Development
+2026-10-14 21:41:03.987 +03:00 [INF] Content root path: C:\Users\ASUS\source\repos\CMS\src\CMS.API
+2026-10-14 21:42:50.629 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-10-14 21:42:51.732 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-10-14 21:42:51.768 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-10-14 21:42:52.211 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.ClinicSettingDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:42:52.435 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 644.8413ms
+2026-10-14 21:42:52.448 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-10-14 21:42:52.456 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-10-14 21:42:52.584 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 200 null application/json; charset=utf-8 1955.8238ms
+2026-10-14 21:42:52.593 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-10-14 21:42:52.607 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-10-14 21:42:52.738 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.ClinicSettingDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:42:52.752 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 25.7492ms
+2026-10-14 21:42:52.759 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-10-14 21:42:52.884 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-10-14 21:42:52.918 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 200 null application/json; charset=utf-8 470.778ms
+2026-10-14 21:42:52.926 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-10-14 21:42:53.059 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-10-14 21:42:53.303 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.ClinicSettingDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:42:53.307 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 16.3364ms
+2026-10-14 21:42:53.313 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-10-14 21:42:53.318 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-10-14 21:42:53.319 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 200 null application/json; charset=utf-8 559.4281ms
+2026-10-14 21:42:53.326 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-10-14 21:42:53.651 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-10-14 21:42:53.765 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.ClinicSettingDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:42:53.776 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 18.6164ms
+2026-10-14 21:42:53.893 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-10-14 21:42:53.898 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 200 null application/json; charset=utf-8 579.7163ms
+2026-10-14 21:43:17.994 +03:00 [INF] Request starting HTTP/1.1 POST http://127.0.0.1:5010/api/v1/auth/login - application/json 56
+2026-10-14 21:43:18.016 +03:00 [INF] CORS policy execution successful.
+2026-10-14 21:43:18.023 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.AuthController.Login (CMS.API)'
+2026-10-14 21:43:18.056 +03:00 [INF] Route matched with {action = "Login", controller = "Auth"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] Login(CMS.Shared.DTOs.LoginRequest) on controller CMS.API.Controllers.AuthController (CMS.API).
+2026-10-14 21:43:18.959 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[CMS.Shared.DTOs.LoginResponse, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]'.
+2026-10-14 21:43:19.523 +03:00 [INF] Executed action CMS.API.Controllers.AuthController.Login (CMS.API) in 1452.7761ms
+2026-10-14 21:43:19.735 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.AuthController.Login (CMS.API)'
+2026-10-14 21:43:19.764 +03:00 [INF] Request finished HTTP/1.1 POST http://127.0.0.1:5010/api/v1/auth/login - 200 null application/json; charset=utf-8 1769.7119ms
+2026-10-14 21:43:19.789 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-10-14 21:43:19.940 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-10-14 21:43:19.955 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-10-14 21:43:20.021 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-10-14 21:43:20.022 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/dashboard/metrics - null null
+2026-10-14 21:43:20.031 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.ClinicSettingDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:43:20.049 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-10-14 21:43:20.061 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.DashboardController.GetMetrics (CMS.API)'
+2026-10-14 21:43:20.080 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 92.9336ms
+2026-10-14 21:43:20.106 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-10-14 21:43:20.135 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-10-14 21:43:20.140 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-10-14 21:43:20.142 +03:00 [INF] Route matched with {action = "GetMetrics", controller = "Dashboard"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetMetrics() on controller CMS.API.Controllers.DashboardController (CMS.API).
+2026-10-14 21:43:20.154 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-10-14 21:43:20.156 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 200 null application/json; charset=utf-8 367.0669ms
+2026-10-14 21:43:20.179 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-10-14 21:43:20.314 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.ClinicSettingDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:43:20.324 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 79.3335ms
+2026-10-14 21:43:20.332 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-10-14 21:43:20.333 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-10-14 21:43:20.361 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-10-14 21:43:20.365 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 200 null application/json; charset=utf-8 258.8847ms
+2026-10-14 21:43:20.370 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-10-14 21:43:20.420 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:43:20.430 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.ClinicSettingDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:43:20.442 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 18.017ms
+2026-10-14 21:43:20.446 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 283.4707ms
+2026-10-14 21:43:20.449 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-10-14 21:43:20.456 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-10-14 21:43:20.453 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-10-14 21:43:20.459 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-10-14 21:43:20.461 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 200 null application/json; charset=utf-8 128.4522ms
+2026-10-14 21:43:20.466 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 444.4919ms
+2026-10-14 21:43:20.484 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-10-14 21:43:20.492 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-10-14 21:43:20.525 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-10-14 21:43:20.529 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-10-14 21:43:20.541 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.ClinicSettingDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:43:20.558 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 20.9599ms
+2026-10-14 21:43:20.569 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-10-14 21:43:20.575 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-10-14 21:43:20.581 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:43:20.591 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-10-14 21:43:20.595 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 200 null application/json; charset=utf-8 141.5878ms
+2026-10-14 21:43:20.602 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 57.6954ms
+2026-10-14 21:43:20.606 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-10-14 21:43:20.631 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-10-14 21:43:20.643 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.ClinicSettingDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:43:20.645 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 186.6918ms
+2026-10-14 21:43:20.659 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 21.6193ms
+2026-10-14 21:43:20.672 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-10-14 21:43:20.684 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-10-14 21:43:20.745 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-10-14 21:43:20.777 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 200 null application/json; charset=utf-8 207.5158ms
+2026-10-14 21:43:20.778 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[CMS.Shared.DTOs.DashboardMetricsDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]'.
+2026-10-14 21:43:20.786 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-10-14 21:43:20.815 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.ClinicSettingDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:43:20.823 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 11.3228ms
+2026-10-14 21:43:20.832 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-10-14 21:43:20.837 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 200 null application/json; charset=utf-8 166.1522ms
+2026-10-14 21:43:20.926 +03:00 [INF] Executed action CMS.API.Controllers.DashboardController.GetMetrics (CMS.API) in 751.727ms
+2026-10-14 21:43:20.930 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.DashboardController.GetMetrics (CMS.API)'
+2026-10-14 21:43:20.946 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/dashboard/metrics - null null
+2026-10-14 21:43:20.947 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/dashboard/metrics - 200 null application/json; charset=utf-8 924.6674ms
+2026-10-14 21:43:20.969 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.DashboardController.GetMetrics (CMS.API)'
+2026-10-14 21:43:20.986 +03:00 [INF] Route matched with {action = "GetMetrics", controller = "Dashboard"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetMetrics() on controller CMS.API.Controllers.DashboardController (CMS.API).
+2026-10-14 21:43:21.049 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[CMS.Shared.DTOs.DashboardMetricsDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]'.
+2026-10-14 21:43:21.055 +03:00 [INF] Executed action CMS.API.Controllers.DashboardController.GetMetrics (CMS.API) in 63.785ms
+2026-10-14 21:43:21.063 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.DashboardController.GetMetrics (CMS.API)'
+2026-10-14 21:43:21.067 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/dashboard/metrics - 200 null application/json; charset=utf-8 121.118ms
+2026-10-14 21:44:03.807 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/staff/doctors - application/json null
+2026-10-14 21:44:03.929 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/lab/catalog - application/json null
+2026-10-14 21:44:03.997 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/services?limit=1500 - application/json null
+2026-10-14 21:44:04.055 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/pharmacy/formulary - application/json null
+2026-10-14 21:44:04.092 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.StaffController.GetDoctors (CMS.API)'
+2026-10-14 21:44:04.097 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.LaboratoryController.GetCatalog (CMS.API)'
+2026-10-14 21:44:04.165 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.ServicesController.GetAllServices (CMS.API)'
+2026-10-14 21:44:04.202 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.PharmacyController.GetFormulary (CMS.API)'
+2026-10-14 21:44:04.240 +03:00 [INF] Route matched with {action = "GetDoctors", controller = "Staff"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetDoctors() on controller CMS.API.Controllers.StaffController (CMS.API).
+2026-10-14 21:44:04.252 +03:00 [INF] Route matched with {action = "GetCatalog", controller = "Laboratory"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetCatalog() on controller CMS.API.Controllers.LaboratoryController (CMS.API).
+2026-10-14 21:44:04.259 +03:00 [INF] Route matched with {action = "GetFormulary", controller = "Pharmacy"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetFormulary() on controller CMS.API.Controllers.PharmacyController (CMS.API).
+2026-10-14 21:44:04.257 +03:00 [INF] Route matched with {action = "GetAllServices", controller = "Services"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetAllServices(System.String, System.String, Int32) on controller CMS.API.Controllers.ServicesController (CMS.API).
+2026-10-14 21:44:04.308 +03:00 [INF] Executed action CMS.API.Controllers.StaffController.GetDoctors (CMS.API) in 51.0524ms
+2026-10-14 21:44:04.445 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.StaffController.GetDoctors (CMS.API)'
+2026-10-14 21:44:04.455 +03:00 [ERR] Unhandled exception encountered: Invalid column name 'MiddleName'.
+Microsoft.Data.SqlClient.SqlException (0x80131904): Invalid column name 'MiddleName'.
+   at Microsoft.Data.SqlClient.SqlCommand.<>c.<ExecuteDbDataReaderAsync>b__211_0(Task`1 result)
+   at System.Threading.Tasks.ContinuationResultTaskFromResultTask`2.InnerInvoke()
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Threading.Tasks.Task.ExecuteWithThreadLocal(Task& currentTaskSlot, Thread threadPoolThread)
+--- End of stack trace from previous location ---
+   at Dapper.SqlMapper.QueryAsync[T](IDbConnection cnn, Type effectiveType, CommandDefinition command) in /_/Dapper/SqlMapper.Async.cs:line 434
+   at CMS.Application.StaffServices.StaffAndDoctorService.GetDoctorsAsync(Byte tenantId) in C:\Users\ASUS\source\repos\CMS\src\CMS.Application\StaffServices\StaffAndDoctorService.cs:line 35
+   at CMS.API.Controllers.StaffController.GetDoctors() in C:\Users\ASUS\source\repos\CMS\src\CMS.API\Controllers\ClinicalControllers.cs:line 24
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ActionMethodExecutor.TaskOfIActionResultExecutor.Execute(ActionContext actionContext, IActionResultTypeMapper mapper, ObjectMethodExecutor executor, Object controller, Object[] arguments)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.<InvokeActionMethodAsync>g__Awaited|12_0(ControllerActionInvoker invoker, ValueTask`1 actionResultValueTask)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.<InvokeNextActionFilterAsync>g__Awaited|10_0(ControllerActionInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Rethrow(ActionExecutedContextSealed context)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Next(State& next, Scope& scope, Object& state, Boolean& isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.<InvokeInnerFilterAsync>g__Awaited|13_0(ControllerActionInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeFilterPipelineAsync>g__Awaited|20_0(ResourceInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Logged|17_1(ResourceInvoker invoker)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Logged|17_1(ResourceInvoker invoker)
+   at Microsoft.AspNetCore.Routing.EndpointMiddleware.<Invoke>g__AwaitRequestTask|7_0(Endpoint endpoint, Task requestTask, ILogger logger)
+   at Microsoft.AspNetCore.Authorization.AuthorizationMiddleware.Invoke(HttpContext context)
+   at CMS.API.Middleware.TenantMiddleware.InvokeAsync(HttpContext context) in C:\Users\ASUS\source\repos\CMS\src\CMS.API\Middleware\Middlewares.cs:line 37
+   at Microsoft.AspNetCore.Authentication.AuthenticationMiddleware.Invoke(HttpContext context)
+   at Swashbuckle.AspNetCore.SwaggerUI.SwaggerUIMiddleware.Invoke(HttpContext httpContext)
+   at Swashbuckle.AspNetCore.Swagger.SwaggerMiddleware.Invoke(HttpContext httpContext, ISwaggerProvider swaggerProvider)
+   at CMS.API.Middleware.ExceptionMiddleware.InvokeAsync(HttpContext context) in C:\Users\ASUS\source\repos\CMS\src\CMS.API\Middleware\Middlewares.cs:line 123
+ClientConnectionId:6eb26be4-d348-4806-b45d-738948a4fe37
+Error Number:207,State:1,Class:16
+2026-10-14 21:44:05.173 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.LabTestCatalogDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:44:05.482 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:44:06.054 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/staff/doctors - 500 null application/json 2246.9553ms
+2026-10-14 21:44:06.131 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/staff/doctors - application/json null
+2026-10-14 21:44:06.142 +03:00 [INF] Executed action CMS.API.Controllers.LaboratoryController.GetCatalog (CMS.API) in 1882.9329ms
+2026-10-14 21:44:06.128 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.DrugFormularyDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:44:06.306 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/services?limit=1500 - application/json null
+2026-10-14 21:44:06.310 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/lab/catalog - application/json null
+2026-10-14 21:44:06.351 +03:00 [INF] Executed action CMS.API.Controllers.ServicesController.GetAllServices (CMS.API) in 2082.9996ms
+2026-10-14 21:44:06.390 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.StaffController.GetDoctors (CMS.API)'
+2026-10-14 21:44:06.393 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.LaboratoryController.GetCatalog (CMS.API)'
+2026-10-14 21:44:06.422 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.ServicesController.GetAllServices (CMS.API)'
+2026-10-14 21:44:06.450 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.ServicesController.GetAllServices (CMS.API)'
+2026-10-14 21:44:06.451 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.LaboratoryController.GetCatalog (CMS.API)'
+2026-10-14 21:44:06.454 +03:00 [INF] Route matched with {action = "GetDoctors", controller = "Staff"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetDoctors() on controller CMS.API.Controllers.StaffController (CMS.API).
+2026-10-14 21:44:06.457 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/lab/catalog - 200 null application/json; charset=utf-8 2527.8419ms
+2026-10-14 21:44:06.460 +03:00 [INF] Route matched with {action = "GetAllServices", controller = "Services"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetAllServices(System.String, System.String, Int32) on controller CMS.API.Controllers.ServicesController (CMS.API).
+2026-10-14 21:44:06.463 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/services?limit=1500 - 200 null application/json; charset=utf-8 2466.2722ms
+2026-10-14 21:44:06.464 +03:00 [INF] Executed action CMS.API.Controllers.PharmacyController.GetFormulary (CMS.API) in 2201.6305ms
+2026-10-14 21:44:06.467 +03:00 [INF] Route matched with {action = "GetCatalog", controller = "Laboratory"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetCatalog() on controller CMS.API.Controllers.LaboratoryController (CMS.API).
+2026-10-14 21:44:06.469 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/pharmacy/formulary - application/json null
+2026-10-14 21:44:06.490 +03:00 [INF] Executed action CMS.API.Controllers.StaffController.GetDoctors (CMS.API) in 17.6421ms
+2026-10-14 21:44:06.512 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.PharmacyController.GetFormulary (CMS.API)'
+2026-10-14 21:44:06.527 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:44:06.527 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.LabTestCatalogDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:44:06.531 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.PharmacyController.GetFormulary (CMS.API)'
+2026-10-14 21:44:06.532 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.StaffController.GetDoctors (CMS.API)'
+2026-10-14 21:44:06.536 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/pharmacy/formulary - 200 null application/json; charset=utf-8 2481.6407ms
+2026-10-14 21:44:06.611 +03:00 [INF] Executed action CMS.API.Controllers.LaboratoryController.GetCatalog (CMS.API) in 93.7138ms
+2026-10-14 21:44:06.617 +03:00 [INF] Executed action CMS.API.Controllers.ServicesController.GetAllServices (CMS.API) in 123.9983ms
+2026-10-14 21:44:06.625 +03:00 [INF] Route matched with {action = "GetFormulary", controller = "Pharmacy"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetFormulary() on controller CMS.API.Controllers.PharmacyController (CMS.API).
+2026-10-14 21:44:06.635 +03:00 [ERR] Unhandled exception encountered: Invalid column name 'MiddleName'.
+Microsoft.Data.SqlClient.SqlException (0x80131904): Invalid column name 'MiddleName'.
+   at Microsoft.Data.SqlClient.SqlCommand.<>c.<ExecuteDbDataReaderAsync>b__211_0(Task`1 result)
+   at System.Threading.Tasks.ContinuationResultTaskFromResultTask`2.InnerInvoke()
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Threading.Tasks.Task.ExecuteWithThreadLocal(Task& currentTaskSlot, Thread threadPoolThread)
+--- End of stack trace from previous location ---
+   at Dapper.SqlMapper.QueryAsync[T](IDbConnection cnn, Type effectiveType, CommandDefinition command) in /_/Dapper/SqlMapper.Async.cs:line 434
+   at CMS.Application.StaffServices.StaffAndDoctorService.GetDoctorsAsync(Byte tenantId) in C:\Users\ASUS\source\repos\CMS\src\CMS.Application\StaffServices\StaffAndDoctorService.cs:line 35
+   at CMS.API.Controllers.StaffController.GetDoctors() in C:\Users\ASUS\source\repos\CMS\src\CMS.API\Controllers\ClinicalControllers.cs:line 24
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ActionMethodExecutor.TaskOfIActionResultExecutor.Execute(ActionContext actionContext, IActionResultTypeMapper mapper, ObjectMethodExecutor executor, Object controller, Object[] arguments)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.<InvokeActionMethodAsync>g__Awaited|12_0(ControllerActionInvoker invoker, ValueTask`1 actionResultValueTask)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.<InvokeNextActionFilterAsync>g__Awaited|10_0(ControllerActionInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Rethrow(ActionExecutedContextSealed context)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Next(State& next, Scope& scope, Object& state, Boolean& isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.<InvokeInnerFilterAsync>g__Awaited|13_0(ControllerActionInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeFilterPipelineAsync>g__Awaited|20_0(ResourceInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Logged|17_1(ResourceInvoker invoker)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Logged|17_1(ResourceInvoker invoker)
+   at Microsoft.AspNetCore.Routing.EndpointMiddleware.<Invoke>g__AwaitRequestTask|7_0(Endpoint endpoint, Task requestTask, ILogger logger)
+   at Microsoft.AspNetCore.Authorization.AuthorizationMiddleware.Invoke(HttpContext context)
+   at CMS.API.Middleware.TenantMiddleware.InvokeAsync(HttpContext context) in C:\Users\ASUS\source\repos\CMS\src\CMS.API\Middleware\Middlewares.cs:line 37
+   at Microsoft.AspNetCore.Authentication.AuthenticationMiddleware.Invoke(HttpContext context)
+   at Swashbuckle.AspNetCore.SwaggerUI.SwaggerUIMiddleware.Invoke(HttpContext httpContext)
+   at Swashbuckle.AspNetCore.Swagger.SwaggerMiddleware.Invoke(HttpContext httpContext, ISwaggerProvider swaggerProvider)
+   at CMS.API.Middleware.ExceptionMiddleware.InvokeAsync(HttpContext context) in C:\Users\ASUS\source\repos\CMS\src\CMS.API\Middleware\Middlewares.cs:line 123
+ClientConnectionId:646f02ec-7036-4059-b08b-b73ed23c86cf
+Error Number:207,State:1,Class:16
+2026-10-14 21:44:06.663 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.LaboratoryController.GetCatalog (CMS.API)'
+2026-10-14 21:44:06.668 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.ServicesController.GetAllServices (CMS.API)'
+2026-10-14 21:44:06.717 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/services?limit=1500 - 200 null application/json; charset=utf-8 411.0171ms
+2026-10-14 21:44:06.717 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/lab/catalog - 200 null application/json; charset=utf-8 407.034ms
+2026-10-14 21:44:06.717 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/staff/doctors - 500 null application/json 585.4713ms
+2026-10-14 21:44:06.822 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.DrugFormularyDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:44:06.898 +03:00 [INF] Executed action CMS.API.Controllers.PharmacyController.GetFormulary (CMS.API) in 223.8889ms
+2026-10-14 21:44:06.913 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.PharmacyController.GetFormulary (CMS.API)'
+2026-10-14 21:44:06.917 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/pharmacy/formulary - 200 null application/json; charset=utf-8 447.5273ms
+2026-10-14 21:44:08.461 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/staff/doctors - application/json null
+2026-10-14 21:44:08.462 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/services/consultation - application/json null
+2026-10-14 21:44:08.462 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/triage/queue?date=2026-10-14 - application/json null
+2026-10-14 21:44:08.462 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/patients/search - application/json null
+2026-10-14 21:44:08.470 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.StaffController.GetDoctors (CMS.API)'
+2026-10-14 21:44:08.516 +03:00 [INF] Route matched with {action = "GetDoctors", controller = "Staff"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetDoctors() on controller CMS.API.Controllers.StaffController (CMS.API).
+2026-10-14 21:44:08.496 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.TriageController.GetQueue (CMS.API)'
+2026-10-14 21:44:08.512 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.PatientsController.Search (CMS.API)'
+2026-10-14 21:44:08.476 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.ServicesController.GetConsultationServices (CMS.API)'
+2026-10-14 21:44:08.577 +03:00 [INF] Executed action CMS.API.Controllers.StaffController.GetDoctors (CMS.API) in 52.5525ms
+2026-10-14 21:44:08.594 +03:00 [INF] Route matched with {action = "GetQueue", controller = "Triage"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetQueue(System.String, System.Nullable`1[System.DateTime]) on controller CMS.API.Controllers.TriageController (CMS.API).
+2026-10-14 21:44:08.613 +03:00 [INF] Route matched with {action = "Search", controller = "Patients"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] Search(System.String, Int32, Int32, System.String) on controller CMS.API.Controllers.PatientsController (CMS.API).
+2026-10-14 21:44:08.614 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.StaffController.GetDoctors (CMS.API)'
+2026-10-14 21:44:08.616 +03:00 [INF] Route matched with {action = "GetConsultationServices", controller = "Services"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetConsultationServices() on controller CMS.API.Controllers.ServicesController (CMS.API).
+2026-10-14 21:44:08.624 +03:00 [ERR] Unhandled exception encountered: Invalid column name 'MiddleName'.
+Microsoft.Data.SqlClient.SqlException (0x80131904): Invalid column name 'MiddleName'.
+   at Microsoft.Data.SqlClient.SqlCommand.<>c.<ExecuteDbDataReaderAsync>b__211_0(Task`1 result)
+   at System.Threading.Tasks.ContinuationResultTaskFromResultTask`2.InnerInvoke()
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Threading.Tasks.Task.ExecuteWithThreadLocal(Task& currentTaskSlot, Thread threadPoolThread)
+--- End of stack trace from previous location ---
+   at Dapper.SqlMapper.QueryAsync[T](IDbConnection cnn, Type effectiveType, CommandDefinition command) in /_/Dapper/SqlMapper.Async.cs:line 434
+   at CMS.Application.StaffServices.StaffAndDoctorService.GetDoctorsAsync(Byte tenantId) in C:\Users\ASUS\source\repos\CMS\src\CMS.Application\StaffServices\StaffAndDoctorService.cs:line 35
+   at CMS.API.Controllers.StaffController.GetDoctors() in C:\Users\ASUS\source\repos\CMS\src\CMS.API\Controllers\ClinicalControllers.cs:line 24
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ActionMethodExecutor.TaskOfIActionResultExecutor.Execute(ActionContext actionContext, IActionResultTypeMapper mapper, ObjectMethodExecutor executor, Object controller, Object[] arguments)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.<InvokeActionMethodAsync>g__Awaited|12_0(ControllerActionInvoker invoker, ValueTask`1 actionResultValueTask)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.<InvokeNextActionFilterAsync>g__Awaited|10_0(ControllerActionInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Rethrow(ActionExecutedContextSealed context)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Next(State& next, Scope& scope, Object& state, Boolean& isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.<InvokeInnerFilterAsync>g__Awaited|13_0(ControllerActionInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeFilterPipelineAsync>g__Awaited|20_0(ResourceInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Logged|17_1(ResourceInvoker invoker)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Logged|17_1(ResourceInvoker invoker)
+   at Microsoft.AspNetCore.Routing.EndpointMiddleware.<Invoke>g__AwaitRequestTask|7_0(Endpoint endpoint, Task requestTask, ILogger logger)
+   at Microsoft.AspNetCore.Authorization.AuthorizationMiddleware.Invoke(HttpContext context)
+   at CMS.API.Middleware.TenantMiddleware.InvokeAsync(HttpContext context) in C:\Users\ASUS\source\repos\CMS\src\CMS.API\Middleware\Middlewares.cs:line 37
+   at Microsoft.AspNetCore.Authentication.AuthenticationMiddleware.Invoke(HttpContext context)
+   at Swashbuckle.AspNetCore.SwaggerUI.SwaggerUIMiddleware.Invoke(HttpContext httpContext)
+   at Swashbuckle.AspNetCore.Swagger.SwaggerMiddleware.Invoke(HttpContext httpContext, ISwaggerProvider swaggerProvider)
+   at CMS.API.Middleware.ExceptionMiddleware.InvokeAsync(HttpContext context) in C:\Users\ASUS\source\repos\CMS\src\CMS.API\Middleware\Middlewares.cs:line 123
+ClientConnectionId:646f02ec-7036-4059-b08b-b73ed23c86cf
+Error Number:207,State:1,Class:16
+2026-10-14 21:44:08.636 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:44:08.654 +03:00 [INF] Executed action CMS.API.Controllers.ServicesController.GetConsultationServices (CMS.API) in 26.8751ms
+2026-10-14 21:44:08.654 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/staff/doctors - 500 null application/json 192.3483ms
+2026-10-14 21:44:08.665 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/staff/doctors - application/json null
+2026-10-14 21:44:08.667 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/services/consultation - application/json null
+2026-10-14 21:44:08.668 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.ServicesController.GetConsultationServices (CMS.API)'
+2026-10-14 21:44:08.796 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/services/consultation - 200 null application/json; charset=utf-8 334.0155ms
+2026-10-14 21:44:08.794 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.ServicesController.GetConsultationServices (CMS.API)'
+2026-10-14 21:44:08.686 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.StaffController.GetDoctors (CMS.API)'
+2026-10-14 21:44:08.901 +03:00 [INF] Executing OkObjectResult, writing value of type '<>f__AnonymousType17`3[[System.Boolean, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Collections.Generic.List`1[[CMS.Shared.DTOs.PatientDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[<>f__AnonymousType35`7[[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], CMS.API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]'.
+2026-10-14 21:44:08.924 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.TriageDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:44:08.937 +03:00 [INF] Route matched with {action = "GetConsultationServices", controller = "Services"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetConsultationServices() on controller CMS.API.Controllers.ServicesController (CMS.API).
+2026-10-14 21:44:08.944 +03:00 [INF] Route matched with {action = "GetDoctors", controller = "Staff"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetDoctors() on controller CMS.API.Controllers.StaffController (CMS.API).
+2026-10-14 21:44:09.001 +03:00 [INF] Executed action CMS.API.Controllers.PatientsController.Search (CMS.API) in 378.4736ms
+2026-10-14 21:44:09.084 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.PatientsController.Search (CMS.API)'
+2026-10-14 21:44:09.053 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:44:09.311 +03:00 [INF] Executed action CMS.API.Controllers.ServicesController.GetConsultationServices (CMS.API) in 269.8507ms
+2026-10-14 21:44:09.086 +03:00 [INF] Executed action CMS.API.Controllers.StaffController.GetDoctors (CMS.API) in 23.5007ms
+2026-10-14 21:44:09.041 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/patients/search - application/json null
+2026-10-14 21:44:09.108 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/triage/queue?date=2026-10-14 - application/json null
+2026-10-14 21:44:09.275 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/patients/search - 200 null application/json; charset=utf-8 813.2814ms
+2026-10-14 21:44:09.085 +03:00 [INF] Executed action CMS.API.Controllers.TriageController.GetQueue (CMS.API) in 465.0659ms
+2026-10-14 21:44:09.394 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.ServicesController.GetConsultationServices (CMS.API)'
+2026-10-14 21:44:09.397 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.StaffController.GetDoctors (CMS.API)'
+2026-10-14 21:44:09.404 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.PatientsController.Search (CMS.API)'
+2026-10-14 21:44:09.417 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.TriageController.GetQueue (CMS.API)'
+2026-10-14 21:44:09.426 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.TriageController.GetQueue (CMS.API)'
+2026-10-14 21:44:09.427 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/services/consultation - 200 null application/json; charset=utf-8 760.6686ms
+2026-10-14 21:44:09.431 +03:00 [ERR] Unhandled exception encountered: Invalid column name 'MiddleName'.
+Microsoft.Data.SqlClient.SqlException (0x80131904): Invalid column name 'MiddleName'.
+   at Microsoft.Data.SqlClient.SqlCommand.<>c.<ExecuteDbDataReaderAsync>b__211_0(Task`1 result)
+   at System.Threading.Tasks.ContinuationResultTaskFromResultTask`2.InnerInvoke()
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Threading.Tasks.Task.ExecuteWithThreadLocal(Task& currentTaskSlot, Thread threadPoolThread)
+--- End of stack trace from previous location ---
+   at Dapper.SqlMapper.QueryAsync[T](IDbConnection cnn, Type effectiveType, CommandDefinition command) in /_/Dapper/SqlMapper.Async.cs:line 434
+   at CMS.Application.StaffServices.StaffAndDoctorService.GetDoctorsAsync(Byte tenantId) in C:\Users\ASUS\source\repos\CMS\src\CMS.Application\StaffServices\StaffAndDoctorService.cs:line 35
+   at CMS.API.Controllers.StaffController.GetDoctors() in C:\Users\ASUS\source\repos\CMS\src\CMS.API\Controllers\ClinicalControllers.cs:line 24
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ActionMethodExecutor.TaskOfIActionResultExecutor.Execute(ActionContext actionContext, IActionResultTypeMapper mapper, ObjectMethodExecutor executor, Object controller, Object[] arguments)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.<InvokeActionMethodAsync>g__Awaited|12_0(ControllerActionInvoker invoker, ValueTask`1 actionResultValueTask)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.<InvokeNextActionFilterAsync>g__Awaited|10_0(ControllerActionInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Rethrow(ActionExecutedContextSealed context)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Next(State& next, Scope& scope, Object& state, Boolean& isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.<InvokeInnerFilterAsync>g__Awaited|13_0(ControllerActionInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeFilterPipelineAsync>g__Awaited|20_0(ResourceInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Logged|17_1(ResourceInvoker invoker)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Logged|17_1(ResourceInvoker invoker)
+   at Microsoft.AspNetCore.Routing.EndpointMiddleware.<Invoke>g__AwaitRequestTask|7_0(Endpoint endpoint, Task requestTask, ILogger logger)
+   at Microsoft.AspNetCore.Authorization.AuthorizationMiddleware.Invoke(HttpContext context)
+   at CMS.API.Middleware.TenantMiddleware.InvokeAsync(HttpContext context) in C:\Users\ASUS\source\repos\CMS\src\CMS.API\Middleware\Middlewares.cs:line 37
+   at Microsoft.AspNetCore.Authentication.AuthenticationMiddleware.Invoke(HttpContext context)
+   at Swashbuckle.AspNetCore.SwaggerUI.SwaggerUIMiddleware.Invoke(HttpContext httpContext)
+   at Swashbuckle.AspNetCore.Swagger.SwaggerMiddleware.Invoke(HttpContext httpContext, ISwaggerProvider swaggerProvider)
+   at CMS.API.Middleware.ExceptionMiddleware.InvokeAsync(HttpContext context) in C:\Users\ASUS\source\repos\CMS\src\CMS.API\Middleware\Middlewares.cs:line 123
+ClientConnectionId:646f02ec-7036-4059-b08b-b73ed23c86cf
+Error Number:207,State:1,Class:16
+2026-10-14 21:44:09.432 +03:00 [INF] Route matched with {action = "Search", controller = "Patients"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] Search(System.String, Int32, Int32, System.String) on controller CMS.API.Controllers.PatientsController (CMS.API).
+2026-10-14 21:44:09.434 +03:00 [INF] Route matched with {action = "GetQueue", controller = "Triage"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetQueue(System.String, System.Nullable`1[System.DateTime]) on controller CMS.API.Controllers.TriageController (CMS.API).
+2026-10-14 21:44:09.436 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/triage/queue?date=2026-10-14 - 200 null application/json; charset=utf-8 974.1048ms
+2026-10-14 21:44:09.577 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/staff/doctors - 500 null application/json 911.6611ms
+2026-10-14 21:44:09.651 +03:00 [INF] Executing OkObjectResult, writing value of type '<>f__AnonymousType17`3[[System.Boolean, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Collections.Generic.List`1[[CMS.Shared.DTOs.PatientDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[<>f__AnonymousType35`7[[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], CMS.API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]'.
+2026-10-14 21:44:09.701 +03:00 [INF] Executed action CMS.API.Controllers.PatientsController.Search (CMS.API) in 123.1018ms
+2026-10-14 21:44:09.803 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.PatientsController.Search (CMS.API)'
+2026-10-14 21:44:09.810 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/patients/search - 200 null application/json; charset=utf-8 769.585ms
+2026-10-14 21:44:09.819 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.TriageDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:44:09.959 +03:00 [INF] Executed action CMS.API.Controllers.TriageController.GetQueue (CMS.API) in 370.9303ms
+2026-10-14 21:44:10.057 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.TriageController.GetQueue (CMS.API)'
+2026-10-14 21:44:10.059 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/triage/queue?date=2026-10-14 - 200 null application/json; charset=utf-8 950.5568ms
+2026-10-14 21:44:11.205 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/encounters/patient/270606 - application/json null
+2026-10-14 21:44:11.205 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/billing/invoices?patientId=270606&limit=20 - application/json null
+2026-10-14 21:44:11.647 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.EncountersController.GetPatientEncounters (CMS.API)'
+2026-10-14 21:44:11.654 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.BillingController.GetInvoices (CMS.API)'
+2026-10-14 21:44:11.690 +03:00 [INF] Route matched with {action = "GetPatientEncounters", controller = "Encounters"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetPatientEncounters(Int32) on controller CMS.API.Controllers.EncountersController (CMS.API).
+2026-10-14 21:44:11.693 +03:00 [INF] Route matched with {action = "GetInvoices", controller = "Billing"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetInvoices(Int32, System.Nullable`1[System.Int32], System.Nullable`1[System.DateTime], System.Nullable`1[System.DateTime], System.Nullable`1[System.DateTime]) on controller CMS.API.Controllers.BillingController (CMS.API).
+2026-10-14 21:44:12.409 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.EncounterDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:44:12.551 +03:00 [INF] Executed action CMS.API.Controllers.EncountersController.GetPatientEncounters (CMS.API) in 789.6483ms
+2026-10-14 21:44:12.706 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.EncountersController.GetPatientEncounters (CMS.API)'
+2026-10-14 21:44:12.788 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.InvoiceDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:44:12.803 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/encounters/patient/270606 - 200 null application/json; charset=utf-8 1597.754ms
+2026-10-14 21:44:12.883 +03:00 [INF] Executed action CMS.API.Controllers.BillingController.GetInvoices (CMS.API) in 1061.6178ms
+2026-10-14 21:44:13.061 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.BillingController.GetInvoices (CMS.API)'
+2026-10-14 21:44:13.063 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/billing/invoices?patientId=270606&limit=20 - 200 null application/json; charset=utf-8 1857.8177ms
+2026-10-14 21:44:18.329 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-10-14 21:44:18.330 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-10-14 21:44:18.330 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/dashboard/metrics - null null
+2026-10-14 21:44:18.330 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-10-14 21:44:18.331 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-10-14 21:44:18.331 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/dashboard/metrics - null null
+2026-10-14 21:44:18.402 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-10-14 21:44:18.419 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-10-14 21:44:18.430 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.DashboardController.GetMetrics (CMS.API)'
+2026-10-14 21:44:18.451 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-10-14 21:44:18.474 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-10-14 21:44:18.493 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.DashboardController.GetMetrics (CMS.API)'
+2026-10-14 21:44:18.501 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-10-14 21:44:18.505 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-10-14 21:44:18.508 +03:00 [INF] Route matched with {action = "GetMetrics", controller = "Dashboard"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetMetrics() on controller CMS.API.Controllers.DashboardController (CMS.API).
+2026-10-14 21:44:18.511 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-10-14 21:44:18.520 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-10-14 21:44:18.524 +03:00 [INF] Route matched with {action = "GetMetrics", controller = "Dashboard"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetMetrics() on controller CMS.API.Controllers.DashboardController (CMS.API).
+2026-10-14 21:44:18.539 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.ClinicSettingDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:44:18.556 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.ClinicSettingDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:44:18.558 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:44:18.566 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:44:18.581 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 51.0402ms
+2026-10-14 21:44:18.585 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 33.3161ms
+2026-10-14 21:44:18.590 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 55.0221ms
+2026-10-14 21:44:18.595 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 32.5263ms
+2026-10-14 21:44:18.600 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-10-14 21:44:18.605 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-10-14 21:44:18.610 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-10-14 21:44:18.614 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-10-14 21:44:18.618 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 200 null application/json; charset=utf-8 289.1946ms
+2026-10-14 21:44:18.621 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 200 null application/json; charset=utf-8 290.9369ms
+2026-10-14 21:44:18.629 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 299.0139ms
+2026-10-14 21:44:18.633 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-10-14 21:44:18.635 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 303.9825ms
+2026-10-14 21:44:18.633 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-10-14 21:44:18.651 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-10-14 21:44:18.651 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-10-14 21:44:18.687 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-10-14 21:44:18.706 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-10-14 21:44:18.715 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-10-14 21:44:18.722 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-10-14 21:44:18.726 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-10-14 21:44:18.730 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-10-14 21:44:18.743 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[CMS.Shared.DTOs.DashboardMetricsDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]'.
+2026-10-14 21:44:18.743 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[CMS.Shared.DTOs.DashboardMetricsDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]'.
+2026-10-14 21:44:18.744 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-10-14 21:44:18.750 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-10-14 21:44:18.756 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.ClinicSettingDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:44:18.761 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.ClinicSettingDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:44:18.766 +03:00 [INF] Executed action CMS.API.Controllers.DashboardController.GetMetrics (CMS.API) in 224.8623ms
+2026-10-14 21:44:18.770 +03:00 [INF] Executed action CMS.API.Controllers.DashboardController.GetMetrics (CMS.API) in 197.0192ms
+2026-10-14 21:44:18.778 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.ClinicSettingDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:44:18.784 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.ClinicSettingDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:44:18.786 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 32.3916ms
+2026-10-14 21:44:18.790 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 30.9443ms
+2026-10-14 21:44:18.794 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.DashboardController.GetMetrics (CMS.API)'
+2026-10-14 21:44:18.797 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.DashboardController.GetMetrics (CMS.API)'
+2026-10-14 21:44:18.801 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 25.5563ms
+2026-10-14 21:44:18.805 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 22.9453ms
+2026-10-14 21:44:18.810 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-10-14 21:44:18.815 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-10-14 21:44:18.818 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/dashboard/metrics - 200 null application/json; charset=utf-8 487.3507ms
+2026-10-14 21:44:18.821 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/dashboard/metrics - 200 null application/json; charset=utf-8 489.2322ms
+2026-10-14 21:44:18.831 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-10-14 21:44:18.836 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-10-14 21:44:18.841 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 200 null application/json; charset=utf-8 208.9023ms
+2026-10-14 21:44:18.844 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 200 null application/json; charset=utf-8 210.6851ms
+2026-10-14 21:44:18.864 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 200 null application/json; charset=utf-8 213.0167ms
+2026-10-14 21:44:18.868 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 200 null application/json; charset=utf-8 216.614ms
+2026-10-14 21:44:21.129 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/staff/doctors - application/json null
+2026-10-14 21:44:21.360 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/lab/catalog - application/json null
+2026-10-14 21:44:21.362 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/services?limit=1500 - application/json null
+2026-10-14 21:44:21.362 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/pharmacy/formulary - application/json null
+2026-10-14 21:44:21.661 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.StaffController.GetDoctors (CMS.API)'
+2026-10-14 21:44:22.757 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.LaboratoryController.GetCatalog (CMS.API)'
+2026-10-14 21:44:23.073 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.ServicesController.GetAllServices (CMS.API)'
+2026-10-14 21:44:23.117 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.PharmacyController.GetFormulary (CMS.API)'
+2026-10-14 21:44:23.122 +03:00 [INF] Route matched with {action = "GetDoctors", controller = "Staff"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetDoctors() on controller CMS.API.Controllers.StaffController (CMS.API).
+2026-10-14 21:44:23.126 +03:00 [INF] Route matched with {action = "GetCatalog", controller = "Laboratory"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetCatalog() on controller CMS.API.Controllers.LaboratoryController (CMS.API).
+2026-10-14 21:44:23.131 +03:00 [INF] Route matched with {action = "GetAllServices", controller = "Services"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetAllServices(System.String, System.String, Int32) on controller CMS.API.Controllers.ServicesController (CMS.API).
+2026-10-14 21:44:23.134 +03:00 [INF] Route matched with {action = "GetFormulary", controller = "Pharmacy"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetFormulary() on controller CMS.API.Controllers.PharmacyController (CMS.API).
+2026-10-14 21:44:23.147 +03:00 [INF] Executed action CMS.API.Controllers.StaffController.GetDoctors (CMS.API) in 6.7255ms
+2026-10-14 21:44:23.159 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.LabTestCatalogDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:44:23.176 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.StaffController.GetDoctors (CMS.API)'
+2026-10-14 21:44:23.184 +03:00 [INF] Executed action CMS.API.Controllers.LaboratoryController.GetCatalog (CMS.API) in 36.421ms
+2026-10-14 21:44:23.195 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:44:23.190 +03:00 [ERR] Unhandled exception encountered: Invalid column name 'MiddleName'.
+Microsoft.Data.SqlClient.SqlException (0x80131904): Invalid column name 'MiddleName'.
+   at System.Threading.Tasks.ContinuationResultTaskFromResultTask`2.InnerInvoke()
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Threading.Tasks.Task.ExecuteWithThreadLocal(Task& currentTaskSlot, Thread threadPoolThread)
+--- End of stack trace from previous location ---
+   at Dapper.SqlMapper.QueryAsync[T](IDbConnection cnn, Type effectiveType, CommandDefinition command) in /_/Dapper/SqlMapper.Async.cs:line 434
+   at CMS.Application.StaffServices.StaffAndDoctorService.GetDoctorsAsync(Byte tenantId) in C:\Users\ASUS\source\repos\CMS\src\CMS.Application\StaffServices\StaffAndDoctorService.cs:line 35
+   at CMS.API.Controllers.StaffController.GetDoctors() in C:\Users\ASUS\source\repos\CMS\src\CMS.API\Controllers\ClinicalControllers.cs:line 24
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ActionMethodExecutor.TaskOfIActionResultExecutor.Execute(ActionContext actionContext, IActionResultTypeMapper mapper, ObjectMethodExecutor executor, Object controller, Object[] arguments)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.<InvokeActionMethodAsync>g__Awaited|12_0(ControllerActionInvoker invoker, ValueTask`1 actionResultValueTask)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.<InvokeNextActionFilterAsync>g__Awaited|10_0(ControllerActionInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Rethrow(ActionExecutedContextSealed context)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Next(State& next, Scope& scope, Object& state, Boolean& isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.<InvokeInnerFilterAsync>g__Awaited|13_0(ControllerActionInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeFilterPipelineAsync>g__Awaited|20_0(ResourceInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Logged|17_1(ResourceInvoker invoker)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Logged|17_1(ResourceInvoker invoker)
+   at Microsoft.AspNetCore.Routing.EndpointMiddleware.<Invoke>g__AwaitRequestTask|7_0(Endpoint endpoint, Task requestTask, ILogger logger)
+   at Microsoft.AspNetCore.Authorization.AuthorizationMiddleware.Invoke(HttpContext context)
+   at CMS.API.Middleware.TenantMiddleware.InvokeAsync(HttpContext context) in C:\Users\ASUS\source\repos\CMS\src\CMS.API\Middleware\Middlewares.cs:line 37
+   at Microsoft.AspNetCore.Authentication.AuthenticationMiddleware.Invoke(HttpContext context)
+   at Swashbuckle.AspNetCore.SwaggerUI.SwaggerUIMiddleware.Invoke(HttpContext httpContext)
+   at Swashbuckle.AspNetCore.Swagger.SwaggerMiddleware.Invoke(HttpContext httpContext, ISwaggerProvider swaggerProvider)
+   at CMS.API.Middleware.ExceptionMiddleware.InvokeAsync(HttpContext context) in C:\Users\ASUS\source\repos\CMS\src\CMS.API\Middleware\Middlewares.cs:line 123
+ClientConnectionId:1b5f6e46-af39-4215-b8d6-61c88c6f4889
+Error Number:207,State:1,Class:16
+2026-10-14 21:44:23.195 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.LaboratoryController.GetCatalog (CMS.API)'
+2026-10-14 21:44:23.198 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/lab/catalog - application/json null
+2026-10-14 21:44:23.223 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/services?limit=1500 - application/json null
+2026-10-14 21:44:23.241 +03:00 [INF] Executed action CMS.API.Controllers.ServicesController.GetAllServices (CMS.API) in 83.9009ms
+2026-10-14 21:44:23.254 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/staff/doctors - 500 null application/json 2125.3117ms
+2026-10-14 21:44:23.254 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/lab/catalog - 200 null application/json; charset=utf-8 1894.8712ms
+2026-10-14 21:44:23.267 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/staff/doctors - application/json null
+2026-10-14 21:44:23.267 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.LaboratoryController.GetCatalog (CMS.API)'
+2026-10-14 21:44:23.282 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.ServicesController.GetAllServices (CMS.API)'
+2026-10-14 21:44:23.284 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.DrugFormularyDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:44:23.288 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.ServicesController.GetAllServices (CMS.API)'
+2026-10-14 21:44:23.325 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.StaffController.GetDoctors (CMS.API)'
+2026-10-14 21:44:23.328 +03:00 [INF] Route matched with {action = "GetCatalog", controller = "Laboratory"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetCatalog() on controller CMS.API.Controllers.LaboratoryController (CMS.API).
+2026-10-14 21:44:23.331 +03:00 [INF] Route matched with {action = "GetAllServices", controller = "Services"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetAllServices(System.String, System.String, Int32) on controller CMS.API.Controllers.ServicesController (CMS.API).
+2026-10-14 21:44:23.339 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/services?limit=1500 - 200 null application/json; charset=utf-8 1976.6428ms
+2026-10-14 21:44:23.351 +03:00 [INF] Route matched with {action = "GetDoctors", controller = "Staff"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetDoctors() on controller CMS.API.Controllers.StaffController (CMS.API).
+2026-10-14 21:44:23.419 +03:00 [INF] Executed action CMS.API.Controllers.PharmacyController.GetFormulary (CMS.API) in 251.0159ms
+2026-10-14 21:44:23.438 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:44:23.379 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.LabTestCatalogDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:44:23.451 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/pharmacy/formulary - application/json null
+2026-10-14 21:44:23.470 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.PharmacyController.GetFormulary (CMS.API)'
+2026-10-14 21:44:23.470 +03:00 [INF] Executed action CMS.API.Controllers.StaffController.GetDoctors (CMS.API) in 8.1783ms
+2026-10-14 21:44:23.485 +03:00 [INF] Executed action CMS.API.Controllers.LaboratoryController.GetCatalog (CMS.API) in 118.5088ms
+2026-10-14 21:44:23.495 +03:00 [INF] Executed action CMS.API.Controllers.ServicesController.GetAllServices (CMS.API) in 112.2712ms
+2026-10-14 21:44:23.502 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.PharmacyController.GetFormulary (CMS.API)'
+2026-10-14 21:44:23.505 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/pharmacy/formulary - 200 null application/json; charset=utf-8 2144.9655ms
+2026-10-14 21:44:23.510 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.StaffController.GetDoctors (CMS.API)'
+2026-10-14 21:44:23.515 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.LaboratoryController.GetCatalog (CMS.API)'
+2026-10-14 21:44:23.520 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.ServicesController.GetAllServices (CMS.API)'
+2026-10-14 21:44:23.523 +03:00 [INF] Route matched with {action = "GetFormulary", controller = "Pharmacy"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetFormulary() on controller CMS.API.Controllers.PharmacyController (CMS.API).
+2026-10-14 21:44:23.541 +03:00 [ERR] Unhandled exception encountered: Invalid column name 'MiddleName'.
+Microsoft.Data.SqlClient.SqlException (0x80131904): Invalid column name 'MiddleName'.
+   at System.Threading.Tasks.ContinuationResultTaskFromResultTask`2.InnerInvoke()
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Threading.Tasks.Task.ExecuteWithThreadLocal(Task& currentTaskSlot, Thread threadPoolThread)
+--- End of stack trace from previous location ---
+   at Dapper.SqlMapper.QueryAsync[T](IDbConnection cnn, Type effectiveType, CommandDefinition command) in /_/Dapper/SqlMapper.Async.cs:line 434
+   at CMS.Application.StaffServices.StaffAndDoctorService.GetDoctorsAsync(Byte tenantId) in C:\Users\ASUS\source\repos\CMS\src\CMS.Application\StaffServices\StaffAndDoctorService.cs:line 35
+   at CMS.API.Controllers.StaffController.GetDoctors() in C:\Users\ASUS\source\repos\CMS\src\CMS.API\Controllers\ClinicalControllers.cs:line 24
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ActionMethodExecutor.TaskOfIActionResultExecutor.Execute(ActionContext actionContext, IActionResultTypeMapper mapper, ObjectMethodExecutor executor, Object controller, Object[] arguments)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.<InvokeActionMethodAsync>g__Awaited|12_0(ControllerActionInvoker invoker, ValueTask`1 actionResultValueTask)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.<InvokeNextActionFilterAsync>g__Awaited|10_0(ControllerActionInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Rethrow(ActionExecutedContextSealed context)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Next(State& next, Scope& scope, Object& state, Boolean& isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.<InvokeInnerFilterAsync>g__Awaited|13_0(ControllerActionInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeFilterPipelineAsync>g__Awaited|20_0(ResourceInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Logged|17_1(ResourceInvoker invoker)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Logged|17_1(ResourceInvoker invoker)
+   at Microsoft.AspNetCore.Routing.EndpointMiddleware.<Invoke>g__AwaitRequestTask|7_0(Endpoint endpoint, Task requestTask, ILogger logger)
+   at Microsoft.AspNetCore.Authorization.AuthorizationMiddleware.Invoke(HttpContext context)
+   at CMS.API.Middleware.TenantMiddleware.InvokeAsync(HttpContext context) in C:\Users\ASUS\source\repos\CMS\src\CMS.API\Middleware\Middlewares.cs:line 37
+   at Microsoft.AspNetCore.Authentication.AuthenticationMiddleware.Invoke(HttpContext context)
+   at Swashbuckle.AspNetCore.SwaggerUI.SwaggerUIMiddleware.Invoke(HttpContext httpContext)
+   at Swashbuckle.AspNetCore.Swagger.SwaggerMiddleware.Invoke(HttpContext httpContext, ISwaggerProvider swaggerProvider)
+   at CMS.API.Middleware.ExceptionMiddleware.InvokeAsync(HttpContext context) in C:\Users\ASUS\source\repos\CMS\src\CMS.API\Middleware\Middlewares.cs:line 123
+ClientConnectionId:1b5f6e46-af39-4215-b8d6-61c88c6f4889
+Error Number:207,State:1,Class:16
+2026-10-14 21:44:23.545 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/lab/catalog - 200 null application/json; charset=utf-8 346.6501ms
+2026-10-14 21:44:23.549 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/services?limit=1500 - 200 null application/json; charset=utf-8 325.6954ms
+2026-10-14 21:44:23.598 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/staff/doctors - 500 null application/json 330.073ms
+2026-10-14 21:44:23.626 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.DrugFormularyDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:44:23.667 +03:00 [INF] Executed action CMS.API.Controllers.PharmacyController.GetFormulary (CMS.API) in 112.15ms
+2026-10-14 21:44:23.673 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.PharmacyController.GetFormulary (CMS.API)'
+2026-10-14 21:44:23.677 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/pharmacy/formulary - 200 null application/json; charset=utf-8 225.9938ms
+2026-10-14 21:44:23.741 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/triage/queue?date=2026-10-14 - application/json null
+2026-10-14 21:44:23.741 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/staff/doctors - application/json null
+2026-10-14 21:44:23.741 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/patients/search - application/json null
+2026-10-14 21:44:23.742 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/services/consultation - application/json null
+2026-10-14 21:44:23.751 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.TriageController.GetQueue (CMS.API)'
+2026-10-14 21:44:23.758 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.StaffController.GetDoctors (CMS.API)'
+2026-10-14 21:44:23.771 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.PatientsController.Search (CMS.API)'
+2026-10-14 21:44:23.785 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.ServicesController.GetConsultationServices (CMS.API)'
+2026-10-14 21:44:23.790 +03:00 [INF] Route matched with {action = "GetQueue", controller = "Triage"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetQueue(System.String, System.Nullable`1[System.DateTime]) on controller CMS.API.Controllers.TriageController (CMS.API).
+2026-10-14 21:44:23.796 +03:00 [INF] Route matched with {action = "GetDoctors", controller = "Staff"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetDoctors() on controller CMS.API.Controllers.StaffController (CMS.API).
+2026-10-14 21:44:23.802 +03:00 [INF] Route matched with {action = "Search", controller = "Patients"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] Search(System.String, Int32, Int32, System.String) on controller CMS.API.Controllers.PatientsController (CMS.API).
+2026-10-14 21:44:23.808 +03:00 [INF] Route matched with {action = "GetConsultationServices", controller = "Services"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetConsultationServices() on controller CMS.API.Controllers.ServicesController (CMS.API).
+2026-10-14 21:44:23.834 +03:00 [INF] Executed action CMS.API.Controllers.StaffController.GetDoctors (CMS.API) in 7.3657ms
+2026-10-14 21:44:23.852 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:44:23.855 +03:00 [INF] Executing OkObjectResult, writing value of type '<>f__AnonymousType17`3[[System.Boolean, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Collections.Generic.List`1[[CMS.Shared.DTOs.PatientDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[<>f__AnonymousType35`7[[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], CMS.API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]'.
+2026-10-14 21:44:23.858 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.StaffController.GetDoctors (CMS.API)'
+2026-10-14 21:44:23.865 +03:00 [INF] Executed action CMS.API.Controllers.ServicesController.GetConsultationServices (CMS.API) in 16.0297ms
+2026-10-14 21:44:23.875 +03:00 [INF] Executed action CMS.API.Controllers.PatientsController.Search (CMS.API) in 36.6725ms
+2026-10-14 21:44:23.882 +03:00 [ERR] Unhandled exception encountered: Invalid column name 'MiddleName'.
+Microsoft.Data.SqlClient.SqlException (0x80131904): Invalid column name 'MiddleName'.
+   at System.Threading.Tasks.ContinuationResultTaskFromResultTask`2.InnerInvoke()
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Threading.Tasks.Task.ExecuteWithThreadLocal(Task& currentTaskSlot, Thread threadPoolThread)
+--- End of stack trace from previous location ---
+   at Dapper.SqlMapper.QueryAsync[T](IDbConnection cnn, Type effectiveType, CommandDefinition command) in /_/Dapper/SqlMapper.Async.cs:line 434
+   at CMS.Application.StaffServices.StaffAndDoctorService.GetDoctorsAsync(Byte tenantId) in C:\Users\ASUS\source\repos\CMS\src\CMS.Application\StaffServices\StaffAndDoctorService.cs:line 35
+   at CMS.API.Controllers.StaffController.GetDoctors() in C:\Users\ASUS\source\repos\CMS\src\CMS.API\Controllers\ClinicalControllers.cs:line 24
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ActionMethodExecutor.TaskOfIActionResultExecutor.Execute(ActionContext actionContext, IActionResultTypeMapper mapper, ObjectMethodExecutor executor, Object controller, Object[] arguments)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.<InvokeActionMethodAsync>g__Awaited|12_0(ControllerActionInvoker invoker, ValueTask`1 actionResultValueTask)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.<InvokeNextActionFilterAsync>g__Awaited|10_0(ControllerActionInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Rethrow(ActionExecutedContextSealed context)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Next(State& next, Scope& scope, Object& state, Boolean& isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.<InvokeInnerFilterAsync>g__Awaited|13_0(ControllerActionInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeFilterPipelineAsync>g__Awaited|20_0(ResourceInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Logged|17_1(ResourceInvoker invoker)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Logged|17_1(ResourceInvoker invoker)
+   at Microsoft.AspNetCore.Routing.EndpointMiddleware.<Invoke>g__AwaitRequestTask|7_0(Endpoint endpoint, Task requestTask, ILogger logger)
+   at Microsoft.AspNetCore.Authorization.AuthorizationMiddleware.Invoke(HttpContext context)
+   at CMS.API.Middleware.TenantMiddleware.InvokeAsync(HttpContext context) in C:\Users\ASUS\source\repos\CMS\src\CMS.API\Middleware\Middlewares.cs:line 37
+   at Microsoft.AspNetCore.Authentication.AuthenticationMiddleware.Invoke(HttpContext context)
+   at Swashbuckle.AspNetCore.SwaggerUI.SwaggerUIMiddleware.Invoke(HttpContext httpContext)
+   at Swashbuckle.AspNetCore.Swagger.SwaggerMiddleware.Invoke(HttpContext httpContext, ISwaggerProvider swaggerProvider)
+   at CMS.API.Middleware.ExceptionMiddleware.InvokeAsync(HttpContext context) in C:\Users\ASUS\source\repos\CMS\src\CMS.API\Middleware\Middlewares.cs:line 123
+ClientConnectionId:646f02ec-7036-4059-b08b-b73ed23c86cf
+Error Number:207,State:1,Class:16
+2026-10-14 21:44:23.880 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/services/consultation - application/json null
+2026-10-14 21:44:23.892 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.ServicesController.GetConsultationServices (CMS.API)'
+2026-10-14 21:44:23.893 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/patients/search - application/json null
+2026-10-14 21:44:23.901 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.PatientsController.Search (CMS.API)'
+2026-10-14 21:44:23.922 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.TriageDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:44:23.927 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/staff/doctors - 500 null application/json 186.1936ms
+2026-10-14 21:44:23.935 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.ServicesController.GetConsultationServices (CMS.API)'
+2026-10-14 21:44:23.937 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/staff/doctors - application/json null
+2026-10-14 21:44:23.938 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/services/consultation - 200 null application/json; charset=utf-8 196.6079ms
+2026-10-14 21:44:23.948 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.PatientsController.Search (CMS.API)'
+2026-10-14 21:44:23.951 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/patients/search - 200 null application/json; charset=utf-8 209.7739ms
+2026-10-14 21:44:23.958 +03:00 [INF] Executed action CMS.API.Controllers.TriageController.GetQueue (CMS.API) in 141.0159ms
+2026-10-14 21:44:23.973 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/triage/queue?date=2026-10-14 - application/json null
+2026-10-14 21:44:23.982 +03:00 [INF] Route matched with {action = "GetConsultationServices", controller = "Services"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetConsultationServices() on controller CMS.API.Controllers.ServicesController (CMS.API).
+2026-10-14 21:44:23.995 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.StaffController.GetDoctors (CMS.API)'
+2026-10-14 21:44:24.012 +03:00 [INF] Route matched with {action = "Search", controller = "Patients"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] Search(System.String, Int32, Int32, System.String) on controller CMS.API.Controllers.PatientsController (CMS.API).
+2026-10-14 21:44:24.033 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.TriageController.GetQueue (CMS.API)'
+2026-10-14 21:44:24.046 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.TriageController.GetQueue (CMS.API)'
+2026-10-14 21:44:24.053 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:44:24.055 +03:00 [INF] Route matched with {action = "GetDoctors", controller = "Staff"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetDoctors() on controller CMS.API.Controllers.StaffController (CMS.API).
+2026-10-14 21:44:24.065 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/triage/queue?date=2026-10-14 - 200 null application/json; charset=utf-8 323.8514ms
+2026-10-14 21:44:24.069 +03:00 [INF] Route matched with {action = "GetQueue", controller = "Triage"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetQueue(System.String, System.Nullable`1[System.DateTime]) on controller CMS.API.Controllers.TriageController (CMS.API).
+2026-10-14 21:44:24.075 +03:00 [INF] Executing OkObjectResult, writing value of type '<>f__AnonymousType17`3[[System.Boolean, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Collections.Generic.List`1[[CMS.Shared.DTOs.PatientDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[<>f__AnonymousType35`7[[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], CMS.API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]'.
+2026-10-14 21:44:24.078 +03:00 [INF] Executed action CMS.API.Controllers.ServicesController.GetConsultationServices (CMS.API) in 26.177ms
+2026-10-14 21:44:24.093 +03:00 [INF] Executed action CMS.API.Controllers.StaffController.GetDoctors (CMS.API) in 6.6602ms
+2026-10-14 21:44:24.116 +03:00 [INF] Executed action CMS.API.Controllers.PatientsController.Search (CMS.API) in 54.3514ms
+2026-10-14 21:44:24.123 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.ServicesController.GetConsultationServices (CMS.API)'
+2026-10-14 21:44:24.129 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.StaffController.GetDoctors (CMS.API)'
+2026-10-14 21:44:24.136 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.PatientsController.Search (CMS.API)'
+2026-10-14 21:44:24.142 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/services/consultation - 200 null application/json; charset=utf-8 262.2313ms
+2026-10-14 21:44:24.152 +03:00 [ERR] Unhandled exception encountered: Invalid column name 'MiddleName'.
+Microsoft.Data.SqlClient.SqlException (0x80131904): Invalid column name 'MiddleName'.
+   at System.Threading.Tasks.ContinuationResultTaskFromResultTask`2.InnerInvoke()
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Threading.Tasks.Task.ExecuteWithThreadLocal(Task& currentTaskSlot, Thread threadPoolThread)
+--- End of stack trace from previous location ---
+   at Dapper.SqlMapper.QueryAsync[T](IDbConnection cnn, Type effectiveType, CommandDefinition command) in /_/Dapper/SqlMapper.Async.cs:line 434
+   at CMS.Application.StaffServices.StaffAndDoctorService.GetDoctorsAsync(Byte tenantId) in C:\Users\ASUS\source\repos\CMS\src\CMS.Application\StaffServices\StaffAndDoctorService.cs:line 35
+   at CMS.API.Controllers.StaffController.GetDoctors() in C:\Users\ASUS\source\repos\CMS\src\CMS.API\Controllers\ClinicalControllers.cs:line 24
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ActionMethodExecutor.TaskOfIActionResultExecutor.Execute(ActionContext actionContext, IActionResultTypeMapper mapper, ObjectMethodExecutor executor, Object controller, Object[] arguments)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.<InvokeActionMethodAsync>g__Awaited|12_0(ControllerActionInvoker invoker, ValueTask`1 actionResultValueTask)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.<InvokeNextActionFilterAsync>g__Awaited|10_0(ControllerActionInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Rethrow(ActionExecutedContextSealed context)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Next(State& next, Scope& scope, Object& state, Boolean& isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.<InvokeInnerFilterAsync>g__Awaited|13_0(ControllerActionInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeFilterPipelineAsync>g__Awaited|20_0(ResourceInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Logged|17_1(ResourceInvoker invoker)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Logged|17_1(ResourceInvoker invoker)
+   at Microsoft.AspNetCore.Routing.EndpointMiddleware.<Invoke>g__AwaitRequestTask|7_0(Endpoint endpoint, Task requestTask, ILogger logger)
+   at Microsoft.AspNetCore.Authorization.AuthorizationMiddleware.Invoke(HttpContext context)
+   at CMS.API.Middleware.TenantMiddleware.InvokeAsync(HttpContext context) in C:\Users\ASUS\source\repos\CMS\src\CMS.API\Middleware\Middlewares.cs:line 37
+   at Microsoft.AspNetCore.Authentication.AuthenticationMiddleware.Invoke(HttpContext context)
+   at Swashbuckle.AspNetCore.SwaggerUI.SwaggerUIMiddleware.Invoke(HttpContext httpContext)
+   at Swashbuckle.AspNetCore.Swagger.SwaggerMiddleware.Invoke(HttpContext httpContext, ISwaggerProvider swaggerProvider)
+   at CMS.API.Middleware.ExceptionMiddleware.InvokeAsync(HttpContext context) in C:\Users\ASUS\source\repos\CMS\src\CMS.API\Middleware\Middlewares.cs:line 123
+ClientConnectionId:1b5f6e46-af39-4215-b8d6-61c88c6f4889
+Error Number:207,State:1,Class:16
+2026-10-14 21:44:24.155 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/patients/search - 200 null application/json; charset=utf-8 262.515ms
+2026-10-14 21:44:24.187 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.TriageDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:44:24.196 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/staff/doctors - 500 null application/json 259.1207ms
+2026-10-14 21:44:24.210 +03:00 [INF] Executed action CMS.API.Controllers.TriageController.GetQueue (CMS.API) in 101.71ms
+2026-10-14 21:44:24.230 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.TriageController.GetQueue (CMS.API)'
+2026-10-14 21:44:24.235 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/triage/queue?date=2026-10-14 - 200 null application/json; charset=utf-8 262.0076ms
+2026-10-14 21:44:25.454 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/encounters/patient/270606 - application/json null
+2026-10-14 21:44:25.458 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/billing/invoices?patientId=270606&limit=20 - application/json null
+2026-10-14 21:44:25.483 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.EncountersController.GetPatientEncounters (CMS.API)'
+2026-10-14 21:44:25.498 +03:00 [INF] Route matched with {action = "GetPatientEncounters", controller = "Encounters"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetPatientEncounters(Int32) on controller CMS.API.Controllers.EncountersController (CMS.API).
+2026-10-14 21:44:25.493 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.BillingController.GetInvoices (CMS.API)'
+2026-10-14 21:44:25.903 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.EncounterDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:44:25.907 +03:00 [INF] Route matched with {action = "GetInvoices", controller = "Billing"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetInvoices(Int32, System.Nullable`1[System.Int32], System.Nullable`1[System.DateTime], System.Nullable`1[System.DateTime], System.Nullable`1[System.DateTime]) on controller CMS.API.Controllers.BillingController (CMS.API).
+2026-10-14 21:44:25.910 +03:00 [INF] Executed action CMS.API.Controllers.EncountersController.GetPatientEncounters (CMS.API) in 14.1484ms
+2026-10-14 21:44:25.916 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.EncountersController.GetPatientEncounters (CMS.API)'
+2026-10-14 21:44:25.918 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/encounters/patient/270606 - 200 null application/json; charset=utf-8 464.1211ms
+2026-10-14 21:44:25.927 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.InvoiceDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:44:25.930 +03:00 [INF] Executed action CMS.API.Controllers.BillingController.GetInvoices (CMS.API) in 16.8378ms
+2026-10-14 21:44:25.933 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.BillingController.GetInvoices (CMS.API)'
+2026-10-14 21:44:25.935 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/billing/invoices?patientId=270606&limit=20 - 200 null application/json; charset=utf-8 477.1012ms
+2026-10-14 21:45:18.784 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-10-14 21:45:18.789 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-10-14 21:45:18.791 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-10-14 21:45:18.842 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:45:18.848 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 54.4475ms
+2026-10-14 21:45:18.856 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-10-14 21:45:18.858 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 74.3188ms
+2026-10-14 21:46:18.830 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-10-14 21:46:18.886 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-10-14 21:46:18.983 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-10-14 21:46:19.160 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:46:19.174 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 175.4862ms
+2026-10-14 21:46:19.183 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-10-14 21:46:19.185 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 355.1881ms
+2026-10-14 21:47:18.843 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-10-14 21:47:18.852 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-10-14 21:47:18.857 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-10-14 21:47:18.978 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:47:18.990 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 30.1195ms
+2026-10-14 21:47:19.002 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-10-14 21:47:19.005 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 162.566ms
+2026-10-14 21:48:18.784 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-10-14 21:48:18.789 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-10-14 21:48:18.792 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-10-14 21:48:18.836 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:48:18.839 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 42.5349ms
+2026-10-14 21:48:18.843 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-10-14 21:48:18.847 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 62.1808ms
+2026-10-14 21:49:18.848 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-10-14 21:49:19.004 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-10-14 21:49:19.007 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-10-14 21:49:19.570 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:49:19.575 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 521.1586ms
+2026-10-14 21:49:19.579 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-10-14 21:49:19.582 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 734.1776ms
+2026-10-14 21:50:19.121 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-10-14 21:50:19.601 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-10-14 21:50:19.626 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-10-14 21:50:19.718 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:50:19.723 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 72.5762ms
+2026-10-14 21:50:19.738 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-10-14 21:50:19.742 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 620.8801ms
+2026-10-14 21:51:31.954 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-10-14 21:51:32.034 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-10-14 21:51:32.050 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-10-14 21:51:32.124 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:51:32.153 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 94.4631ms
+2026-10-14 21:51:32.263 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-10-14 21:51:32.266 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 311.3232ms
+2026-10-14 21:52:31.852 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-10-14 21:52:31.925 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-10-14 21:52:31.927 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-10-14 21:52:32.201 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:52:32.250 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 319.9833ms
+2026-10-14 21:52:32.562 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-10-14 21:52:32.572 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 720.7748ms
+2026-10-14 21:53:31.824 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-10-14 21:53:31.856 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-10-14 21:53:31.859 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-10-14 21:53:31.889 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:53:31.893 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 29.6648ms
+2026-10-14 21:53:31.903 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-10-14 21:53:31.906 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 82.268ms
+2026-10-14 21:53:45.817 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-10-14 21:53:45.824 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-10-14 21:53:45.827 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-10-14 21:53:45.846 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.ClinicSettingDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:53:45.851 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 14.471ms
+2026-10-14 21:53:45.855 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-10-14 21:53:45.859 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 200 null application/json; charset=utf-8 41.8101ms
+2026-10-14 21:53:45.861 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-10-14 21:53:45.881 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-10-14 21:53:45.884 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-10-14 21:53:45.890 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.ClinicSettingDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:53:45.894 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 5.2901ms
+2026-10-14 21:53:45.900 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-10-14 21:53:45.903 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 200 null application/json; charset=utf-8 41.8098ms
+2026-10-14 21:54:31.819 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-10-14 21:54:31.864 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-10-14 21:54:31.868 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-10-14 21:54:32.060 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:54:32.064 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 101.1939ms
+2026-10-14 21:54:32.072 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-10-14 21:54:32.078 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 259.2104ms
+2026-10-14 21:55:31.839 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-10-14 21:55:31.869 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-10-14 21:55:31.874 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-10-14 21:55:31.946 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:55:31.952 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 47.7996ms
+2026-10-14 21:55:31.958 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-10-14 21:55:31.963 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 124.6608ms
+2026-10-14 21:56:31.866 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-10-14 21:56:32.017 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-10-14 21:56:32.023 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-10-14 21:56:32.400 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:56:32.441 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 270.8165ms
+2026-10-14 21:56:32.575 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-10-14 21:56:32.580 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 714.304ms
+2026-10-14 21:57:31.817 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-10-14 21:57:31.943 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-10-14 21:57:31.946 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-10-14 21:57:31.985 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:57:31.988 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 30.5626ms
+2026-10-14 21:57:31.990 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-10-14 21:57:31.992 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 174.6929ms
+2026-10-14 21:58:31.831 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-10-14 21:58:31.840 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-10-14 21:58:31.843 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-10-14 21:58:31.870 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-10-14 21:58:31.874 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 28.4761ms
+2026-10-14 21:58:31.880 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-10-14 21:58:31.887 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 55.9842ms
