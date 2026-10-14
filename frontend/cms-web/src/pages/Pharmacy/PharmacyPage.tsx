@@ -148,7 +148,7 @@ export default function PharmacyPage() {
           const drugSummary = itemsList.length > 0
             ? itemsList.map((i: any) => `${i.drugName || 'Medication'} ${i.dosage || ''}`.trim()).join(', ')
             : 'No medications recorded';
-          const totalQty = itemsList.reduce((sum: number, it: any) => sum + (Number(it.quantity) || 1), 0);
+          const totalQty = itemsList.reduce((sum: number, it: any) => sum + (Number(it.quantity) || 0), 0);
           return {
             id: p.id || p.Id,
             itemId: itemsList[0]?.id || p.id,
@@ -157,7 +157,7 @@ export default function PharmacyPage() {
             doctorName: p.doctorName || p.DoctorName || 'Dr. Attending Doctor',
             date: p.prescribedAt ? String(p.prescribedAt).split('T')[0] : '2026-08-31',
             drug: drugSummary,
-            qty: totalQty,
+            qty: totalQty > 0 ? totalQty : '—',
             status: (p.statusId === 2 || p.statusId === 4 || p.isDispensed) ? 'Dispensed' : 'Pending',
             isPaid: Boolean(p.isPaid || p.IsPaid),
             items: itemsList,
@@ -640,7 +640,7 @@ export default function PharmacyPage() {
                                 <div style={{ background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '10px', padding: '14px 18px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                                     <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#06b6d4', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                      <Pill size={14} /> Prescribed Items Breakdown ({p.items?.length || 1})
+                                      <Pill size={14} /> Prescribed Items Breakdown ({p.items?.length || 0})
                                     </div>
                                     <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
                                       Prescription #{p.id} · Prescribed by {p.doctorName}
@@ -669,7 +669,7 @@ export default function PharmacyPage() {
                                               <td style={{ padding: '6px 8px' }}>{it.dosage || '—'} {it.route ? `(${it.route})` : ''}</td>
                                               <td style={{ padding: '6px 8px' }}>{it.frequency || '—'}</td>
                                               <td style={{ padding: '6px 8px' }}>{it.duration || '—'}</td>
-                                              <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 700, color: '#06b6d4' }}>{it.quantity || it.qty || 1}</td>
+                                              <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 700, color: '#06b6d4' }}>{it.quantity != null && it.quantity !== '' && Number(it.quantity) > 0 ? it.quantity : (it.qty != null && it.qty !== '' && Number(it.qty) > 0 ? it.qty : '—')}</td>
                                               <td style={{ padding: '6px 8px', color: 'var(--text-muted)', fontStyle: it.instructions ? 'italic' : 'normal' }}>
                                                 {it.instructions || '—'}
                                               </td>
@@ -682,7 +682,7 @@ export default function PharmacyPage() {
                                             <td style={{ padding: '6px 8px' }}>Standard</td>
                                             <td style={{ padding: '6px 8px' }}>As directed</td>
                                             <td style={{ padding: '6px 8px' }}>—</td>
-                                            <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 700, color: '#06b6d4' }}>{p.qty}</td>
+                                            <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 700, color: '#06b6d4' }}>{p.qty != null && p.qty !== '' && Number(p.qty) > 0 ? p.qty : '—'}</td>
                                             <td style={{ padding: '6px 8px', color: 'var(--text-muted)' }}>—</td>
                                           </tr>
                                         )}
@@ -1566,7 +1566,7 @@ export default function PharmacyPage() {
                           {it.frequency || '—'} {it.duration ? `· ${it.duration}` : ''}
                         </td>
                         <td style={{ padding: '8px 10px', verticalAlign: 'top', textAlign: 'right', fontWeight: 700, color: '#111827' }}>
-                          {it.quantity || it.qty || 1}
+                          {it.quantity != null && it.quantity !== '' && Number(it.quantity) > 0 ? it.quantity : (it.qty != null && it.qty !== '' && Number(it.qty) > 0 ? it.qty : '—')}
                         </td>
                       </tr>
                     ))
@@ -1578,7 +1578,7 @@ export default function PharmacyPage() {
                       <td style={{ padding: '8px 10px', verticalAlign: 'top', color: '#374151' }}>As directed</td>
                       <td style={{ padding: '8px 10px', verticalAlign: 'top', color: '#374151' }}>Standard regimen</td>
                       <td style={{ padding: '8px 10px', verticalAlign: 'top', textAlign: 'right', fontWeight: 700, color: '#111827' }}>
-                        {printPrescriptionModal.qty || 1}
+                        {printPrescriptionModal.qty != null && printPrescriptionModal.qty !== '' && Number(printPrescriptionModal.qty) > 0 ? printPrescriptionModal.qty : '—'}
                       </td>
                     </tr>
                   )}
