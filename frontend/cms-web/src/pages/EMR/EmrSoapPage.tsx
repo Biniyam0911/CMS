@@ -721,7 +721,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
   // Custom medication state
   const [customDrugName, setCustomDrugName] = useState('');
   const [customDosage, setCustomDosage] = useState('');
-  const [customRoute, setCustomRoute] = useState('Oral');
+  const [customRoute, setCustomRoute] = useState('');
   const [customFreq, setCustomFreq] = useState('');
   const [customDuration, setCustomDuration] = useState('');
   const [customQty, setCustomQty] = useState<number | ''>('' as any);
@@ -1943,7 +1943,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
         drugName: item.name,
         isCustom: false,
         dosage: '',
-        route: item.defaultRoute || 'Oral',
+        route: item.defaultRoute || '',
         frequency: '',
         duration: '',
         qty: '' as any,
@@ -1966,7 +1966,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
         drugName: customDrugName.trim(),
         isCustom: true,
         dosage: customDosage.trim(),
-        route: customRoute || 'Oral',
+        route: customRoute || '',
         frequency: customFreq,
         duration: customDuration,
         qty: customQty !== '' ? (Number(customQty) || '') : ('' as any),
@@ -1978,6 +1978,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
     // Reset custom inputs
     setCustomDrugName('');
     setCustomDosage('');
+    setCustomRoute('');
     setCustomFreq('');
     setCustomDuration('');
     setCustomQty('' as any);
@@ -4335,6 +4336,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                               onChange={e => setCustomRoute(e.target.value)}
                               style={{ width: '100%', padding: '7px 10px', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff' }}
                             >
+                              <option value="">-- Route (Optional) --</option>
                               <option value="Oral">Oral</option>
                               <option value="Topical">Topical</option>
                               <option value="IV / IM Injection">IV / IM Injection</option>
@@ -4760,8 +4762,14 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                         ) : null}
                       </td>
                       <td style={{ padding: '5px 6px' }}>
-                        <div>{med.dosage} ({med.route})</div>
-                        <div style={{ fontSize: '0.68rem', color: '#64748b' }}>{med.frequency}</div>
+                        {med.dosage ? (
+                          <div>{med.dosage}{med.route && !med.route.toLowerCase().includes('oral') ? ` (${med.route})` : ''}</div>
+                        ) : (
+                          med.route && !med.route.toLowerCase().includes('oral') ? <div>{med.route}</div> : null
+                        )}
+                        {med.frequency ? (
+                          <div style={{ fontSize: '0.68rem', color: '#64748b' }}>{med.frequency}</div>
+                        ) : null}
                       </td>
                       <td style={{ padding: '5px 6px', color: '#334155' }}>{med.duration}</td>
                       <td style={{ padding: '5px 6px', textAlign: 'right', fontWeight: 800, color: '#0f172a' }}>{med.qty}</td>
