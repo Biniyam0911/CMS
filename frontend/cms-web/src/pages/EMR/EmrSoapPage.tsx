@@ -310,7 +310,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
   const [history, setHistory] = useState('');
   const [physicalExam, setPhysicalExam] = useState('');
   const [diagnosis, setDiagnosis] = useState('');
-  const [icdCode, setIcdCode] = useState('L20.9');
+  const [icdCode, setIcdCode] = useState('');
   const [plan, setPlan] = useState('');
   const [medications, setMedications] = useState<any[]>([]);
 
@@ -335,11 +335,11 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
   const [followUpReason, setFollowUpReason] = useState('Follow-up evaluation & treatment review');
 
   // Quick Medication Input State
-  const [newDrugName, setNewDrugName] = useState('Hydrocortisone 1% Cream');
-  const [newDosage, setNewDosage] = useState('Apply thin layer');
-  const [newQty, setNewQty] = useState(1);
-  const [newFreq, setNewFreq] = useState('Twice Daily (BID)');
-  const [newDuration, setNewDuration] = useState('7 Days');
+  const [newDrugName, setNewDrugName] = useState('');
+  const [newDosage, setNewDosage] = useState('');
+  const [newQty, setNewQty] = useState<number | ''>('' as any);
+  const [newFreq, setNewFreq] = useState('');
+  const [newDuration, setNewDuration] = useState('');
 
   // Vitals State
   const [bpSys, setBpSys] = useState('120');
@@ -652,7 +652,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
   const [historyInvoices, setHistoryInvoices] = useState<any[]>([]);
   const [radiologyStudies, setRadiologyStudies] = useState<RadiologyStudy[]>([]);
   const [selectedDicomStudy, setSelectedDicomStudy] = useState<RadiologyStudy | null>(null);
-  const [historyFilter, setHistoryFilter] = useState<'ALL' | 'NOTES' | 'VITALS' | 'LABS' | 'RX' | 'PROCEDURES' | 'CERTS' | 'BILLING' | 'RADIOLOGY'>('ALL');
+  const [historyFilter, setHistoryFilter] = useState<'ALL' | 'NOTES' | 'LABS' | 'RX' | 'PROCEDURES' | 'CERTS' | 'BILLING' | 'RADIOLOGY'>('ALL');
   const [loadingHistory, setLoadingHistory] = useState(false);
 
   // ==========================================
@@ -680,19 +680,19 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
 
   // Order Parameters
   const [orderLabPriority, setOrderLabPriority] = useState('Routine');
-  const [orderLabIndication, setOrderLabIndication] = useState('Diagnostic workup');
+  const [orderLabIndication, setOrderLabIndication] = useState('');
   const [orderLabFasting, setOrderLabFasting] = useState(false);
 
   const [orderProcUrgency, setOrderProcUrgency] = useState('Routine');
-  const [orderProcSite, setOrderProcSite] = useState('Affected area');
-  const [orderProcAnesthesia, setOrderProcAnesthesia] = useState('Local Anesthesia (Lidocaine 2%)');
-  const [orderProcNotes, setOrderProcNotes] = useState('Perform procedure as indicated');
+  const [orderProcSite, setOrderProcSite] = useState('');
+  const [orderProcAnesthesia, setOrderProcAnesthesia] = useState('');
+  const [orderProcNotes, setOrderProcNotes] = useState('');
 
-  const [orderRxDosage, setOrderRxDosage] = useState('1 Tablet');
+  const [orderRxDosage, setOrderRxDosage] = useState('');
   const [orderRxRoute, setOrderRxRoute] = useState('Oral');
-  const [orderRxFreq, setOrderRxFreq] = useState('Once Daily (OD)');
-  const [orderRxDuration, setOrderRxDuration] = useState('7 Days');
-  const [orderRxQty, setOrderRxQty] = useState(14);
+  const [orderRxFreq, setOrderRxFreq] = useState('');
+  const [orderRxDuration, setOrderRxDuration] = useState('');
+  const [orderRxQty, setOrderRxQty] = useState<number | ''>('' as any);
   const [orderRxTiming, setOrderRxTiming] = useState('');
 
   // ==========================================
@@ -720,11 +720,11 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
 
   // Custom medication state
   const [customDrugName, setCustomDrugName] = useState('');
-  const [customDosage, setCustomDosage] = useState('1 Tablet');
+  const [customDosage, setCustomDosage] = useState('');
   const [customRoute, setCustomRoute] = useState('Oral');
-  const [customFreq, setCustomFreq] = useState('Twice Daily (BID)');
-  const [customDuration, setCustomDuration] = useState('7 Days');
-  const [customQty, setCustomQty] = useState<number>(10);
+  const [customFreq, setCustomFreq] = useState('');
+  const [customDuration, setCustomDuration] = useState('');
+  const [customQty, setCustomQty] = useState<number | ''>('' as any);
   const [customInstructions, setCustomInstructions] = useState('');
   const [customPrice, setCustomPrice] = useState<number>(0);
   const [isSubmittingPrescription, setIsSubmittingPrescription] = useState(false);
@@ -1349,7 +1349,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
     setSelectedOrderItem({ type, item });
     if (type === 'LAB') {
       setOrderLabPriority('Routine');
-      setOrderLabIndication('Clinical diagnostic evaluation');
+      setOrderLabIndication('');
       setOrderLabFasting(item.fasting || false);
     } else if (type === 'PROCEDURE') {
       setOrderProcUrgency('Routine');
@@ -1397,7 +1397,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
         type: 'RX',
         title: item.name,
         code: item.class,
-        price: item.unitPrice * orderRxQty,
+        price: item.unitPrice * (Number(orderRxQty) || 1),
         paramsSummary: `${orderRxDosage} - ${orderRxRoute} - ${orderRxFreq} for ${orderRxDuration} (Qty: ${orderRxQty})`,
         details: { dosage: orderRxDosage, route: orderRxRoute, freq: orderRxFreq, duration: orderRxDuration, qty: orderRxQty, timing: orderRxTiming }
       };
@@ -1471,7 +1471,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
           details: {
             testId: Number(item.id) || 1,
             priority: 'Routine',
-            indication: 'Clinical evaluation',
+            indication: '',
             fasting: item.fasting || false,
             subParams: item.subParams
           }
@@ -1549,7 +1549,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
               code: item.code,
               price: item.price || 0,
               paramsSummary: `Routine · ${item.specimen || 'Standard'}`,
-              details: { testId: Number(item.id) || 1, priority: 'Routine', indication: 'Clinical evaluation', fasting: item.fasting || false, subParams: item.subParams }
+              details: { testId: Number(item.id) || 1, priority: 'Routine', indication: '', fasting: item.fasting || false, subParams: item.subParams }
             });
           } else if (type === 'RX') {
             const uPrice = parseFloat(item.unitPrice) || 0;
@@ -1648,7 +1648,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
           type: 'RX',
           title: item.name,
           code: item.class,
-          price: item.unitPrice * orderRxQty,
+          price: item.unitPrice * (Number(orderRxQty) || 1),
           paramsSummary: `${orderRxDosage} - ${orderRxRoute} - ${orderRxFreq} for ${orderRxDuration} (Qty: ${orderRxQty})`,
           details: { dosage: orderRxDosage, route: orderRxRoute, freq: orderRxFreq, duration: orderRxDuration, qty: orderRxQty, timing: orderRxTiming }
         };
@@ -2414,6 +2414,16 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                                 • {p.visitType} Visit
                               </div>
                             )}
+                            {p.serviceName && p.serviceName.toLowerCase().includes('vip') && (
+                              <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#7c3aed', marginTop: '2px', letterSpacing: '0.04em' }}>
+                                ★ VIP
+                              </div>
+                            )}
+                            {p.serviceName && p.serviceName.toLowerCase().includes('vip') && (
+                              <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#7c3aed', marginTop: '2px', letterSpacing: '0.04em' }}>
+                                ★ VIP
+                              </div>
+                            )}
                             <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
                               {p.mrn}{p.age !== null && p.age !== undefined && p.age !== '' ? ` • ${p.age}y` : ''} {p.gender}
                             </div>
@@ -3109,7 +3119,6 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
               {[
                 { key: 'ALL', label: 'All Records' },
                 { key: 'NOTES', label: `Consultations (${historyEncounters.length})` },
-                { key: 'VITALS', label: `Vitals & Chronic Trends (${vitalsHistory.length})` },
                 { key: 'LABS', label: `Lab Orders (${historyLabOrders.length})` },
                 { key: 'PROCEDURES', label: `Procedures (${historyProcedures.length})` },
                 { key: 'RX', label: `Prescriptions (${historyPrescriptions.length})` },
@@ -3143,464 +3152,212 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
 
-              {/* VITALS LONGITUDINAL TRENDS & CHRONIC CARE GRAPH */}
-              {(historyFilter === 'ALL' || historyFilter === 'VITALS') && (
-                <div style={{ padding: '16px 18px', borderRadius: '8px', background: '#f8fafc', border: '1.5px solid #cbd5e1' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Activity size={18} color="#0284c7" />
-                      <strong style={{ fontSize: '0.9rem', color: '#0f172a' }}>Longitudinal Vitals & Chronic Disease Trajectory</strong>
-                      <span className="badge badge-info" style={{ fontSize: '0.65rem' }}>{vitalsHistory.length} Recorded Visits</span>
+              {/* Date-grouped chronological history */}
+              {(() => {
+                // Build unified flat list of all history items with a sortable date
+                const allItems: { date: string; sortKey: number; type: string; node: any }[] = [];
+
+                if (historyFilter === 'ALL' || historyFilter === 'NOTES') {
+                  historyEncounters.forEach((enc, idx) => {
+                    const d = enc.encounterDate ? String(enc.encounterDate).split('T')[0] : '0000-00-00';
+                    allItems.push({ date: d, sortKey: new Date(d).getTime() || 0, type: 'NOTE', node: enc });
+                  });
+                }
+                if (historyFilter === 'ALL' || historyFilter === 'LABS') {
+                  historyLabOrders.forEach((lab, idx) => {
+                    const d = lab.orderDate ? String(lab.orderDate).split('T')[0] : '0000-00-00';
+                    allItems.push({ date: d, sortKey: new Date(d).getTime() || 0, type: 'LAB', node: lab });
+                  });
+                }
+                if (historyFilter === 'ALL' || historyFilter === 'RX') {
+                  historyPrescriptions.forEach((rx, idx) => {
+                    const d = rx.prescribedAt ? String(rx.prescribedAt).split('T')[0] : '0000-00-00';
+                    allItems.push({ date: d, sortKey: new Date(d).getTime() || 0, type: 'RX', node: rx });
+                  });
+                }
+                if (historyFilter === 'ALL' || historyFilter === 'PROCEDURES') {
+                  historyProcedures.forEach((proc: any, idx: number) => {
+                    const d = proc.createdAt ? String(proc.createdAt).split('T')[0] : '0000-00-00';
+                    allItems.push({ date: d, sortKey: new Date(d).getTime() || 0, type: 'PROC', node: proc });
+                  });
+                }
+                if (historyFilter === 'ALL' || historyFilter === 'CERTS') {
+                  issuedCerts.forEach((cert, idx) => {
+                    const d = cert.examinedOn || '0000-00-00';
+                    allItems.push({ date: d, sortKey: new Date(d).getTime() || 0, type: 'CERT', node: cert });
+                  });
+                }
+                if (historyFilter === 'ALL' || historyFilter === 'BILLING') {
+                  historyInvoices.forEach((inv, idx) => {
+                    const d = inv.createdAt ? String(inv.createdAt).split('T')[0] : (inv.invoiceDate ? String(inv.invoiceDate).split('T')[0] : '0000-00-00');
+                    allItems.push({ date: d, sortKey: new Date(d).getTime() || 0, type: 'INV', node: inv });
+                  });
+                }
+                if (historyFilter === 'ALL' || historyFilter === 'RADIOLOGY') {
+                  radiologyStudies.forEach((study, idx) => {
+                    const d = study.studyDate ? String(study.studyDate).split('T')[0] : '0000-00-00';
+                    allItems.push({ date: d, sortKey: new Date(d).getTime() || 0, type: 'RAD', node: study });
+                  });
+                }
+
+                // Sort descending by date
+                allItems.sort((a, b) => b.sortKey - a.sortKey);
+
+                // Group by date string
+                const grouped: { [date: string]: typeof allItems } = {};
+                allItems.forEach(item => {
+                  if (!grouped[item.date]) grouped[item.date] = [];
+                  grouped[item.date].push(item);
+                });
+                const dates = Object.keys(grouped).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+
+                if (dates.length === 0) {
+                  return (
+                    <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                      No history records found.
                     </div>
-                    <div style={{ display: 'flex', gap: '12px', fontSize: '0.72rem', fontWeight: 600 }}>
-                      <span style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: '4px' }}>● Systolic BP (mmHg)</span>
-                      <span style={{ color: '#3b82f6', display: 'flex', alignItems: 'center', gap: '4px' }}>● Diastolic BP (mmHg)</span>
-                      <span style={{ color: '#10b981', display: 'flex', alignItems: 'center', gap: '4px' }}>● Heart Rate (bpm)</span>
-                      <span style={{ color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '4px' }}>● Blood Glucose (mg/dL)</span>
-                    </div>
-                  </div>
+                  );
+                }
 
-                  {vitalsHistory.length === 0 ? (
-                    <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.78rem', fontStyle: 'italic' }}>
-                      No longitudinal triage vitals recorded for this patient yet.
-                    </div>
-                  ) : (
-                    <div>
-                      {/* SVG Trend Graph */}
-                      <div style={{ background: '#ffffff', borderRadius: '6px', padding: '14px', border: '1px solid #e2e8f0', marginBottom: '12px' }}>
-                        <svg viewBox="0 0 700 160" style={{ width: '100%', height: '160px', overflow: 'visible' }}>
-                          {/* Grid lines & Normal Thresholds */}
-                          <line x1="40" y1="20" x2="680" y2="20" stroke="#f1f5f9" strokeWidth="1" />
-                          <line x1="40" y1="50" x2="680" y2="50" stroke="#fecaca" strokeWidth="1" strokeDasharray="3,3" />
-                          <text x="682" y="53" fontSize="9" fill="#ef4444">140 (HTN Stage 1)</text>
-                          <line x1="40" y1="75" x2="680" y2="75" stroke="#bbf7d0" strokeWidth="1" strokeDasharray="3,3" />
-                          <text x="682" y="78" fontSize="9" fill="#16a34a">120 (Normal BP)</text>
-                          <line x1="40" y1="110" x2="680" y2="110" stroke="#bfdbfe" strokeWidth="1" strokeDasharray="3,3" />
-                          <text x="682" y="113" fontSize="9" fill="#3b82f6">80 (Normal Dia)</text>
-                          <line x1="40" y1="140" x2="680" y2="140" stroke="#f1f5f9" strokeWidth="1" />
-
-                          {(() => {
-                            const pts = vitalsHistory.slice(-8); // Show up to last 8 visits
-                            const count = pts.length;
-                            const stepX = count > 1 ? (620 / (count - 1)) : 310;
-
-                            const getCoords = (val: number | null | undefined, minV = 40, maxV = 180) => {
-                              if (val == null) return null;
-                              const clamped = Math.max(minV, Math.min(maxV, val));
-                              const norm = (clamped - minV) / (maxV - minV);
-                              return 140 - norm * 120;
-                            };
-
-                            const sysPoints: { x: number; y: number; val: number; date: string }[] = [];
-                            const diaPoints: { x: number; y: number; val: number }[] = [];
-                            const hrPoints: { x: number; y: number; val: number }[] = [];
-                            const gluPoints: { x: number; y: number; val: number }[] = [];
-
-                            pts.forEach((p, idx) => {
-                              const x = 50 + idx * stepX;
-                              const dStr = p.triagedAt ? String(p.triagedAt).split('T')[0] : `V${idx + 1}`;
-                              if (p.systolicBP) {
-                                const y = getCoords(p.systolicBP);
-                                if (y != null) sysPoints.push({ x, y, val: p.systolicBP, date: dStr });
-                              }
-                              if (p.diastolicBP) {
-                                const y = getCoords(p.diastolicBP);
-                                if (y != null) diaPoints.push({ x, y, val: p.diastolicBP });
-                              }
-                              if (p.heartRate) {
-                                const y = getCoords(p.heartRate);
-                                if (y != null) hrPoints.push({ x, y, val: p.heartRate });
-                              }
-                              if (p.bloodGlucose) {
-                                const y = getCoords(p.bloodGlucose, 40, 250);
-                                if (y != null) gluPoints.push({ x, y, val: p.bloodGlucose });
-                              }
-                            });
-
-                            return (
-                              <>
-                                {/* Polyline Systolic */}
-                                {sysPoints.length > 1 && (
-                                  <polyline
-                                    fill="none"
-                                    stroke="#ef4444"
-                                    strokeWidth="2.5"
-                                    points={sysPoints.map(p => `${p.x},${p.y}`).join(' ')}
-                                  />
-                                )}
-                                {/* Polyline Diastolic */}
-                                {diaPoints.length > 1 && (
-                                  <polyline
-                                    fill="none"
-                                    stroke="#3b82f6"
-                                    strokeWidth="2"
-                                    points={diaPoints.map(p => `${p.x},${p.y}`).join(' ')}
-                                  />
-                                )}
-                                {/* Polyline HR */}
-                                {hrPoints.length > 1 && (
-                                  <polyline
-                                    fill="none"
-                                    stroke="#10b981"
-                                    strokeWidth="2"
-                                    strokeDasharray="4,2"
-                                    points={hrPoints.map(p => `${p.x},${p.y}`).join(' ')}
-                                  />
-                                )}
-                                {/* Polyline Glucose */}
-                                {gluPoints.length > 1 && (
-                                  <polyline
-                                    fill="none"
-                                    stroke="#f59e0b"
-                                    strokeWidth="2"
-                                    points={gluPoints.map(p => `${p.x},${p.y}`).join(' ')}
-                                  />
-                                )}
-
-                                {/* Data Dots & Labels */}
-                                {sysPoints.map((pt, i) => (
-                                  <g key={`sys-${i}`}>
-                                    <circle cx={pt.x} cy={pt.y} r="4" fill="#ef4444" />
-                                    <text x={pt.x} y={pt.y - 7} fontSize="10" fontWeight="bold" fill="#ef4444" textAnchor="middle">{pt.val}</text>
-                                    <text x={pt.x} y="155" fontSize="9" fill="#64748b" textAnchor="middle">{pt.date}</text>
-                                  </g>
-                                ))}
-
-                                {diaPoints.map((pt, i) => (
-                                  <g key={`dia-${i}`}>
-                                    <circle cx={pt.x} cy={pt.y} r="3.5" fill="#3b82f6" />
-                                    <text x={pt.x} y={pt.y + 12} fontSize="9" fill="#3b82f6" textAnchor="middle">{pt.val}</text>
-                                  </g>
-                                ))}
-
-                                {gluPoints.map((pt, i) => (
-                                  <g key={`glu-${i}`}>
-                                    <circle cx={pt.x} cy={pt.y} r="3" fill="#f59e0b" />
-                                  </g>
-                                ))}
-                              </>
-                            );
-                          })()}
-                        </svg>
-                      </div>
-
-                      {/* Longitudinal Vitals Visit Table */}
-                      <table className="cms-table" style={{ fontSize: '0.75rem' }}>
-                        <thead>
-                          <tr>
-                            <th>Encounter Date</th>
-                            <th>BP (mmHg)</th>
-                            <th>HR (bpm)</th>
-                            <th>Temp (°C)</th>
-                            <th>SpO2</th>
-                            <th>Weight / BMI</th>
-                            <th>Blood Glucose</th>
-                            <th>Triage Acuity</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {vitalsHistory.map((vh, i) => (
-                            <tr key={i}>
-                              <td style={{ fontWeight: 600 }}>{vh.triagedAt ? String(vh.triagedAt).split('T')[0] : 'Encounter'}</td>
-                              <td style={{ fontWeight: 700, color: (vh.systolicBP || 0) >= 140 ? '#ef4444' : '#0369a1' }}>
-                                {vh.systolicBP || '—'}/{vh.diastolicBP || '—'}
-                              </td>
-                              <td>{vh.heartRate || '—'} bpm</td>
-                              <td>{vh.temperature || '—'} °C</td>
-                              <td>{vh.oxygenSaturation ? `${vh.oxygenSaturation}%` : '—'}</td>
-                              <td>{vh.weightKg ? `${vh.weightKg} kg (${vh.bmi || '—'})` : '—'}</td>
-                              <td style={{ fontWeight: 600, color: (vh.bloodGlucose || 0) > 126 ? '#f59e0b' : 'inherit' }}>
-                                {vh.bloodGlucose ? `${vh.bloodGlucose} mg/dL` : '—'}
-                              </td>
-                              <td>
-                                <span className={`badge badge-${(vh.triageCategory || 'Yellow').toLowerCase()}`}>
-                                  {vh.triageCategory || 'Routine'}
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Encounters & Notes */}
-              {(historyFilter === 'ALL' || historyFilter === 'NOTES') && historyEncounters.map((enc, idx) => (
-                <div key={`enc-${idx}`} style={{ padding: '14px', borderRadius: '8px', background: '#fdfcf9', border: '1px solid var(--border-color)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span className="badge badge-info" style={{ fontSize: '0.68rem' }}>Consultation Encounter</span>
-                      <strong style={{ fontSize: '0.82rem' }}>{enc.doctorName || 'Dr. Kebede Biniyam'}</strong>
-                    </div>
-                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{enc.encounterDate ? String(enc.encounterDate).split('T')[0] : 'Recorded'}</span>
-                  </div>
-                  {enc.chiefComplaint && <div style={{ fontSize: '0.78rem', marginBottom: '3px' }}><strong>Chief Complaint:</strong> {enc.chiefComplaint}</div>}
-                  {enc.historyOfIllness && <div style={{ fontSize: '0.78rem', marginBottom: '3px' }}><strong>History:</strong> {enc.historyOfIllness}</div>}
-                  {enc.physicalExam && <div style={{ fontSize: '0.78rem', marginBottom: '3px' }}><strong>Physical Exam:</strong> {enc.physicalExam}</div>}
-                  {enc.assessment && <div style={{ fontSize: '0.78rem', marginBottom: '3px', color: '#0369a1' }}><strong>Diagnosis:</strong> {enc.assessment}</div>}
-                  {(enc.soapPlan || enc.plan || enc.Plan) && <div style={{ fontSize: '0.78rem', color: '#059669' }}><strong>Plan:</strong> {enc.soapPlan || enc.plan || enc.Plan}</div>}
-                </div>
-              ))}
-
-              {/* Lab Orders with Results Table */}
-              {(historyFilter === 'ALL' || historyFilter === 'LABS') && historyLabOrders.map((lab, idx) => {
-                // Match results from patientLabResults that belong to this order
-                const orderResults = patientLabResults.filter(r =>
-                  (r.orderNumber && lab.orderNumber && (r.orderNumber === lab.orderNumber || String(r.orderNumber) === String(lab.orderNumber))) ||
-                  (r.orderId && lab.id && Number(r.orderId) === Number(lab.id))
-                );
-                return (
-                  <div key={`lab-${idx}`} style={{ borderRadius: '8px', background: '#f0fdf4', border: '1px solid #bbf7d0', overflow: 'hidden' }}>
-                    {/* Order Header */}
-                    <div style={{ padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #bbf7d0', flexWrap: 'wrap', gap: '8px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                        <span className="badge badge-normal" style={{ fontSize: '0.68rem' }}>Laboratory Order #{lab.orderNumber || lab.id}</span>
-                        <span style={{ fontWeight: 700, fontSize: '0.82rem' }}>{lab.clinicalInfo || 'Diagnostic Lab Order'}</span>
-                        {lab.doctorName && (
-                          <span style={{ fontSize: '0.72rem', color: '#0369a1', fontWeight: 600 }}>• Dr: {lab.doctorName}</span>
-                        )}
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <span style={{ fontSize: '0.72rem', padding: '2px 8px', borderRadius: '4px',
-                          background: lab.statusName === 'Completed' || lab.statusName === 'Verified' || lab.statusName === 'Approved' ? '#dcfce7' : '#fef3c7',
-                          color: lab.statusName === 'Completed' || lab.statusName === 'Verified' || lab.statusName === 'Approved' ? '#166534' : '#92400e',
-                          fontWeight: 700 }}>
-                          {lab.statusName || 'Processing'}
-                        </span>
-                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                          {lab.orderDate ? String(lab.orderDate).split('T')[0] : 'Ordered'}
-                        </span>
-                      </div>
-                    </div>
-                    {/* Results Table */}
-                    {orderResults.length > 0 ? (
-                      <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
-                          <thead>
-                            <tr style={{ background: '#dcfce7' }}>
-                              <th style={{ padding: '6px 12px', textAlign: 'left', fontWeight: 700, color: '#166534', borderBottom: '1px solid #bbf7d0' }}>Test / Parameter</th>
-                              <th style={{ padding: '6px 12px', textAlign: 'center', fontWeight: 700, color: '#166534', borderBottom: '1px solid #bbf7d0' }}>Result</th>
-                              <th style={{ padding: '6px 12px', textAlign: 'center', fontWeight: 700, color: '#166534', borderBottom: '1px solid #bbf7d0' }}>Unit</th>
-                              <th style={{ padding: '6px 12px', textAlign: 'center', fontWeight: 700, color: '#166534', borderBottom: '1px solid #bbf7d0' }}>Reference Range</th>
-                              <th style={{ padding: '6px 12px', textAlign: 'center', fontWeight: 700, color: '#166534', borderBottom: '1px solid #bbf7d0' }}>Flag</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {orderResults.map((r, ri) => {
-                              const subtests = extractSubtests(r);
-                              const hasSubtests = subtests.length > 0;
-                              const flagColor = r.flag === 'H' || r.flag === 'HH' ? '#dc2626' :
-                                               r.flag === 'L' || r.flag === 'LL' ? '#2563eb' : '#059669';
-                              const rowBg = r.isCritical ? '#fef2f2' : (ri % 2 === 0 ? '#f0fdf4' : '#ffffff');
-
-                              if (!hasSubtests) {
-                                // Standalone test without subtests: display result directly with the test itself
-                                return (
-                                  <tr key={`r-${ri}`} style={{ background: rowBg }}>
-                                    <td style={{ padding: '7px 12px', fontWeight: 600, borderBottom: '1px solid #e2f5e8' }}>
-                                      {r.testName}
-                                      {r.isCritical && <span style={{ marginLeft: '6px', fontSize: '0.65rem', padding: '1px 4px', background: '#fee2e2', color: '#991b1b', borderRadius: '3px', fontWeight: 700 }}>CRITICAL</span>}
-                                      {r.isVerified && <span style={{ marginLeft: '4px', fontSize: '0.65rem', color: '#059669' }}>✓</span>}
-                                    </td>
-                                    <td style={{ padding: '7px 12px', textAlign: 'center', fontWeight: 700, color: r.flag ? flagColor : 'var(--text-main)', borderBottom: '1px solid #e2f5e8' }}>
-                                      {r.numericValue || '—'}
-                                    </td>
-                                    <td style={{ padding: '7px 12px', textAlign: 'center', color: 'var(--text-muted)', borderBottom: '1px solid #e2f5e8' }}>
-                                      {r.unit || '—'}
-                                    </td>
-                                    <td style={{ padding: '7px 12px', textAlign: 'center', color: 'var(--text-muted)', borderBottom: '1px solid #e2f5e8' }}>
-                                      {r.referenceRange || '—'}
-                                    </td>
-                                    <td style={{ padding: '7px 12px', textAlign: 'center', borderBottom: '1px solid #e2f5e8' }}>
-                                      {r.flag ? (
-                                        <span style={{ padding: '2px 7px', borderRadius: '4px', background: r.flag === 'H' || r.flag === 'HH' ? '#fee2e2' : r.flag === 'L' || r.flag === 'LL' ? '#dbeafe' : '#dcfce7', color: flagColor, fontWeight: 700, fontSize: '0.72rem' }}>
-                                          {r.flag}
-                                        </span>
-                                      ) : <span style={{ color: '#059669', fontSize: '0.72rem' }}>Normal</span>}
-                                    </td>
-                                  </tr>
-                                );
-                              }
-
-                              // Has subtests / parameters: Show test name header row, then indented subtests
-                              return (
-                                <React.Fragment key={`r-${ri}`}>
-                                  <tr style={{ background: '#ecfdf5', borderTop: '1px solid #bbf7d0', borderBottom: '1px solid #bbf7d0' }}>
-                                    <td colSpan={5} style={{ padding: '8px 12px', fontWeight: 700, color: '#166534', fontSize: '0.82rem' }}>
-                                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                          <span style={{ display: 'inline-block', width: '7px', height: '7px', borderRadius: '50%', background: '#059669' }}></span>
-                                          <strong>{r.testName}</strong>
-                                          <span className="badge badge-normal" style={{ fontSize: '0.62rem', padding: '1px 6px', background: '#dcfce7', color: '#15803d', fontWeight: 600 }}>
-                                            Panel ({subtests.length} parameters)
-                                          </span>
-                                          {r.isCritical && <span style={{ fontSize: '0.65rem', padding: '1px 4px', background: '#fee2e2', color: '#991b1b', borderRadius: '3px', fontWeight: 700 }}>CRITICAL</span>}
-                                          {r.isVerified && <span style={{ fontSize: '0.65rem', color: '#059669', fontWeight: 700 }}>✓ Verified</span>}
-                                        </div>
-                                        <span style={{ fontSize: '0.7rem', color: '#047857', fontWeight: 600 }}>
-                                          {subtests.length} Parameters
-                                        </span>
-                                      </div>
-                                    </td>
-                                  </tr>
-                                  {subtests.map((st, si) => {
-                                    const stFlagColor = st.flag === 'H' || st.flag === 'HH' || st.flag?.toLowerCase().includes('high') ? '#dc2626' :
-                                                        st.flag === 'L' || st.flag === 'LL' || st.flag?.toLowerCase().includes('low') ? '#2563eb' : '#059669';
-                                    const stRowBg = st.isCritical ? '#fef2f2' : (si % 2 === 0 ? '#fafffa' : '#ffffff');
-                                    return (
-                                      <tr key={`st-${ri}-${si}`} style={{ background: stRowBg }}>
-                                        <td style={{ padding: '6px 12px 6px 32px', fontSize: '0.76rem', borderBottom: '1px solid #e2f5e8' }}>
-                                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            <span style={{ color: '#059669', fontWeight: 700, fontSize: '0.85rem' }}>↳</span>
-                                            <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{st.name}</span>
-                                            {st.code && st.code !== st.name && (
-                                              <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>({st.code})</span>
-                                            )}
-                                            {st.isCritical && <span style={{ fontSize: '0.6rem', padding: '0 4px', background: '#fee2e2', color: '#991b1b', borderRadius: '2px', fontWeight: 700 }}>CRIT</span>}
-                                          </div>
-                                        </td>
-                                        <td style={{ padding: '6px 12px', textAlign: 'center', fontWeight: 700, color: st.flag && st.flag !== 'Normal' ? stFlagColor : 'var(--text-main)', borderBottom: '1px solid #e2f5e8' }}>
-                                          {st.value ?? '—'}
-                                        </td>
-                                        <td style={{ padding: '6px 12px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.72rem', borderBottom: '1px solid #e2f5e8' }}>
-                                          {st.unit || '—'}
-                                        </td>
-                                        <td style={{ padding: '6px 12px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.72rem', borderBottom: '1px solid #e2f5e8' }}>
-                                          {st.referenceRange || '—'}
-                                        </td>
-                                        <td style={{ padding: '6px 12px', textAlign: 'center', borderBottom: '1px solid #e2f5e8' }}>
-                                          {st.flag && st.flag !== 'Normal' ? (
-                                            <span style={{
-                                              padding: '1px 6px',
-                                              borderRadius: '3px',
-                                              background: st.flag === 'H' || st.flag === 'HH' || st.flag?.toLowerCase().includes('high') ? '#fee2e2' : '#dbeafe',
-                                              color: stFlagColor,
-                                              fontWeight: 700,
-                                              fontSize: '0.7rem'
-                                            }}>
-                                              {st.flag}
-                                            </span>
-                                          ) : (
-                                            <span style={{ color: '#059669', fontSize: '0.7rem', fontWeight: 500 }}>Normal</span>
-                                          )}
-                                        </td>
-                                      </tr>
-                                    );
-                                  })}
-                                </React.Fragment>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    ) : (
-                      <div style={{ padding: '10px 14px', fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                        No results entered yet for this order.
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-
-              {/* Prescriptions */}
-              {(historyFilter === 'ALL' || historyFilter === 'RX') && historyPrescriptions.map((rx, idx) => (
-                <div key={`rx-${idx}`} style={{ padding: '14px', borderRadius: '8px', background: '#f5f3ff', border: '1px solid #ddd6fe' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                    <span className="badge badge-warning" style={{ fontSize: '0.68rem' }}>Prescription #{rx.id}</span>
-                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{rx.prescribedAt ? String(rx.prescribedAt).split('T')[0] : 'Prescribed'}</span>
-                  </div>
-                  <div style={{ fontSize: '0.8rem' }}>
-                    {(rx.items || []).map((it: any, i: number) => (
-                      <div key={i} style={{ fontWeight: 600 }}>• {it.drugName} ({it.dosage} - {it.frequency} x {it.duration})</div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-
-              {/* Procedures */}
-              {(historyFilter === 'ALL' || historyFilter === 'PROCEDURES') && historyProcedures.map((proc: any, idx: number) => {
-                const procDate = proc.createdAt ? new Date(proc.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
-                const statusColor = proc.statusName === 'Completed' ? '#059669' : proc.statusName === 'Cancelled' ? '#dc2626' : '#0284c7';
-                return (
-                  <div key={`proc-${idx}`} style={{ padding: '14px', borderRadius: '8px', background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                      <span className="badge" style={{ fontSize: '0.68rem', background: '#6d28d9', color: '#fff', padding: '2px 8px', borderRadius: '4px' }}>
-                        Procedure • {proc.procedureCode || proc.ProcedureCode || ''}
+                return dates.map(date => (
+                  <div key={date} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {/* Date header */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '4px 0 2px' }}>
+                      <span style={{ fontWeight: 700, fontSize: '0.8rem', color: '#0369a1', background: '#e0f2fe', padding: '2px 10px', borderRadius: '20px', whiteSpace: 'nowrap' }}>
+                        {new Date(date).toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}
                       </span>
-                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{procDate}</span>
+                      <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }} />
                     </div>
-                    <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-main)', marginBottom: '2px' }}>
-                      {proc.procedureName || proc.ProcedureName || 'Clinical Procedure'}
-                    </div>
-                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginTop: '4px', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '0.72rem', fontWeight: 700, color: statusColor }}>
-                        ● {proc.statusName || proc.StatusName || 'Ordered'}
-                      </span>
-                      {(proc.clinicalNotes || proc.ClinicalNotes) && (
-                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                          Note: {proc.clinicalNotes || proc.ClinicalNotes}
-                        </span>
-                      )}
-                      {(proc.procedureResult || proc.ProcedureResult) && (
-                        <span style={{ fontSize: '0.72rem', color: '#0369a1' }}>
-                          Result: {proc.procedureResult || proc.ProcedureResult}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
 
-              {/* Certificates */}
-              {(historyFilter === 'ALL' || historyFilter === 'CERTS') && issuedCerts.map((cert, idx) => (
-                <div key={`cert-${idx}`} style={{ padding: '14px', borderRadius: '8px', background: '#fffbeb', border: '1px solid #fef3c7' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                    <span className="badge badge-info" style={{ fontSize: '0.68rem', background: '#c89345', color: '#fff' }}>Medical Certificate {cert.certNo}</span>
-                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{cert.examinedOn}</span>
-                  </div>
-                  <div style={{ fontWeight: 700, fontSize: '0.82rem' }}>Dx: {cert.diagnosis} ({cert.daysExcused} Days Excused)</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{cert.recommendation}</div>
-                </div>
-              ))}
+                    {/* Items for this date */}
+                    {grouped[date].map((item, i) => {
+                      if (item.type === 'NOTE') {
+                        const enc = item.node;
+                        return (
+                          <div key={`note-${i}`} style={{ padding: '12px 14px', borderRadius: '8px', background: '#fdfcf9', border: '1px solid var(--border-color)', marginLeft: '8px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '5px' }}>
+                              <span className="badge badge-info" style={{ fontSize: '0.67rem' }}>Consultation Note</span>
+                              <strong style={{ fontSize: '0.8rem' }}>{enc.doctorName || 'Dr.'}</strong>
+                            </div>
+                            {enc.chiefComplaint && <div style={{ fontSize: '0.78rem', marginBottom: '2px' }}><strong>Chief Complaint:</strong> {enc.chiefComplaint}</div>}
+                            {enc.historyOfIllness && <div style={{ fontSize: '0.78rem', marginBottom: '2px' }}><strong>History:</strong> {enc.historyOfIllness}</div>}
+                            {enc.physicalExam && <div style={{ fontSize: '0.78rem', marginBottom: '2px' }}><strong>Physical Exam:</strong> {enc.physicalExam}</div>}
+                            {enc.assessment && <div style={{ fontSize: '0.78rem', marginBottom: '2px', color: '#0369a1' }}><strong>Diagnosis:</strong> {enc.assessment}</div>}
+                            {(enc.soapPlan || enc.plan || enc.Plan) && <div style={{ fontSize: '0.78rem', color: '#059669' }}><strong>Plan:</strong> {enc.soapPlan || enc.plan || enc.Plan}</div>}
+                          </div>
+                        );
+                      }
 
-              {/* Invoices */}
-              {(historyFilter === 'ALL' || historyFilter === 'BILLING') && historyInvoices.map((inv, idx) => (
-                <div key={`inv-${idx}`} style={{ padding: '14px', borderRadius: '8px', background: '#fdfcf9', border: '1px solid var(--border-color)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                    <span className="badge badge-normal" style={{ fontSize: '0.68rem' }}>Invoice #{inv.invoiceNo || inv.id}</span>
-                    <strong style={{ fontSize: '0.85rem', color: '#0369a1' }}>Br {(inv.totalAmount || inv.total || 0).toFixed(2)}</strong>
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Status: {inv.statusName || inv.status || 'Issued'} • Paid: Br {(inv.paidAmount || inv.paid || 0).toFixed(2)}</div>
-                </div>
-              ))}
+                      if (item.type === 'LAB') {
+                        const lab = item.node;
+                        const orderResults = patientLabResults.filter(r =>
+                          (r.orderNumber && lab.orderNumber && (r.orderNumber === lab.orderNumber || String(r.orderNumber) === String(lab.orderNumber))) ||
+                          (r.orderId && lab.id && Number(r.orderId) === Number(lab.id))
+                        );
+                        return (
+                          <div key={`lab-${i}`} style={{ borderRadius: '8px', background: '#f0fdf4', border: '1px solid #bbf7d0', overflow: 'hidden', marginLeft: '8px' }}>
+                            <div style={{ padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span className="badge badge-normal" style={{ fontSize: '0.67rem' }}>Lab #{lab.orderNumber || lab.id}</span>
+                                <span style={{ fontWeight: 700, fontSize: '0.8rem' }}>{lab.clinicalInfo || 'Lab Order'}</span>
+                              </div>
+                              <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '4px', fontWeight: 700,
+                                background: lab.statusName === 'Completed' || lab.statusName === 'Verified' || lab.statusName === 'Approved' ? '#dcfce7' : '#fef3c7',
+                                color: lab.statusName === 'Completed' || lab.statusName === 'Verified' || lab.statusName === 'Approved' ? '#166534' : '#92400e' }}>
+                                {lab.statusName || 'Processing'}
+                              </span>
+                            </div>
+                            {orderResults.length > 0 && (
+                              <div style={{ padding: '6px 12px 10px', fontSize: '0.75rem' }}>
+                                {orderResults.slice(0, 3).map((r: any, ri: number) => (
+                                  <span key={ri} style={{ marginRight: '12px', color: 'var(--text-muted)' }}>
+                                    {r.testName}: <strong style={{ color: 'var(--text-main)' }}>{r.numericValue || '—'} {r.unit}</strong>
+                                    {r.flag && r.flag !== 'Normal' && <span style={{ color: r.flag.includes('H') ? '#dc2626' : '#2563eb', fontWeight: 700 }}> {r.flag}</span>}
+                                  </span>
+                                ))}
+                                {orderResults.length > 3 && <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>+{orderResults.length - 3} more</span>}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
 
-              {/* Radiology & PACS DICOM Studies */}
-              {(historyFilter === 'ALL' || historyFilter === 'RADIOLOGY') && radiologyStudies.map((study, idx) => (
-                <div key={`rad-${idx}`} style={{ padding: '16px', borderRadius: '8px', background: '#f8fafc', border: '1.5px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span className="badge badge-info" style={{ fontSize: '0.7rem', fontWeight: 800 }}>{study.modalityCode || 'CR'}</span>
-                      <strong style={{ fontSize: '0.9rem', color: '#0f172a' }}>{study.studyType} — {study.bodyPart}</strong>
-                    </div>
-                    <button
-                      onClick={() => setSelectedDicomStudy(study)}
-                      className="btn-primary"
-                      style={{ padding: '5px 12px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '6px' }}
-                    >
-                      <Eye size={13} /> Launch DICOM PACS Viewer
-                    </button>
+                      if (item.type === 'RX') {
+                        const rx = item.node;
+                        return (
+                          <div key={`rx-${i}`} style={{ padding: '10px 14px', borderRadius: '8px', background: '#f5f3ff', border: '1px solid #ddd6fe', marginLeft: '8px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                              <span className="badge badge-warning" style={{ fontSize: '0.67rem' }}>Prescription #{rx.id}</span>
+                            </div>
+                            {(rx.items || []).map((it: any, ii: number) => (
+                              <div key={ii} style={{ fontSize: '0.78rem', fontWeight: 600 }}>• {it.drugName} ({it.dosage} — {it.frequency} × {it.duration})</div>
+                            ))}
+                          </div>
+                        );
+                      }
+
+                      if (item.type === 'PROC') {
+                        const proc = item.node;
+                        const statusColor = proc.statusName === 'Completed' ? '#059669' : proc.statusName === 'Cancelled' ? '#dc2626' : '#0284c7';
+                        return (
+                          <div key={`proc-${i}`} style={{ padding: '10px 14px', borderRadius: '8px', background: '#fdf4ff', border: '1px solid #e9d5ff', marginLeft: '8px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
+                              <span style={{ fontSize: '0.68rem', fontWeight: 800, background: '#6d28d9', color: '#fff', padding: '2px 8px', borderRadius: '4px' }}>Procedure</span>
+                              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: statusColor }}>● {proc.statusName || 'Ordered'}</span>
+                            </div>
+                            <div style={{ fontWeight: 700, fontSize: '0.83rem' }}>{proc.procedureName || proc.ProcedureName || 'Clinical Procedure'}</div>
+                            {(proc.clinicalNotes || proc.ClinicalNotes) && <div style={{ fontSize: '0.73rem', color: 'var(--text-muted)', marginTop: '2px' }}>Note: {proc.clinicalNotes || proc.ClinicalNotes}</div>}
+                          </div>
+                        );
+                      }
+
+                      if (item.type === 'CERT') {
+                        const cert = item.node;
+                        return (
+                          <div key={`cert-${i}`} style={{ padding: '10px 14px', borderRadius: '8px', background: '#fffbeb', border: '1px solid #fef3c7', marginLeft: '8px' }}>
+                            <span className="badge badge-info" style={{ fontSize: '0.67rem', background: '#c89345', color: '#fff' }}>Medical Certificate {cert.certNo}</span>
+                            <div style={{ fontWeight: 700, fontSize: '0.8rem', marginTop: '4px' }}>Dx: {cert.diagnosis} ({cert.daysExcused} Days Excused)</div>
+                            <div style={{ fontSize: '0.73rem', color: 'var(--text-muted)' }}>{cert.recommendation}</div>
+                          </div>
+                        );
+                      }
+
+                      if (item.type === 'INV') {
+                        const inv = item.node;
+                        return (
+                          <div key={`inv-${i}`} style={{ padding: '10px 14px', borderRadius: '8px', background: '#fdfcf9', border: '1px solid var(--border-color)', marginLeft: '8px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span className="badge badge-normal" style={{ fontSize: '0.67rem' }}>Invoice #{inv.invoiceNo || inv.id}</span>
+                              <strong style={{ fontSize: '0.85rem', color: '#0369a1' }}>Br {(inv.totalAmount || inv.total || 0).toFixed(2)}</strong>
+                            </div>
+                            <div style={{ fontSize: '0.73rem', color: 'var(--text-muted)', marginTop: '2px' }}>Status: {inv.statusName || inv.status || 'Issued'} • Paid: Br {(inv.paidAmount || inv.paid || 0).toFixed(2)}</div>
+                          </div>
+                        );
+                      }
+
+                      if (item.type === 'RAD') {
+                        const study = item.node;
+                        return (
+                          <div key={`rad-${i}`} style={{ padding: '10px 14px', borderRadius: '8px', background: '#f8fafc', border: '1.5px solid #cbd5e1', marginLeft: '8px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span className="badge badge-info" style={{ fontSize: '0.68rem', fontWeight: 800 }}>{study.modalityCode || 'CR'}</span>
+                                <strong style={{ fontSize: '0.83rem' }}>{study.studyType} — {study.bodyPart}</strong>
+                              </div>
+                              <button onClick={() => setSelectedDicomStudy(study)} className="btn-primary" style={{ padding: '3px 10px', fontSize: '0.72rem' }}>
+                                <Eye size={12} /> View
+                              </button>
+                            </div>
+                            {study.impression && <div style={{ fontSize: '0.73rem', color: '#0369a1', marginTop: '4px' }}><strong>Impression:</strong> {study.impression}</div>}
+                          </div>
+                        );
+                      }
+
+                      return null;
+                    })}
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: '#475569' }}>
-                    <strong>Indication:</strong> {study.clinicalIndication || 'Routine radiographic evaluation.'}
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: '#0369a1', background: '#f0f9ff', padding: '6px 10px', borderRadius: '6px', border: '1px solid #bae6fd' }}>
-                    <strong>Impression:</strong> {study.impression || 'Clear study. No acute abnormality detected.'}
-                  </div>
-                </div>
-              ))}
-            </div>
+                ));
+              })()}            </div>
           )}
         </div>
       )}
@@ -5002,8 +4759,14 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
 
               {/* Footer with Doctor Signature & Stamp */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '40px', paddingTop: '16px', borderTop: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
-                  Please present this prescription slip to the clinic dispensary or licensed pharmacy.
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                    Please present this prescription slip to the clinic dispensary or licensed pharmacy.
+                  </div>
+                  <div style={{ marginTop: '8px' }}>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>Dispenser</div>
+                    <div style={{ borderBottom: '1.5px solid #000', width: '200px', height: '24px' }}></div>
+                  </div>
                 </div>
                 <div style={{ textAlign: 'center', minWidth: '180px' }}>
                   <div style={{ borderBottom: '1.5px dashed #000', marginBottom: '6px', height: '35px' }}></div>
