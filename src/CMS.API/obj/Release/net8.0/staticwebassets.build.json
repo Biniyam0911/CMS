@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "NNXGyHEgCWfDRB5yiA3wrgfRJ1u8+1W3CEVi30CnQ4o=",
+  "Hash": "sqhiX7FDWDYbJNtTKnWPd0zTMu77MqhNZzOZWKvC48I=",
   "Source": "CMS.API",
   "BasePath": "_content/CMS.API",
   "Mode": "Default",
@@ -10,17 +10,17 @@
     {
       "Name": "CMS.API\\wwwroot",
       "Source": "CMS.API",
-      "ContentRoot": "C:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.API\\wwwroot\\",
+      "ContentRoot": "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.API\\wwwroot\\",
       "BasePath": "_content/CMS.API",
       "Pattern": "**"
     }
   ],
   "Assets": [
     {
-      "Identity": "C:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.API\\wwwroot\\uploads\\receipts\\receipt_330642940_20260916132309.jpg",
+      "Identity": "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.API\\wwwroot\\uploads\\receipts\\receipt_330642940_20260916132309.jpg",
       "SourceId": "CMS.API",
       "SourceType": "Discovered",
-      "ContentRoot": "C:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.API\\wwwroot\\",
+      "ContentRoot": "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.API\\wwwroot\\",
       "BasePath": "_content/CMS.API",
       "RelativePath": "uploads/receipts/receipt_330642940_20260916132309#[.{fingerprint}]?.jpg",
       "AssetKind": "All",
@@ -41,7 +41,7 @@
   "Endpoints": [
     {
       "Route": "uploads/receipts/receipt_330642940_20260916132309.dx6fz4wlzx.jpg",
-      "AssetFile": "C:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.API\\wwwroot\\uploads\\receipts\\receipt_330642940_20260916132309.jpg",
+      "AssetFile": "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.API\\wwwroot\\uploads\\receipts\\receipt_330642940_20260916132309.jpg",
       "Selectors": [],
       "ResponseHeaders": [
         {
@@ -86,7 +86,7 @@
     },
     {
       "Route": "uploads/receipts/receipt_330642940_20260916132309.jpg",
-      "AssetFile": "C:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.API\\wwwroot\\uploads\\receipts\\receipt_330642940_20260916132309.jpg",
+      "AssetFile": "c:\\Users\\ASUS\\source\\repos\\CMS\\src\\CMS.API\\wwwroot\\uploads\\receipts\\receipt_330642940_20260916132309.jpg",
       "Selectors": [],
       "ResponseHeaders": [
         {
