@@ -1740,7 +1740,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
             encounterId: null,
             diagnosis: diagnosis || 'Clinical Encounter',
             items: rxItems.map(r => ({
-              drugId: Number(r.details?.drugId) > 0 ? Number(r.details.drugId) : 1,
+              drugId: Number(r.details?.drugId) > 0 ? Number(r.details.drugId) : null,
               dosage: r.details?.dosage || '1 Tablet',
               frequency: r.details?.freq || 'OD',
               duration: r.details?.duration || '7 Days',
@@ -2014,7 +2014,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
           encounterId: null,
           diagnosis: diagText,
           items: prescribeBasket.map(item => ({
-            drugId: item.drugId && Number(item.drugId) > 0 ? Number(item.drugId) : 1,
+            drugId: item.drugId && Number(item.drugId) > 0 ? Number(item.drugId) : null,
             dosage: item.dosage && item.dosage.trim().length > 0 ? item.dosage.trim() : 'As directed',
             frequency: item.frequency && item.frequency.trim().length > 0 ? item.frequency.trim() : 'OD',
             duration: item.duration && item.duration.trim().length > 0 ? item.duration.trim() : '7 Days',

@@ -126,8 +126,15 @@ public class PharmacyService
                         durationDays = parsedDays;
                 }
 
-                // Ensure valid drugId or fallback to 1
-                int validDrugId = item.DrugId > 0 ? item.DrugId : 1;
+                // If DrugId is provided, check if it exists in DrugFormulary. Otherwise set to null for custom medication.
+                int? validDrugId = null;
+                if (item.DrugId.HasValue && item.DrugId.Value > 0)
+                {
+                    var exists = await conn.ExecuteScalarAsync<int?>(
+                        "SELECT TOP 1 Id FROM DrugFormulary WHERE Id = @Id", new { Id = item.DrugId.Value });
+                    if (exists.HasValue && exists.Value > 0)
+                        validDrugId = exists.Value;
+                }
 
                 await conn.ExecuteAsync(sqlItem, new {
                     PrescriptionId = pId,

@@ -68,7 +68,7 @@ public record PrescriptionDto(
 
 public record CreatePrescriptionItemDto
 {
-    public int DrugId { get; init; }
+    public int? DrugId { get; init; }
     public string Dosage { get; init; } = string.Empty;
     public string Frequency { get; init; } = string.Empty;
     public string Duration { get; init; } = string.Empty;
@@ -77,7 +77,7 @@ public record CreatePrescriptionItemDto
 
     public CreatePrescriptionItemDto() { }
 
-    public CreatePrescriptionItemDto(int drugId, string dosage, string frequency, string duration, int quantity, string instructions)
+    public CreatePrescriptionItemDto(int? drugId, string dosage, string frequency, string duration, int quantity, string instructions)
     {
         DrugId = drugId;
         Dosage = dosage;
