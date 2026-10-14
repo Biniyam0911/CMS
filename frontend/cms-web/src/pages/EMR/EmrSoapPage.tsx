@@ -1741,11 +1741,12 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
             diagnosis: diagnosis || 'Clinical Encounter',
             items: rxItems.map(r => ({
               drugId: Number(r.details?.drugId) > 0 ? Number(r.details.drugId) : null,
-              dosage: r.details?.dosage || '1 Tablet',
-              frequency: r.details?.freq || 'OD',
-              duration: r.details?.duration || '7 Days',
-              quantity: Number(r.details?.qty) || 1,
-              instructions: `${r.title} - ${r.details?.timing || 'Take as directed'}`
+              route: r.details?.route && r.details.route.trim().length > 0 ? r.details.route.trim() : null,
+              dosage: r.details?.dosage && r.details.dosage.trim().length > 0 ? r.details.dosage.trim() : null,
+              frequency: r.details?.freq && r.details.freq.trim().length > 0 ? r.details.freq.trim() : null,
+              duration: r.details?.duration && r.details.duration.trim().length > 0 ? r.details.duration.trim() : null,
+              quantity: Number(r.details?.qty) > 0 ? Math.round(Number(r.details.qty)) : null,
+              instructions: r.details?.timing && r.details.timing.trim().length > 0 ? `${r.title} - ${r.details.timing.trim()}` : r.title
             }))
           });
           const presId = rxRes?.prescriptionId || rxRes?.PrescriptionId || rxRes?.data?.prescriptionId || rxRes?.data?.PrescriptionId;
@@ -1943,7 +1944,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
         drugName: item.name,
         isCustom: false,
         dosage: '',
-        route: item.defaultRoute || '',
+        route: '',
         frequency: '',
         duration: '',
         qty: '' as any,
@@ -2015,11 +2016,12 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
           diagnosis: diagText,
           items: prescribeBasket.map(item => ({
             drugId: item.drugId && Number(item.drugId) > 0 ? Number(item.drugId) : null,
-            dosage: item.dosage && item.dosage.trim().length > 0 ? item.dosage.trim() : 'As directed',
-            frequency: item.frequency && item.frequency.trim().length > 0 ? item.frequency.trim() : 'OD',
-            duration: item.duration && item.duration.trim().length > 0 ? item.duration.trim() : '7 Days',
-            quantity: item.qty !== '' && !isNaN(Number(item.qty)) && Number(item.qty) > 0 ? Math.round(Number(item.qty)) : 1,
-            instructions: `${item.drugName} - ${item.instructions || item.route || 'Take as directed'}`
+            route: item.route && item.route.trim().length > 0 ? item.route.trim() : null,
+            dosage: item.dosage && item.dosage.trim().length > 0 ? item.dosage.trim() : null,
+            frequency: item.frequency && item.frequency.trim().length > 0 ? item.frequency.trim() : null,
+            duration: item.duration && item.duration.trim().length > 0 ? item.duration.trim() : null,
+            quantity: item.qty !== '' && !isNaN(Number(item.qty)) && Number(item.qty) > 0 ? Math.round(Number(item.qty)) : null,
+            instructions: item.instructions && item.instructions.trim().length > 0 ? item.instructions.trim() : item.drugName
           }))
         });
         const presId = rxRes?.prescriptionId || rxRes?.PrescriptionId || rxRes?.data?.prescriptionId || rxRes?.data?.PrescriptionId;
@@ -4509,7 +4511,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                           </div>
 
                           {/* Editable fields */}
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', fontSize: '0.72rem', marginBottom: '6px' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px', fontSize: '0.72rem', marginBottom: '6px' }}>
                             <div>
                               <span style={{ color: '#64748b' }}>Dosage:</span>
                               <input
@@ -4519,6 +4521,23 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                                 onChange={e => handleUpdatePrescribeItem(item.id, 'dosage', e.target.value)}
                                 style={{ width: '100%', boxSizing: 'border-box', padding: '3px 6px', fontSize: '0.72rem', borderRadius: '4px', border: '1px solid #cbd5e1', marginTop: '2px' }}
                               />
+                            </div>
+                            <div>
+                              <span style={{ color: '#64748b' }}>Route:</span>
+                              <select
+                                value={item.route || ''}
+                                onChange={e => handleUpdatePrescribeItem(item.id, 'route', e.target.value)}
+                                style={{ width: '100%', boxSizing: 'border-box', padding: '3px 6px', fontSize: '0.72rem', borderRadius: '4px', border: '1px solid #cbd5e1', background: '#fff', marginTop: '2px' }}
+                              >
+                                <option value="">-- Route --</option>
+                                <option value="Oral">Oral</option>
+                                <option value="Topical">Topical</option>
+                                <option value="IV/IM">IV/IM</option>
+                                <option value="Inhalation">Inhalation</option>
+                                <option value="Ophthalmic">Ophthalmic</option>
+                                <option value="Otic">Otic</option>
+                                <option value="Sublingual">Sublingual</option>
+                              </select>
                             </div>
                             <div>
                               <span style={{ color: '#64748b' }}>Frequency:</span>

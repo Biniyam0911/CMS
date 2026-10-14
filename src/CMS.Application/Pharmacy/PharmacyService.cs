@@ -139,12 +139,12 @@ public class PharmacyService
                 await conn.ExecuteAsync(sqlItem, new {
                     PrescriptionId = pId,
                     DrugId = validDrugId,
-                    Dosage = string.IsNullOrWhiteSpace(item.Dosage) ? "1 dose" : item.Dosage,
-                    Frequency = string.IsNullOrWhiteSpace(item.Frequency) ? "OD" : item.Frequency,
-                    Route = "Oral",
+                    Dosage = string.IsNullOrWhiteSpace(item.Dosage) ? null : item.Dosage.Trim(),
+                    Frequency = string.IsNullOrWhiteSpace(item.Frequency) ? null : item.Frequency.Trim(),
+                    Route = string.IsNullOrWhiteSpace(item.Route) ? null : item.Route.Trim(),
                     DurationDays = durationDays,
-                    Quantity = item.Quantity > 0 ? (short)item.Quantity : (short)1,
-                    Instructions = item.Instructions ?? string.Empty
+                    Quantity = item.Quantity.HasValue && item.Quantity.Value > 0 ? (short)item.Quantity.Value : (short?)null,
+                    Instructions = string.IsNullOrWhiteSpace(item.Instructions) ? null : item.Instructions.Trim()
                 });
             }
         }
@@ -253,6 +253,7 @@ public class PharmacyService
                        ) AS DrugName,
                        ISNULL(pi.Dosage, '') AS Dosage, 
                        ISNULL(pi.Frequency, '') AS Frequency, 
+                       ISNULL(pi.Route, '') AS Route,
                        ISNULL(CASE WHEN pi.DurationDays IS NOT NULL THEN CAST(pi.DurationDays AS VARCHAR) + ' Days' ELSE '' END, '') AS Duration,
                        CAST(pi.Quantity AS INT) AS Quantity, 
                        ISNULL(pi.Instructions, '') AS Instructions

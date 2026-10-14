@@ -33,19 +33,20 @@ public class PrescriptionItemDto
 {
     public int Id { get; set; }
     public int PrescriptionId { get; set; }
-    public int DrugId { get; set; }
+    public int? DrugId { get; set; }
     public string DrugName { get; set; } = string.Empty;
-    public string Dosage { get; set; } = string.Empty;
-    public string Frequency { get; set; } = string.Empty;
-    public string Duration { get; set; } = string.Empty;
-    public int Quantity { get; set; }
-    public string Instructions { get; set; } = string.Empty;
+    public string? Dosage { get; set; } = string.Empty;
+    public string? Frequency { get; set; } = string.Empty;
+    public string? Route { get; set; } = string.Empty;
+    public string? Duration { get; set; } = string.Empty;
+    public int? Quantity { get; set; }
+    public string? Instructions { get; set; } = string.Empty;
 
     public PrescriptionItemDto() { }
 
     public PrescriptionItemDto(
-        int id, int prescriptionId, int drugId, string drugName, string dosage,
-        string frequency, string duration, int quantity, string instructions)
+        int id, int prescriptionId, int? drugId, string drugName, string? dosage,
+        string? frequency, string? duration, int? quantity, string? instructions, string? route = null)
     {
         Id = id;
         PrescriptionId = prescriptionId;
@@ -56,6 +57,7 @@ public class PrescriptionItemDto
         Duration = duration;
         Quantity = quantity;
         Instructions = instructions;
+        Route = route;
     }
 }
 
@@ -69,15 +71,16 @@ public record PrescriptionDto(
 public record CreatePrescriptionItemDto
 {
     public int? DrugId { get; init; }
-    public string Dosage { get; init; } = string.Empty;
-    public string Frequency { get; init; } = string.Empty;
-    public string Duration { get; init; } = string.Empty;
-    public int Quantity { get; init; } = 1;
-    public string Instructions { get; init; } = string.Empty;
+    public string? Dosage { get; init; } = string.Empty;
+    public string? Frequency { get; init; } = string.Empty;
+    public string? Route { get; init; } = string.Empty;
+    public string? Duration { get; init; } = string.Empty;
+    public int? Quantity { get; init; }
+    public string? Instructions { get; init; } = string.Empty;
 
     public CreatePrescriptionItemDto() { }
 
-    public CreatePrescriptionItemDto(int? drugId, string dosage, string frequency, string duration, int quantity, string instructions)
+    public CreatePrescriptionItemDto(int? drugId, string? dosage, string? frequency, string? duration, int? quantity, string? instructions, string? route = null)
     {
         DrugId = drugId;
         Dosage = dosage;
@@ -85,6 +88,7 @@ public record CreatePrescriptionItemDto
         Duration = duration;
         Quantity = quantity;
         Instructions = instructions;
+        Route = route;
     }
 }
 
