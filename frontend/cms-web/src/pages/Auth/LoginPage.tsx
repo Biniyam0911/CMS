@@ -84,7 +84,7 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
               <Activity color="#fff" size={26} />
             </div>
             <div>
-              <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#ffffff' }}>Aethel Clinic Management</h1>
+              <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#ffffff' }}>Selam Clinic Management System</h1>
               <span style={{ fontSize: '0.8rem', color: '#06b6d4', fontWeight: 600 }}>Multi-Tenant Healthcare Platform</span>
             </div>
           </div>
@@ -114,7 +114,7 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
           </div>
 
           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-            © 2026 Aethel Health Systems. On-Premise MSSQL Deployment.
+            © 2026 Selam Clinic Management System. On-Premise MSSQL Deployment.
           </div>
         </div>
       )}
@@ -128,7 +128,7 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
               <Activity color="#fff" size={22} />
             </div>
             <div>
-              <div style={{ fontSize: '1.15rem', fontWeight: 700, color: '#ffffff' }}>Aethel Clinic Management</div>
+              <div style={{ fontSize: '1.15rem', fontWeight: 700, color: '#ffffff' }}>Selam Clinic Management System</div>
               <span style={{ fontSize: '0.72rem', color: '#38bdf8', fontWeight: 600 }}>Mobile Healthcare Portal</span>
             </div>
           </div>

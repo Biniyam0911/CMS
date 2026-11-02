@@ -4510,82 +4510,11 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                             </button>
                           </div>
 
-                          {/* Editable fields */}
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px', fontSize: '0.72rem', marginBottom: '6px' }}>
-                            <div>
-                              <span style={{ color: '#64748b' }}>Dosage:</span>
-                              <input
-                                type="text"
-                                placeholder="Dosage..."
-                                value={item.dosage}
-                                onChange={e => handleUpdatePrescribeItem(item.id, 'dosage', e.target.value)}
-                                style={{ width: '100%', boxSizing: 'border-box', padding: '3px 6px', fontSize: '0.72rem', borderRadius: '4px', border: '1px solid #cbd5e1', marginTop: '2px' }}
-                              />
+                          {item.instructions ? (
+                            <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px', fontStyle: 'italic' }}>
+                              {item.instructions}
                             </div>
-                            <div>
-                              <span style={{ color: '#64748b' }}>Route:</span>
-                              <select
-                                value={item.route || ''}
-                                onChange={e => handleUpdatePrescribeItem(item.id, 'route', e.target.value)}
-                                style={{ width: '100%', boxSizing: 'border-box', padding: '3px 6px', fontSize: '0.72rem', borderRadius: '4px', border: '1px solid #cbd5e1', background: '#fff', marginTop: '2px' }}
-                              >
-                                <option value="">-- Route --</option>
-                                <option value="Oral">Oral</option>
-                                <option value="Topical">Topical</option>
-                                <option value="IV/IM">IV/IM</option>
-                                <option value="Inhalation">Inhalation</option>
-                                <option value="Ophthalmic">Ophthalmic</option>
-                                <option value="Otic">Otic</option>
-                                <option value="Sublingual">Sublingual</option>
-                              </select>
-                            </div>
-                            <div>
-                              <span style={{ color: '#64748b' }}>Frequency:</span>
-                              <select
-                                value={item.frequency}
-                                onChange={e => handleUpdatePrescribeItem(item.id, 'frequency', e.target.value)}
-                                style={{ width: '100%', boxSizing: 'border-box', padding: '3px 6px', fontSize: '0.72rem', borderRadius: '4px', border: '1px solid #cbd5e1', background: '#fff', marginTop: '2px' }}
-                              >
-                                <option value="">-- Frequency --</option>
-                                <option value="Once Daily (OD)">Once Daily (OD)</option>
-                                <option value="Twice Daily (BID)">Twice Daily (BID)</option>
-                                <option value="Three Times Daily (TID)">Three Times Daily (TID)</option>
-                                <option value="Four Times Daily (QID)">Four Times Daily (QID)</option>
-                                <option value="Every 8 Hours (Q8H)">Every 8 Hours (Q8H)</option>
-                                <option value="Every 12 Hours (Q12H)">Every 12 Hours (Q12H)</option>
-                                <option value="At Bedtime (HS)">At Bedtime (HS)</option>
-                                <option value="As Needed (PRN)">As Needed (PRN)</option>
-                                <option value="Once Weekly">Once Weekly</option>
-                              </select>
-                            </div>
-                          </div>
-
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', fontSize: '0.72rem' }}>
-                            <div>
-                              <span style={{ color: '#64748b' }}>Duration:</span>
-                              <input
-                                type="text"
-                                placeholder="Duration..."
-                                value={item.duration}
-                                onChange={e => handleUpdatePrescribeItem(item.id, 'duration', e.target.value)}
-                                style={{ width: '100%', boxSizing: 'border-box', padding: '3px 6px', fontSize: '0.72rem', borderRadius: '4px', border: '1px solid #cbd5e1', marginTop: '2px' }}
-                              />
-                            </div>
-                            <div>
-                              <span style={{ color: '#64748b' }}>Quantity:</span>
-                              <input
-                                type="number"
-                                min={1}
-                                placeholder="Qty..."
-                                value={item.qty ?? ''}
-                                onChange={e => {
-                                  const val = e.target.value === '' ? '' : parseInt(e.target.value);
-                                  handleUpdatePrescribeItem(item.id, 'qty', isNaN(val as number) ? '' : val);
-                                }}
-                                style={{ width: '100%', boxSizing: 'border-box', padding: '3px 6px', fontSize: '0.72rem', borderRadius: '4px', border: '1px solid #cbd5e1', marginTop: '2px' }}
-                              />
-                            </div>
-                          </div>
+                          ) : null}
                         </div>
                       ))
                     )}
@@ -4763,35 +4692,20 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.72rem', marginBottom: '16px' }}>
                 <thead>
                   <tr style={{ background: '#f1f5f9', borderBottom: '1.5px solid #cbd5e1', textAlign: 'left' }}>
-                    <th style={{ padding: '5px 6px', width: '30px' }}>#</th>
-                    <th style={{ padding: '5px 6px' }}>Medication &amp; Dosage</th>
-                    <th style={{ padding: '5px 6px' }}>Route &amp; Frequency</th>
-                    <th style={{ padding: '5px 6px' }}>Duration</th>
-                    <th style={{ padding: '5px 6px', textAlign: 'right' }}>Qty</th>
+                    <th style={{ padding: '6px 8px', width: '32px' }}>#</th>
+                    <th style={{ padding: '6px 8px' }}>Prescribed Medication</th>
                   </tr>
                 </thead>
                 <tbody>
                   {(activePrescriptionSlipItems.length > 0 ? activePrescriptionSlipItems : prescribeBasket).map((med, i) => (
                     <tr key={i} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                      <td style={{ padding: '5px 6px', fontWeight: 700, color: '#64748b' }}>{i + 1}.</td>
-                      <td style={{ padding: '5px 6px' }}>
-                        <div style={{ fontWeight: 700, color: '#0f172a' }}>{med.drugName}</div>
+                      <td style={{ padding: '6px 8px', fontWeight: 700, color: '#64748b', verticalAlign: 'top' }}>{i + 1}.</td>
+                      <td style={{ padding: '6px 8px', verticalAlign: 'top' }}>
+                        <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.82rem' }}>{med.drugName}</div>
                         {med.instructions ? (
-                          <div style={{ fontSize: '0.68rem', color: '#0369a1', marginTop: '1px' }}>{med.instructions}</div>
+                          <div style={{ fontSize: '0.7rem', color: '#0369a1', marginTop: '2px', fontStyle: 'italic' }}>{med.instructions}</div>
                         ) : null}
                       </td>
-                      <td style={{ padding: '5px 6px' }}>
-                        {med.dosage ? (
-                          <div>{med.dosage}{med.route && !med.route.toLowerCase().includes('oral') ? ` (${med.route})` : ''}</div>
-                        ) : (
-                          med.route && !med.route.toLowerCase().includes('oral') ? <div>{med.route}</div> : null
-                        )}
-                        {med.frequency ? (
-                          <div style={{ fontSize: '0.68rem', color: '#64748b' }}>{med.frequency}</div>
-                        ) : null}
-                      </td>
-                      <td style={{ padding: '5px 6px', color: '#334155' }}>{med.duration}</td>
-                      <td style={{ padding: '5px 6px', textAlign: 'right', fontWeight: 800, color: '#0f172a' }}>{med.qty}</td>
                     </tr>
                   ))}
                 </tbody>

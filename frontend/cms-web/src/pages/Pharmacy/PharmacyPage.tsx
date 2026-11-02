@@ -653,10 +653,6 @@ export default function PharmacyPage() {
                                         <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', textAlign: 'left' }}>
                                           <th style={{ padding: '6px 8px' }}>#</th>
                                           <th style={{ padding: '6px 8px' }}>Medication</th>
-                                          <th style={{ padding: '6px 8px' }}>Dosage</th>
-                                          <th style={{ padding: '6px 8px' }}>Frequency</th>
-                                          <th style={{ padding: '6px 8px' }}>Duration</th>
-                                          <th style={{ padding: '6px 8px', textAlign: 'right' }}>Quantity</th>
                                           <th style={{ padding: '6px 8px' }}>Instructions</th>
                                         </tr>
                                       </thead>
@@ -666,10 +662,6 @@ export default function PharmacyPage() {
                                             <tr key={it.id || itemIdx} style={{ borderBottom: '1px solid var(--border-color)' }}>
                                               <td style={{ padding: '6px 8px', color: 'var(--text-muted)', width: '28px' }}>{itemIdx + 1}</td>
                                               <td style={{ padding: '6px 8px', fontWeight: 600 }}>{it.drugName || it.drug || 'Medication'}</td>
-                                              <td style={{ padding: '6px 8px' }}>{it.dosage || '—'} {it.route ? `(${it.route})` : ''}</td>
-                                              <td style={{ padding: '6px 8px' }}>{it.frequency || '—'}</td>
-                                              <td style={{ padding: '6px 8px' }}>{it.duration || '—'}</td>
-                                              <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 700, color: '#06b6d4' }}>{it.quantity != null && it.quantity !== '' && Number(it.quantity) > 0 ? it.quantity : (it.qty != null && it.qty !== '' && Number(it.qty) > 0 ? it.qty : '—')}</td>
                                               <td style={{ padding: '6px 8px', color: 'var(--text-muted)', fontStyle: it.instructions ? 'italic' : 'normal' }}>
                                                 {it.instructions || '—'}
                                               </td>
@@ -679,10 +671,6 @@ export default function PharmacyPage() {
                                           <tr>
                                             <td style={{ padding: '6px 8px', color: 'var(--text-muted)' }}>1</td>
                                             <td style={{ padding: '6px 8px', fontWeight: 600 }}>{p.drug}</td>
-                                            <td style={{ padding: '6px 8px' }}>Standard</td>
-                                            <td style={{ padding: '6px 8px' }}>As directed</td>
-                                            <td style={{ padding: '6px 8px' }}>—</td>
-                                            <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 700, color: '#06b6d4' }}>{p.qty != null && p.qty !== '' && Number(p.qty) > 0 ? p.qty : '—'}</td>
                                             <td style={{ padding: '6px 8px', color: 'var(--text-muted)' }}>—</td>
                                           </tr>
                                         )}
@@ -1545,40 +1533,26 @@ export default function PharmacyPage() {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
                 <thead style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
                   <tr>
+                    <th style={{ textAlign: 'left', padding: '8px 10px', color: '#374151', fontWeight: 600, width: '36px' }}>#</th>
                     <th style={{ textAlign: 'left', padding: '8px 10px', color: '#374151', fontWeight: 600 }}>Medication &amp; Instructions</th>
-                    <th style={{ textAlign: 'left', padding: '8px 10px', color: '#374151', fontWeight: 600 }}>Dosage / Route</th>
-                    <th style={{ textAlign: 'left', padding: '8px 10px', color: '#374151', fontWeight: 600 }}>Frequency / Duration</th>
-                    <th style={{ textAlign: 'right', padding: '8px 10px', color: '#374151', fontWeight: 600 }}>Qty</th>
                   </tr>
                 </thead>
                 <tbody>
                   {printPrescriptionModal.items && printPrescriptionModal.items.length > 0 ? (
                     printPrescriptionModal.items.map((it: any, idx: number) => (
                       <tr key={idx} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                        <td style={{ padding: '8px 10px', verticalAlign: 'top', color: '#6b7280', fontWeight: 600 }}>{idx + 1}.</td>
                         <td style={{ padding: '8px 10px', verticalAlign: 'top' }}>
                           <strong style={{ color: '#111827' }}>{it.drugName || it.drug || 'Medication'}</strong>
                           {it.instructions && <div style={{ fontSize: '0.75rem', color: '#4b5563', fontStyle: 'italic', marginTop: '2px' }}>{it.instructions}</div>}
-                        </td>
-                        <td style={{ padding: '8px 10px', verticalAlign: 'top', color: '#374151' }}>
-                          {it.dosage || '—'} {it.route ? `(${it.route})` : ''}
-                        </td>
-                        <td style={{ padding: '8px 10px', verticalAlign: 'top', color: '#374151' }}>
-                          {it.frequency || '—'} {it.duration ? `· ${it.duration}` : ''}
-                        </td>
-                        <td style={{ padding: '8px 10px', verticalAlign: 'top', textAlign: 'right', fontWeight: 700, color: '#111827' }}>
-                          {it.quantity != null && it.quantity !== '' && Number(it.quantity) > 0 ? it.quantity : (it.qty != null && it.qty !== '' && Number(it.qty) > 0 ? it.qty : '—')}
                         </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
+                      <td style={{ padding: '8px 10px', verticalAlign: 'top', color: '#6b7280', fontWeight: 600 }}>1.</td>
                       <td style={{ padding: '8px 10px', verticalAlign: 'top' }}>
                         <strong style={{ color: '#111827' }}>{printPrescriptionModal.drug}</strong>
-                      </td>
-                      <td style={{ padding: '8px 10px', verticalAlign: 'top', color: '#374151' }}>As directed</td>
-                      <td style={{ padding: '8px 10px', verticalAlign: 'top', color: '#374151' }}>Standard regimen</td>
-                      <td style={{ padding: '8px 10px', verticalAlign: 'top', textAlign: 'right', fontWeight: 700, color: '#111827' }}>
-                        {printPrescriptionModal.qty != null && printPrescriptionModal.qty !== '' && Number(printPrescriptionModal.qty) > 0 ? printPrescriptionModal.qty : '—'}
                       </td>
                     </tr>
                   )}

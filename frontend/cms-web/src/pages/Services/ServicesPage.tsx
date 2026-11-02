@@ -107,12 +107,28 @@ export default function ServicesPage() {
   const [labTests, setLabTests] = useState<LabTestMaster[]>([]);
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<number | 'ALL'>('ALL');
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('ALL');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL');
+  const [serviceSortOrder, setServiceSortOrder] = useState<'asc' | 'desc' | 'none'>('none');
   const [expandedLabId, setExpandedLabId] = useState<number | null>(1);
 
-  // Filtered lists based on search query and category filter
+  // Available unique categories derived from both loaded services and categories
+  const availableCategories = React.useMemo(() => {
+    const set = new Set<string>();
+    categories.forEach(c => { if (c.name) set.add(c.name.trim()); });
+    services.forEach(s => { if (s.categoryName) set.add(s.categoryName.trim()); });
+    return Array.from(set).sort();
+  }, [categories, services]);
+
+  // Filtered lists based on search query, category filter and status filter
   const filteredServices = services.filter(s => {
-    if (selectedCategoryFilter !== 'ALL' && s.categoryId !== selectedCategoryFilter) return false;
+    if (selectedCategoryFilter !== 'ALL') {
+      const catName = (s.categoryName || '').trim().toLowerCase();
+      const filterVal = selectedCategoryFilter.trim().toLowerCase();
+      if (catName !== filterVal) return false;
+    }
+    if (statusFilter === 'ACTIVE' && !s.isActive) return false;
+    if (statusFilter === 'INACTIVE' && s.isActive) return false;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       const matchName = s.name?.toLowerCase().includes(q);
@@ -123,6 +139,12 @@ export default function ServicesPage() {
       if (!matchName && !matchCode && !matchCat && !matchDept && !matchDesc) return false;
     }
     return true;
+  });
+
+  const sortedServices = [...filteredServices].sort((a, b) => {
+    if (serviceSortOrder === 'asc') return (a.name || '').localeCompare(b.name || '');
+    if (serviceSortOrder === 'desc') return (b.name || '').localeCompare(a.name || '');
+    return 0;
   });
 
   const filteredLabTests = labTests.filter(t => {
@@ -667,20 +689,35 @@ export default function ServicesPage() {
         </div>
 
         {activeTab === 'services' && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Filter size={14} color="var(--text-muted)" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Filter size={14} color="var(--text-muted)" />
+              <select
+                value={selectedCategoryFilter}
+                onChange={e => setSelectedCategoryFilter(e.target.value)}
+                style={{
+                  padding: '8px 12px', borderRadius: 8, border: '1.5px solid var(--border-color)',
+                  background: 'var(--bg-input)', fontSize: '0.82rem', color: 'var(--text-main)'
+                }}
+              >
+                <option value="ALL">All Categories</option>
+                {availableCategories.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
             <select
-              value={selectedCategoryFilter}
-              onChange={e => setSelectedCategoryFilter(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value))}
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value as any)}
               style={{
                 padding: '8px 12px', borderRadius: 8, border: '1.5px solid var(--border-color)',
                 background: 'var(--bg-input)', fontSize: '0.82rem', color: 'var(--text-main)'
               }}
+              title="Filter active or inactive services"
             >
-              <option value="ALL">All Categories</option>
-              {categories.map(c => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
+              <option value="ALL">All Status</option>
+              <option value="ACTIVE">Active Services</option>
+              <option value="INACTIVE">Inactive Services</option>
             </select>
           </div>
         )}
@@ -692,9 +729,9 @@ export default function ServicesPage() {
             {activeTab === 'lab_catalog' && `Showing ${filteredLabTests.length} of ${labTests.length} tests`}
             {activeTab === 'categories' && `Showing ${filteredCategories.length} of ${categories.length} categories`}
           </span>
-          {(searchQuery || selectedCategoryFilter !== 'ALL') && (
+          {(searchQuery || selectedCategoryFilter !== 'ALL' || statusFilter !== 'ALL' || serviceSortOrder !== 'none') && (
             <button
-              onClick={() => { setSearchQuery(''); setSelectedCategoryFilter('ALL'); }}
+              onClick={() => { setSearchQuery(''); setSelectedCategoryFilter('ALL'); setStatusFilter('ALL'); setServiceSortOrder('none'); }}
               style={{
                 background: 'none', border: 'none', color: '#0284c7', fontSize: '0.72rem',
                 cursor: 'pointer', textDecoration: 'underline', padding: 0
@@ -722,9 +759,9 @@ export default function ServicesPage() {
                   ? 'No services match your active search or category filter.'
                   : 'No clinical services configured yet.'}
               </div>
-              {(searchQuery || selectedCategoryFilter !== 'ALL') && (
+              {(searchQuery || selectedCategoryFilter !== 'ALL' || statusFilter !== 'ALL') && (
                 <button
-                  onClick={() => { setSearchQuery(''); setSelectedCategoryFilter('ALL'); }}
+                  onClick={() => { setSearchQuery(''); setSelectedCategoryFilter('ALL'); setStatusFilter('ALL'); setServiceSortOrder('none'); }}
                   className="btn-secondary"
                   style={{ fontSize: '0.75rem', padding: '4px 10px' }}
                 >
@@ -738,7 +775,18 @@ export default function ServicesPage() {
                 <thead>
                   <tr>
                     <th>Service Code</th>
-                    <th>Service Name</th>
+                    <th
+                      onClick={() => setServiceSortOrder(prev => prev === 'asc' ? 'desc' : (prev === 'desc' ? 'none' : 'asc'))}
+                      style={{ cursor: 'pointer', userSelect: 'none' }}
+                      title="Click to sort by Service Name"
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        Service Name
+                        <ArrowUpDown size={12} style={{ opacity: serviceSortOrder !== 'none' ? 1 : 0.4, color: serviceSortOrder !== 'none' ? '#0284c7' : 'inherit' }} />
+                        {serviceSortOrder === 'asc' && <span style={{ fontSize: '0.65rem', color: '#0284c7' }}>▲</span>}
+                        {serviceSortOrder === 'desc' && <span style={{ fontSize: '0.65rem', color: '#0284c7' }}>▼</span>}
+                      </div>
+                    </th>
                     <th>Category</th>
                     <th>Department</th>
                     <th>Standard Fee (Br)</th>
@@ -748,7 +796,7 @@ export default function ServicesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredServices.map(s => (
+                  {sortedServices.map(s => (
                     <tr key={s.id}>
                       <td><span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0369a1' }}>{s.code}</span></td>
                       <td><strong>{s.name}</strong></td>
@@ -756,7 +804,11 @@ export default function ServicesPage() {
                       <td>{s.department}</td>
                       <td><strong style={{ color: '#059669' }}>Br {s.standardFee.toFixed(2)}</strong></td>
                       <td>{s.taxable ? 'VAT 15%' : 'Exempt'}</td>
-                      <td><span className="badge badge-normal">Active</span></td>
+                      <td>
+                        <span className={s.isActive ? "badge badge-normal" : "badge badge-critical"}>
+                          {s.isActive ? "Active" : "Inactive"}
+                        </span>
+                      </td>
                       <td>
                         <div style={{ display: 'flex', gap: '5px' }}>
                           <button onClick={() => openEditServiceModal(s)} title="Edit service parameters" className="btn-secondary" style={{ padding: '3px 6px' }}><Edit2 size={12} /></button>

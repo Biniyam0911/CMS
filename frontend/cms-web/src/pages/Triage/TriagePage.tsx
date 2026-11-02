@@ -195,21 +195,18 @@ export default function TriagePage() {
         setSelectedItem(null);
       }
 
-      if (doctorsData && doctorsData.length > 0) {
-        const mappedDoctors = doctorsData.map((d: any) => ({
+      const rawDoctorsList: any[] = Array.isArray(doctorsData) ? doctorsData : ((doctorsData as any)?.data || (doctorsData as any)?.Data || []);
+      if (rawDoctorsList && rawDoctorsList.length > 0) {
+        const mappedDoctors = rawDoctorsList.map((d: any) => ({
           id: d.id || d.Id || 1,
           name: d.doctorName || d.DoctorName || (d.firstName ? `Dr. ${d.firstName} ${d.lastName || ''}`.trim() : (d.name || 'Dr. Attending Physician')),
-          specialty: d.specializationName || d.SpecializationName || d.specialty || d.Specialty || 'Dermatology & Venereology'
+          specialty: d.specializationName || d.SpecializationName || d.specialty || d.Specialty || 'General Practice'
         }));
         setDoctors(mappedDoctors);
         setSelectedDoctorId(mappedDoctors[0].id);
       } else {
-        setDoctors([
-          { id: 1, name: 'Dr. Kebede Biniyam', specialty: 'Dermatology Specialist' },
-          { id: 2, name: 'Dr. Abebe Bekele', specialty: 'General Practice & Surgery' },
-          { id: 3, name: 'Dr. Tigist Haile', specialty: 'Pediatric Dermatology' }
-        ]);
-        setSelectedDoctorId(1);
+        setDoctors([]);
+        setSelectedDoctorId('');
       }
 
       if (patientsData && patientsData.length > 0) {
@@ -1394,13 +1391,20 @@ body { width: 5in; height: 2in; font-family: 'Courier New', Courier, monospace; 
                     onChange={e => setSelectedDoctorId(e.target.value ? parseInt(e.target.value) : '')}
                     style={{ fontWeight: 600, color: selectedDoctorId ? 'var(--text-main)' : 'var(--text-muted)' }}
                   >
-                    <option value="">-- Select Attending Doctor (Mandatory) --</option>
+                    <option value="">
+                      {doctors.length === 0 ? '-- No Active Doctors Available in Database --' : '-- Select Attending Doctor (Mandatory) --'}
+                    </option>
                     {doctors.map(d => (
                       <option key={d.id} value={d.id}>
                         {d.name} ({d.specialty})
                       </option>
                     ))}
                   </select>
+                  {doctors.length === 0 && (
+                    <span style={{ fontSize: '0.72rem', color: '#ef4444', marginTop: '4px', display: 'block' }}>
+                      No active doctors found in the database. Please ensure doctor records exist with active staff accounts.
+                    </span>
+                  )}
                 </div>
 
                 {/* Consultation Room */}

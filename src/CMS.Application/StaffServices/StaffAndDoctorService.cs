@@ -24,7 +24,7 @@ public class StaffAndDoctorService
         using var conn = _dbFactory.CreateConnection();
         var sql = @"
             SELECT d.Id, d.StaffId, st.StaffCode,
-                   st.Title + ' ' + st.FirstName + ' ' + ISNULL(st.MiddleName + ' ', '') + st.LastName AS DoctorName,
+                   ISNULL(NULLIF(st.Title, '') + ' ', 'Dr. ') + st.FirstName + ' ' + ISNULL(st.MiddleName + ' ', '') + st.LastName AS DoctorName,
                    d.LicenseNumber, d.SpecializationId, sp.Name AS SpecializationName,
                    d.SubSpecialization, d.ConsultationFee, d.IsAvailable
             FROM Doctors d

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   DollarSign, Users, Activity, Stethoscope, ClipboardList,
-  FlaskConical, Download, RefreshCw, Check, Loader2, ArrowUpRight
+  FlaskConical, Download, RefreshCw, Check, Loader2, ArrowUpRight, ArrowUpDown
 } from 'lucide-react';
 import { api } from '../../api/apiClient';
 import { ModuleKey } from '../../components/Sidebar';
@@ -74,6 +74,19 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
   // State
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any[]>([]);
+  const [categorySortOrder, setCategorySortOrder] = useState<'asc' | 'desc' | 'none'>('none');
+
+  const displayRows = useMemo(() => {
+    if (reportType === 'REPORT_SALES' && categorySortOrder !== 'none') {
+      return [...data].sort((a: any, b: any) => {
+        const catA = (a.category || '').toString().toLowerCase();
+        const catB = (b.category || '').toString().toLowerCase();
+        if (categorySortOrder === 'asc') return catA.localeCompare(catB);
+        return catB.localeCompare(catA);
+      });
+    }
+    return data;
+  }, [data, reportType, categorySortOrder]);
   const [exportedAlert, setExportedAlert] = useState<string | null>(null);
 
   // Nurse procedure mode (no unit price or total price)
@@ -886,7 +899,18 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
                       <th>Doctor</th>
                       <th>Receptionist / Cashier</th>
                       <th>Issue Date</th>
-                      <th>Category</th>
+                      <th
+                        onClick={() => setCategorySortOrder(prev => prev === 'asc' ? 'desc' : (prev === 'desc' ? 'none' : 'asc'))}
+                        style={{ cursor: 'pointer', userSelect: 'none' }}
+                        title="Click to sort by Category"
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          Category
+                          <ArrowUpDown size={12} style={{ opacity: categorySortOrder !== 'none' ? 1 : 0.4, color: categorySortOrder !== 'none' ? '#0284c7' : 'inherit' }} />
+                          {categorySortOrder === 'asc' && <span style={{ fontSize: '0.65rem', color: '#0284c7' }}>▲</span>}
+                          {categorySortOrder === 'desc' && <span style={{ fontSize: '0.65rem', color: '#0284c7' }}>▼</span>}
+                        </div>
+                      </th>
                       <th style={{ textAlign: 'right' }}>Paid (Br)</th>
                     </>
                   )}
@@ -947,7 +971,7 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
                 </tr>
               </thead>
               <tbody>
-                {reportType === 'REPORT_SALES' && data.map((r, i) => (
+                {reportType === 'REPORT_SALES' && displayRows.map((r, i) => (
                   <tr key={i}>
                     <td style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0284c7' }}>{r.invoiceNo}</td>
                     <td style={{ fontFamily: 'monospace', fontSize: '0.82em' }}>{r.mrn}</td>

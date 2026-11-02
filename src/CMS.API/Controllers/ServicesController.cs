@@ -23,10 +23,11 @@ public class ServicesController : ControllerBase
     public async Task<IActionResult> GetAllServices(
         [FromQuery] string? search = null,
         [FromQuery] string? category = null,
+        [FromQuery] bool? isActive = null,
         [FromQuery] int limit = 1500)
     {
         byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
-        bool isDefaultQuery = string.IsNullOrWhiteSpace(search) && (string.IsNullOrWhiteSpace(category) || category == "ALL");
+        bool isDefaultQuery = string.IsNullOrWhiteSpace(search) && (string.IsNullOrWhiteSpace(category) || category == "ALL") && !isActive.HasValue;
         string? cacheKey = isDefaultQuery ? $"tenant:{tenantId}:services:all:{limit}" : null;
 
         if (cacheKey != null)
@@ -51,7 +52,7 @@ public class ServicesController : ControllerBase
                 Description
             FROM dbo.Services WITH (NOLOCK)
             WHERE TenantId = @TenantId
-              AND IsActive = 1
+              AND (@IsActive IS NULL OR IsActive = @IsActive)
               AND (@Category IS NULL OR Category = @Category)
               AND (
                   @Search IS NULL
@@ -63,6 +64,7 @@ public class ServicesController : ControllerBase
 
         var services = (await conn.QueryAsync<dynamic>(sql, new {
             TenantId = tenantId,
+            IsActive = isActive,
             Category = string.IsNullOrWhiteSpace(category) || category == "ALL" ? null : category,
             Search = string.IsNullOrWhiteSpace(search) ? null : search.Trim(),
             Limit = limit
@@ -90,7 +92,7 @@ public class ServicesController : ControllerBase
                 Category + ' services and catalog' AS Description,
                 COUNT(1) AS ItemCount
             FROM dbo.Services WITH (NOLOCK)
-            WHERE TenantId = @TenantId AND IsActive = 1
+            WHERE TenantId = @TenantId
             GROUP BY Category
             ORDER BY Category ASC";
 

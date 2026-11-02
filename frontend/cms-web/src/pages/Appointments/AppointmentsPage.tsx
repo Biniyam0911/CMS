@@ -40,17 +40,11 @@ export default function AppointmentsPage() {
           setDoctors(mapped);
           setSelectedDoctor(mapped[0].id);
         } else {
-          setDoctors([
-            { id: '1', name: 'Dr. Abebe Bekele', spec: 'General Practice', fee: 300, room: 'Consultation Room 101' },
-            { id: '2', name: 'Dr. Tigist Haile', spec: 'Pediatrics', fee: 350, room: 'Consultation Room 102' }
-          ]);
+          setDoctors([]);
         }
       } catch (err) {
         console.error('Failed to fetch doctors:', err);
-        setDoctors([
-          { id: '1', name: 'Dr. Abebe Bekele', spec: 'General Practice', fee: 300, room: 'Consultation Room 101' },
-          { id: '2', name: 'Dr. Tigist Haile', spec: 'Pediatrics', fee: 350, room: 'Consultation Room 102' }
-        ]);
+        setDoctors([]);
       }
     };
     loadDoctors();
