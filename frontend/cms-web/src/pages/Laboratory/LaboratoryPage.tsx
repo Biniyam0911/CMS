@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   FlaskConical, ShieldAlert, Cpu, CheckCircle, Barcode, Check, Plus, X, Search,
   ChevronDown, ChevronRight, Layers, GitCommit, TrendingUp, Loader2, Calendar,
@@ -2290,43 +2291,172 @@ export default function LaboratoryPage() {
       )}
 
       {/* CLINICAL LABORATORY REPORT & REQUISITION PRINT MODAL */}
-      {printModalOrder && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.65)',
-          backdropFilter: 'blur(3px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9999,
-          padding: '20px'
-        }}>
+      {printModalOrder && createPortal(
+        <div
+          id="lab-print-modal-backdrop"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.65)',
+            backdropFilter: 'blur(3px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '20px'
+          }}
+        >
           {/* Print CSS injection for flawless paper/PDF rendering */}
           <style>{`
+            @page {
+              size: A4 portrait;
+              margin: 8mm 10mm;
+            }
             @media print {
-              body * {
+              html, body {
+                background: #ffffff !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                height: auto !important;
+                min-height: auto !important;
+                overflow: visible !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+              }
+              /* Eliminate main application root entirely so it takes 0 space and 0 pages */
+              #root, body > *:not(#lab-print-modal-backdrop) {
+                display: none !important;
+                height: 0 !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                overflow: hidden !important;
                 visibility: hidden !important;
+              }
+              #lab-print-modal-backdrop {
+                position: static !important;
+                inset: auto !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                background: transparent !important;
+                backdrop-filter: none !important;
+                display: block !important;
+                visibility: visible !important;
+                overflow: visible !important;
+                height: auto !important;
+                max-height: none !important;
+                width: 100% !important;
               }
               #printable-lab-doc, #printable-lab-doc * {
                 visibility: visible !important;
               }
               #printable-lab-doc {
-                position: absolute !important;
-                left: 0 !important;
-                top: 0 !important;
+                position: static !important;
+                left: auto !important;
+                top: auto !important;
                 width: 100% !important;
-                padding: 15px !important;
+                max-width: 100% !important;
+                height: auto !important;
+                max-height: none !important;
+                overflow: visible !important;
+                overflow-x: visible !important;
+                overflow-y: visible !important;
+                padding: 0 !important;
                 margin: 0 !important;
                 box-shadow: none !important;
                 border: none !important;
+                border-radius: 0 !important;
                 background: #ffffff !important;
+                color: #0f172a !important;
+                font-size: 8pt !important;
+                line-height: 1.25 !important;
+                display: block !important;
+                gap: 0 !important;
               }
-              .no-print {
+              .no-print, .no-print * {
                 display: none !important;
+                height: 0 !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                visibility: hidden !important;
+              }
+              .lab-print-header {
+                padding-bottom: 6px !important;
+                margin-bottom: 8px !important;
+                border-bottom: 1.5px solid #0f172a !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+              }
+              .lab-print-header h1 {
+                font-size: 12pt !important;
+                color: #0369a1 !important;
+              }
+              .lab-print-header img {
+                width: 44px !important;
+                height: 44px !important;
+              }
+              .lab-print-demographics {
+                padding: 6px 10px !important;
+                margin-bottom: 8px !important;
+                gap: 4px 10px !important;
+                background: #f8fafc !important;
+                border: 1px solid #cbd5e1 !important;
+                border-radius: 4px !important;
+                font-size: 7.5pt !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+              }
+              .lab-print-demographics div {
+                font-size: 7.5pt !important;
+                line-height: 1.2 !important;
+              }
+              .lab-print-demographics .demo-val {
+                font-size: 8pt !important;
+                font-weight: 700 !important;
+              }
+              .lab-print-table-wrapper {
+                margin-bottom: 10px !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+              }
+              .lab-print-table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+                border: 1px solid #cbd5e1 !important;
+                font-size: 7.5pt !important;
+              }
+              .lab-print-table th,
+              .lab-print-table td {
+                padding: 3px 6px !important;
+                border: 1px solid #cbd5e1 !important;
+                font-size: 7.5pt !important;
+                line-height: 1.2 !important;
+              }
+              .lab-print-table th {
+                background-color: #f1f5f9 !important;
+                font-weight: 700 !important;
+                color: #334155 !important;
+              }
+              .lab-print-signatures {
+                margin-top: 10px !important;
+                padding-top: 8px !important;
+                border-top: 1px dashed #cbd5e1 !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+              }
+              .lab-print-signatures .sig-line {
+                height: 18px !important;
+                width: 130px !important;
+                margin-bottom: 3px !important;
+              }
+              .lab-print-footer {
+                font-size: 6.5pt !important;
+                padding-top: 4px !important;
+                margin-top: 6px !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
               }
             }
           `}</style>
@@ -2336,15 +2466,15 @@ export default function LaboratoryPage() {
             style={{
               background: '#ffffff',
               borderRadius: '12px',
-              maxWidth: '850px',
+              maxWidth: '820px',
               width: '100%',
               maxHeight: '90vh',
               overflowY: 'auto',
-              padding: '32px',
+              padding: '24px 28px',
               boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
               display: 'flex',
               flexDirection: 'column',
-              gap: '20px',
+              gap: '12px',
               color: '#0f172a'
             }}
           >
@@ -2399,118 +2529,92 @@ export default function LaboratoryPage() {
             </div>
 
             {/* Document Header */}
-            <div style={{ borderBottom: '2px solid #0f172a', paddingBottom: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '6px' }}>
+            <div className="lab-print-header" style={{ borderBottom: '2px solid #0f172a', paddingBottom: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '4px' }}>
                 <img
                   src="/huderma_logo.png"
                   alt="Huderma"
-                  style={{ width: '72px', height: '72px', objectFit: 'contain', flexShrink: 0 }}
+                  style={{ width: '56px', height: '56px', objectFit: 'contain', flexShrink: 0 }}
                 />
                 <div style={{ flex: 1, textAlign: 'center' }}>
-                  <h1 style={{ fontSize: '1.45rem', fontWeight: 900, color: '#0369a1', margin: 0, letterSpacing: '-0.02em', textTransform: 'uppercase' }}>
+                  <h1 style={{ fontSize: '1.22rem', fontWeight: 900, color: '#0369a1', margin: 0, letterSpacing: '-0.01em', textTransform: 'uppercase' }}>
                     HUDERMA SPECIALIZED CLINIC &amp; CENTRAL LABORATORY
                   </h1>
-                  <div style={{ fontSize: '0.8rem', color: '#475569', marginTop: '3px', fontWeight: 600 }}>
+                  <div style={{ fontSize: '0.74rem', color: '#475569', marginTop: '2px', fontWeight: 600 }}>
                     Dermatology, Venereology &amp; Medical Diagnostic Center • Bole Sub-City, Addis Ababa, Ethiopia
                   </div>
-                  <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
+                  <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '1px' }}>
                     Tel: +251 11 667 8900 / +251 911 234567 • Email: info@huderma.com • ISO 15189 Certified LIS
                   </div>
                 </div>
               </div>
 
-              <div style={{ textAlign: 'center', marginTop: '10px' }}>
-                <div style={{ display: 'inline-block', padding: '4px 18px', background: printModalMode === 'requisition' ? '#e0f2fe' : '#f0fdf4', borderRadius: '4px', border: `1px solid ${printModalMode === 'requisition' ? '#bae6fd' : '#bbf7d0'}` }}>
-                  <span style={{ fontSize: '0.9rem', fontWeight: 800, color: printModalMode === 'requisition' ? '#0369a1' : '#15803d', letterSpacing: '0.04em' }}>
-                    {printModalMode === 'requisition'
-                      ? 'LABORATORY INVESTIGATION REQUISITION & REFERRAL FORM'
-                      : 'CLINICAL LABORATORY EXAMINATION REPORT'}
-                  </span>
-                </div>
-                {printModalMode === 'requisition' && (
-                  <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '3px', fontStyle: 'italic' }}>
+              {printModalMode === 'requisition' && (
+                <div style={{ textAlign: 'center', marginTop: '6px' }}>
+                  <div style={{ display: 'inline-block', padding: '3px 14px', background: '#e0f2fe', borderRadius: '4px', border: '1px solid #bae6fd' }}>
+                    <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0369a1', letterSpacing: '0.03em' }}>
+                      LABORATORY INVESTIGATION REQUISITION &amp; REFERRAL FORM
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '2px', fontStyle: 'italic' }}>
                     (For Internal Sample Collection or External Diagnostic Referral)
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
 
             {/* Patient & Requisition Demographics */}
-            <div style={{ background: '#f8fafc', borderRadius: '8px', padding: '14px 18px', border: '1px solid #cbd5e1', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', fontSize: '0.8rem' }}>
+            <div className="lab-print-demographics" style={{ background: '#f8fafc', borderRadius: '6px', padding: '8px 12px', border: '1px solid #cbd5e1', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px 12px', fontSize: '0.75rem' }}>
               <div>
-                <span style={{ color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 700 }}>Patient Full Name:</span>
-                <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.95rem' }}>{printModalOrder.patientName}</div>
+                <span style={{ color: '#64748b', fontSize: '0.68rem', textTransform: 'uppercase', fontWeight: 700 }}>Patient Full Name:</span>
+                <div className="demo-val" style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.88rem' }}>{printModalOrder.patientName}</div>
               </div>
               <div>
-                <span style={{ color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 700 }}>Patient MRN:</span>
-                <div style={{ fontWeight: 800, color: '#0369a1', fontFamily: 'monospace' }}>{printModalOrder.mrn || 'N/A'}</div>
+                <span style={{ color: '#64748b', fontSize: '0.68rem', textTransform: 'uppercase', fontWeight: 700 }}>Patient MRN:</span>
+                <div className="demo-val" style={{ fontWeight: 800, color: '#0369a1', fontFamily: 'monospace', fontSize: '0.84rem' }}>{printModalOrder.mrn || 'N/A'}</div>
               </div>
               <div>
-                <span style={{ color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 700 }}>Gender / Age:</span>
-                <div style={{ fontWeight: 700 }}>
+                <span style={{ color: '#64748b', fontSize: '0.68rem', textTransform: 'uppercase', fontWeight: 700 }}>Gender / Age:</span>
+                <div className="demo-val" style={{ fontWeight: 700 }}>
                   {printModalOrder.gender || '---'} / {printModalOrder.dateOfBirth ? (new Date().getFullYear() - new Date(printModalOrder.dateOfBirth).getFullYear()) + ' Yrs' : '---'}
                 </div>
               </div>
               <div>
-                <span style={{ color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 700 }}>Order / Barcode No:</span>
-                <div style={{ fontWeight: 800, color: '#0f172a', fontFamily: 'monospace' }}>{printModalOrder.orderNo}</div>
+                <span style={{ color: '#64748b', fontSize: '0.68rem', textTransform: 'uppercase', fontWeight: 700 }}>Order / Barcode No:</span>
+                <div className="demo-val" style={{ fontWeight: 800, color: '#0f172a', fontFamily: 'monospace', fontSize: '0.84rem' }}>{printModalOrder.orderNo}</div>
               </div>
 
               <div>
-                <span style={{ color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 700 }}>Requesting Doctor:</span>
-                <div style={{ fontWeight: 800, color: '#0369a1', fontSize: '0.92rem' }}>{printModalOrder.doctorName || 'Attending Physician'}</div>
+                <span style={{ color: '#64748b', fontSize: '0.68rem', textTransform: 'uppercase', fontWeight: 700 }}>Requesting Doctor:</span>
+                <div className="demo-val" style={{ fontWeight: 800, color: '#0369a1', fontSize: '0.84rem' }}>{printModalOrder.doctorName || 'Attending Physician'}</div>
               </div>
               <div>
-                <span style={{ color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 700 }}>Requested Date:</span>
-                <div style={{ fontWeight: 600 }}>{printModalOrder.orderedAt ? new Date(printModalOrder.orderedAt).toLocaleString() : new Date().toLocaleString()}</div>
+                <span style={{ color: '#64748b', fontSize: '0.68rem', textTransform: 'uppercase', fontWeight: 700 }}>Requested Date:</span>
+                <div className="demo-val" style={{ fontWeight: 600 }}>{printModalOrder.orderedAt ? new Date(printModalOrder.orderedAt).toLocaleString() : new Date().toLocaleString()}</div>
               </div>
-              <div>
-                <span style={{ color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 700 }}>Specimen Type:</span>
-                <div style={{ fontWeight: 700 }}>{printModalOrder.sampleType || 'Whole Blood / Serum'}</div>
+              <div style={{ gridColumn: 'span 2' }}>
+                <span style={{ color: '#64748b', fontSize: '0.68rem', textTransform: 'uppercase', fontWeight: 700 }}>Specimen Type:</span>
+                <div className="demo-val" style={{ fontWeight: 700 }}>{printModalOrder.sampleType || 'Whole Blood / Serum'}</div>
               </div>
-              <div>
-                <span style={{ color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 700 }}>Billing Status:</span>
-                <div>
-                  <span style={{ padding: '2px 8px', borderRadius: '4px', background: printModalOrder.isPaid ? '#dcfce7' : '#fef3c7', color: printModalOrder.isPaid ? '#15803d' : '#92400e', fontWeight: 800, fontSize: '0.7rem' }}>
-                    {printModalOrder.isPaid ? 'PAID / SETTLED' : 'EXTERNAL REFERRAL / UNPAID'}
-                  </span>
-                </div>
-              </div>
-
-              <div>
-                <span style={{ color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 700 }}>Document Status:</span>
-                <div>
-                  <span style={{ padding: '2px 8px', borderRadius: '4px', background: printModalMode === 'requisition' ? '#e0f2fe' : '#dcfce7', color: printModalMode === 'requisition' ? '#0369a1' : '#15803d', fontWeight: 800, fontSize: '0.7rem' }}>
-                    {printModalMode === 'requisition' ? 'OFFICIAL REQUISITION' : 'CERTIFIED & VERIFIED'}
-                  </span>
-                </div>
-              </div>
-
-              {printModalOrder.clinicalInfo && (
-                <div style={{ gridColumn: 'span 3', borderTop: '1px solid #e2e8f0', paddingTop: '6px' }}>
-                  <span style={{ color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 700 }}>Clinical Indications / Notes:</span>
-                  <div style={{ fontWeight: 600, color: '#334155', fontStyle: 'italic' }}>{printModalOrder.clinicalInfo}</div>
-                </div>
-              )}
             </div>
 
             {/* BODY 1: REQUISITION MODE (Ordered Tests Table for Internal or External Lab) */}
             {printModalMode === 'requisition' && (
               <div>
-                <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a', marginBottom: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span>Requested Diagnostic Investigations ({printModalOrder.tests.length}):</span>
-                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Barcode: <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '3px' }}>{printModalOrder.barcode}</code></span>
+                  <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Barcode: <code style={{ background: '#f1f5f9', padding: '1px 5px', borderRadius: '3px' }}>{printModalOrder.barcode}</code></span>
                 </div>
 
-                <table className="cms-table" style={{ background: '#ffffff', margin: 0, width: '100%', border: '1px solid #cbd5e1' }}>
+                <table className="lab-print-table cms-table" style={{ background: '#ffffff', margin: 0, width: '100%', border: '1px solid #cbd5e1', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
                   <thead style={{ background: '#f1f5f9' }}>
                     <tr>
-                      <th style={{ width: '40px', textAlign: 'center' }}>#</th>
-                      <th style={{ textAlign: 'left' }}>Investigation / Profile Name</th>
-                      <th style={{ textAlign: 'left' }}>Test Code</th>
-                      <th style={{ textAlign: 'left' }}>Category / Discipline</th>
-                      <th style={{ textAlign: 'left' }}>Specimen Type</th>
-                      <th style={{ textAlign: 'center' }}>Order Status</th>
+                      <th style={{ width: '36px', textAlign: 'center', padding: '4px 6px', fontSize: '0.72rem' }}>#</th>
+                      <th style={{ textAlign: 'left', padding: '4px 8px', fontSize: '0.72rem' }}>Investigation / Profile Name</th>
+                      <th style={{ textAlign: 'left', padding: '4px 8px', fontSize: '0.72rem' }}>Test Code</th>
+                      <th style={{ textAlign: 'left', padding: '4px 8px', fontSize: '0.72rem' }}>Category / Discipline</th>
+                      <th style={{ textAlign: 'left', padding: '4px 8px', fontSize: '0.72rem' }}>Specimen Type</th>
+                      <th style={{ textAlign: 'center', padding: '4px 6px', fontSize: '0.72rem' }}>Order Status</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -2518,13 +2622,13 @@ export default function LaboratoryPage() {
                       const catItem = catalog.find(c => c.code === test.testCode);
                       return (
                         <tr key={test.itemId || idx}>
-                          <td style={{ textAlign: 'center', fontWeight: 700, color: '#64748b' }}>{idx + 1}</td>
-                          <td style={{ fontWeight: 700, color: '#0f172a' }}>{test.testName}</td>
-                          <td style={{ fontFamily: 'monospace', color: '#0284c7', fontWeight: 700 }}>{test.testCode}</td>
-                          <td style={{ color: '#475569' }}>{catItem?.category || 'Clinical Pathology'}</td>
-                          <td style={{ color: '#475569' }}>{test.sampleType || 'Whole Blood / Serum'}</td>
-                          <td style={{ textAlign: 'center' }}>
-                            <span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, background: '#f1f5f9', color: '#334155' }}>
+                          <td style={{ textAlign: 'center', fontWeight: 700, color: '#64748b', padding: '4px 6px', border: '1px solid #cbd5e1' }}>{idx + 1}</td>
+                          <td style={{ fontWeight: 700, color: '#0f172a', padding: '4px 8px', border: '1px solid #cbd5e1' }}>{test.testName}</td>
+                          <td style={{ fontFamily: 'monospace', color: '#0284c7', fontWeight: 700, padding: '4px 8px', border: '1px solid #cbd5e1' }}>{test.testCode}</td>
+                          <td style={{ color: '#475569', padding: '4px 8px', border: '1px solid #cbd5e1' }}>{catItem?.category || 'Clinical Pathology'}</td>
+                          <td style={{ color: '#475569', padding: '4px 8px', border: '1px solid #cbd5e1' }}>{test.sampleType || 'Whole Blood / Serum'}</td>
+                          <td style={{ textAlign: 'center', padding: '4px 6px', border: '1px solid #cbd5e1' }}>
+                            <span style={{ padding: '1px 6px', borderRadius: '3px', fontSize: '0.68rem', fontWeight: 700, background: '#f1f5f9', color: '#334155' }}>
                               Order Active
                             </span>
                           </td>
@@ -2535,28 +2639,28 @@ export default function LaboratoryPage() {
                 </table>
 
                 {/* External Referral Directives */}
-                <div style={{ marginTop: '16px', padding: '12px 16px', background: '#f0f9ff', borderRadius: '8px', border: '1px solid #bae6fd', fontSize: '0.78rem' }}>
+                <div style={{ marginTop: '10px', padding: '8px 12px', background: '#f0f9ff', borderRadius: '6px', border: '1px solid #bae6fd', fontSize: '0.74rem' }}>
                   <strong style={{ color: '#0369a1' }}>Notice to Receiving Laboratory / Diagnostic Facility:</strong>
-                  <div style={{ color: '#334155', marginTop: '4px' }}>
+                  <div style={{ color: '#334155', marginTop: '2px', lineHeight: 1.3 }}>
                     Please perform the diagnostic investigation(s) specified above for the referenced patient. Provide the certified examination report including biological reference intervals to the patient or directly to Huderma Specialty Clinic for clinical review.
                   </div>
                 </div>
 
                 {/* Signatures Block for Requisition */}
-                <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px dashed #cbd5e1', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', fontSize: '0.76rem' }}>
+                <div className="lab-print-signatures" style={{ marginTop: '14px', paddingTop: '10px', borderTop: '1px dashed #cbd5e1', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', fontSize: '0.74rem' }}>
                   <div>
-                    <div style={{ height: '32px', borderBottom: '1px solid #64748b', width: '180px', marginBottom: '4px' }} />
-                    <div style={{ fontWeight: 800, color: '#0369a1', fontSize: '0.88rem' }}>{printModalOrder.doctorName || 'Attending Physician'}</div>
+                    <div className="sig-line" style={{ height: '22px', borderBottom: '1px solid #64748b', width: '150px', marginBottom: '3px' }} />
+                    <div style={{ fontWeight: 800, color: '#0369a1', fontSize: '0.82rem' }}>{printModalOrder.doctorName || 'Attending Physician'}</div>
                     <div style={{ fontWeight: 700, color: '#0f172a' }}>Referring Clinician / Doctor</div>
-                    <div style={{ color: '#64748b' }}>Huderma Specialty Clinic</div>
+                    <div style={{ color: '#64748b', fontSize: '0.68rem' }}>Huderma Specialty Clinic</div>
                   </div>
                   <div>
-                    <div style={{ height: '32px', borderBottom: '1px solid #64748b', width: '180px', marginBottom: '4px' }} />
-                    <div style={{ fontWeight: 800, color: '#0f172a' }}>Specimen Phlebotomist</div>
-                    <div style={{ color: '#64748b' }}>Sample Collection Sign-off</div>
+                    <div className="sig-line" style={{ height: '22px', borderBottom: '1px solid #64748b', width: '150px', marginBottom: '3px' }} />
+                    <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.82rem' }}>Specimen Phlebotomist</div>
+                    <div style={{ color: '#64748b', fontSize: '0.68rem' }}>Sample Collection Sign-off</div>
                   </div>
                   <div style={{ textAlign: 'center' }}>
-                    <div style={{ height: '54px', border: '1px dashed #94a3b8', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '0.7rem' }}>
+                    <div style={{ height: '42px', border: '1px dashed #94a3b8', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '0.68rem' }}>
                       Official Clinic Stamp Box
                     </div>
                   </div>
@@ -2574,23 +2678,16 @@ export default function LaboratoryPage() {
                   const testCatalogItem = catalog.find(c => c.code === test.testCode || (test.testId && c.id === test.testId)) || { parameters: [{ code: test.testCode, name: test.testName, unit: 'U/L', min: 0, max: 100 }] };
                   const params = testCatalogItem.parameters || [];
                   return (
-                    <div key={test.itemId || tIdx} style={{ marginBottom: tIdx < (printModalOrder.tests?.length ?? 1) - 1 ? '22px' : 0 }}>
-                      <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px', marginBottom: '8px', display: 'flex', gap: '10px', alignItems: 'center' }}>
-                        <span>Test: {test.testName} ({test.testCode})</span>
-                        <code style={{ fontSize: '0.72rem', color: '#334155', background: '#f1f5f9', padding: '1px 6px', borderRadius: '3px' }}>{test.barcode}</code>
-                        <span style={{ marginLeft: 'auto', fontSize: '0.7rem', fontWeight: 700, color: '#15803d', background: '#dcfce7', padding: '2px 8px', borderRadius: '4px' }}>
-                          ✓ Certified
-                        </span>
-                      </div>
-                      <table className="cms-table" style={{ background: '#ffffff', margin: 0, width: '100%', border: '1px solid #cbd5e1' }}>
+                    <div key={test.itemId || tIdx} className="lab-print-table-wrapper" style={{ marginBottom: tIdx < (printModalOrder.tests?.length ?? 1) - 1 ? '10px' : 0 }}>
+                      <table className="lab-print-table cms-table" style={{ background: '#ffffff', margin: 0, width: '100%', border: '1px solid #cbd5e1', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
                         <thead style={{ background: '#f1f5f9' }}>
                           <tr>
-                            <th style={{ textAlign: 'left' }}>Analyte / Test Parameter</th>
-                            <th style={{ textAlign: 'left' }}>Code</th>
-                            <th style={{ textAlign: 'center' }}>Observed Result</th>
-                            <th style={{ textAlign: 'center' }}>Unit</th>
-                            <th style={{ textAlign: 'center' }}>Reference Interval</th>
-                            <th style={{ textAlign: 'center' }}>Interpretation</th>
+                            <th style={{ textAlign: 'left', padding: '4px 8px', fontSize: '0.72rem', border: '1px solid #cbd5e1' }}>Analyte / Test Parameter</th>
+                            <th style={{ textAlign: 'left', padding: '4px 8px', fontSize: '0.72rem', border: '1px solid #cbd5e1' }}>Code</th>
+                            <th style={{ textAlign: 'center', padding: '4px 8px', fontSize: '0.72rem', border: '1px solid #cbd5e1' }}>Observed Result</th>
+                            <th style={{ textAlign: 'center', padding: '4px 8px', fontSize: '0.72rem', border: '1px solid #cbd5e1' }}>Unit</th>
+                            <th style={{ textAlign: 'center', padding: '4px 8px', fontSize: '0.72rem', border: '1px solid #cbd5e1' }}>Reference Interval</th>
+                            <th style={{ textAlign: 'center', padding: '4px 8px', fontSize: '0.72rem', border: '1px solid #cbd5e1' }}>Interpretation</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -2606,15 +2703,15 @@ export default function LaboratoryPage() {
                             const isAbnormal = flag !== 'Normal' && val !== '---';
                             return (
                               <tr key={p.code}>
-                                <td style={{ fontWeight: 700, color: 'var(--text-main)' }}>{p.name}</td>
-                                <td style={{ fontFamily: 'monospace', color: '#0284c7' }}>{p.code}</td>
-                                <td style={{ textAlign: 'center', fontWeight: 800, fontSize: '0.95rem', color: isAbnormal ? '#dc2626' : '#0f172a' }}>{val}</td>
-                                <td style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)' }}>{p.unit}</td>
-                                <td style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                <td style={{ fontWeight: 700, color: '#0f172a', padding: '4px 8px', border: '1px solid #cbd5e1' }}>{p.name}</td>
+                                <td style={{ fontFamily: 'monospace', color: '#0284c7', padding: '4px 8px', border: '1px solid #cbd5e1' }}>{p.code}</td>
+                                <td style={{ textAlign: 'center', fontWeight: 800, fontSize: '0.86rem', color: isAbnormal ? '#dc2626' : '#0f172a', padding: '4px 8px', border: '1px solid #cbd5e1' }}>{val}</td>
+                                <td style={{ textAlign: 'center', fontSize: '0.74rem', color: '#64748b', padding: '4px 8px', border: '1px solid #cbd5e1' }}>{p.unit}</td>
+                                <td style={{ textAlign: 'center', fontSize: '0.74rem', color: '#64748b', padding: '4px 8px', border: '1px solid #cbd5e1' }}>
                                   {p.min !== undefined && p.max !== undefined ? `${p.min} – ${p.max}` : 'Normative'}
                                 </td>
-                                <td style={{ textAlign: 'center' }}>
-                                  <span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 700, background: isAbnormal ? '#fee2e2' : '#dcfce7', color: isAbnormal ? '#b91c1c' : '#15803d' }}>
+                                <td style={{ textAlign: 'center', padding: '4px 8px', border: '1px solid #cbd5e1' }}>
+                                  <span style={{ padding: '1px 6px', borderRadius: '3px', fontSize: '0.68rem', fontWeight: 700, background: isAbnormal ? '#fee2e2' : '#dcfce7', color: isAbnormal ? '#b91c1c' : '#15803d' }}>
                                     {val === '---' ? 'Pending' : flag}
                                   </span>
                                 </td>
@@ -2628,32 +2725,33 @@ export default function LaboratoryPage() {
                 })}
 
                 {/* Clinician, Technologist & Pathologist Signatures */}
-                <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px dashed #cbd5e1', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', fontSize: '0.78rem' }}>
+                <div className="lab-print-signatures" style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px dashed #cbd5e1', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', fontSize: '0.74rem' }}>
                   <div>
-                    <div style={{ height: '32px', borderBottom: '1px solid #64748b', width: '160px', marginBottom: '4px' }} />
-                    <div style={{ fontWeight: 800, color: '#0369a1' }}>{printModalOrder.doctorName || 'Attending Physician'}</div>
-                    <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>Requesting Clinician</div>
-                    <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>Huderma Specialty Clinic</div>
+                    <div className="sig-line" style={{ height: '22px', borderBottom: '1px solid #64748b', width: '140px', marginBottom: '3px' }} />
+                    <div style={{ fontWeight: 800, color: '#0369a1', fontSize: '0.82rem' }}>{printModalOrder.doctorName || 'Attending Physician'}</div>
+                    <div style={{ fontWeight: 600, color: '#334155' }}>Requesting Clinician</div>
+                    <div style={{ color: '#64748b', fontSize: '0.66rem' }}>Huderma Specialty Clinic</div>
                   </div>
                   <div>
-                    <div style={{ height: '32px', borderBottom: '1px solid #64748b', width: '160px', marginBottom: '4px' }} />
-                    <div style={{ fontWeight: 800, color: 'var(--text-main)' }}>Medical Laboratory Technologist</div>
-                    <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>License # ETH-MLT-84920 • LIS Verified</div>
+                    <div className="sig-line" style={{ height: '22px', borderBottom: '1px solid #64748b', width: '140px', marginBottom: '3px' }} />
+                    <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.82rem' }}>Medical Laboratory Technologist</div>
+                    <div style={{ color: '#64748b', fontSize: '0.66rem' }}>License # ETH-MLT-84920 • LIS Verified</div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ height: '32px', borderBottom: '1px solid #64748b', width: '160px', marginLeft: 'auto', marginBottom: '4px' }} />
-                    <div style={{ fontWeight: 800, color: 'var(--text-main)' }}>Consultant Clinical Pathologist</div>
-                    <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>HUDERMA Central Laboratories</div>
+                    <div className="sig-line" style={{ height: '22px', borderBottom: '1px solid #64748b', width: '140px', marginLeft: 'auto', marginBottom: '3px' }} />
+                    <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.82rem' }}>Consultant Clinical Pathologist</div>
+                    <div style={{ color: '#64748b', fontSize: '0.66rem' }}>HUDERMA Central Laboratories</div>
                   </div>
                 </div>
 
-                <div style={{ fontSize: '0.7rem', color: '#64748b', textAlign: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '10px' }}>
+                <div className="lab-print-footer" style={{ fontSize: '0.66rem', color: '#64748b', textAlign: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '6px', marginTop: '6px' }}>
                   Notice: This electronic medical laboratory document was authenticated via HUDERMA Clinic Management LIS. Results relate only to the specimen tested.
                 </div>
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>
