@@ -5,6 +5,8 @@ using CMS.Shared.DTOs;
 using Dapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Configuration;
 using System.Text;
 
 namespace CMS.API.Controllers;
@@ -16,14 +18,18 @@ public class AuthController : ControllerBase
     private readonly IDbConnectionFactory _dbFactory;
     private readonly AuthManagementService _authService;
 
-    public AuthController(IDbConnectionFactory dbFactory, AuthManagementService authService)
+    private readonly IConfiguration _config;
+
+    public AuthController(IDbConnectionFactory dbFactory, AuthManagementService authService, IConfiguration config)
     {
         _dbFactory = dbFactory;
         _authService = authService;
+        _config = config;
     }
 
     [HttpPost("login")]
     [Microsoft.AspNetCore.Authorization.AllowAnonymous]
+    [EnableRateLimiting("AuthPolicy")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
         using var conn = _dbFactory.CreateConnection();
@@ -78,11 +84,21 @@ public class AuthController : ControllerBase
         var token = _authService.GenerateJwtToken(userDto);
         var refreshToken = Guid.NewGuid().ToString("N");
 
+        // Persist the refresh token to DB for validation and rotation
+        try
+        {
+            await conn.ExecuteAsync(
+                @"INSERT INTO RefreshTokens (UserId, Token, ExpiresAt, IsRevoked, CreatedAt)
+                  VALUES (@UserId, @Token, DATEADD(DAY, 7, GETDATE()), 0, GETDATE())",
+                new { UserId = (int)user.Id, Token = refreshToken });
+        }
+        catch { /* Non-fatal */ }
+
         // Set HttpOnly cookie — JS cannot read this, preventing XSS token theft
         Response.Cookies.Append("cms_access_token", token, new Microsoft.AspNetCore.Http.CookieOptions
         {
             HttpOnly = true,
-            Secure = false,            // Set true in production (HTTPS)
+            Secure = _config.GetValue<bool>("Cookie:Secure", false),
             SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax,
             Expires = DateTimeOffset.UtcNow.AddHours(2)
         });
@@ -90,10 +106,110 @@ public class AuthController : ControllerBase
         return Ok(ApiResponse<LoginResponse>.Ok(new LoginResponse(token, refreshToken, 120, userDto)));
     }
 
+    public record RefreshTokenRequest(string RefreshToken);
+
+    [HttpPost("refresh")]
+    [Microsoft.AspNetCore.Authorization.AllowAnonymous]
+    [EnableRateLimiting("AuthPolicy")]
+    public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request?.RefreshToken))
+            return BadRequest(ApiResponse<string>.Fail("Refresh token is required."));
+
+        using var conn = _dbFactory.CreateConnection();
+
+        var tokenRecord = await conn.QueryFirstOrDefaultAsync<dynamic>(
+            @"SELECT rt.UserId, rt.ExpiresAt, rt.IsRevoked, u.Id, u.TenantId, u.Username, u.Email,
+                     u.FirstName, u.LastName, u.MfaEnabled,
+                     STRING_AGG(r.Name, ',') AS Roles
+              FROM RefreshTokens rt
+              JOIN Users u ON u.Id = rt.UserId
+              LEFT JOIN UserRoles ur ON ur.UserId = u.Id
+              LEFT JOIN Roles r ON r.Id = ur.RoleId
+              WHERE rt.Token = @Token
+              GROUP BY rt.UserId, rt.ExpiresAt, rt.IsRevoked, u.Id, u.TenantId, u.Username, u.Email,
+                       u.FirstName, u.LastName, u.MfaEnabled",
+            new { Token = request.RefreshToken });
+
+        if (tokenRecord == null)
+            return Unauthorized(ApiResponse<string>.Fail("Invalid refresh token."));
+
+        if ((bool)tokenRecord.IsRevoked)
+            return Unauthorized(ApiResponse<string>.Fail("Refresh token has been revoked."));
+
+        if ((DateTime)tokenRecord.ExpiresAt < DateTime.UtcNow)
+            return Unauthorized(ApiResponse<string>.Fail("Refresh token has expired."));
+
+        // Revoke current token for rotation
+        await conn.ExecuteAsync(
+            "UPDATE RefreshTokens SET IsRevoked = 1, RevokedAt = GETDATE() WHERE Token = @Token",
+            new { Token = request.RefreshToken });
+
+        int? doctorId = null;
+        int? staffId = null;
+        var docInfo = await conn.QueryFirstOrDefaultAsync<dynamic>(@"
+            SELECT d.Id AS DoctorId, s.Id AS StaffId
+            FROM Staff s
+            LEFT JOIN Doctors d ON d.StaffId = s.Id
+            WHERE s.UserId = @UserId AND s.TenantId = @TenantId",
+            new { UserId = (int)tokenRecord.Id, TenantId = (byte)tokenRecord.TenantId });
+        if (docInfo != null)
+        {
+            if (docInfo.DoctorId != null) doctorId = (int?)docInfo.DoctorId;
+            if (docInfo.StaffId != null) staffId = (int?)docInfo.StaffId;
+        }
+
+        var userDto = new UserDto(
+            (int)tokenRecord.Id,
+            (byte)tokenRecord.TenantId,
+            (string)tokenRecord.Username,
+            (string)tokenRecord.Email,
+            (string)tokenRecord.FirstName,
+            (string)tokenRecord.LastName,
+            ((string)(tokenRecord.Roles ?? "Patient")).Split(','),
+            (bool)tokenRecord.MfaEnabled,
+            doctorId,
+            staffId
+        );
+
+        var newAccessToken = _authService.GenerateJwtToken(userDto);
+        var newRefreshToken = Guid.NewGuid().ToString("N");
+
+        await conn.ExecuteAsync(
+            @"INSERT INTO RefreshTokens (UserId, Token, ExpiresAt, IsRevoked, CreatedAt)
+              VALUES (@UserId, @Token, DATEADD(DAY, 7, GETDATE()), 0, GETDATE())",
+            new { UserId = userDto.Id, Token = newRefreshToken });
+
+        bool isSecure = _config.GetValue<bool>("Cookie:Secure", false);
+        Response.Cookies.Append("cms_access_token", newAccessToken, new Microsoft.AspNetCore.Http.CookieOptions
+        {
+            HttpOnly = true,
+            Secure = isSecure,
+            SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax,
+            Expires = DateTimeOffset.UtcNow.AddHours(2)
+        });
+
+        return Ok(ApiResponse<LoginResponse>.Ok(new LoginResponse(newAccessToken, newRefreshToken, 120, userDto)));
+    }
+
     [HttpPost("logout")]
-    public IActionResult Logout()
+    public async Task<IActionResult> Logout()
     {
         Response.Cookies.Delete("cms_access_token");
+
+        // Revoke active refresh tokens for the calling user if identifiable
+        try
+        {
+            int userId = HttpContext.Items["UserId"] is int uid ? uid : 0;
+            if (userId > 0)
+            {
+                using var conn = _dbFactory.CreateConnection();
+                await conn.ExecuteAsync(
+                    "UPDATE RefreshTokens SET IsRevoked = 1, RevokedAt = GETDATE() WHERE UserId = @UserId AND IsRevoked = 0",
+                    new { UserId = userId });
+            }
+        }
+        catch { }
         return Ok(ApiResponse<string>.Ok("Logged out successfully."));
     }
 

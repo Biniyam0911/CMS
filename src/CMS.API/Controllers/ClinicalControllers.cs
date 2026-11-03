@@ -78,11 +78,21 @@ public class AppointmentsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAllAppointments([FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate, [FromQuery] int? doctorId, [FromQuery] int limit = 200)
+    public async Task<IActionResult> GetAllAppointments(
+        [FromQuery] DateTime? startDate,
+        [FromQuery] DateTime? endDate,
+        [FromQuery] int? doctorId,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
+        [FromQuery] int? limit = null)
     {
         byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
-        var list = await _appointmentService.GetAllAppointmentsAsync(tenantId, startDate, endDate, doctorId, limit);
-        return Ok(ApiResponse<List<AppointmentDto>>.Ok(list));
+        int effectivePageSize = limit.HasValue && limit.Value > 0 ? limit.Value : Math.Clamp(pageSize, 1, 200);
+        int effectivePage = Math.Max(1, page);
+
+        var (list, total) = await _appointmentService.GetPagedAppointmentsAsync(tenantId, startDate, endDate, doctorId, effectivePage, effectivePageSize);
+        var meta = new PaginationMeta(total, effectivePage, effectivePageSize, (int)Math.Ceiling((double)total / effectivePageSize));
+        return Ok(ApiResponse<List<AppointmentDto>>.Ok(list, meta));
     }
 
     [HttpGet("doctor/{doctorId}")]

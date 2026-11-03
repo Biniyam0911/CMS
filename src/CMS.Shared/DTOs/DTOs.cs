@@ -6,6 +6,8 @@ public record ApiResponse<T>(bool Success, T? Data, string[]? Errors = null, obj
     public static ApiResponse<T> Fail(params string[] errors) => new(false, default, errors);
 }
 
+public record PaginationMeta(int Total, int Page, int PageSize, int TotalPages);
+
 public record LoginRequest(string Username, string Password, byte TenantId = 1);
 public record LoginResponse(string AccessToken, string RefreshToken, int ExpiresInMinutes, UserDto User);
 public record RefreshTokenRequest(string RefreshToken);

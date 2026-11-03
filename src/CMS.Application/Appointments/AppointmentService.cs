@@ -57,6 +57,39 @@ public class AppointmentService
         return (await conn.QueryAsync<AppointmentDto>(sql, new { TenantId = tenantId, DoctorId = doctorId, DateStart = dateStart, DateEnd = dateEnd })).ToList();
     }
 
+    public async Task<(List<AppointmentDto> Items, int TotalCount)> GetPagedAppointmentsAsync(
+        byte tenantId, DateTime? startDate = null, DateTime? endDate = null, int? doctorId = null, int page = 1, int pageSize = 50)
+    {
+        using var conn = _dbFactory.CreateConnection();
+        var start = startDate?.Date ?? DateTime.Today.AddDays(-7);
+        var end = endDate?.Date.AddDays(1) ?? DateTime.Today.AddDays(30);
+        int offset = (Math.Max(1, page) - 1) * pageSize;
+
+        var whereClause = @"
+            FROM Appointments a WITH (NOLOCK)
+            JOIN Patients p WITH (NOLOCK) ON p.Id = a.PatientId
+            JOIN Doctors d WITH (NOLOCK) ON d.Id = a.DoctorId
+            JOIN Staff s WITH (NOLOCK) ON s.Id = d.StaffId
+            JOIN AppointmentStatuses st WITH (NOLOCK) ON st.Id = a.StatusId
+            WHERE a.TenantId = @TenantId
+              AND (@DoctorId IS NULL OR a.DoctorId = @DoctorId)
+              AND a.SlotDateTime >= @Start AND a.SlotDateTime < @End";
+
+        var countSql = "SELECT COUNT(*) " + whereClause;
+        var dataSql = @"
+            SELECT a.Id, a.PatientId, p.FirstName + ' ' + p.LastName AS PatientName,
+                   a.DoctorId, s.FirstName + ' ' + s.LastName AS DoctorName,
+                   a.SlotDateTime, a.DurationMinutes, a.StatusId, st.Name AS StatusName,
+                   a.ReasonForVisit, a.Notes " + whereClause + @"
+            ORDER BY a.SlotDateTime DESC
+            OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY";
+
+        var p = new { TenantId = tenantId, DoctorId = doctorId, Start = start, End = end, Offset = offset, PageSize = pageSize };
+        int total = await conn.ExecuteScalarAsync<int>(countSql, p);
+        var items = (await conn.QueryAsync<AppointmentDto>(dataSql, p)).ToList();
+        return (items, total);
+    }
+
     public async Task<List<AppointmentDto>> GetAllAppointmentsAsync(byte tenantId, DateTime? startDate = null, DateTime? endDate = null, int? doctorId = null, int limit = 200)
     {
         using var conn = _dbFactory.CreateConnection();

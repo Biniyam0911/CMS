@@ -1,5 +1,7 @@
+using CMS.Application.Auth;
 using CMS.Application.ReportBuilder;
 using CMS.Shared.DTOs;
+using System.Security.Claims;
 using Xunit;
 
 namespace CMS.UnitTests;
@@ -28,12 +30,120 @@ public class SafeQueryBuilderTests
         Assert.Equal("Abebe", parameters.Get<string>("p1"));
     }
 
-    [Fact]
-    public void BuildQuery_InvalidDataSource_ThrowsArgumentException()
+    [Theory]
+    [InlineData("Invoices")]
+    [InlineData("Appointments")]
+    [InlineData("LabOrders")]
+    public void BuildQuery_ValidAllowedSources_DoNotThrow(string source)
     {
-        var request = new ReportExecuteRequest("Users; DROP TABLE Users; --", new List<ReportColumnDto>());
+        var request = new ReportExecuteRequest(source, new List<ReportColumnDto>
+        {
+            new("Id", "ID")
+        });
+        var ex = Record.Exception(() => _builder.BuildQuery(request, 1));
+        Assert.Null(ex);
+    }
 
+    [Theory]
+    [InlineData("Users; DROP TABLE Users; --")]
+    [InlineData("sys.tables")]
+    [InlineData("INFORMATION_SCHEMA.COLUMNS")]
+    [InlineData("Patients UNION SELECT * FROM Users")]
+    public void BuildQuery_InvalidDataSource_ThrowsArgumentException(string maliciousSource)
+    {
+        var request = new ReportExecuteRequest(maliciousSource, new List<ReportColumnDto>());
         Assert.Throws<ArgumentException>(() => _builder.BuildQuery(request, 1));
+    }
+}
+
+public class AuthPasswordTests
+{
+    [Fact]
+    public void HashPassword_SameSalt_ProducesSameHash()
+    {
+        var salt = "testsalt123";
+        var hash1 = AuthManagementService.HashPassword("MyPassword!", salt);
+        var hash2 = AuthManagementService.HashPassword("MyPassword!", salt);
+        Assert.Equal(hash1, hash2);
+    }
+
+    [Fact]
+    public void HashPassword_DifferentSalts_ProduceDifferentHashes()
+    {
+        var hash1 = AuthManagementService.HashPassword("MyPassword!", "salt1");
+        var hash2 = AuthManagementService.HashPassword("MyPassword!", "salt2");
+        Assert.NotEqual(hash1, hash2);
+    }
+
+    [Fact]
+    public void VerifyPassword_CorrectPassword_ReturnsTrue()
+    {
+        var salt = Guid.NewGuid().ToString("N");
+        var password = "ClinicSecure@2024";
+        var hash = AuthManagementService.HashPassword(password, salt);
+        Assert.True(AuthManagementService.VerifyPassword(password, hash, salt));
+    }
+
+    [Fact]
+    public void VerifyPassword_WrongPassword_ReturnsFalse()
+    {
+        var salt = Guid.NewGuid().ToString("N");
+        var hash = AuthManagementService.HashPassword("CorrectPassword", salt);
+        Assert.False(AuthManagementService.VerifyPassword("WrongPassword", hash, salt));
+    }
+
+    [Fact]
+    public void VerifyPassword_EmptyInput_ReturnsFalse()
+    {
+        Assert.False(AuthManagementService.VerifyPassword("", "somehash", "somesalt"));
+        Assert.False(AuthManagementService.VerifyPassword("pass", "", "somesalt"));
+    }
+
+    [Fact]
+    public void VerifyPassword_AdminFallback_RecognizesPreseededCredentials()
+    {
+        Assert.True(AuthManagementService.VerifyPassword("say@123", "placeholder", "salt", "admin"));
+        Assert.True(AuthManagementService.VerifyPassword("Admin@123", "placeholder", "salt", "admin"));
+    }
+}
+
+public class PaginationCalculationTests
+{
+    [Theory]
+    [InlineData(100, 25, 4)]
+    [InlineData(101, 25, 5)]
+    [InlineData(0,   25, 0)]
+    [InlineData(1,   25, 1)]
+    [InlineData(25,  25, 1)]
+    [InlineData(26,  25, 2)]
+    public void TotalPages_CalculatesCorrectly(int total, int pageSize, int expectedPages)
+    {
+        int actual = (int)Math.Ceiling((double)total / pageSize);
+        Assert.Equal(expectedPages, actual);
+    }
+
+    [Theory]
+    [InlineData(1,  25, 0)]
+    [InlineData(2,  25, 25)]
+    [InlineData(3,  25, 50)]
+    [InlineData(0,  25, 0)]
+    [InlineData(-1, 25, 0)]
+    public void Offset_CalculatesCorrectly(int page, int pageSize, int expectedOffset)
+    {
+        int actual = (Math.Max(1, page) - 1) * pageSize;
+        Assert.Equal(expectedOffset, actual);
+    }
+
+    [Fact]
+    public void PageSize_Clamping_StaysWithinBounds()
+    {
+        int ClampPageSize(int requested) => Math.Clamp(requested, 1, 200);
+
+        Assert.Equal(1, ClampPageSize(0));
+        Assert.Equal(1, ClampPageSize(-50));
+        Assert.Equal(50, ClampPageSize(50));
+        Assert.Equal(200, ClampPageSize(200));
+        Assert.Equal(200, ClampPageSize(1000));
     }
 }
 
@@ -50,6 +160,20 @@ public class BillingCalculationTests
 
         Assert.Equal(150m, tax);
         Assert.Equal(1150m, total);
+    }
+
+    [Theory]
+    [InlineData(1000, 20, 200, 800)]
+    [InlineData(500,  0,  0,   500)]
+    [InlineData(750,  100, 750, 0)]
+    [InlineData(333,  10, 33.30, 299.70)]
+    public void InsuranceCopay_SplitsCorrectly(decimal total, decimal copayPercent, decimal expectedPatient, decimal expectedInsurance)
+    {
+        decimal patientShare = Math.Round(total * (copayPercent / 100m), 2);
+        decimal insuranceShare = total - patientShare;
+
+        Assert.Equal(expectedPatient, patientShare);
+        Assert.Equal(expectedInsurance, insuranceShare);
     }
 }
 
@@ -102,4 +226,3 @@ public class ZybioHl7AdapterTests
         Assert.Contains("MSH|^~\\&|CMS|HUDERMA|Z3|Zybio", ack);
     }
 }
-

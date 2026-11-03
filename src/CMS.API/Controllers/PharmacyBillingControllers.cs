@@ -88,7 +88,9 @@ public class BillingController : ControllerBase
 
     [HttpGet("invoices")]
     public async Task<IActionResult> GetInvoices(
-        [FromQuery] int limit = 200, 
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
+        [FromQuery] int? limit = null,
         [FromQuery] int? patientId = null, 
         [FromQuery] DateTime? date = null,
         [FromQuery] DateTime? fromDate = null,
@@ -97,8 +99,12 @@ public class BillingController : ControllerBase
         byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
         var start = fromDate ?? date;
         var end = toDate ?? date;
-        var invoices = await _billingService.GetInvoicesAsync(tenantId, limit, patientId, start, end);
-        return Ok(ApiResponse<List<InvoiceDto>>.Ok(invoices));
+        int effectivePageSize = limit.HasValue && limit.Value > 0 ? limit.Value : Math.Clamp(pageSize, 1, 200);
+        int effectivePage = Math.Max(1, page);
+
+        var (invoices, total) = await _billingService.GetPagedInvoicesAsync(tenantId, effectivePage, effectivePageSize, patientId, start, end);
+        var meta = new PaginationMeta(total, effectivePage, effectivePageSize, (int)Math.Ceiling((double)total / effectivePageSize));
+        return Ok(ApiResponse<List<InvoiceDto>>.Ok(invoices, meta));
     }
 
     [HttpPost("invoices")]

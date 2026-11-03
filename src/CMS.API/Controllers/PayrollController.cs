@@ -275,13 +275,13 @@ public class PayrollController : ControllerBase
             SELECT 
                 d.Id AS DoctorId,
                 ISNULL(u.FirstName + ' ' + u.LastName, ISNULL(st.FirstName + ' ' + st.LastName, 'Dr. #' + CAST(d.Id AS NVARCHAR))) AS DoctorName,
-                CAST(i.IssueDate AS DATE) AS ServiceDate,
+                COALESCE(e.EncounterDate, CAST(i.IssueDate AS DATE)) AS ServiceDate,
                 COALESCE(
                     NULLIF(s.Category, ''),
                     CASE 
                         WHEN ii.Description LIKE '%Consultation%' OR ii.ItemType = 1 THEN 'Consultation'
                         WHEN ii.Description LIKE '%FACIAL%' THEN 'Facial'
-                        WHEN ii.Description LIKE '%PRP%' OR ii.Description LIKE '%Steroid%' OR ii.Description LIKE '%Biopsy%' OR ii.Description LIKE '%Cryo%' OR ii.ItemType = 4 THEN 'Procedure'
+                        WHEN ii.Description LIKE '%PRP%' OR ii.Description LIKE '%Steroid%' OR ii.Description LIKE '%Biopsy%' OR ii.Description LIKE '%Cryo%' OR ii.ItemType IN (3, 4) THEN 'Procedure'
                         ELSE 'Procedure'
                     END
                 ) AS Category,
@@ -303,12 +303,18 @@ public class PayrollController : ControllerBase
                 pa.RateType,
                 pa.Rate,
                 CASE WHEN pa.Id IS NOT NULL THEN 1 ELSE 0 END AS HasAgreement
-            FROM Encounters e WITH (NOLOCK)
-            JOIN Doctors d WITH (NOLOCK) ON d.Id = e.DoctorId
+            FROM Invoices i WITH (NOLOCK)
+            OUTER APPLY (
+                SELECT TOP 1 eSub.Id, eSub.DoctorId, eSub.EncounterDate
+                FROM Encounters eSub WITH (NOLOCK)
+                WHERE eSub.Id = i.EncounterId
+                   OR (i.EncounterId IS NULL AND eSub.PatientId = i.PatientId AND CAST(eSub.EncounterDate AS DATE) = CAST(i.IssueDate AS DATE))
+                ORDER BY CASE WHEN eSub.Id = i.EncounterId THEN 1 ELSE 2 END, eSub.Id DESC
+            ) e
+            JOIN Doctors d WITH (NOLOCK) ON d.Id = COALESCE(i.DoctorId, e.DoctorId)
             JOIN Staff st WITH (NOLOCK) ON st.Id = d.StaffId
             LEFT JOIN Users u WITH (NOLOCK) ON u.Id = st.UserId
-            JOIN Patients p WITH (NOLOCK) ON p.Id = e.PatientId
-            JOIN Invoices i WITH (NOLOCK) ON (i.EncounterId = e.Id OR (i.EncounterId IS NULL AND i.PatientId = e.PatientId AND CAST(i.IssueDate AS DATE) = CAST(e.EncounterDate AS DATE)))
+            JOIN Patients p WITH (NOLOCK) ON p.Id = i.PatientId
             JOIN InvoiceItems ii WITH (NOLOCK) ON ii.InvoiceId = i.Id
             LEFT JOIN Services s WITH (NOLOCK) ON s.Id = ii.RefId
             OUTER APPLY (
@@ -319,8 +325,13 @@ public class PayrollController : ControllerBase
                   AND paSub.IsActive = 1
                   AND (
                       (paSub.ServiceId IS NOT NULL AND s.Id IS NOT NULL AND paSub.ServiceId = s.Id)
-                      OR (paSub.ServiceName IS NOT NULL AND (paSub.ServiceName = ii.Description OR (s.Name IS NOT NULL AND paSub.ServiceName = s.Name)))
-                      OR (paSub.ServiceId IS NULL AND paSub.Category = COALESCE(
+                      OR (paSub.ServiceName IS NOT NULL AND (
+                            paSub.ServiceName = ii.Description 
+                            OR (s.Name IS NOT NULL AND paSub.ServiceName = s.Name)
+                            OR ii.Description LIKE paSub.ServiceName + ' (%)'
+                            OR ii.Description LIKE paSub.ServiceName + '%'
+                      ))
+                      OR (paSub.Category = COALESCE(
                             NULLIF(s.Category, ''),
                             CASE 
                                 WHEN ii.Description LIKE '%Consultation%' OR ii.ItemType = 1 THEN 'Consultation'
@@ -330,15 +341,18 @@ public class PayrollController : ControllerBase
                       ))
                   )
                 ORDER BY 
-                    -- Prefer exact ServiceId match first, then ServiceName match, then Category match
+                    -- Prefer exact ServiceId match first, then exact ServiceName, then prefix ServiceName, then Category
                     CASE 
                         WHEN paSub.ServiceId IS NOT NULL AND s.Id IS NOT NULL AND paSub.ServiceId = s.Id THEN 1
                         WHEN paSub.ServiceName IS NOT NULL AND (paSub.ServiceName = ii.Description OR (s.Name IS NOT NULL AND paSub.ServiceName = s.Name)) THEN 2
-                        ELSE 3
-                    END
+                        WHEN paSub.ServiceName IS NOT NULL AND (ii.Description LIKE paSub.ServiceName + ' (%)' OR ii.Description LIKE paSub.ServiceName + '%') THEN 3
+                        WHEN paSub.ServiceId IS NULL AND paSub.Category IS NOT NULL THEN 4
+                        ELSE 5
+                    END,
+                    LEN(paSub.ServiceName) DESC
             ) pa
-            WHERE e.TenantId = @TenantId
-              AND ii.ItemType IN (1, 4)
+            WHERE i.TenantId = @TenantId
+              AND ii.ItemType IN (1, 3, 4)
               AND i.StatusId NOT IN (1, 5, 6)
               AND i.PaidAmount > 0
               AND NOT EXISTS (
@@ -347,8 +361,8 @@ public class PayrollController : ControllerBase
                     AND (pm.PaymentMethod = 4 OR pm.Reference LIKE '%Waiv%' OR pm.Reference LIKE '%Free%')
               )
               AND (@DoctorId IS NULL OR d.Id = @DoctorId)
-              AND (@DateFrom IS NULL OR i.IssueDate >= @DateFrom)
-              AND (@DateTo IS NULL OR i.IssueDate <= @DateTo)
+              AND (@DateFrom IS NULL OR COALESCE(e.EncounterDate, CAST(i.IssueDate AS DATE)) >= @DateFrom)
+              AND (@DateTo IS NULL OR COALESCE(e.EncounterDate, CAST(i.IssueDate AS DATE)) <= @DateTo)
             ORDER BY DoctorName, Category, ServiceDate ASC, ServiceName";
 
         var rows = await conn.QueryAsync<dynamic>(sql, new

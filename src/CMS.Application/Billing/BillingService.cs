@@ -263,6 +263,120 @@ public class BillingService
         return stats ?? new BillingStatsDto();
     }
 
+    public async Task<(List<InvoiceDto> Items, int TotalCount)> GetPagedInvoicesAsync(
+        byte tenantId, int page = 1, int pageSize = 50, int? patientId = null, DateTime? fromDate = null, DateTime? toDate = null)
+    {
+        using var conn = _dbFactory.CreateConnection();
+        int offset = (Math.Max(1, page) - 1) * pageSize;
+
+        var whereClause = @"
+            FROM Invoices i WITH (NOLOCK)
+            JOIN Patients p WITH (NOLOCK) ON p.Id = i.PatientId
+            WHERE i.TenantId = @TenantId
+              AND (@PatientId IS NULL OR i.PatientId = @PatientId)
+              AND (@FromDate IS NULL OR CAST(i.IssueDate AS DATE) >= CAST(@FromDate AS DATE))
+              AND (@ToDate IS NULL OR CAST(i.IssueDate AS DATE) <= CAST(@ToDate AS DATE))";
+
+        var countSql = "SELECT COUNT(*) " + whereClause;
+
+        var dataSql = @"
+            SELECT i.Id, i.TenantId, i.InvoiceNumber AS InvoiceNo,
+                   i.PatientId, p.FirstName + ' ' + ISNULL(p.MiddleName + ' ', '') + p.LastName AS PatientName,
+                   i.EncounterId, i.DoctorId,
+                   ISNULL(doc.DoctorName, '—') AS DoctorName,
+                   i.IssueDate, i.DueDate, i.SubTotal,
+                   ISNULL(i.TaxAmt, 0) AS TaxAmount,
+                   ISNULL(i.DiscountAmt, 0) AS DiscountAmount,
+                   i.TotalAmount,
+                   CASE 
+                       WHEN i.TotalAmount = 0 THEN 0
+                       WHEN EXISTS (
+                           SELECT 1 FROM Payments pm 
+                           WHERE pm.InvoiceId = i.Id 
+                             AND (pm.PaymentMethod = 4 OR pm.Reference LIKE '%Waiv%' OR pm.Reference LIKE '%Free%')
+                       ) THEN 0
+                       ELSE ISNULL(i.PaidAmount, 0)
+                   END AS PaidAmount,
+                   i.StatusId,
+                   CASE i.StatusId
+                       WHEN 1 THEN 'Draft'
+                       WHEN 2 THEN 'Issued'
+                       WHEN 3 THEN 'PartiallyPaid'
+                       WHEN 4 THEN 'Paid'
+                       WHEN 5 THEN 'Void'
+                       ELSE 'Issued' END AS StatusName,
+                   CASE 
+                       WHEN i.TotalAmount = 0 THEN CAST(1 AS BIT)
+                       WHEN EXISTS (
+                           SELECT 1 FROM Payments pm 
+                           WHERE pm.InvoiceId = i.Id 
+                             AND (pm.PaymentMethod = 4 OR pm.Reference LIKE '%Waiv%' OR pm.Reference LIKE '%Free%')
+                       ) THEN CAST(1 AS BIT)
+                       ELSE CAST(0 AS BIT)
+                   END AS IsWaived,
+                   i.InsuranceProviderId,
+                   ip.Name AS InsuranceProviderName,
+                   ISNULL(i.InsuranceCoPayPercent, 0) AS InsuranceCoPayPercent,
+                   ISNULL(i.InsuranceClaimAmount, 0) AS InsuranceClaimAmount,
+                   ISNULL(i.PatientPayAmount, i.TotalAmount) AS PatientPayAmount,
+                   i.PreAuthCode,
+                   ISNULL(i.ClaimStatusId, 1) AS ClaimStatusId,
+                   i.FiscalReceiptNo,
+                   i.FiscalSignature,
+                   i.FiscalQrPayload,
+                   i.ReceiptImageUrl,
+                   i.Notes
+            FROM Invoices i WITH (NOLOCK)
+            JOIN Patients p WITH (NOLOCK) ON p.Id = i.PatientId
+            LEFT JOIN InsuranceProviders ip WITH (NOLOCK) ON ip.Id = i.InsuranceProviderId
+            OUTER APPLY (
+                SELECT TOP 1 
+                    ISNULL(s.FirstName + ' ' + s.LastName, 'Attending Physician') AS DoctorName
+                FROM Doctors d WITH (NOLOCK)
+                JOIN Staff s WITH (NOLOCK) ON s.Id = d.StaffId
+                WHERE d.Id = i.DoctorId 
+                   OR d.Id = (SELECT e.DoctorId FROM Encounters e WITH (NOLOCK) WHERE e.Id = i.EncounterId)
+                   OR d.Id = (SELECT TOP 1 t.AssignedDoctorId FROM PatientTriage t WITH (NOLOCK) WHERE t.PatientId = i.PatientId AND t.AssignedDoctorId > 0 ORDER BY t.Id DESC)
+                   OR d.Id = (SELECT TOP 1 a.DoctorId FROM Appointments a WITH (NOLOCK) WHERE a.PatientId = i.PatientId AND a.DoctorId > 0 ORDER BY a.Id DESC)
+            ) doc
+            WHERE i.TenantId = @TenantId
+              AND (@PatientId IS NULL OR i.PatientId = @PatientId)
+              AND (@FromDate IS NULL OR CAST(i.IssueDate AS DATE) >= CAST(@FromDate AS DATE))
+              AND (@ToDate IS NULL OR CAST(i.IssueDate AS DATE) <= CAST(@ToDate AS DATE))
+            ORDER BY i.Id DESC
+            OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY";
+
+        var sqlParams = new { TenantId = tenantId, PatientId = patientId, FromDate = fromDate, ToDate = toDate, Offset = offset, PageSize = pageSize };
+        int total = await conn.ExecuteScalarAsync<int>(countSql, sqlParams);
+        var invoices = (await conn.QueryAsync<InvoiceDto>(dataSql, sqlParams)).ToList();
+
+        // Populate line items in O(N) using lookup dictionary
+        var invoiceIds = invoices.Select(x => x.Id).ToList();
+        if (invoiceIds.Any())
+        {
+            var itemSql = @"
+                SELECT Id, InvoiceId,
+                       CASE ItemType
+                           WHEN 1 THEN 'Consultation'
+                           WHEN 2 THEN 'Laboratory'
+                           WHEN 3 THEN 'Pharmacy'
+                           WHEN 4 THEN 'Procedure'
+                           WHEN 5 THEN 'Bed'
+                           ELSE 'Other' END AS ItemType,
+                       Description, Quantity, UnitPrice, TotalPrice
+                FROM InvoiceItems
+                WHERE InvoiceId IN @Ids";
+            var allItems = (await conn.QueryAsync<InvoiceItemDto>(itemSql, new { Ids = invoiceIds })).ToList();
+            var itemLookup = allItems.GroupBy(x => x.InvoiceId).ToDictionary(g => g.Key, g => g.ToList());
+            foreach (var inv in invoices)
+            {
+                if (itemLookup.TryGetValue(inv.Id, out var items)) inv.Items = items;
+            }
+        }
+
+        return (invoices, total);
+    }
+
     public async Task<List<InvoiceDto>> GetInvoicesAsync(byte tenantId, int limit = 200, int? patientId = null, DateTime? fromDate = null, DateTime? toDate = null)
     {
         using var conn = _dbFactory.CreateConnection();

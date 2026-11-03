@@ -24,11 +24,17 @@ public class ServicesController : ControllerBase
         [FromQuery] string? search = null,
         [FromQuery] string? category = null,
         [FromQuery] bool? isActive = null,
-        [FromQuery] int limit = 1500)
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
+        [FromQuery] int? limit = null)
     {
         byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
-        bool isDefaultQuery = string.IsNullOrWhiteSpace(search) && (string.IsNullOrWhiteSpace(category) || category == "ALL") && !isActive.HasValue;
-        string? cacheKey = isDefaultQuery ? $"tenant:{tenantId}:services:all:{limit}" : null;
+        int effectivePageSize = limit.HasValue && limit.Value > 0 ? limit.Value : Math.Clamp(pageSize, 1, 1500);
+        int effectivePage = Math.Max(1, page);
+        int offset = (effectivePage - 1) * effectivePageSize;
+
+        bool isDefaultQuery = string.IsNullOrWhiteSpace(search) && (string.IsNullOrWhiteSpace(category) || category == "ALL") && !isActive.HasValue && !limit.HasValue && page == 1;
+        string? cacheKey = isDefaultQuery ? $"tenant:{tenantId}:services:all:{effectivePageSize}" : null;
 
         if (cacheKey != null)
         {
@@ -38,18 +44,7 @@ public class ServicesController : ControllerBase
 
         using var conn = _dbFactory.CreateConnection();
 
-        var sql = @"
-            SELECT TOP (@Limit)
-                Id,
-                Code,
-                Name,
-                Category,
-                Department,
-                Price,
-                Price AS StandardFee,
-                Taxable,
-                IsActive,
-                Description
+        var whereClause = @"
             FROM dbo.Services WITH (NOLOCK)
             WHERE TenantId = @TenantId
               AND (@IsActive IS NULL OR IsActive = @IsActive)
@@ -59,23 +54,35 @@ public class ServicesController : ControllerBase
                   OR Name LIKE '%' + @Search + '%'
                   OR Code LIKE '%' + @Search + '%'
                   OR Department LIKE '%' + @Search + '%'
-              )
-            ORDER BY Category ASC, Name ASC";
+              )";
 
-        var services = (await conn.QueryAsync<dynamic>(sql, new {
+        var countSql = "SELECT COUNT(*) " + whereClause;
+        var dataSql = @"
+            SELECT
+                Id, Code, Name, Category, Department, Price,
+                Price AS StandardFee, Taxable, IsActive, Description " + whereClause + @"
+            ORDER BY Category ASC, Name ASC
+            OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY";
+
+        var sqlParams = new {
             TenantId = tenantId,
             IsActive = isActive,
             Category = string.IsNullOrWhiteSpace(category) || category == "ALL" ? null : category,
             Search = string.IsNullOrWhiteSpace(search) ? null : search.Trim(),
-            Limit = limit
-        })).ToList();
+            Offset = offset,
+            PageSize = effectivePageSize
+        };
+
+        int total = await conn.ExecuteScalarAsync<int>(countSql, sqlParams);
+        var services = (await conn.QueryAsync<dynamic>(dataSql, sqlParams)).ToList();
 
         if (cacheKey != null)
         {
             await _cache.SetAsync(cacheKey, services, TimeSpan.FromMinutes(15));
         }
 
-        return Ok(ApiResponse<dynamic>.Ok(services));
+        var meta = new PaginationMeta(total, effectivePage, effectivePageSize, (int)Math.Ceiling((double)total / effectivePageSize));
+        return Ok(ApiResponse<dynamic>.Ok(services, meta));
     }
 
     [HttpGet("categories")]

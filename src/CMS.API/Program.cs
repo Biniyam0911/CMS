@@ -1,4 +1,6 @@
 using System.Text;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
 using CMS.API.Hubs;
 using CMS.API.Middleware;
 using CMS.Application.Appointments;
@@ -57,6 +59,38 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddSingleton<IDbConnectionFactory, DbConnectionFactory>();
 
 builder.Services.AddMemoryCache();
+
+// Rate limiting: protect auth endpoints from brute-force and abuse
+builder.Services.AddRateLimiter(options =>
+{
+    // Auth policy: 15 requests per minute per IP
+    options.AddFixedWindowLimiter("AuthPolicy", opt =>
+    {
+        opt.PermitLimit = 15;
+        opt.Window = TimeSpan.FromMinutes(1);
+        opt.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst;
+        opt.QueueLimit = 0;
+    });
+
+    // General API policy: 300 requests per minute per IP
+    options.AddFixedWindowLimiter("ApiPolicy", opt =>
+    {
+        opt.PermitLimit = 300;
+        opt.Window = TimeSpan.FromMinutes(1);
+        opt.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst;
+        opt.QueueLimit = 5;
+    });
+
+    options.RejectionStatusCode = 429;
+    options.OnRejected = async (context, token) =>
+    {
+        context.HttpContext.Response.StatusCode = 429;
+        context.HttpContext.Response.ContentType = "application/json";
+        await context.HttpContext.Response.WriteAsync(
+            "{\"success\":false,\"message\":\"Too many requests. Please slow down and try again shortly.\"}",
+            cancellationToken: token);
+    };
+});
 
 // Redis is optional — if not available the API falls back to high-speed in-memory cache
 var redisConnStr = builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379";
@@ -237,6 +271,7 @@ if (app.Environment.IsDevelopment())
 app.UseStaticFiles();
 app.UseCors("AllowAll");
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseMiddleware<TenantMiddleware>();
 app.UseAuthorization();
 

@@ -21,6 +21,7 @@ import MyPatientSummaryPage from './pages/Reports/MyPatientSummaryPage';
 import NurseOrdersFollowupPage from './pages/Reports/NurseOrdersFollowupPage';
 import PatientPortalPage from './pages/PatientPortal/PatientPortalPage';
 import UserManagementPage from './pages/UserManagement/UserManagementPage';
+import AuditLogPage from './pages/AuditLog/AuditLogPage';
 import ServicesPage from './pages/Services/ServicesPage';
 import ModuleManagementPage from './pages/ModuleManagement/ModuleManagementPage';
 import ApiManagementPage from './pages/ApiManagement/ApiManagementPage';
@@ -481,6 +482,7 @@ export default function App() {
           {!disabledModules.has(activeModule) && activeModule === 'PATIENT_PORTAL' && <PatientPortalPage />}
           {!disabledModules.has(activeModule) && activeModule === 'SERVICE_MGMT' && <ServicesPage />}
           {!disabledModules.has(activeModule) && activeModule === 'USER_MGMT' && <UserManagementPage />}
+          {!disabledModules.has(activeModule) && activeModule === 'AUDIT_LOG' && <AuditLogPage />}
           {activeModule === 'MODULE_MGMT' && <ModuleManagementPage />}
           {!disabledModules.has(activeModule) && activeModule === 'API_MGMT' && <ApiManagementPage />}
           {activeModule === 'SETTINGS' && <SettingsPage />}
