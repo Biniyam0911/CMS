@@ -246,18 +246,35 @@ public class BillingService
     {
         using var conn = _dbFactory.CreateConnection();
         var sql = @"
+            WITH InvoiceFlags AS (
+                SELECT 
+                    i.Id,
+                    i.TotalAmount,
+                    i.PaidAmount,
+                    i.StatusId,
+                    CASE 
+                        WHEN i.TotalAmount = 0 THEN 1
+                        WHEN EXISTS (
+                            SELECT 1 FROM Payments pm WITH (NOLOCK)
+                            WHERE pm.InvoiceId = i.Id 
+                              AND (pm.PaymentMethod = 4 OR pm.Reference LIKE '%Waiv%' OR pm.Reference LIKE '%Free%')
+                        ) THEN 1
+                        ELSE 0
+                    END AS IsWaived
+                FROM Invoices i WITH (NOLOCK)
+                WHERE i.TenantId = @TenantId
+                  AND (@FromDate IS NULL OR CAST(i.IssueDate AS DATE) >= CAST(@FromDate AS DATE))
+                  AND (@ToDate IS NULL OR CAST(i.IssueDate AS DATE) <= CAST(@ToDate AS DATE))
+            )
             SELECT 
                 COUNT(1) AS TotalInvoices,
-                SUM(CASE WHEN TotalAmount > 0 AND NOT EXISTS (SELECT 1 FROM Payments pm WHERE pm.InvoiceId = Invoices.Id AND (pm.PaymentMethod = 4 OR pm.Reference LIKE '%Waiv%' OR pm.Reference LIKE '%Free%')) THEN 1 ELSE 0 END) AS BillableInvoices,
-                SUM(CASE WHEN TotalAmount = 0 OR EXISTS (SELECT 1 FROM Payments pm WHERE pm.InvoiceId = Invoices.Id AND (pm.PaymentMethod = 4 OR pm.Reference LIKE '%Waiv%' OR pm.Reference LIKE '%Free%')) THEN 1 ELSE 0 END) AS WaivedInvoices,
-                ISNULL(SUM(CASE WHEN TotalAmount > 0 AND NOT EXISTS (SELECT 1 FROM Payments pm WHERE pm.InvoiceId = Invoices.Id AND (pm.PaymentMethod = 4 OR pm.Reference LIKE '%Waiv%' OR pm.Reference LIKE '%Free%')) THEN TotalAmount ELSE 0 END), 0) AS TotalBilled,
-                ISNULL(SUM(CASE WHEN TotalAmount > 0 AND NOT EXISTS (SELECT 1 FROM Payments pm WHERE pm.InvoiceId = Invoices.Id AND (pm.PaymentMethod = 4 OR pm.Reference LIKE '%Waiv%' OR pm.Reference LIKE '%Free%')) THEN PaidAmount ELSE 0 END), 0) AS PaidRevenue,
-                ISNULL(SUM(CASE WHEN TotalAmount > 0 AND TotalAmount > PaidAmount AND NOT EXISTS (SELECT 1 FROM Payments pm WHERE pm.InvoiceId = Invoices.Id AND (pm.PaymentMethod = 4 OR pm.Reference LIKE '%Waiv%' OR pm.Reference LIKE '%Free%')) THEN TotalAmount - PaidAmount ELSE 0 END), 0) AS PendingReceivables,
-                SUM(CASE WHEN StatusId = 4 AND TotalAmount > 0 AND NOT EXISTS (SELECT 1 FROM Payments pm WHERE pm.InvoiceId = Invoices.Id AND (pm.PaymentMethod = 4 OR pm.Reference LIKE '%Waiv%' OR pm.Reference LIKE '%Free%')) THEN 1 ELSE 0 END) AS PaidCount
-            FROM Invoices WITH (NOLOCK)
-            WHERE TenantId = @TenantId
-              AND (@FromDate IS NULL OR CAST(IssueDate AS DATE) >= CAST(@FromDate AS DATE))
-              AND (@ToDate IS NULL OR CAST(IssueDate AS DATE) <= CAST(@ToDate AS DATE))";
+                SUM(CASE WHEN TotalAmount > 0 AND IsWaived = 0 THEN 1 ELSE 0 END) AS BillableInvoices,
+                SUM(CASE WHEN IsWaived = 1 THEN 1 ELSE 0 END) AS WaivedInvoices,
+                ISNULL(SUM(CASE WHEN TotalAmount > 0 AND IsWaived = 0 THEN TotalAmount ELSE 0 END), 0) AS TotalBilled,
+                ISNULL(SUM(CASE WHEN TotalAmount > 0 AND IsWaived = 0 THEN PaidAmount ELSE 0 END), 0) AS PaidRevenue,
+                ISNULL(SUM(CASE WHEN TotalAmount > 0 AND TotalAmount > PaidAmount AND IsWaived = 0 THEN TotalAmount - PaidAmount ELSE 0 END), 0) AS PendingReceivables,
+                SUM(CASE WHEN StatusId = 4 AND TotalAmount > 0 AND IsWaived = 0 THEN 1 ELSE 0 END) AS PaidCount
+            FROM InvoiceFlags";
 
         var stats = await conn.QueryFirstOrDefaultAsync<BillingStatsDto>(sql, new { TenantId = tenantId, FromDate = fromDate, ToDate = toDate });
         return stats ?? new BillingStatsDto();
