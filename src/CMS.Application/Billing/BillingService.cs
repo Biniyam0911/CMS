@@ -283,7 +283,7 @@ public class BillingService
             SELECT i.Id, i.TenantId, i.InvoiceNumber AS InvoiceNo,
                    i.PatientId, p.FirstName + ' ' + ISNULL(p.MiddleName + ' ', '') + p.LastName AS PatientName,
                    i.EncounterId, i.DoctorId,
-                   ISNULL(doc.DoctorName, '—') AS DoctorName,
+                   ISNULL(sDoc.FirstName + ' ' + sDoc.LastName, 'Attending Physician') AS DoctorName,
                    i.IssueDate, i.DueDate, i.SubTotal,
                    ISNULL(i.TaxAmt, 0) AS TaxAmount,
                    ISNULL(i.DiscountAmt, 0) AS DiscountAmount,
@@ -329,16 +329,9 @@ public class BillingService
             FROM Invoices i WITH (NOLOCK)
             JOIN Patients p WITH (NOLOCK) ON p.Id = i.PatientId
             LEFT JOIN InsuranceProviders ip WITH (NOLOCK) ON ip.Id = i.InsuranceProviderId
-            OUTER APPLY (
-                SELECT TOP 1 
-                    ISNULL(s.FirstName + ' ' + s.LastName, 'Attending Physician') AS DoctorName
-                FROM Doctors d WITH (NOLOCK)
-                JOIN Staff s WITH (NOLOCK) ON s.Id = d.StaffId
-                WHERE d.Id = i.DoctorId 
-                   OR d.Id = (SELECT e.DoctorId FROM Encounters e WITH (NOLOCK) WHERE e.Id = i.EncounterId)
-                   OR d.Id = (SELECT TOP 1 t.AssignedDoctorId FROM PatientTriage t WITH (NOLOCK) WHERE t.PatientId = i.PatientId AND t.AssignedDoctorId > 0 ORDER BY t.Id DESC)
-                   OR d.Id = (SELECT TOP 1 a.DoctorId FROM Appointments a WITH (NOLOCK) WHERE a.PatientId = i.PatientId AND a.DoctorId > 0 ORDER BY a.Id DESC)
-            ) doc
+            LEFT JOIN Encounters e WITH (NOLOCK) ON e.Id = i.EncounterId
+            LEFT JOIN Doctors d WITH (NOLOCK) ON d.Id = COALESCE(i.DoctorId, e.DoctorId)
+            LEFT JOIN Staff sDoc WITH (NOLOCK) ON sDoc.Id = d.StaffId
             WHERE i.TenantId = @TenantId
               AND (@PatientId IS NULL OR i.PatientId = @PatientId)
               AND (@FromDate IS NULL OR CAST(i.IssueDate AS DATE) >= CAST(@FromDate AS DATE))
@@ -359,11 +352,11 @@ public class BillingService
                        CASE ItemType
                            WHEN 1 THEN 'Consultation'
                            WHEN 2 THEN 'Laboratory'
-                           WHEN 3 THEN 'Pharmacy'
-                           WHEN 4 THEN 'Procedure'
+                           WHEN 3 THEN 'Procedure'
+                           WHEN 4 THEN 'Pharmacy'
                            WHEN 5 THEN 'Bed'
                            ELSE 'Other' END AS ItemType,
-                       Description, Quantity, UnitPrice, TotalPrice
+                       RefId AS ReferenceId, Description, CAST(Quantity AS INT) AS Quantity, UnitPrice, Total AS TotalPrice
                 FROM InvoiceItems
                 WHERE InvoiceId IN @Ids";
             var allItems = (await conn.QueryAsync<InvoiceItemDto>(itemSql, new { Ids = invoiceIds })).ToList();
@@ -384,7 +377,7 @@ public class BillingService
             SELECT TOP (@Limit) i.Id, i.TenantId, i.InvoiceNumber AS InvoiceNo,
                    i.PatientId, p.FirstName + ' ' + ISNULL(p.MiddleName + ' ', '') + p.LastName AS PatientName,
                    i.EncounterId, i.DoctorId,
-                   ISNULL(doc.DoctorName, '—') AS DoctorName,
+                   ISNULL(sDoc.FirstName + ' ' + sDoc.LastName, 'Attending Physician') AS DoctorName,
                    i.IssueDate, i.DueDate, i.SubTotal,
                    ISNULL(i.TaxAmt, 0) AS TaxAmount,
                    ISNULL(i.DiscountAmt, 0) AS DiscountAmount,
@@ -430,16 +423,9 @@ public class BillingService
             FROM Invoices i WITH (NOLOCK)
             JOIN Patients p WITH (NOLOCK) ON p.Id = i.PatientId
             LEFT JOIN InsuranceProviders ip WITH (NOLOCK) ON ip.Id = i.InsuranceProviderId
-            OUTER APPLY (
-                SELECT TOP 1 
-                    ISNULL(s.FirstName + ' ' + s.LastName, 'Attending Physician') AS DoctorName
-                FROM Doctors d WITH (NOLOCK)
-                JOIN Staff s WITH (NOLOCK) ON s.Id = d.StaffId
-                WHERE d.Id = i.DoctorId 
-                   OR d.Id = (SELECT e.DoctorId FROM Encounters e WITH (NOLOCK) WHERE e.Id = i.EncounterId)
-                   OR d.Id = (SELECT TOP 1 t.AssignedDoctorId FROM PatientTriage t WITH (NOLOCK) WHERE t.PatientId = i.PatientId AND t.AssignedDoctorId > 0 ORDER BY t.Id DESC)
-                   OR d.Id = (SELECT TOP 1 a.DoctorId FROM Appointments a WITH (NOLOCK) WHERE a.PatientId = i.PatientId AND a.DoctorId > 0 ORDER BY a.Id DESC)
-            ) doc
+            LEFT JOIN Encounters e WITH (NOLOCK) ON e.Id = i.EncounterId
+            LEFT JOIN Doctors d WITH (NOLOCK) ON d.Id = COALESCE(i.DoctorId, e.DoctorId)
+            LEFT JOIN Staff sDoc WITH (NOLOCK) ON sDoc.Id = d.StaffId
             WHERE i.TenantId = @TenantId
               AND (@PatientId IS NULL OR i.PatientId = @PatientId)
               AND (@FromDate IS NULL OR CAST(i.IssueDate AS DATE) >= CAST(@FromDate AS DATE))
@@ -482,7 +468,7 @@ public class BillingService
             SELECT i.Id, i.TenantId, i.InvoiceNumber AS InvoiceNo,
                    i.PatientId, p.FirstName + ' ' + ISNULL(p.MiddleName + ' ', '') + p.LastName AS PatientName,
                    i.EncounterId, i.DoctorId,
-                   ISNULL(doc.DoctorName, '—') AS DoctorName,
+                   ISNULL(sDoc.FirstName + ' ' + sDoc.LastName, 'Attending Physician') AS DoctorName,
                    i.IssueDate, i.DueDate, i.SubTotal,
                    ISNULL(i.TaxAmt, 0) AS TaxAmount,
                    ISNULL(i.DiscountAmt, 0) AS DiscountAmount,
@@ -528,16 +514,9 @@ public class BillingService
             FROM Invoices i
             JOIN Patients p ON p.Id = i.PatientId
             LEFT JOIN InsuranceProviders ip ON ip.Id = i.InsuranceProviderId
-            OUTER APPLY (
-                SELECT TOP 1 
-                    ISNULL(s.FirstName + ' ' + s.LastName, 'Attending Physician') AS DoctorName
-                FROM Doctors d WITH (NOLOCK)
-                JOIN Staff s WITH (NOLOCK) ON s.Id = d.StaffId
-                WHERE d.Id = i.DoctorId 
-                   OR d.Id = (SELECT e.DoctorId FROM Encounters e WITH (NOLOCK) WHERE e.Id = i.EncounterId)
-                   OR d.Id = (SELECT TOP 1 t.AssignedDoctorId FROM PatientTriage t WITH (NOLOCK) WHERE t.PatientId = i.PatientId AND t.AssignedDoctorId > 0 ORDER BY t.Id DESC)
-                   OR d.Id = (SELECT TOP 1 a.DoctorId FROM Appointments a WITH (NOLOCK) WHERE a.PatientId = i.PatientId AND a.DoctorId > 0 ORDER BY a.Id DESC)
-            ) doc
+            LEFT JOIN Encounters e WITH (NOLOCK) ON e.Id = i.EncounterId
+            LEFT JOIN Doctors d WITH (NOLOCK) ON d.Id = COALESCE(i.DoctorId, e.DoctorId)
+            LEFT JOIN Staff sDoc WITH (NOLOCK) ON sDoc.Id = d.StaffId
             WHERE i.Id = @Id AND i.TenantId = @TenantId";
 
         var inv = await conn.QueryFirstOrDefaultAsync<InvoiceDto>(sql, new { Id = id, TenantId = tenantId });

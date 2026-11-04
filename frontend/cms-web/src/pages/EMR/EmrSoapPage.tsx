@@ -1843,8 +1843,8 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
         });
       }
 
-      // 5. Database Billing Invoice Creation for Billable Items
-      const billableItems = currentBasket.filter(x => x.price > 0).map(item => {
+      // 5. Database Billing Invoice Creation for All Ordered Items
+      const billableItems = currentBasket.map(item => {
         let refId: number | null = null;
         if (item.type === 'LAB') {
           refId = batchedLabOrderId > 0 ? batchedLabOrderId : null; // All lab items share one order
@@ -1867,6 +1867,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
           const invRes = await api.post('/billing/invoices', {
             tenantId: 1,
             patientId: patId,
+            doctorId: doctorId || selectedDoctorId || null,
             encounterId: null,
             createdBy: 1,
             items: billableItems
@@ -2037,23 +2038,29 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
         console.warn('Backend prescription dispatch error:', err);
       }
 
-      // 2. Add to billing invoice if any items have a price > 0
+      // 2. Add to billing invoice for all prescribed items
       try {
-        const billedItems = prescribeBasket.filter(b => b.unitPrice > 0).map(b => ({
+        const billedItems = prescribeBasket.map(b => ({
           itemType: 'Pharmacy',
-          description: `${b.drugName} (${b.dosage || ''} - ${b.qty || 1} pcs)`,
+          description: `${b.drugName} (${b.dosage || ''} - ${b.qty || 1} pcs)`.trim(),
           quantity: b.qty !== '' && !isNaN(Number(b.qty)) && Number(b.qty) > 0 ? Math.round(Number(b.qty)) : 1,
-          unitPrice: b.unitPrice,
-          discount: 0
+          unitPrice: Number(b.unitPrice) || 0,
+          discount: 0,
+          refId: createdPresId
         }));
         if (billedItems.length > 0) {
           await api.post('/billing/invoices', {
+            tenantId: 1,
             patientId: Number(patId) || 1,
-            paymentMethod: 'Cash',
+            doctorId: selectedDoctorId || currentUser?.doctorId || null,
+            encounterId: null,
+            createdBy: 1,
             items: billedItems
-          }).catch(() => {});
+          }).catch(bErr => console.warn('Prescription billing invoice creation error:', bErr));
         }
-      } catch {}
+      } catch (err) {
+        console.warn('Prescription billing error:', err);
+      }
 
       // 3. Immediately reflect in 6. Medication Details (Prescriptions) of clinical entry area
       setMedications(prev => [
