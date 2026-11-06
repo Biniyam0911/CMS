@@ -1,3 +1,22 @@
+/**
+ * =========================================================================================
+ * HUDERMA CLINIC MANAGEMENT SYSTEM (CMS) - EMR & SOAP CLINICAL CONSULTATION PAGE
+ * =========================================================================================
+ * DEVELOPER GUIDE:
+ * 1. Purpose:
+ *    - The primary consultation workspace for Doctors and Dermatologists.
+ *    - Records SOAP notes: Subjective (Symptoms), Objective (Exams/Vitals), Assessment (ICD-10),
+ *      and Plan (Medications, Lab tests, Radiology, Procedures).
+ * 2. Clinical Decision Support (CDS):
+ *    - Evaluates vital signs in real-time using `evaluateCdsAlerts` (from `cdsRuleEngine.ts`).
+ *    - Alerts doctors on critical thresholds (e.g. Stage 2 Hypertension, Fever, Tachycardia).
+ * 3. Ordering Pipeline:
+ *    - Lab tests ordered here link to `LabOrders` (viewed in `LaboratoryPage.tsx`).
+ *    - Prescriptions ordered here link to `Prescriptions` (viewed in `PharmacyPage.tsx`).
+ *    - Invoices are automatically generated or updated for Cashiers in `BillingPage.tsx`.
+ * =========================================================================================
+ */
+
 import React, { useState, useEffect } from 'react';
 import {
   Stethoscope, Award, Activity, Save, Plus, Search, User, FileText,

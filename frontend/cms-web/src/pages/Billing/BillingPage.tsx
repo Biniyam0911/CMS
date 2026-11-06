@@ -233,14 +233,16 @@ export default function BillingPage() {
             fiscalQrPayload: inv.fiscalQrPayload || inv.FiscalQrPayload,
             receiptImageUrl: inv.receiptImageUrl || inv.ReceiptImageUrl || null,
             notes: inv.notes || inv.Notes || '',
-            items: (inv.items || []).map((it: any) => ({
-              id: it.id || it.Id,
-              description: it.description || it.Description,
-              itemType: it.itemType || it.ItemType || 'General',
-              quantity: it.quantity || it.Quantity || 1,
-              unitPrice: it.unitPrice || it.UnitPrice || 0,
-              totalPrice: it.totalPrice || it.TotalPrice || ((it.quantity || 1) * (it.unitPrice || 0))
-            }))
+            items: (inv.items || [])
+              .filter((it: any) => (Number(it.totalPrice ?? it.TotalPrice ?? (it.unitPrice ?? it.UnitPrice ?? 0)) > 0))
+              .map((it: any) => ({
+                id: it.id || it.Id,
+                description: it.description || it.Description,
+                itemType: it.itemType || it.ItemType || 'General',
+                quantity: it.quantity || it.Quantity || 1,
+                unitPrice: it.unitPrice || it.UnitPrice || 0,
+                totalPrice: it.totalPrice || it.TotalPrice || ((it.quantity || 1) * (it.unitPrice || 0))
+              }))
           };
         });
         setInvoices(mapped);
@@ -330,14 +332,16 @@ export default function BillingPage() {
             fiscalQrPayload: inv.fiscalQrPayload || inv.FiscalQrPayload,
             receiptImageUrl: inv.receiptImageUrl || inv.ReceiptImageUrl || null,
             notes: inv.notes || inv.Notes || '',
-            items: (inv.items || []).map((it: any) => ({
-              id: it.id || it.Id,
-              description: it.description || it.Description,
-              itemType: it.itemType || it.ItemType || 'General',
-              quantity: it.quantity || it.Quantity || 1,
-              unitPrice: it.unitPrice || it.UnitPrice || 0,
-              totalPrice: it.totalPrice || it.TotalPrice || ((it.quantity || 1) * (it.unitPrice || 0))
-            }))
+            items: (inv.items || [])
+              .filter((it: any) => (Number(it.totalPrice ?? it.TotalPrice ?? (it.unitPrice ?? it.UnitPrice ?? 0)) > 0))
+              .map((it: any) => ({
+                id: it.id || it.Id,
+                description: it.description || it.Description,
+                itemType: it.itemType || it.ItemType || 'General',
+                quantity: it.quantity || it.Quantity || 1,
+                unitPrice: it.unitPrice || it.UnitPrice || 0,
+                totalPrice: it.totalPrice || it.TotalPrice || ((it.quantity || 1) * (it.unitPrice || 0))
+              }))
           };
         });
         setInvoices(mapped);
@@ -360,7 +364,12 @@ export default function BillingPage() {
 
   const handleAddItem = () => {
     if (!newItemName) return;
-    setItems([...items, { item: newItemName, itemType: newItemType, qty: 1, unitPrice: parseFloat(newItemPrice) || 0 }]);
+    const priceVal = parseFloat(newItemPrice) || 0;
+    if (priceVal <= 0 && !isFreeInvoice) {
+      alert('Service price must be greater than 0.');
+      return;
+    }
+    setItems([...items, { item: newItemName, itemType: newItemType, qty: 1, unitPrice: priceVal }]);
   };
 
   const handleRemoveItem = (idx: number) => {
@@ -1133,21 +1142,24 @@ export default function BillingPage() {
                     Billable Line Items
                   </div>
                   <div style={{ border: '1px solid var(--border-color)', borderRadius: '6px', overflow: 'hidden' }}>
-                    {(selectedInvoice.items && selectedInvoice.items.length > 0) ? (
-                      selectedInvoice.items.map((it: any, idx: number) => (
-                        <div key={idx} style={{ padding: '6px 10px', borderBottom: '1px solid var(--border-color)', fontSize: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: idx % 2 === 0 ? '#ffffff' : '#fdfcf9' }}>
-                          <div>
-                            <div style={{ fontWeight: 600 }}>{it.description}</div>
-                            <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{it.itemType} â€¢ Qty: {it.quantity} @ Br {it.unitPrice.toFixed(2)}</div>
+                    {(() => {
+                      const activeItems = (selectedInvoice.items || []).filter((it: any) => Number(it.totalPrice ?? it.unitPrice ?? 0) > 0);
+                      return activeItems.length > 0 ? (
+                        activeItems.map((it: any, idx: number) => (
+                          <div key={idx} style={{ padding: '6px 10px', borderBottom: '1px solid var(--border-color)', fontSize: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: idx % 2 === 0 ? '#ffffff' : '#fdfcf9' }}>
+                            <div>
+                              <div style={{ fontWeight: 600 }}>{it.description}</div>
+                              <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{it.itemType} • Qty: {it.quantity} @ Br {it.unitPrice.toFixed(2)}</div>
+                            </div>
+                            <span style={{ fontWeight: 700 }}>Br {it.totalPrice.toFixed(2)}</span>
                           </div>
-                          <span style={{ fontWeight: 700 }}>Br {it.totalPrice.toFixed(2)}</span>
+                        ))
+                      ) : (
+                        <div style={{ padding: '10px', fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                          Standard Clinical Consultation Service
                         </div>
-                      ))
-                    ) : (
-                      <div style={{ padding: '10px', fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                        Standard Clinical Consultation Service
-                      </div>
-                    )}
+                      );
+                    })()}
                   </div>
                 </div>
 
@@ -1776,21 +1788,24 @@ export default function BillingPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {(showReceiptModal.items && showReceiptModal.items.length > 0) ? (
-                      showReceiptModal.items.map((it: any, i: number) => (
-                        <tr key={i}>
-                          <td>{it.description}</td>
-                          <td>{it.quantity}</td>
-                          <td>Br {it.totalPrice.toFixed(2)}</td>
+                    {(() => {
+                      const activeReceiptItems = (showReceiptModal.items || []).filter((it: any) => Number(it.totalPrice ?? it.unitPrice ?? 0) > 0);
+                      return activeReceiptItems.length > 0 ? (
+                        activeReceiptItems.map((it: any, i: number) => (
+                          <tr key={i}>
+                            <td>{it.description}</td>
+                            <td>{it.quantity}</td>
+                            <td>Br {it.totalPrice.toFixed(2)}</td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td>General Clinical Services</td>
+                          <td>1</td>
+                          <td>Br {showReceiptModal.subtotal.toFixed(2)}</td>
                         </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td>General Clinical Services</td>
-                        <td>1</td>
-                        <td>Br {showReceiptModal.subtotal.toFixed(2)}</td>
-                      </tr>
-                    )}
+                      );
+                    })()}
                   </tbody>
                 </table>
               </div>

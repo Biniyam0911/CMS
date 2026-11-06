@@ -77,7 +77,7 @@ public record LisListenerStatusDto(
 
 public interface ILabResultIngestionService
 {
-    Task<bool> IngestHl7ResultAsync(string rawHl7, string remoteEndPoint = "");
+    Task<bool> IngestHl7ResultAsync(string rawHl7, string remoteEndPoint = "", int? tenantId = null);
 }
 
 public interface ILisTcpListenerService

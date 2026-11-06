@@ -1,3 +1,19 @@
+/**
+ * =========================================================================================
+ * HUDERMA CLINIC MANAGEMENT SYSTEM (CMS) - ROLE-BASED ACCESS CONTROL (RBAC)
+ * =========================================================================================
+ * DEVELOPER GUIDE:
+ * 1. Role Matrix:
+ *    - `DEFAULT_ROLE_PERMISSIONS` defines which `ModuleKey` screens are visible to each role.
+ * 2. Overrides:
+ *    - Administrators can customize role permissions via Module Management, which saves
+ *      custom rules to `cms_role_permissions`.
+ * 3. Adding Permissions for a New Module:
+ *    - When you create a new module, add its `ModuleKey` to the roles permitted to access it
+ *      in `DEFAULT_ROLE_PERMISSIONS` (e.g. SuperAdmin, Admin, Doctor).
+ * =========================================================================================
+ */
+
 import { ModuleKey } from '../components/Sidebar';
 
 export interface RolePermissionMap {

@@ -7,6 +7,10 @@ using Microsoft.Extensions.Configuration;
 
 namespace CMS.Infrastructure.Data;
 
+/// <summary>
+/// Factory for instantiating high-performance raw ADO.NET / Dapper connections.
+/// Used by services that need raw SQL speed (e.g. reporting, bulk inserts).
+/// </summary>
 public class DbConnectionFactory : IDbConnectionFactory
 {
     private readonly string _connectionString;
@@ -20,6 +24,13 @@ public class DbConnectionFactory : IDbConnectionFactory
     public IDbConnection CreateConnection() => new SqlConnection(_connectionString);
 }
 
+/// <summary>
+/// Primary Entity Framework Core Database Context for the CMS.
+/// Maps all Domain entities to SQL Server tables, sets relationship constraints, and applies query filters.
+/// DEVELOPER NOTE:
+/// - When creating a new entity, declare its DbSet here: public DbSet&lt;YourEntity&gt; YourEntities =&gt; Set&lt;YourEntity&gt;();
+/// - Configure any specific column mappings, keys, or soft-delete filters in OnModelCreating.
+/// </summary>
 public class AppDbContext : DbContext
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }

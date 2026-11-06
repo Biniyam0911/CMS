@@ -1,3 +1,20 @@
+/**
+ * =========================================================================================
+ * HUDERMA CLINIC MANAGEMENT SYSTEM (CMS) - API CLIENT
+ * =========================================================================================
+ * DEVELOPER GUIDE:
+ * - Centralized HTTP networking client wrapping the standard browser Fetch API.
+ * - Authentication: Uses HttpOnly cookies automatically attached via `credentials: 'include'`.
+ * - Multi-tenancy: Automatically attaches 'x-tenant-id' and 'x-user-id' request headers.
+ * - Error Handling: Automatically detects HTTP 401 and emits 'cms_session_expired' event.
+ *
+ * EXAMPLE USAGE:
+ *   import { api } from '../api/apiClient';
+ *   const result = await api.get<PatientDto[]>('/api/v1/patients');
+ *   const created = await api.post('/api/v1/patients', newPatientData);
+ * =========================================================================================
+ */
+
 export interface ApiResponse<T> {
   success?: boolean;
   isSuccess?: boolean;

@@ -1,4 +1,21 @@
+// =========================================================================================
+// HUDERMA CLINIC MANAGEMENT SYSTEM (CMS) - API ENTRYPOINT & HOST CONFIGURATION
+// =========================================================================================
+// DEVELOPER GUIDE:
+// 1. Service Lifetime:
+//    - AddScoped: Created once per HTTP request (use for EF DbContext and Application Services).
+//    - AddSingleton: Created once for the entire application life (use for caches, TCP listeners).
+//    - AddTransient: Created fresh every time requested (use for lightweight converters/adapters).
+// 2. To Add a New Service:
+//    - Scroll to the "Application Services" section around line 130.
+//    - Add: builder.Services.AddScoped<IMyService, MyService>();
+// 3. To Add a New Real-Time SignalR Hub:
+//    - Add: app.MapHub<MyHub>("/hubs/my-hub"); near the bottom.
+// =========================================================================================
+
 using System.Text;
+using System.IO.Compression;
+using Microsoft.AspNetCore.ResponseCompression;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
 using CMS.API.Hubs;
@@ -53,32 +70,76 @@ builder.Host.UseSerilog();
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? "Server=localhost\\sqlexpress;Database=ClinicDB;User Id=sa;Password=say@123;TrustServerCertificate=True;";
 
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(connectionString));
+// Response compression (Brotli & Gzip) with Optimal level
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+    options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(new[]
+    {
+        "application/json",
+        "application/javascript",
+        "text/css",
+        "text/plain"
+    });
+});
+builder.Services.Configure<BrotliCompressionProviderOptions>(options =>
+{
+    options.Level = CompressionLevel.Optimal;
+});
+builder.Services.Configure<GzipCompressionProviderOptions>(options =>
+{
+    options.Level = CompressionLevel.Optimal;
+});
+
 
 builder.Services.AddSingleton<IDbConnectionFactory, DbConnectionFactory>();
 
 builder.Services.AddMemoryCache();
 
-// Rate limiting: protect auth endpoints from brute-force and abuse
+// Rate limiting: protect auth endpoints from brute-force and abuse per client IP
+static string ResolveClientIpAddress(HttpContext context)
+{
+    string? forwardedFor = context.Request.Headers["X-Forwarded-For"].FirstOrDefault();
+    if (!string.IsNullOrWhiteSpace(forwardedFor))
+    {
+        return forwardedFor.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)[0];
+    }
+    string? realIp = context.Request.Headers["X-Real-IP"].FirstOrDefault();
+    if (!string.IsNullOrWhiteSpace(realIp))
+    {
+        return realIp.Trim();
+    }
+    return context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+}
+
 builder.Services.AddRateLimiter(options =>
 {
-    // Auth policy: 15 requests per minute per IP
-    options.AddFixedWindowLimiter("AuthPolicy", opt =>
+    // Auth policy: 15 requests per minute per client IP
+    options.AddPolicy("AuthPolicy", httpContext =>
     {
-        opt.PermitLimit = 15;
-        opt.Window = TimeSpan.FromMinutes(1);
-        opt.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst;
-        opt.QueueLimit = 0;
+        var clientIp = ResolveClientIpAddress(httpContext);
+        return RateLimitPartition.GetFixedWindowLimiter(clientIp, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 15,
+            Window = TimeSpan.FromMinutes(1),
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            QueueLimit = 0
+        });
     });
 
-    // General API policy: 300 requests per minute per IP
-    options.AddFixedWindowLimiter("ApiPolicy", opt =>
+    // General API policy: 500 requests per minute per client IP
+    options.AddPolicy("ApiPolicy", httpContext =>
     {
-        opt.PermitLimit = 300;
-        opt.Window = TimeSpan.FromMinutes(1);
-        opt.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst;
-        opt.QueueLimit = 5;
+        var clientIp = ResolveClientIpAddress(httpContext);
+        return RateLimitPartition.GetFixedWindowLimiter(clientIp, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 500,
+            Window = TimeSpan.FromMinutes(1),
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            QueueLimit = 5
+        });
     });
 
     options.RejectionStatusCode = 429;
@@ -259,6 +320,7 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 app.UseMiddleware<ExceptionMiddleware>();
+app.UseResponseCompression();
 
 if (app.Environment.IsDevelopment())
 {
@@ -275,7 +337,7 @@ app.UseRateLimiter();
 app.UseMiddleware<TenantMiddleware>();
 app.UseAuthorization();
 
-app.MapControllers();
+app.MapControllers().RequireRateLimiting("ApiPolicy");
 app.MapHub<NotificationHub>("/hubs/notifications");
 
 try

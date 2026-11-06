@@ -6,6 +6,12 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CMS.API.Controllers;
 
+/// <summary>
+/// Staff & Doctor Management Controller.
+/// Provides endpoints for retrieving doctor schedules, specialties, and staff profiles.
+/// DEVELOPER NOTE: All methods read the current tenant from HttpContext.Items["TenantId"]
+/// populated by TenantMiddleware to ensure multi-clinic data isolation.
+/// </summary>
 [ApiController]
 [Route("api/v1/[controller]")]
 public class StaffController : ControllerBase
@@ -57,6 +63,10 @@ public class StaffController : ControllerBase
     }
 }
 
+/// <summary>
+/// Appointments Scheduling & Status Management Controller.
+/// Handles patient booking, calendar views, pagination, status changes, and rescheduling.
+/// </summary>
 [ApiController]
 [Route("api/v1/[controller]")]
 public class AppointmentsController : ControllerBase
@@ -120,6 +130,10 @@ public class AppointmentsController : ControllerBase
     }
 }
 
+/// <summary>
+/// Clinical Encounters Controller.
+/// Manages patient visits, ICD-10 diagnostic entries, and minor surgical/clinical procedures.
+/// </summary>
 [ApiController]
 [Route("api/v1/[controller]")]
 public class EncountersController : ControllerBase

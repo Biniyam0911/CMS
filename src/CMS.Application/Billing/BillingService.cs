@@ -4,6 +4,14 @@ using Dapper;
 
 namespace CMS.Application.Billing;
 
+/// <summary>
+/// Clinic Financial & Billing Service.
+/// Manages invoices, itemized billing, VAT/tax calculations, insurance splits, waivers, and receipts.
+/// DEVELOPER NOTE:
+/// - Invoices calculate dynamic VAT from ClinicSettings ('TaxRate' or 'Tax.DefaultVatPercent').
+/// - Supports insurance co-pay percentage calculation (splitting liability between patient & insurer).
+/// - If IsFree == true or StatusId == 4, invoice is marked as immediately Paid/Free.
+/// </summary>
 public class BillingService
 {
     private readonly IDbConnectionFactory _dbFactory;

@@ -2,6 +2,11 @@ using CMS.Domain.Enums;
 
 namespace CMS.Domain.Entities;
 
+/// <summary>
+/// Core Patient Entity.
+/// Stores patient demographics, Medical Record Number (MRN), contact info, emergency contacts, and clinical alerts (allergies/chronic conditions).
+/// Inherits BaseEntity for Id, TenantId, CreatedAt, and UpdatedAt audit columns.
+/// </summary>
 public class Patient : BaseEntity
 {
     public string MRN { get; set; } = string.Empty;

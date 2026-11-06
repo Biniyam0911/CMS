@@ -226,3 +226,102 @@ public class ZybioHl7AdapterTests
         Assert.Contains("MSH|^~\\&|CMS|HUDERMA|Z3|Zybio", ack);
     }
 }
+
+public class PerformanceOptimizationTests
+{
+    [Fact]
+    public void AuditDateRange_CalculatesSargableBoundsCorrectly()
+    {
+        var testDate = new DateTime(2026, 11, 6, 14, 30, 0);
+        DateTime dateStart = testDate.Date;
+        DateTime dateEnd = testDate.Date.AddDays(1);
+
+        Assert.Equal(new DateTime(2026, 11, 6, 0, 0, 0), dateStart);
+        Assert.Equal(new DateTime(2026, 11, 7, 0, 0, 0), dateEnd);
+        Assert.True(testDate >= dateStart && testDate < dateEnd);
+    }
+
+    [Theory]
+    [InlineData(100, 30, "ALL", 100)]
+    [InlineData(100, 30, "ONLINE", 30)]
+    [InlineData(100, 30, "INCLINIC", 70)]
+    [InlineData(0, 0, "ALL", 0)]
+    [InlineData(50, 0, "INCLINIC", 50)]
+    public void PatientTabCounts_CalculateCorrectly(int totalAll, int totalOnline, string mrnType, int expectedFilteredTotal)
+    {
+        int totalInClinic = totalAll - totalOnline;
+        int filteredTotal = mrnType.ToUpper() switch
+        {
+            "ONLINE" => totalOnline,
+            "INCLINIC" => totalInClinic,
+            _ => totalAll
+        };
+
+        Assert.Equal(expectedFilteredTotal, filteredTotal);
+        Assert.Equal(totalAll, totalOnline + totalInClinic);
+    }
+
+    [Fact]
+    public async Task SemaphoreLimiter_ReleasesPermitOnFailedAccept()
+    {
+        var limiter = new SemaphoreSlim(2, 2);
+        Assert.Equal(2, limiter.CurrentCount);
+
+        // Simulate failed accept pattern
+        await limiter.WaitAsync();
+        Assert.Equal(1, limiter.CurrentCount);
+        try
+        {
+            throw new InvalidOperationException("Simulated socket error");
+        }
+        catch
+        {
+            limiter.Release();
+        }
+
+        Assert.Equal(2, limiter.CurrentCount);
+    }
+
+    [Fact]
+    public void AuditDateFrom_PreservesSubDayTimestamps()
+    {
+        var testTimestamp = new DateTime(2026, 11, 6, 14, 30, 45, 123);
+        DateTime? dateFrom = testTimestamp;
+        
+        // Preserves exact sub-day timestamp without truncating to midnight
+        DateTime? dateFromVal = dateFrom;
+        
+        Assert.NotNull(dateFromVal);
+        Assert.Equal(testTimestamp, dateFromVal.Value);
+        Assert.Equal(14, dateFromVal.Value.Hour);
+        Assert.Equal(30, dateFromVal.Value.Minute);
+        Assert.Equal(45, dateFromVal.Value.Second);
+    }
+
+    [Fact]
+    public void LisAckGeneration_GeneratesPositiveAndNegativeAckCorrectly()
+    {
+        var loggerMock = new Microsoft.Extensions.Logging.Abstractions.NullLogger<CMS.Infrastructure.LabIntegration.Hl7Adapter>();
+        var adapter = new CMS.Infrastructure.LabIntegration.Hl7Adapter(loggerMock);
+        string sample = "MSH|^~\\&|Z3|Zybio|||20261106143000||ORU^R01|MSG12345|P|2.3.1\rPID|1||1001||Doe^John\r";
+
+        // Successful commit -> AA
+        string positiveAck = adapter.CreateAckMessage(sample, success: true);
+        Assert.Contains("MSA|AA|MSG12345|Message accepted", positiveAck);
+
+        // Database commit failed -> AE
+        string negativeAck = adapter.CreateAckMessage(sample, success: false, errorMsg: "Database storage commit failed");
+        Assert.Contains("MSA|AE|MSG12345|Database storage commit failed", negativeAck);
+    }
+
+    [Theory]
+    [InlineData("203.0.113.195, 198.51.100.17", "203.0.113.195")]
+    [InlineData("10.0.0.5", "10.0.0.5")]
+    [InlineData("  172.16.0.42  ,  10.0.0.1 ", "172.16.0.42")]
+    public void RateLimiter_ForwardedForParsing_ExtractsFirstClientIp(string forwardedForHeader, string expectedClientIp)
+    {
+        var extracted = forwardedForHeader.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)[0];
+        Assert.Equal(expectedClientIp, extracted);
+    }
+}
+

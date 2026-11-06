@@ -6,6 +6,14 @@ using Dapper;
 
 namespace CMS.Application.Encounters;
 
+/// <summary>
+/// Clinical Procedures, Medical Certificates, and SOAP Consultation Service.
+/// High-speed data access service leveraging Dapper and IDbConnectionFactory for raw SQL performance.
+/// DEVELOPER NOTE:
+/// - Uses parameterized SQL to prevent SQL injection.
+/// - Handles doctor ID resolution across Users, Staff, and Doctors tables gracefully.
+/// - Triggers non-blocking in-app notifications whenever clinical procedures are ordered.
+/// </summary>
 public class SoapAndClinicalService
 {
     private readonly IDbConnectionFactory _dbFactory;

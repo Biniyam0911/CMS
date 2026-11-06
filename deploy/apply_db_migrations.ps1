@@ -55,6 +55,13 @@ if ($MigrationFile -and (Test-Path $MigrationFile)) {
     if (Test-Path $cleanupPatch) {
         $migrationFiles += $cleanupPatch
     }
+    $quarantinePatch = Join-Path $repoRoot "database\migrations\002_performance_indexes_and_lis_quarantine.sql"
+    if (-not (Test-Path $quarantinePatch)) {
+        $quarantinePatch = Join-Path $repoRoot "database\migration\002_performance_indexes_and_lis_quarantine.sql"
+    }
+    if (Test-Path $quarantinePatch) {
+        $migrationFiles += $quarantinePatch
+    }
 }
 
 if ($migrationFiles.Count -eq 0) {

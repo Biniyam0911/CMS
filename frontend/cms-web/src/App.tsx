@@ -1,39 +1,204 @@
+/**
+ * =========================================================================================
+ * HUDERMA CLINIC MANAGEMENT SYSTEM (CMS) - ROOT APPLICATION COMPONENT
+ * =========================================================================================
+ * DEVELOPER GUIDE:
+ * 1. Architecture:
+ *    - Uses state-based module switching (`activeModule`) rather than full page reloads.
+ *    - Navigation is filtered dynamically based on the authenticated user's assigned roles.
+ * 2. Session Inactivity Timeout:
+ *    - Automatically listens for user activity (mouse movement, clicks, keystrokes).
+ *    - Triggers a 60-second warning modal after 15 minutes of idle time.
+ * 3. Adding a New Screen/Module:
+ *    - Import your page component at the top of this file.
+ *    - Scroll down to the module rendering section (~line 460) and add:
+ *      {!disabledModules.has(activeModule) && activeModule === 'MY_MODULE' && <MyModulePage />}
+ * =========================================================================================
+ */
+
 import React, { useState, useEffect } from 'react';
 import { Clock } from 'lucide-react';
 import Sidebar, { ModuleKey, MODULE_ITEMS } from './components/Sidebar';
 import Header from './components/Header';
 import LoginPage from './pages/Auth/LoginPage';
-import DashboardPage from './pages/Dashboard/DashboardPage';
-import PatientsPage from './pages/Patients/PatientsPage';
-import TriagePage from './pages/Triage/TriagePage';
-import EmrSoapPage from './pages/EMR/EmrSoapPage';
-import InpatientPage from './pages/Inpatient/InpatientPage';
-import AppointmentsPage from './pages/Appointments/AppointmentsPage';
-import QueuePage from './pages/Queue/QueuePage';
-import LaboratoryPage from './pages/Laboratory/LaboratoryPage';
-import PharmacyPage from './pages/Pharmacy/PharmacyPage';
-import BillingPage from './pages/Billing/BillingPage';
-import PayrollPage from './pages/Payroll/PayrollPage';
-import ReportBuilderPage from './pages/ReportBuilder/ReportBuilderPage';
-import ReportsLibraryPage from './pages/Reports/ReportsLibraryPage';
-import DedicatedReportPage from './pages/Reports/DedicatedReportPage';
-import MyPatientSummaryPage from './pages/Reports/MyPatientSummaryPage';
-import NurseOrdersFollowupPage from './pages/Reports/NurseOrdersFollowupPage';
-import PatientPortalPage from './pages/PatientPortal/PatientPortalPage';
-import UserManagementPage from './pages/UserManagement/UserManagementPage';
-import AuditLogPage from './pages/AuditLog/AuditLogPage';
-import ServicesPage from './pages/Services/ServicesPage';
-import ModuleManagementPage from './pages/ModuleManagement/ModuleManagementPage';
-import ApiManagementPage from './pages/ApiManagement/ApiManagementPage';
-import SettingsPage from './pages/Settings/SettingsPage';
-import AppearancePage from './pages/Appearance/AppearancePage';
-import IntegrationsPage from './pages/Integrations/IntegrationsPage';
-import TelemedQueuePage from './pages/Telemedicine/TelemedQueuePage';
-import ChangePasswordPage from './pages/Auth/ChangePasswordPage';
-import ChapaPaymentReturnPage from './pages/Billing/ChapaPaymentReturnPage';
+const DashboardPage = React.lazy(() => import('./pages/Dashboard/DashboardPage'));
+const PatientsPage = React.lazy(() => import('./pages/Patients/PatientsPage'));
+const TriagePage = React.lazy(() => import('./pages/Triage/TriagePage'));
+const EmrSoapPage = React.lazy(() => import('./pages/EMR/EmrSoapPage'));
+const InpatientPage = React.lazy(() => import('./pages/Inpatient/InpatientPage'));
+const AppointmentsPage = React.lazy(() => import('./pages/Appointments/AppointmentsPage'));
+const QueuePage = React.lazy(() => import('./pages/Queue/QueuePage'));
+const LaboratoryPage = React.lazy(() => import('./pages/Laboratory/LaboratoryPage'));
+const PharmacyPage = React.lazy(() => import('./pages/Pharmacy/PharmacyPage'));
+const BillingPage = React.lazy(() => import('./pages/Billing/BillingPage'));
+const PayrollPage = React.lazy(() => import('./pages/Payroll/PayrollPage'));
+const ReportBuilderPage = React.lazy(() => import('./pages/ReportBuilder/ReportBuilderPage'));
+const ReportsLibraryPage = React.lazy(() => import('./pages/Reports/ReportsLibraryPage'));
+const DedicatedReportPage = React.lazy(() => import('./pages/Reports/DedicatedReportPage'));
+const MyPatientSummaryPage = React.lazy(() => import('./pages/Reports/MyPatientSummaryPage'));
+const NurseOrdersFollowupPage = React.lazy(() => import('./pages/Reports/NurseOrdersFollowupPage'));
+const PatientPortalPage = React.lazy(() => import('./pages/PatientPortal/PatientPortalPage'));
+const UserManagementPage = React.lazy(() => import('./pages/UserManagement/UserManagementPage'));
+const AuditLogPage = React.lazy(() => import('./pages/AuditLog/AuditLogPage'));
+const ServicesPage = React.lazy(() => import('./pages/Services/ServicesPage'));
+const ModuleManagementPage = React.lazy(() => import('./pages/ModuleManagement/ModuleManagementPage'));
+const ApiManagementPage = React.lazy(() => import('./pages/ApiManagement/ApiManagementPage'));
+const SettingsPage = React.lazy(() => import('./pages/Settings/SettingsPage'));
+const AppearancePage = React.lazy(() => import('./pages/Appearance/AppearancePage'));
+const IntegrationsPage = React.lazy(() => import('./pages/Integrations/IntegrationsPage'));
+const TelemedQueuePage = React.lazy(() => import('./pages/Telemedicine/TelemedQueuePage'));
+const ChangePasswordPage = React.lazy(() => import('./pages/Auth/ChangePasswordPage'));
+const ChapaPaymentReturnPage = React.lazy(() => import('./pages/Billing/ChapaPaymentReturnPage'));
 import BottomNav from './components/BottomNav';
 import PwaInstallBanner from './components/PwaInstallBanner';
 import { initRolePermissions, hasModuleAccess } from './utils/permissions';
+
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('ErrorBoundary caught route / chunk loading error:', error, errorInfo);
+  }
+
+  handleReload = () => {
+    window.location.reload();
+  };
+
+  handleReset = () => {
+    this.setState({ hasError: false, error: null });
+  };
+
+  render() {
+    if (this.state.hasError) {
+      const errMsg = this.state.error?.message || '';
+      const isChunkLoadError =
+        errMsg.includes('Failed to fetch dynamically imported module') ||
+        errMsg.includes('Loading chunk') ||
+        errMsg.includes('error loading dynamically imported module') ||
+        this.state.error?.name === 'ChunkLoadError';
+
+      return (
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '60vh',
+          padding: '24px',
+          textAlign: 'center'
+        }}>
+          <div style={{
+            background: 'var(--bg-card, #ffffff)',
+            borderRadius: '16px',
+            padding: '32px 28px',
+            maxWidth: '480px',
+            width: '100%',
+            boxShadow: '0 20px 45px -10px rgba(0, 0, 0, 0.12)',
+            border: '1px solid var(--border-color, #e2e8f0)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center'
+          }}>
+            <div style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '50%',
+              background: '#fef2f2',
+              color: '#dc2626',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '16px'
+            }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            </div>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: '0 0 8px 0', color: 'var(--text-main, #0f172a)' }}>
+              {isChunkLoadError ? 'System Update Available' : 'Module Loading Interrupted'}
+            </h3>
+            <p style={{ fontSize: '0.88rem', color: 'var(--text-muted, #64748b)', margin: '0 0 20px 0', lineHeight: 1.55 }}>
+              {isChunkLoadError
+                ? 'A newer version of the clinical portal may have been deployed or a network interruption prevented loading this module component.'
+                : 'An unexpected error occurred while loading this view. Please reload the application to restore your workspace.'}
+            </p>
+            {errMsg && (
+              <div style={{
+                width: '100%',
+                maxHeight: '90px',
+                overflowY: 'auto',
+                fontSize: '0.75rem',
+                fontFamily: 'monospace',
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
+                padding: '8px 12px',
+                color: '#64748b',
+                marginBottom: '20px',
+                textAlign: 'left',
+                wordBreak: 'break-all'
+              }}>
+                {errMsg}
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
+              <button
+                type="button"
+                onClick={this.handleReload}
+                className="btn-primary"
+                style={{
+                  flex: 1,
+                  padding: '11px 18px',
+                  fontWeight: 700,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                  <path d="M3 3v5h5"/>
+                  <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+                  <path d="M16 16h5v5"/>
+                </svg>
+                Reload Application
+              </button>
+              <button
+                type="button"
+                onClick={this.handleReset}
+                className="btn-secondary"
+                style={{ padding: '11px 18px', fontWeight: 600 }}
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 export default function App() {
   const [user, setUser] = useState<{ id?: number; username: string; roles: string[]; tenantId: number; doctorId?: number; staffId?: number; name?: string; firstName?: string; lastName?: string } | null>(() => {
@@ -339,7 +504,11 @@ export default function App() {
 
   // Public route: Chapa payment return / receipt page (accessible without login)
   if (typeof window !== 'undefined' && window.location.pathname.startsWith('/payment/chapa/return')) {
-    return <ChapaPaymentReturnPage />;
+    return (
+      <React.Suspense fallback={<div style={{ padding: '24px', textAlign: 'center' }}>Loading payment confirmation...</div>}>
+        <ChapaPaymentReturnPage />
+      </React.Suspense>
+    );
   }
 
   if (!user || !token) {
@@ -437,7 +606,14 @@ export default function App() {
             onToggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           />
 
-          {/* Dynamic Module Views */}
+{/* Dynamic Module Views */}
+          <ErrorBoundary>
+          <React.Suspense fallback={
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '50vh', gap: '14px', color: 'var(--text-muted)' }}>
+              <div style={{ width: '32px', height: '32px', border: '3px solid #e2e8f0', borderTopColor: '#0071e3', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+              <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Loading module...</span>
+            </div>
+          }>
           {/* Module Disabled Guard — show blocked screen if module is toggled off in Module Manager */}
           {disabledModules.has(activeModule) ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: '18px', textAlign: 'center' }}>
@@ -490,6 +666,8 @@ export default function App() {
           {!disabledModules.has(activeModule) && activeModule === 'INTEGRATIONS' && <IntegrationsPage />}
           {!disabledModules.has(activeModule) && activeModule === 'TELEMED' && <TelemedQueuePage />}
           {activeModule === 'CHANGE_PASSWORD' && <ChangePasswordPage currentUser={user} />}
+          </React.Suspense>
+          </ErrorBoundary>
         </main>
 
       </div>

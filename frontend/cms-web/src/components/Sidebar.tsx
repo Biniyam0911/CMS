@@ -1,3 +1,22 @@
+/**
+ * =========================================================================================
+ * HUDERMA CLINIC MANAGEMENT SYSTEM (CMS) - SIDEBAR NAVIGATION COMPONENT
+ * =========================================================================================
+ * DEVELOPER GUIDE:
+ * 1. How Navigation Works:
+ *    - Each menu link corresponds to a `ModuleKey`.
+ *    - `MODULE_ITEMS` defines the label, category (Core, Clinical, Financial, Reports, Admin),
+ *      and Lucide icon for each item.
+ * 2. Role-Based Visibility:
+ *    - `hasModuleAccess(userRoles, key)` is evaluated for each item. Items are hidden if the
+ *      logged-in user's roles do not have permission.
+ * 3. Adding a New Navigation Item:
+ *    - Add your new key to `export type ModuleKey` (e.g. | 'FEEDBACK').
+ *    - Add an entry into `MODULE_ITEMS` array with key, label, category, and icon.
+ *    - Map role permissions in `frontend/cms-web/src/utils/permissions.ts`.
+ * =========================================================================================
+ */
+
 import React, { useState, useEffect } from 'react';
 import {
   LayoutDashboard, Users, FileHeart, Calendar, ListOrdered, FlaskConical,

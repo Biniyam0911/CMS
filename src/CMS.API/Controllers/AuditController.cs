@@ -58,6 +58,12 @@ public class AuditController : ControllerBase
         if (page < 1) page = 1;
         if (pageSize < 1 || pageSize > 200) pageSize = 25;
         int offset = (page - 1) * pageSize;
+        DateTime? dateStart = date?.Date;
+        DateTime? dateEnd = date?.Date.AddDays(1);
+        DateTime? dateFromVal = dateFrom;
+        DateTime? dateToVal = dateTo.HasValue
+            ? (dateTo.Value.TimeOfDay == TimeSpan.Zero ? dateTo.Value.Date.AddDays(1) : dateTo.Value)
+            : null;
 
         var whereSql = @"
             FROM AuditLog a
@@ -67,9 +73,9 @@ public class AuditController : ControllerBase
               AND (@TableName IS NULL OR a.TableName = @TableName)
               AND (@Operation IS NULL OR a.Operation LIKE '%' + @Operation + '%')
               AND (@UserId IS NULL OR a.ChangedBy = @UserId)
-              AND (@Date IS NULL OR CAST(a.ChangedAt AS DATE) = CAST(@Date AS DATE))
+              AND (@DateStart IS NULL OR (a.ChangedAt >= @DateStart AND a.ChangedAt < @DateEnd))
               AND (@DateFrom IS NULL OR a.ChangedAt >= @DateFrom)
-              AND (@DateTo IS NULL OR a.ChangedAt < DATEADD(day,1,CAST(@DateTo AS DATE)))
+              AND (@DateTo IS NULL OR a.ChangedAt < @DateTo)
               AND (@Keyword IS NULL OR
                    a.RecordId LIKE '%' + @Keyword + '%' OR
                    a.IpAddress LIKE '%' + @Keyword + '%' OR
@@ -99,9 +105,10 @@ public class AuditController : ControllerBase
             TableName = string.IsNullOrWhiteSpace(tableName) ? null : tableName,
             Operation = string.IsNullOrWhiteSpace(operation) ? null : operation,
             UserId = userId,
-            Date = date,
-            DateFrom = dateFrom,
-            DateTo = dateTo,
+            DateStart = dateStart,
+            DateEnd = dateEnd,
+            DateFrom = dateFromVal,
+            DateTo = dateToVal,
             Keyword = string.IsNullOrWhiteSpace(keyword) ? null : keyword,
             Offset = offset,
             PageSize = pageSize

@@ -1,4 +1,5 @@
 using CMS.Application.Auth;
+using CMS.Application.Laboratory;
 using CMS.Application.ReportBuilder;
 using CMS.Domain.Interfaces;
 using CMS.Shared.DTOs;
@@ -320,9 +321,14 @@ public class PatientsController : ControllerBase
         var contains = "%" + queryStr + "%";
         var sqlParams = new { TenantId = tenantId, Prefix = prefix, Contains = contains, Offset = offset, PageSize = pageSize };
 
-        // Counts for all three tabs (always run against base search, no mrnClause)
-        int totalAll      = await conn.ExecuteScalarAsync<int>($"SELECT COUNT(*) FROM Patients WITH (NOLOCK) {baseWhere}", sqlParams);
-        int totalOnline   = await conn.ExecuteScalarAsync<int>($"SELECT COUNT(*) FROM Patients WITH (NOLOCK) {baseWhere} AND MRN LIKE 'ON-%'", sqlParams);
+        // Consolidated count query for all tabs
+        var counts = await conn.QuerySingleAsync<dynamic>(
+            $@"SELECT 
+                COUNT(1) AS TotalAll,
+                ISNULL(SUM(CASE WHEN MRN LIKE 'ON-%' THEN 1 ELSE 0 END), 0) AS TotalOnline
+               FROM Patients WITH (NOLOCK) {baseWhere}", sqlParams);
+        int totalAll      = Convert.ToInt32(counts.TotalAll);
+        int totalOnline   = Convert.ToInt32(counts.TotalOnline);
         int totalInClinic = totalAll - totalOnline;
 
         // Filtered total for pagination
@@ -516,6 +522,7 @@ public class LaboratoryController : ControllerBase
     private readonly IAstmAdapter _astmAdapter;
     private readonly ILisTcpListenerService _lisListener;
     private readonly ILabResultIngestionService _ingestionService;
+    private readonly LabService _labService;
 
     public LaboratoryController(
         IDbConnectionFactory dbFactory,
@@ -523,7 +530,8 @@ public class LaboratoryController : ControllerBase
         IHl7Adapter hl7Adapter,
         IAstmAdapter astmAdapter,
         ILisTcpListenerService lisListener,
-        ILabResultIngestionService ingestionService)
+        ILabResultIngestionService ingestionService,
+        LabService labService)
     {
         _dbFactory = dbFactory;
         _cache = cache;
@@ -531,38 +539,17 @@ public class LaboratoryController : ControllerBase
         _astmAdapter = astmAdapter;
         _lisListener = lisListener;
         _ingestionService = ingestionService;
+        _labService = labService;
     }
 
     [HttpGet("catalog")]
     public async Task<IActionResult> GetCatalog()
     {
         byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
-        using var conn = _dbFactory.CreateConnection();
-        var sql = @"
-            SELECT Id, TestCode, TestName, Category, SampleType, TurnaroundMinutes,
-                   NormalRangeLow, NormalRangeHigh, Unit, Price, DisplayOrder, TextReferenceRange
-            FROM LabTestCatalog
-            WHERE TenantId = @TenantId AND IsActive = 1
-            ORDER BY DisplayOrder ASC, Category ASC, TestName ASC";
-        var catalog = (await conn.QueryAsync<LabTestCatalogDto>(sql, new { TenantId = tenantId })).ToList();
-
-        var sqlParams = @"
-            SELECT p.Id, p.TestCatalogId, p.ParameterCode, p.ParameterName, p.Unit,
-                   p.ReferenceLow, p.ReferenceHigh, p.TextReferenceRange, p.DisplayOrder
-            FROM LabTestParameters p
-            JOIN LabTestCatalog c ON c.Id = p.TestCatalogId
-            WHERE c.TenantId = @TenantId AND c.IsActive = 1
-            ORDER BY p.DisplayOrder, p.Id";
-
-        var allParams = (await conn.QueryAsync<LabTestParameterDto>(sqlParams, new { TenantId = tenantId })).ToList();
-        var paramLookup = allParams.GroupBy(p => p.TestCatalogId).ToDictionary(g => g.Key, g => g.ToList());
-
-        var result = catalog.Select(c => c with {
-            Parameters = paramLookup.TryGetValue(c.Id, out var plist) ? plist : new List<LabTestParameterDto>()
-        }).ToList();
-
+        var result = await _labService.GetTestCatalogAsync(tenantId);
         return Ok(ApiResponse<List<LabTestCatalogDto>>.Ok(result));
     }
+
 
     public record CreateLabParameterRequest(
         string? Code,
@@ -753,6 +740,7 @@ public class LaboratoryController : ControllerBase
         var sql = @"UPDATE LabTestCatalog SET IsActive = 0 WHERE Id = @Id AND TenantId = @TenantId";
         int rows = await conn.ExecuteAsync(sql, new { Id = id, TenantId = tenantId });
         await _cache.RemoveAsync($"lab_catalog_{tenantId}");
+        await _cache.RemoveAsync($"tenant:{tenantId}:lab:catalog");
         return Ok(ApiResponse<bool>.Ok(rows > 0, "Lab test deleted successfully."));
     }
 

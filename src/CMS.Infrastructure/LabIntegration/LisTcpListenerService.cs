@@ -9,6 +9,15 @@ using Microsoft.Extensions.Logging;
 
 namespace CMS.Infrastructure.LabIntegration;
 
+/// <summary>
+/// Multi-Port Background TCP Listener Service for Medical Laboratory Analyzers (LIS).
+/// Concurrently listens on configured TCP ports (e.g. 8004 for Hematology, 10001 for Chemistry)
+/// to receive raw ASTM 1394/1381 and HL7 v2.x result streams directly from clinical machines.
+/// DEVELOPER NOTE:
+/// - Inherits from BackgroundService so it runs in the background of the ASP.NET Core host.
+/// - Buffered frames are parsed between &lt;STX&gt; (0x02) and &lt;ETX&gt; (0x03) delimiters.
+/// - Thread-safe tracking of active client connections and rolling in-memory diagnostic logs.
+/// </summary>
 public class LisTcpListenerService : BackgroundService, ILisTcpListenerService
 {
     private class PortListenerEntry
@@ -31,6 +40,8 @@ public class LisTcpListenerService : BackgroundService, ILisTcpListenerService
     private readonly object _lock = new();
     private CancellationToken _appStoppingToken;
     private const int MaxLogs = 100;
+    public record LisRawMessage(string RawContent, string RemoteEndPoint);
+    private readonly SemaphoreSlim _connectionLimiter = new(50, 50);
 
     public bool IsListening => !_listeners.IsEmpty;
     public IReadOnlyList<int> ListeningPorts => _listeners.Keys.OrderBy(p => p).ToList().AsReadOnly();
@@ -244,8 +255,29 @@ public class LisTcpListenerService : BackgroundService, ILisTcpListenerService
             {
                 try
                 {
-                    var client = await listener.AcceptTcpClientAsync(token);
-                    _ = Task.Run(() => HandleClientAsync(client, port, token), token);
+                    await _connectionLimiter.WaitAsync(token);
+                    TcpClient client;
+                    try
+                    {
+                        client = await listener.AcceptTcpClientAsync(token);
+                    }
+                    catch
+                    {
+                        _connectionLimiter.Release();
+                        throw;
+                    }
+
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await HandleClientAsync(client, port, token);
+                        }
+                        finally
+                        {
+                            _connectionLimiter.Release();
+                        }
+                    }, token);
                 }
                 catch (OperationCanceledException) when (token.IsCancellationRequested)
                 {
@@ -340,21 +372,38 @@ public class LisTcpListenerService : BackgroundService, ILisTcpListenerService
                         .Replace("\r", "\n");
                     LogEvent($"RAW DATA FROM {remoteEndPoint}:\n{displayRaw}");
 
-                    // Ingest into database
-                    bool inserted = await _ingestionService.IngestHl7ResultAsync(rawHl7, remoteEndPoint);
-                    if (inserted)
-                    {
-                        LogEvent($"RESULT INSERTED: Results saved to database from {remoteEndPoint}");
-                    }
-                    else
-                    {
-                        LogEvent($"RESULT NOTICE: Processed payload from {remoteEndPoint}");
-                    }
 
-                    // Generate ACK response back to the machine
+
+                    // Resolve tenant mapping for this listener port or fallback to general LIS tenant
+                    int? configuredTenant = _config.GetValue<int?>($"Lis:PortTenantMapping:{listenPort}")
+                        ?? _config.GetValue<int?>($"Lis:TenantMapping:{listenPort}")
+                        ?? _config.GetValue<int?>("Lis:TenantId");
+
+                    // 1. Commit/stage to database storage BEFORE sending acknowledgment
+                    bool committed = false;
                     try
                     {
-                        string ack = _hl7Adapter.CreateAckMessage(rawHl7, success: true);
+                        committed = await _ingestionService.IngestHl7ResultAsync(rawHl7, remoteEndPoint, configuredTenant);
+                        if (committed)
+                        {
+                            LogEvent($"RESULT COMMITTED: Results saved/staged to database from {remoteEndPoint} (Port {listenPort})");
+                        }
+                        else
+                        {
+                            LogEvent($"RESULT REJECTED: Could not commit results to database from {remoteEndPoint} (Port {listenPort})");
+                        }
+                    }
+                    catch (Exception ingestEx)
+                    {
+                        _logger.LogError(ingestEx, "Failed to commit LIS result from {RemoteEndPoint} on port {Port} to database", remoteEndPoint, listenPort);
+                        LogEvent($"ERROR committing result from {remoteEndPoint}: {ingestEx.Message}");
+                        committed = false;
+                    }
+
+                    // 2. Generate ACK response back to the machine ONLY AFTER persistence
+                    try
+                    {
+                        string ack = _hl7Adapter.CreateAckMessage(rawHl7, success: committed, errorMsg: committed ? null : "Database commit failed");
                         bool usedMllp = msgBytes.Length > 0 && msgBytes[0] == 0x0B;
 
                         byte[] ackBytes;
@@ -374,11 +423,11 @@ public class LisTcpListenerService : BackgroundService, ILisTcpListenerService
                         await stream.WriteAsync(ackBytes, 0, ackBytes.Length, stoppingToken);
                         await stream.FlushAsync(stoppingToken);
 
-                        LogEvent($"SENT ACK to {remoteEndPoint}");
+                        LogEvent($"SENT {(committed ? "ACK (MSA|AA)" : "NACK (MSA|AE)")} to {remoteEndPoint}");
                     }
                     catch (Exception ackEx)
                     {
-                        LogEvent($"ERROR sending ACK to {remoteEndPoint}: {ackEx.Message}");
+                        LogEvent($"ERROR sending ACK/NACK to {remoteEndPoint}: {ackEx.Message}");
                     }
                 }
             }
