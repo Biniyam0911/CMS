@@ -318,10 +318,21 @@ public class PerformanceOptimizationTests
     [InlineData("203.0.113.195, 198.51.100.17", "203.0.113.195")]
     [InlineData("10.0.0.5", "10.0.0.5")]
     [InlineData("  172.16.0.42  ,  10.0.0.1 ", "172.16.0.42")]
+    [InlineData("192.168.1.50:8080, 10.0.0.1", "192.168.1.50")]
+    [InlineData("[2001:db8::1]:8443", "2001:db8::1")]
+    [InlineData("2001:db8::1", "2001:db8::1")]
     public void RateLimiter_ForwardedForParsing_ExtractsFirstClientIp(string forwardedForHeader, string expectedClientIp)
     {
-        var extracted = forwardedForHeader.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)[0];
+        var extracted = CMS.Shared.Helpers.ClientIpResolver.ExtractClientIp(forwardedForHeader, null, null);
         Assert.Equal(expectedClientIp, extracted);
+    }
+
+    [Fact]
+    public void RateLimiter_FallbackToRemoteIp_WhenHeadersAbsent()
+    {
+        var remoteIp = System.Net.IPAddress.Parse("127.0.0.1");
+        var extracted = CMS.Shared.Helpers.ClientIpResolver.ExtractClientIp(null, null, remoteIp);
+        Assert.Equal("127.0.0.1", extracted);
     }
 }
 

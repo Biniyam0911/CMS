@@ -101,17 +101,10 @@ builder.Services.AddMemoryCache();
 // Rate limiting: protect auth endpoints from brute-force and abuse per client IP
 static string ResolveClientIpAddress(HttpContext context)
 {
-    string? forwardedFor = context.Request.Headers["X-Forwarded-For"].FirstOrDefault();
-    if (!string.IsNullOrWhiteSpace(forwardedFor))
-    {
-        return forwardedFor.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)[0];
-    }
-    string? realIp = context.Request.Headers["X-Real-IP"].FirstOrDefault();
-    if (!string.IsNullOrWhiteSpace(realIp))
-    {
-        return realIp.Trim();
-    }
-    return context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+    return CMS.Shared.Helpers.ClientIpResolver.ExtractClientIp(
+        context.Request.Headers["X-Forwarded-For"].FirstOrDefault(),
+        context.Request.Headers["X-Real-IP"].FirstOrDefault(),
+        context.Connection.RemoteIpAddress);
 }
 
 builder.Services.AddRateLimiter(options =>
