@@ -1,0 +1,1073 @@
+2026-11-15 06:39:40.868 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 06:39:40.900 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 06:39:40.902 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 06:39:40.904 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 06:39:40.906 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 06:39:40.906 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 06:39:40.906 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 06:39:40.906 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 4.4188ms
+2026-11-15 06:39:40.906 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 06:39:40.907 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 38.7398ms
+2026-11-15 06:39:40.934 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 06:39:40.936 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 06:39:40.936 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 06:39:40.937 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 06:39:40.937 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 06:39:40.937 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 06:39:40.938 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 06:39:40.938 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 1.3661ms
+2026-11-15 06:39:40.938 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 06:39:40.939 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 4.4961ms
+2026-11-15 06:39:40.975 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 06:39:40.976 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 06:39:40.976 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 06:39:40.976 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 06:39:40.976 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 06:39:40.979 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 06:39:40.979 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 06:39:40.980 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 3.3694ms
+2026-11-15 06:39:40.981 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 06:39:40.981 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 6.1151ms
+2026-11-15 06:39:40.992 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 06:39:40.994 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 06:39:40.995 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 06:39:40.995 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 06:39:40.995 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 06:39:40.996 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 06:39:40.996 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 06:39:40.997 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 1.8753ms
+2026-11-15 06:39:40.997 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 06:39:40.998 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 5.4528ms
+2026-11-15 06:39:44.624 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 06:39:44.625 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 06:39:44.636 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 06:39:44.638 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 06:39:44.638 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 06:39:44.638 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 06:39:44.639 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 06:39:44.639 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 0.8068ms
+2026-11-15 06:39:44.639 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 06:39:44.639 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 14.743ms
+2026-11-15 06:39:44.692 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 06:39:44.706 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 06:39:44.709 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 06:39:44.723 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 06:39:44.724 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 06:39:44.724 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 06:39:44.724 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 06:39:44.724 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 14.4948ms
+2026-11-15 06:39:44.725 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 06:39:44.726 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 33.8893ms
+2026-11-15 06:39:44.754 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 06:39:44.784 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 06:39:44.785 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 06:39:44.785 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 06:39:44.785 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 06:39:44.785 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 06:39:44.785 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 06:39:44.786 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 0.8347ms
+2026-11-15 06:39:44.804 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 06:39:44.805 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 50.0391ms
+2026-11-15 06:39:44.904 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 06:39:44.935 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 06:39:44.936 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 06:39:44.936 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 06:39:44.936 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 06:39:44.936 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 06:39:44.936 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 06:39:44.936 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 0.4875ms
+2026-11-15 06:39:44.936 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 06:39:44.936 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 32.4623ms
+2026-11-15 13:50:23.975 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 13:50:24.086 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 13:50:24.136 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 13:50:24.153 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 13:50:24.162 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 13:50:24.167 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 13:50:24.170 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 13:50:24.174 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 37.3042ms
+2026-11-15 13:50:24.179 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 13:50:24.191 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 220.9717ms
+2026-11-15 13:50:24.213 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 13:50:24.218 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 13:50:24.219 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 13:50:24.219 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 13:50:24.219 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 13:50:24.220 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 13:50:24.220 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 13:50:24.220 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 1.181ms
+2026-11-15 13:50:24.220 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 13:50:24.220 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 6.9553ms
+2026-11-15 13:50:24.296 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 13:50:24.298 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 13:50:24.299 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 13:50:24.300 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 13:50:24.300 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 13:50:24.300 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 13:50:24.301 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 13:50:24.301 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 1.4643ms
+2026-11-15 13:50:24.301 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 13:50:24.302 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 5.3885ms
+2026-11-15 13:50:24.315 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 13:50:24.317 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 13:50:24.317 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 13:50:24.317 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 13:50:24.317 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 13:50:24.318 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 13:50:24.318 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 13:50:24.318 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 0.967ms
+2026-11-15 13:50:24.318 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 13:50:24.319 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 3.036ms
+2026-11-15 13:50:32.722 +03:00 [INF] Request starting HTTP/1.1 POST http://127.0.0.1:5010/api/v1/auth/login - application/json 56
+2026-11-15 13:50:32.797 +03:00 [INF] CORS policy execution successful.
+2026-11-15 13:50:32.826 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.AuthController.Login (CMS.API)'
+2026-11-15 13:50:33.089 +03:00 [INF] Route matched with {action = "Login", controller = "Auth"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] Login(CMS.Shared.DTOs.LoginRequest) on controller CMS.API.Controllers.AuthController (CMS.API).
+2026-11-15 13:50:35.118 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[CMS.Shared.DTOs.LoginResponse, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]'.
+2026-11-15 13:50:35.348 +03:00 [INF] Executed action CMS.API.Controllers.AuthController.Login (CMS.API) in 2257.9084ms
+2026-11-15 13:50:35.349 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.AuthController.Login (CMS.API)'
+2026-11-15 13:50:35.370 +03:00 [INF] Request finished HTTP/1.1 POST http://127.0.0.1:5010/api/v1/auth/login - 200 null application/json; charset=utf-8 2647.5792ms
+2026-11-15 13:50:35.440 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 13:50:35.578 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 13:50:35.578 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 13:50:35.670 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.ClinicSettingDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-11-15 13:50:35.687 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 108.38ms
+2026-11-15 13:50:35.687 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 13:50:35.688 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 200 null application/json; charset=utf-8 247.8292ms
+2026-11-15 13:50:35.709 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 13:50:35.711 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 13:50:35.711 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 13:50:35.721 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.ClinicSettingDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-11-15 13:50:35.723 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 12.2054ms
+2026-11-15 13:50:35.724 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 13:50:35.724 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 200 null application/json; charset=utf-8 14.8539ms
+2026-11-15 13:50:36.719 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 13:50:36.720 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-11-15 13:50:36.721 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 13:50:36.721 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 13:50:36.723 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-11-15 13:50:36.742 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-11-15 13:50:36.749 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.ClinicSettingDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-11-15 13:50:36.752 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 30.3158ms
+2026-11-15 13:50:36.752 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 13:50:36.752 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 200 null application/json; charset=utf-8 33.4085ms
+2026-11-15 13:50:36.770 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 13:50:36.777 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 13:50:36.778 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 13:50:36.785 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.ClinicSettingDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-11-15 13:50:36.791 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 12.7609ms
+2026-11-15 13:50:36.791 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 13:50:36.791 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 200 null application/json; charset=utf-8 21.0654ms
+2026-11-15 13:50:36.802 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 13:50:36.805 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 13:50:36.806 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 13:50:36.814 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.ClinicSettingDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-11-15 13:50:36.820 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 14.0031ms
+2026-11-15 13:50:36.825 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 13:50:36.826 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 200 null application/json; charset=utf-8 23.8643ms
+2026-11-15 13:50:36.839 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 13:50:36.846 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 13:50:36.846 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 13:50:36.900 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.ClinicSettingDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-11-15 13:50:36.902 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 55.8276ms
+2026-11-15 13:50:36.902 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 13:50:36.902 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 200 null application/json; charset=utf-8 62.9975ms
+2026-11-15 13:50:37.005 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-11-15 13:50:37.016 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 273.5155ms
+2026-11-15 13:50:37.016 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-11-15 13:50:37.017 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 296.4135ms
+2026-11-15 13:50:37.023 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-11-15 13:50:37.025 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-11-15 13:50:37.025 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-11-15 13:50:37.041 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-11-15 13:50:37.043 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 17.8595ms
+2026-11-15 13:50:37.043 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-11-15 13:50:37.044 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 20.1869ms
+2026-11-15 13:50:37.628 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/dashboard/metrics - null null
+2026-11-15 13:50:37.629 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.DashboardController.GetMetrics (CMS.API)'
+2026-11-15 13:50:37.638 +03:00 [INF] Route matched with {action = "GetMetrics", controller = "Dashboard"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetMetrics() on controller CMS.API.Controllers.DashboardController (CMS.API).
+2026-11-15 13:50:38.674 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[CMS.Shared.DTOs.DashboardMetricsDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]'.
+2026-11-15 13:50:38.803 +03:00 [INF] Executed action CMS.API.Controllers.DashboardController.GetMetrics (CMS.API) in 1164.452ms
+2026-11-15 13:50:38.803 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.DashboardController.GetMetrics (CMS.API)'
+2026-11-15 13:50:38.804 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/dashboard/metrics - 200 null application/json; charset=utf-8 1176.2003ms
+2026-11-15 13:50:38.814 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/dashboard/metrics - null null
+2026-11-15 13:50:38.816 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.DashboardController.GetMetrics (CMS.API)'
+2026-11-15 13:50:38.816 +03:00 [INF] Route matched with {action = "GetMetrics", controller = "Dashboard"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetMetrics() on controller CMS.API.Controllers.DashboardController (CMS.API).
+2026-11-15 13:50:39.118 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[CMS.Shared.DTOs.DashboardMetricsDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]'.
+2026-11-15 13:50:39.119 +03:00 [INF] Executed action CMS.API.Controllers.DashboardController.GetMetrics (CMS.API) in 297.3487ms
+2026-11-15 13:50:39.120 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.DashboardController.GetMetrics (CMS.API)'
+2026-11-15 13:50:39.120 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/dashboard/metrics - 200 null application/json; charset=utf-8 305.4241ms
+2026-11-15 13:50:53.273 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/patients/search?q=&page=1&pageSize=25&mrnType=ALL - application/json null
+2026-11-15 13:50:53.275 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.PatientsController.Search (CMS.API)'
+2026-11-15 13:50:53.311 +03:00 [INF] Route matched with {action = "Search", controller = "Patients"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] Search(System.String, Int32, Int32, System.String) on controller CMS.API.Controllers.PatientsController (CMS.API).
+2026-11-15 13:50:53.529 +03:00 [INF] Executing OkObjectResult, writing value of type '<>f__AnonymousType17`3[[System.Boolean, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Collections.Generic.List`1[[CMS.Shared.DTOs.PatientDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[<>f__AnonymousType38`7[[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], CMS.API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]'.
+2026-11-15 13:50:53.585 +03:00 [INF] Executed action CMS.API.Controllers.PatientsController.Search (CMS.API) in 274.2762ms
+2026-11-15 13:50:53.586 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.PatientsController.Search (CMS.API)'
+2026-11-15 13:50:53.586 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/patients/search?q=&page=1&pageSize=25&mrnType=ALL - 200 null application/json; charset=utf-8 313.3665ms
+2026-11-15 13:50:53.615 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/patients/search?q=&page=1&pageSize=25&mrnType=ALL - application/json null
+2026-11-15 13:50:53.618 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.PatientsController.Search (CMS.API)'
+2026-11-15 13:50:53.618 +03:00 [INF] Route matched with {action = "Search", controller = "Patients"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] Search(System.String, Int32, Int32, System.String) on controller CMS.API.Controllers.PatientsController (CMS.API).
+2026-11-15 13:50:53.670 +03:00 [INF] Executing OkObjectResult, writing value of type '<>f__AnonymousType17`3[[System.Boolean, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Collections.Generic.List`1[[CMS.Shared.DTOs.PatientDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[<>f__AnonymousType38`7[[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], CMS.API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]'.
+2026-11-15 13:50:53.681 +03:00 [INF] Executed action CMS.API.Controllers.PatientsController.Search (CMS.API) in 62.6009ms
+2026-11-15 13:50:53.681 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.PatientsController.Search (CMS.API)'
+2026-11-15 13:50:53.681 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/patients/search?q=&page=1&pageSize=25&mrnType=ALL - 200 null application/json; charset=utf-8 66.2552ms
+2026-11-15 13:50:53.702 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/patients/search?q=&page=1&pageSize=25&mrnType=ALL - application/json null
+2026-11-15 13:50:53.709 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.PatientsController.Search (CMS.API)'
+2026-11-15 13:50:53.709 +03:00 [INF] Route matched with {action = "Search", controller = "Patients"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] Search(System.String, Int32, Int32, System.String) on controller CMS.API.Controllers.PatientsController (CMS.API).
+2026-11-15 13:50:53.735 +03:00 [INF] Executing OkObjectResult, writing value of type '<>f__AnonymousType17`3[[System.Boolean, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Collections.Generic.List`1[[CMS.Shared.DTOs.PatientDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[<>f__AnonymousType38`7[[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], CMS.API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]'.
+2026-11-15 13:50:53.737 +03:00 [INF] Executed action CMS.API.Controllers.PatientsController.Search (CMS.API) in 27.2185ms
+2026-11-15 13:50:53.737 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.PatientsController.Search (CMS.API)'
+2026-11-15 13:50:53.737 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/patients/search?q=&page=1&pageSize=25&mrnType=ALL - 200 null application/json; charset=utf-8 35.3483ms
+2026-11-15 13:50:53.751 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/patients/search?q=&page=1&pageSize=25&mrnType=ALL - application/json null
+2026-11-15 13:50:53.752 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.PatientsController.Search (CMS.API)'
+2026-11-15 13:50:53.752 +03:00 [INF] Route matched with {action = "Search", controller = "Patients"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] Search(System.String, Int32, Int32, System.String) on controller CMS.API.Controllers.PatientsController (CMS.API).
+2026-11-15 13:50:53.770 +03:00 [INF] Executing OkObjectResult, writing value of type '<>f__AnonymousType17`3[[System.Boolean, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Collections.Generic.List`1[[CMS.Shared.DTOs.PatientDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[<>f__AnonymousType38`7[[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], CMS.API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]'.
+2026-11-15 13:50:53.779 +03:00 [INF] Executed action CMS.API.Controllers.PatientsController.Search (CMS.API) in 25.8009ms
+2026-11-15 13:50:53.779 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.PatientsController.Search (CMS.API)'
+2026-11-15 13:50:53.782 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/patients/search?q=&page=1&pageSize=25&mrnType=ALL - 200 null application/json; charset=utf-8 31.1324ms
+2026-11-15 13:50:53.797 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/patients/search?q=&page=1&pageSize=25&mrnType=ALL - application/json null
+2026-11-15 13:50:53.799 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.PatientsController.Search (CMS.API)'
+2026-11-15 13:50:53.799 +03:00 [INF] Route matched with {action = "Search", controller = "Patients"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] Search(System.String, Int32, Int32, System.String) on controller CMS.API.Controllers.PatientsController (CMS.API).
+2026-11-15 13:50:53.818 +03:00 [INF] Executing OkObjectResult, writing value of type '<>f__AnonymousType17`3[[System.Boolean, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Collections.Generic.List`1[[CMS.Shared.DTOs.PatientDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[<>f__AnonymousType38`7[[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], CMS.API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]'.
+2026-11-15 13:50:53.819 +03:00 [INF] Executed action CMS.API.Controllers.PatientsController.Search (CMS.API) in 19.6941ms
+2026-11-15 13:50:53.819 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.PatientsController.Search (CMS.API)'
+2026-11-15 13:50:53.820 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/patients/search?q=&page=1&pageSize=25&mrnType=ALL - 200 null application/json; charset=utf-8 22.377ms
+2026-11-15 13:51:18.733 +03:00 [INF] Request starting HTTP/1.1 GET http://localhost:5010/api/v1/settings - null null
+2026-11-15 13:51:18.734 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 13:51:18.734 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 13:51:18.734 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 13:51:18.734 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 13:51:18.734 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 13:51:18.735 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 13:51:18.735 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 0.8492ms
+2026-11-15 13:51:18.735 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 13:51:18.735 +03:00 [INF] Request finished HTTP/1.1 GET http://localhost:5010/api/v1/settings - 401 0 null 1.8832ms
+2026-11-15 13:51:36.567 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-11-15 13:51:36.584 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-11-15 13:51:36.585 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-11-15 13:51:36.637 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-11-15 13:51:36.642 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 57.1314ms
+2026-11-15 13:51:36.642 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-11-15 13:51:36.646 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 79.3866ms
+2026-11-15 13:52:36.562 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-11-15 13:52:36.564 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-11-15 13:52:36.564 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-11-15 13:52:36.593 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-11-15 13:52:36.596 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 31.9031ms
+2026-11-15 13:52:36.596 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-11-15 13:52:36.597 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 35.2033ms
+2026-11-15 13:53:36.558 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-11-15 13:53:36.560 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-11-15 13:53:36.560 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-11-15 13:53:36.580 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-11-15 13:53:36.584 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 23.6044ms
+2026-11-15 13:53:36.584 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-11-15 13:53:36.585 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 26.3287ms
+2026-11-15 13:54:36.578 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-11-15 13:54:36.581 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-11-15 13:54:36.581 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-11-15 13:54:36.609 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-11-15 13:54:36.611 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 29.9389ms
+2026-11-15 13:54:36.612 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-11-15 13:54:36.612 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 34.2494ms
+2026-11-15 13:55:36.577 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-11-15 13:55:36.578 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-11-15 13:55:36.579 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-11-15 13:55:36.620 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-11-15 13:55:36.623 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 43.7595ms
+2026-11-15 13:55:36.623 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-11-15 13:55:36.623 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 46.4406ms
+2026-11-15 13:55:41.257 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/anc/dashboard - application/json null
+2026-11-15 13:55:41.260 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.AntenatalCareController.GetDashboard (CMS.API)'
+2026-11-15 13:55:41.274 +03:00 [INF] Route matched with {action = "GetDashboard", controller = "AntenatalCare"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetDashboard() on controller CMS.API.Controllers.AntenatalCareController (CMS.API).
+2026-11-15 13:55:41.620 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[CMS.Shared.DTOs.AncDashboardDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]'.
+2026-11-15 13:55:41.666 +03:00 [INF] Executed action CMS.API.Controllers.AntenatalCareController.GetDashboard (CMS.API) in 391.7691ms
+2026-11-15 13:55:41.666 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.AntenatalCareController.GetDashboard (CMS.API)'
+2026-11-15 13:55:41.666 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/anc/dashboard - 200 null application/json; charset=utf-8 408.8619ms
+2026-11-15 13:55:41.674 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/anc/dashboard - application/json null
+2026-11-15 13:55:41.678 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.AntenatalCareController.GetDashboard (CMS.API)'
+2026-11-15 13:55:41.678 +03:00 [INF] Route matched with {action = "GetDashboard", controller = "AntenatalCare"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetDashboard() on controller CMS.API.Controllers.AntenatalCareController (CMS.API).
+2026-11-15 13:55:41.697 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[CMS.Shared.DTOs.AncDashboardDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]'.
+2026-11-15 13:55:41.699 +03:00 [INF] Executed action CMS.API.Controllers.AntenatalCareController.GetDashboard (CMS.API) in 20.1164ms
+2026-11-15 13:55:41.699 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.AntenatalCareController.GetDashboard (CMS.API)'
+2026-11-15 13:55:41.699 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/anc/dashboard - 200 null application/json; charset=utf-8 24.7628ms
+2026-11-15 13:55:44.888 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/patients/search?q=&limit=30 - application/json null
+2026-11-15 13:55:44.891 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.PatientsController.Search (CMS.API)'
+2026-11-15 13:55:44.891 +03:00 [INF] Route matched with {action = "Search", controller = "Patients"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] Search(System.String, Int32, Int32, System.String) on controller CMS.API.Controllers.PatientsController (CMS.API).
+2026-11-15 13:55:44.992 +03:00 [INF] Executing OkObjectResult, writing value of type '<>f__AnonymousType17`3[[System.Boolean, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Collections.Generic.List`1[[CMS.Shared.DTOs.PatientDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[<>f__AnonymousType38`7[[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], CMS.API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]'.
+2026-11-15 13:55:44.993 +03:00 [INF] Executed action CMS.API.Controllers.PatientsController.Search (CMS.API) in 101.352ms
+2026-11-15 13:55:44.993 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.PatientsController.Search (CMS.API)'
+2026-11-15 13:55:44.993 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/patients/search?q=&limit=30 - 200 null application/json; charset=utf-8 105.0453ms
+2026-11-15 13:55:46.524 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/anc/patient-check/270603 - application/json null
+2026-11-15 13:55:46.532 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.AntenatalCareController.CheckPatient (CMS.API)'
+2026-11-15 13:55:46.557 +03:00 [INF] Route matched with {action = "CheckPatient", controller = "AntenatalCare"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] CheckPatient(Int32) on controller CMS.API.Controllers.AntenatalCareController (CMS.API).
+2026-11-15 13:55:46.737 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[CMS.Shared.DTOs.AncPatientCheckDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]'.
+2026-11-15 13:55:46.750 +03:00 [INF] Executed action CMS.API.Controllers.AntenatalCareController.CheckPatient (CMS.API) in 192.9888ms
+2026-11-15 13:55:46.750 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.AntenatalCareController.CheckPatient (CMS.API)'
+2026-11-15 13:55:46.751 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/anc/patient-check/270603 - 200 null application/json; charset=utf-8 226.2268ms
+2026-11-15 13:55:46.774 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/anc/episodes/8 - application/json null
+2026-11-15 13:55:46.775 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.AntenatalCareController.GetWorkspace (CMS.API)'
+2026-11-15 13:55:46.785 +03:00 [INF] Route matched with {action = "GetWorkspace", controller = "AntenatalCare"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetWorkspace(Int32) on controller CMS.API.Controllers.AntenatalCareController (CMS.API).
+2026-11-15 13:55:47.309 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[CMS.Shared.DTOs.AncWorkspaceDetailDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]'.
+2026-11-15 13:55:47.385 +03:00 [INF] Executed action CMS.API.Controllers.AntenatalCareController.GetWorkspace (CMS.API) in 599.6753ms
+2026-11-15 13:55:47.385 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.AntenatalCareController.GetWorkspace (CMS.API)'
+2026-11-15 13:55:47.385 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/anc/episodes/8 - 200 null application/json; charset=utf-8 611.8496ms
+2026-11-15 13:56:36.588 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-11-15 13:56:36.589 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-11-15 13:56:36.589 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-11-15 13:56:36.627 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-11-15 13:56:36.629 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 39.1659ms
+2026-11-15 13:56:36.629 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-11-15 13:56:36.629 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 41.0126ms
+2026-11-15 13:58:06.653 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-11-15 13:58:06.654 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-11-15 13:58:06.654 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-11-15 13:58:06.707 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-11-15 13:58:06.709 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 54.6054ms
+2026-11-15 13:58:06.709 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-11-15 13:58:06.710 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 57.3272ms
+2026-11-15 13:58:36.329 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-11-15 13:58:36.336 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-11-15 13:58:36.337 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-11-15 13:58:36.345 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-11-15 13:58:36.348 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 10.8911ms
+2026-11-15 13:58:36.348 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-11-15 13:58:36.348 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 19.3611ms
+2026-11-15 13:59:36.559 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-11-15 13:59:36.560 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-11-15 13:59:36.561 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-11-15 13:59:36.622 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-11-15 13:59:36.624 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 63.207ms
+2026-11-15 13:59:36.624 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-11-15 13:59:36.625 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 66.0339ms
+2026-11-15 14:01:06.572 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-11-15 14:01:06.574 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-11-15 14:01:06.575 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-11-15 14:01:06.662 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-11-15 14:01:06.664 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 89.0802ms
+2026-11-15 14:01:06.664 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-11-15 14:01:06.667 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 94.9844ms
+2026-11-15 14:02:06.642 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-11-15 14:02:06.643 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-11-15 14:02:06.644 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-11-15 14:02:06.718 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-11-15 14:02:06.721 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 77.0641ms
+2026-11-15 14:02:06.721 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-11-15 14:02:06.722 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 80.1557ms
+2026-11-15 14:03:06.569 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-11-15 14:03:06.570 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-11-15 14:03:06.571 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-11-15 14:03:06.633 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-11-15 14:03:06.635 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 64.7596ms
+2026-11-15 14:03:06.636 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-11-15 14:03:06.636 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 67.5536ms
+2026-11-15 14:04:06.603 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-11-15 14:04:06.605 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-11-15 14:04:06.605 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-11-15 14:04:06.684 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-11-15 14:04:06.687 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 81.1105ms
+2026-11-15 14:04:06.687 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-11-15 14:04:06.687 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 84.1815ms
+2026-11-15 14:05:06.581 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-11-15 14:05:06.582 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-11-15 14:05:06.583 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-11-15 14:05:06.615 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-11-15 14:05:06.617 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 33.7492ms
+2026-11-15 14:05:06.617 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-11-15 14:05:06.617 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 36.3502ms
+2026-11-15 14:06:06.603 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-11-15 14:06:06.604 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-11-15 14:06:06.604 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-11-15 14:06:06.745 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-11-15 14:06:06.747 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 142.7068ms
+2026-11-15 14:06:06.747 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-11-15 14:06:06.748 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 145.0201ms
+2026-11-15 14:07:06.781 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-11-15 14:07:06.783 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-11-15 14:07:06.783 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-11-15 14:07:06.867 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-11-15 14:07:06.870 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 86.3891ms
+2026-11-15 14:07:06.870 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-11-15 14:07:06.874 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 92.7649ms
+2026-11-15 14:08:06.566 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-11-15 14:08:06.567 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-11-15 14:08:06.567 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-11-15 14:08:06.598 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-11-15 14:08:06.600 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 32.5738ms
+2026-11-15 14:08:06.600 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-11-15 14:08:06.600 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 34.5077ms
+2026-11-15 14:09:06.655 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-11-15 14:09:06.656 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-11-15 14:09:06.656 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-11-15 14:09:06.682 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-11-15 14:09:06.683 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 27.5491ms
+2026-11-15 14:09:06.684 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-11-15 14:09:06.684 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 29.2473ms
+2026-11-15 14:10:06.567 +03:00 [INF] Request starting HTTP/1.1 POST http://127.0.0.1:5010/api/v1/auth/logout - null 0
+2026-11-15 14:10:06.572 +03:00 [INF] CORS policy execution successful.
+2026-11-15 14:10:06.573 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.AuthController.Logout (CMS.API)'
+2026-11-15 14:10:06.575 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - application/json null
+2026-11-15 14:10:06.576 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-11-15 14:10:06.576 +03:00 [INF] Route matched with {action = "GetNotifications", controller = "Notifications"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetNotifications(System.Nullable`1[System.Int32], System.String) on controller CMS.API.Controllers.NotificationsController (CMS.API).
+2026-11-15 14:10:06.584 +03:00 [INF] Route matched with {action = "Logout", controller = "Auth"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] Logout() on controller CMS.API.Controllers.AuthController (CMS.API).
+2026-11-15 14:10:06.606 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.Collections.Generic.List`1[[CMS.Shared.DTOs.NotificationItemDto, CMS.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-11-15 14:10:06.607 +03:00 [INF] Executed action CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API) in 30.2092ms
+2026-11-15 14:10:06.608 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.NotificationsController.GetNotifications (CMS.API)'
+2026-11-15 14:10:06.608 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/notifications - 200 null application/json; charset=utf-8 33.3151ms
+2026-11-15 14:10:06.642 +03:00 [INF] Executing OkObjectResult, writing value of type 'CMS.Shared.DTOs.ApiResponse`1[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-11-15 14:10:06.645 +03:00 [INF] Executed action CMS.API.Controllers.AuthController.Logout (CMS.API) in 59.7998ms
+2026-11-15 14:10:06.645 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.AuthController.Logout (CMS.API)'
+2026-11-15 14:10:06.645 +03:00 [INF] Request finished HTTP/1.1 POST http://127.0.0.1:5010/api/v1/auth/logout - 200 null application/json; charset=utf-8 77.8177ms
+2026-11-15 14:10:06.707 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:10:06.708 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:10:06.708 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:10:06.708 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:10:06.708 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:10:06.708 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:10:06.708 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:10:06.708 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 0.3394ms
+2026-11-15 14:10:06.708 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:10:06.709 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 1.2078ms
+2026-11-15 14:10:06.722 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:10:06.722 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:10:06.722 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:10:06.722 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:10:06.723 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:10:06.723 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:10:06.723 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:10:06.723 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 0.3408ms
+2026-11-15 14:10:06.723 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:10:06.723 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 1.1514ms
+2026-11-15 14:33:01.906 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:33:01.970 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:33:01.984 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:33:01.994 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:33:01.996 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:33:01.999 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:33:02.001 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:33:02.002 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 16.8729ms
+2026-11-15 14:33:02.003 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:33:02.004 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 102.2527ms
+2026-11-15 14:33:02.016 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:33:02.020 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:33:02.020 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:33:02.021 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:33:02.021 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:33:02.021 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:33:02.021 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:33:02.021 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 0.4542ms
+2026-11-15 14:33:02.021 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:33:02.021 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 5.2636ms
+2026-11-15 14:33:02.032 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:33:02.032 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:33:02.032 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:33:02.034 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:33:02.035 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:33:02.035 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:33:02.035 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:33:02.035 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 0.7793ms
+2026-11-15 14:33:02.035 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:33:02.036 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 3.6869ms
+2026-11-15 14:33:02.058 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:33:02.058 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:33:02.058 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:33:02.058 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:33:02.059 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:33:02.066 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:33:02.067 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:33:02.067 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 8.2655ms
+2026-11-15 14:33:02.067 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:33:02.067 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 9.1451ms
+2026-11-15 14:33:59.204 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:33:59.205 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:33:59.205 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:33:59.205 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:33:59.205 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:33:59.206 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:33:59.206 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:33:59.206 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 0.5986ms
+2026-11-15 14:33:59.206 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:33:59.206 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 1.6505ms
+2026-11-15 14:33:59.220 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:33:59.221 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:33:59.222 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:33:59.224 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:33:59.224 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:33:59.225 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:33:59.225 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:33:59.225 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 2.0007ms
+2026-11-15 14:33:59.225 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:33:59.226 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 6.0168ms
+2026-11-15 14:33:59.236 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:33:59.237 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:33:59.237 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:33:59.237 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:33:59.237 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:33:59.237 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:33:59.238 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:33:59.238 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 0.7538ms
+2026-11-15 14:33:59.238 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:33:59.239 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 2.8751ms
+2026-11-15 14:33:59.247 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:33:59.248 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:33:59.248 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:33:59.248 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:33:59.249 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:33:59.255 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:33:59.255 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:33:59.256 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 7.4078ms
+2026-11-15 14:33:59.256 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:33:59.256 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 9.1652ms
+2026-11-15 14:34:01.257 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:34:01.258 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:34:01.258 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:34:01.258 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:34:01.258 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:34:01.258 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:34:01.259 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:34:01.259 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 0.944ms
+2026-11-15 14:34:01.259 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:34:01.259 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 2.2078ms
+2026-11-15 14:34:01.705 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:34:01.707 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:34:01.707 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:34:01.708 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:34:01.708 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:34:01.709 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:34:01.709 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:34:01.709 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 1.129ms
+2026-11-15 14:34:01.709 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:34:01.709 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 3.9893ms
+2026-11-15 14:34:01.733 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:34:01.734 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:34:01.740 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:34:01.740 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:34:01.740 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:34:01.740 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:34:01.741 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:34:01.741 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 0.5394ms
+2026-11-15 14:34:01.741 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:34:01.741 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 8.0176ms
+2026-11-15 14:34:01.757 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:34:01.757 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:34:01.758 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:34:01.758 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:34:01.758 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:34:01.763 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:34:01.763 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:34:01.764 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 5.8634ms
+2026-11-15 14:34:01.764 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:34:01.764 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 6.6272ms
+2026-11-15 14:35:06.984 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:35:06.986 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:35:06.986 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:35:06.986 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:35:06.986 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:35:06.987 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:35:06.988 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:35:06.988 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 1.6509ms
+2026-11-15 14:35:06.988 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:35:06.988 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 3.5706ms
+2026-11-15 14:35:07.006 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:35:07.006 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:35:07.011 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:35:07.011 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:35:07.012 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:35:07.012 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:35:07.012 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:35:07.012 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 0.927ms
+2026-11-15 14:35:07.012 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:35:07.012 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 6.9329ms
+2026-11-15 14:35:07.022 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:35:07.023 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:35:07.024 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:35:07.024 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:35:07.024 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:35:07.025 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:35:07.025 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:35:07.025 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 1.0377ms
+2026-11-15 14:35:07.025 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:35:07.026 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 3.0481ms
+2026-11-15 14:35:07.034 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:35:07.034 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:35:07.034 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:35:07.036 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:35:07.036 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:35:07.036 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:35:07.036 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:35:07.036 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 1.4493ms
+2026-11-15 14:35:07.036 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:35:07.037 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 3.1591ms
+2026-11-15 14:35:08.565 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:35:08.566 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:35:08.566 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:35:08.566 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:35:08.566 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:35:08.566 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:35:08.566 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:35:08.567 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 0.4629ms
+2026-11-15 14:35:08.567 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:35:08.567 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 1.608ms
+2026-11-15 14:35:08.578 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:35:08.578 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:35:08.579 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:35:08.579 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:35:08.579 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:35:08.580 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:35:08.581 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:35:08.581 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 2.1025ms
+2026-11-15 14:35:08.581 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:35:08.582 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 4.0789ms
+2026-11-15 14:35:08.594 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:35:08.597 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:35:08.597 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:35:08.598 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:35:08.598 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:35:08.598 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:35:08.598 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:35:08.598 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 0.3799ms
+2026-11-15 14:35:08.598 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:35:08.598 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 4.3188ms
+2026-11-15 14:35:08.606 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:35:08.613 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:35:08.613 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:35:08.615 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:35:08.616 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:35:08.616 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:35:08.616 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:35:08.616 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 1.6298ms
+2026-11-15 14:35:08.618 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:35:08.620 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 13.6705ms
+2026-11-15 14:42:08.010 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:42:08.011 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:42:08.011 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:42:08.011 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:42:08.011 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:42:08.011 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:42:08.012 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:42:08.012 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 0.4112ms
+2026-11-15 14:42:08.012 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:42:08.012 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 1.4244ms
+2026-11-15 14:42:08.081 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:42:08.082 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:42:08.082 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:42:08.082 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:42:08.082 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:42:08.082 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:42:08.082 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:42:08.082 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 0.4115ms
+2026-11-15 14:42:08.082 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:42:08.083 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 1.4094ms
+2026-11-15 14:42:08.107 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:42:08.111 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:42:08.111 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:42:08.111 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:42:08.111 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:42:08.111 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:42:08.111 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:42:08.112 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 0.4444ms
+2026-11-15 14:42:08.112 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:42:08.112 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 5.2259ms
+2026-11-15 14:42:08.144 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:42:08.144 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:42:08.144 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:42:08.145 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:42:08.146 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:42:08.147 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:42:08.148 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:42:08.148 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 3.0476ms
+2026-11-15 14:42:08.148 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:42:08.148 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 4.3189ms
+2026-11-15 14:42:09.226 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:42:09.227 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:42:09.227 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:42:09.228 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:42:09.228 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:42:09.228 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:42:09.228 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:42:09.228 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 0.425ms
+2026-11-15 14:42:09.230 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:42:09.231 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 4.878ms
+2026-11-15 14:42:09.247 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:42:09.248 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:42:09.248 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:42:09.248 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:42:09.248 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:42:09.248 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:42:09.249 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:42:09.249 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 0.4279ms
+2026-11-15 14:42:09.249 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:42:09.249 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 1.4041ms
+2026-11-15 14:42:09.332 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:42:09.337 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:42:09.339 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:42:09.340 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:42:09.343 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:42:09.343 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:42:09.344 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:42:09.345 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 5.3588ms
+2026-11-15 14:42:09.345 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:42:09.347 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 14.8024ms
+2026-11-15 14:42:09.364 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:42:09.364 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:42:09.364 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:42:09.364 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:42:09.365 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:42:09.365 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:42:09.365 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:42:09.365 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 0.5696ms
+2026-11-15 14:42:09.365 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:42:09.377 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 13.7195ms
+2026-11-15 14:43:11.014 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:43:11.014 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:43:11.014 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:43:11.014 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:43:11.015 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:43:11.020 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:43:11.020 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:43:11.020 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 5.5282ms
+2026-11-15 14:43:11.020 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:43:11.020 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 6.4829ms
+2026-11-15 14:43:11.114 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:43:11.115 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:43:11.116 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:43:11.116 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:43:11.116 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:43:11.116 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:43:11.116 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:43:11.116 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 0.3962ms
+2026-11-15 14:43:11.116 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:43:11.116 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 2.3365ms
+2026-11-15 14:43:11.157 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:43:11.158 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:43:11.158 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:43:11.158 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:43:11.158 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:43:11.158 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:43:11.158 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:43:11.159 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 0.377ms
+2026-11-15 14:43:11.159 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:43:11.159 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 1.4394ms
+2026-11-15 14:43:11.177 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:43:11.178 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:43:11.179 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:43:11.180 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:43:11.180 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:43:11.181 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:43:11.181 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:43:11.181 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 1.5258ms
+2026-11-15 14:43:11.181 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:43:11.187 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 9.9755ms
+2026-11-15 14:48:37.252 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:48:37.252 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:48:37.253 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:48:37.253 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:48:37.253 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:48:37.253 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:48:37.253 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:48:37.253 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 0.3899ms
+2026-11-15 14:48:37.253 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:48:37.253 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 1.3397ms
+2026-11-15 14:48:37.264 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:48:37.265 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:48:37.265 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:48:37.265 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:48:37.265 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:48:37.265 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:48:37.265 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:48:37.265 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 0.349ms
+2026-11-15 14:48:37.266 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:48:37.266 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 1.2738ms
+2026-11-15 14:48:37.272 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:48:37.272 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:48:37.272 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:48:37.273 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:48:37.273 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:48:37.273 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:48:37.273 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:48:37.273 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 0.7015ms
+2026-11-15 14:48:37.273 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:48:37.273 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 1.7391ms
+2026-11-15 14:48:37.283 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:48:37.283 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:48:37.284 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:48:37.284 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:48:37.284 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:48:37.284 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:48:37.284 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:48:37.284 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 0.5438ms
+2026-11-15 14:48:37.284 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:48:37.285 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 1.6507ms
+2026-11-15 14:52:50.136 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:52:50.136 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:52:50.137 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:52:50.137 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:52:50.137 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:52:50.137 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:52:50.137 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:52:50.137 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 0.4905ms
+2026-11-15 14:52:50.137 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:52:50.137 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 1.5329ms
+2026-11-15 14:52:50.179 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:52:50.180 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:52:50.180 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:52:50.180 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:52:50.180 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:52:50.180 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:52:50.180 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:52:50.180 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 0.4228ms
+2026-11-15 14:52:50.180 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:52:50.180 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 1.3082ms
+2026-11-15 14:52:50.193 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:52:50.193 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:52:50.193 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:52:50.194 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:52:50.194 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:52:50.194 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:52:50.194 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:52:50.194 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 0.3251ms
+2026-11-15 14:52:50.194 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:52:50.194 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 1.1443ms
+2026-11-15 14:52:50.202 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:52:50.202 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:52:50.202 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:52:50.203 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:52:50.203 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:52:50.203 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:52:50.203 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:52:50.203 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 0.321ms
+2026-11-15 14:52:50.203 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:52:50.203 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 1.1017ms
+2026-11-15 14:52:51.711 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:52:51.713 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:52:51.713 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:52:51.713 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:52:51.713 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:52:51.713 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:52:51.713 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:52:51.713 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 0.4916ms
+2026-11-15 14:52:51.713 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:52:51.714 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 2.8852ms
+2026-11-15 14:52:51.745 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:52:51.746 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:52:51.747 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:52:51.749 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:52:51.750 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:52:51.750 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:52:51.750 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:52:51.750 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 0.4932ms
+2026-11-15 14:52:51.750 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:52:51.750 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 4.9819ms
+2026-11-15 14:52:51.787 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:52:51.793 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:52:51.794 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:52:51.794 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:52:51.794 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:52:51.795 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:52:51.795 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:52:51.795 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 0.6232ms
+2026-11-15 14:52:51.795 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:52:51.795 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 8.0048ms
+2026-11-15 14:52:51.808 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:52:51.808 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:52:51.808 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:52:51.808 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:52:51.809 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:52:51.810 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:52:51.811 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:52:51.811 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 2.2808ms
+2026-11-15 14:52:51.811 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:52:51.811 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 3.461ms
+2026-11-15 14:59:07.134 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:59:07.136 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:59:07.136 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:59:07.137 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:59:07.137 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:59:07.137 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:59:07.137 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:59:07.137 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 0.5113ms
+2026-11-15 14:59:07.137 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:59:07.137 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 3.3423ms
+2026-11-15 14:59:07.153 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:59:07.155 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:59:07.156 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:59:07.156 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:59:07.156 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:59:07.156 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:59:07.156 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:59:07.156 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 0.4094ms
+2026-11-15 14:59:07.156 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:59:07.156 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 3.6131ms
+2026-11-15 14:59:07.166 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:59:07.167 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:59:07.168 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:59:07.168 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:59:07.168 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:59:07.168 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:59:07.169 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:59:07.169 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 0.8182ms
+2026-11-15 14:59:07.169 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:59:07.169 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 2.6103ms
+2026-11-15 14:59:07.183 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:59:07.184 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:59:07.184 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:59:07.184 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:59:07.184 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:59:07.187 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:59:07.187 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:59:07.187 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 3.1959ms
+2026-11-15 14:59:07.188 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:59:07.188 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 5.0786ms
+2026-11-15 14:59:09.064 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:59:09.065 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:59:09.065 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:59:09.066 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:59:09.066 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:59:09.066 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:59:09.066 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:59:09.066 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 0.7185ms
+2026-11-15 14:59:09.066 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:59:09.067 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 2.1527ms
+2026-11-15 14:59:09.076 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:59:09.077 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:59:09.077 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:59:09.077 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:59:09.077 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:59:09.077 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:59:09.077 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:59:09.077 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 0.3743ms
+2026-11-15 14:59:09.077 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:59:09.078 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 1.2393ms
+2026-11-15 14:59:09.089 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:59:09.089 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:59:09.090 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:59:09.090 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:59:09.090 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:59:09.091 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:59:09.091 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:59:09.091 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 0.4329ms
+2026-11-15 14:59:09.091 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:59:09.091 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 2.4627ms
+2026-11-15 14:59:09.101 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:59:09.102 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:59:09.102 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:59:09.103 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:59:09.103 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:59:09.103 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:59:09.103 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:59:09.104 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 1.2071ms
+2026-11-15 14:59:09.104 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:59:09.104 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 2.7721ms
+2026-11-15 14:59:11.195 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:59:11.195 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:59:11.195 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:59:11.196 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:59:11.196 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:59:11.197 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:59:11.197 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:59:11.197 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 1.3952ms
+2026-11-15 14:59:11.197 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:59:11.197 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 2.2803ms
+2026-11-15 14:59:11.210 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:59:11.210 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:59:11.210 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:59:11.210 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:59:11.211 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:59:11.211 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:59:11.211 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:59:11.211 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 0.8511ms
+2026-11-15 14:59:11.211 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:59:11.211 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 1.7649ms
+2026-11-15 14:59:11.219 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:59:11.219 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:59:11.220 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:59:11.220 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:59:11.220 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:59:11.222 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:59:11.222 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:59:11.222 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 2.6167ms
+2026-11-15 14:59:11.222 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:59:11.223 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 3.6239ms
+2026-11-15 14:59:11.230 +03:00 [INF] Request starting HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - null null
+2026-11-15 14:59:11.231 +03:00 [INF] Executing endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:59:11.231 +03:00 [INF] Route matched with {action = "GetSettings", controller = "Settings"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetSettings() on controller CMS.API.Controllers.SettingsController (CMS.API).
+2026-11-15 14:59:11.231 +03:00 [INF] Authorization failed. These requirements were not met:
+DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+2026-11-15 14:59:11.231 +03:00 [INF] Authorization failed for the request at filter 'Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter'.
+2026-11-15 14:59:11.232 +03:00 [INF] Executing ChallengeResult with authentication schemes ([]).
+2026-11-15 14:59:11.232 +03:00 [INF] AuthenticationScheme: Bearer was challenged.
+2026-11-15 14:59:11.233 +03:00 [INF] Executed action CMS.API.Controllers.SettingsController.GetSettings (CMS.API) in 1.6989ms
+2026-11-15 14:59:11.233 +03:00 [INF] Executed endpoint 'CMS.API.Controllers.SettingsController.GetSettings (CMS.API)'
+2026-11-15 14:59:11.233 +03:00 [INF] Request finished HTTP/1.1 GET http://127.0.0.1:5010/api/v1/settings - 401 0 null 3.126ms
+2026-11-15 16:50:40.073 +03:00 [INF] Application is shutting down...
+2026-11-15 16:50:40.337 +03:00 [INF] DatabaseBackupBackgroundService is stopping.
+2026-11-15 16:50:40.364 +03:00 [INF] [2026-11-15 16:50:40.360] LISTENER STOPPED: All LIS listeners stopped.

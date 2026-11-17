@@ -110,6 +110,15 @@ public class TriageController : ControllerBase
                        t.AppointmentId, t.QueueId,
                        ISNULL(q.TokenNumber, 'TRG-' + CAST(t.Id AS VARCHAR)) AS TokenNumber,
                        t.TriageCategory, t.PriorityLevel,
+                       q.ServiceType,
+                       ISNULL(invItem.Description, q.ServiceType) AS ConsultationServiceName,
+                       CASE 
+                           WHEN t.PriorityLevel = 3 THEN 1
+                           WHEN ISNULL(q.PriorityLevel, 0) = 3 THEN 1
+                           WHEN q.ServiceType LIKE '%VIP%' THEN 1
+                           WHEN invItem.Description LIKE '%VIP%' THEN 1
+                           ELSE 0
+                       END AS IsVip,
                        t.SystolicBP, t.DiastolicBP, t.HeartRate, t.RespiratoryRate,
                        t.Temperature, t.OxygenSaturation, t.WeightKg, t.HeightCm,
                        t.Bmi, t.BloodGlucose, t.PainScale,
@@ -148,6 +157,15 @@ public class TriageController : ControllerBase
                 LEFT JOIN Doctors d WITH (NOLOCK) ON d.Id = t.AssignedDoctorId
                 LEFT JOIN Staff s WITH (NOLOCK) ON s.Id = d.StaffId
                 LEFT JOIN ConsultationRooms r WITH (NOLOCK) ON r.Id = t.AssignedRoomId
+                OUTER APPLY (
+                    SELECT TOP 1 ii.Description
+                    FROM InvoiceItems ii WITH (NOLOCK)
+                    JOIN Invoices inv WITH (NOLOCK) ON inv.Id = ii.InvoiceId
+                    WHERE inv.PatientId = t.PatientId
+                      AND (CAST(inv.IssueDate AS DATE) = CAST(t.TriagedAt AS DATE) OR CAST(inv.CreatedAt AS DATE) = CAST(t.TriagedAt AS DATE))
+                      AND (ii.Description LIKE '%VIP%' OR ii.ItemType = 1)
+                    ORDER BY CASE WHEN ii.Description LIKE '%VIP%' THEN 0 ELSE 1 END, ii.Id DESC
+                ) invItem
                 WHERE t.TenantId = @TenantId
                   AND (
                       t.AssignedDoctorId = @DoctorId

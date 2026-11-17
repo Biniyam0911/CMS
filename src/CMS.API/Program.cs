@@ -20,6 +20,7 @@ using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
 using CMS.API.Hubs;
 using CMS.API.Middleware;
+using CMS.Application.AntenatalCare;
 using CMS.Application.Appointments;
 using CMS.Application.Auth;
 using CMS.Application.Billing;
@@ -208,6 +209,7 @@ builder.Services.AddHttpClient("Chapa", client =>
     client.Timeout = TimeSpan.FromSeconds(30);
 });
 builder.Services.AddScoped<CMS.Application.Telemedicine.TelemedService>();
+builder.Services.AddScoped<IAncService, AncService>();
 builder.Services.AddHttpClient<CMS.Application.Telemedicine.TelegramBotService>();
 builder.Services.AddHttpClient<CMS.Application.Telemedicine.WhatsAppCloudService>();
 

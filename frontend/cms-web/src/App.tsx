@@ -25,6 +25,7 @@ const DashboardPage = React.lazy(() => import('./pages/Dashboard/DashboardPage')
 const PatientsPage = React.lazy(() => import('./pages/Patients/PatientsPage'));
 const TriagePage = React.lazy(() => import('./pages/Triage/TriagePage'));
 const EmrSoapPage = React.lazy(() => import('./pages/EMR/EmrSoapPage'));
+const AntenatalCarePage = React.lazy(() => import('./pages/AntenatalCare/AntenatalCarePage'));
 const InpatientPage = React.lazy(() => import('./pages/Inpatient/InpatientPage'));
 const AppointmentsPage = React.lazy(() => import('./pages/Appointments/AppointmentsPage'));
 const QueuePage = React.lazy(() => import('./pages/Queue/QueuePage'));
@@ -638,6 +639,7 @@ export default function App() {
           {!disabledModules.has(activeModule) && activeModule === 'PATIENTS' && <PatientsPage onSelectEmrPatient={navigateToEmrWithPatient} />}
           {!disabledModules.has(activeModule) && activeModule === 'TRIAGE' && <TriagePage />}
           {!disabledModules.has(activeModule) && activeModule === 'EMR' && <EmrSoapPage selectedPatientId={selectedEmrPatientId} currentUser={user} />}
+          {!disabledModules.has(activeModule) && activeModule === 'ANC' && <AntenatalCarePage />}
           {!disabledModules.has(activeModule) && activeModule === 'INPATIENT' && <InpatientPage />}
           {!disabledModules.has(activeModule) && activeModule === 'APPOINTMENTS' && <AppointmentsPage />}
           {!disabledModules.has(activeModule) && activeModule === 'QUEUE' && <QueuePage />}

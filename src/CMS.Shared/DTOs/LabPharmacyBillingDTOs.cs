@@ -3,6 +3,8 @@ namespace CMS.Shared.DTOs;
 public class DrugFormularyDto
 {
     public int Id { get; set; }
+    public int? ServiceId { get; set; }
+    public string? DrugCode { get; set; }
     public byte TenantId { get; set; }
     public string GenericName { get; set; } = string.Empty;
     public string? BrandName { get; set; }
@@ -24,6 +26,22 @@ public class DrugFormularyDto
 
     public DrugFormularyDto() { }
 }
+
+public record CreateFormularyDrugDto(
+    string GenericName,
+    string? BrandName,
+    string? Form,
+    string? Strength,
+    int StockQuantity,
+    int MinStockLevel,
+    decimal CostPrice,
+    decimal SellingPrice,
+    string? BatchNumber,
+    DateTime? ExpiryDate,
+    bool IsControlled,
+    string? DrugClass,
+    string? Code
+);
 
 public record RestockDrugDto(
     int DrugId, int QuantityAdded, decimal UnitCostPrice, decimal UnitSellingPrice,

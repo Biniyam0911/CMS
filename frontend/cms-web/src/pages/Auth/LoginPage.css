@@ -1,0 +1,659 @@
+/* ========================================================================= */
+/* SELAM CMS - HOSPITAL GREEN GLASSMORPHISM DESIGN SYSTEM                    */
+/* ========================================================================= */
+
+/* Root Environment Variables - Hospital Green Palette */
+:root {
+  --glass-bg-base: #021a15;
+  --glass-card-bg: rgba(6, 32, 27, 0.54);
+  --glass-card-border: rgba(52, 211, 153, 0.22);
+  --glass-card-border-top: rgba(110, 231, 183, 0.4);
+  --glass-input-bg: rgba(255, 255, 255, 0.06);
+  --glass-input-border: rgba(52, 211, 153, 0.25);
+  --glass-input-focus: #10b981;
+  --neon-hospital-green: #10b981;
+  --neon-emerald: #059669;
+  --neon-mint: #34d399;
+  --neon-teal: #0d9488;
+}
+
+/* Fullscreen Background & Atmosphere */
+.glass-login-viewport {
+  position: relative;
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--glass-bg-base);
+  background-image: 
+    radial-gradient(circle at 15% 20%, rgba(16, 185, 129, 0.18) 0%, transparent 45%),
+    radial-gradient(circle at 85% 80%, rgba(13, 148, 136, 0.2) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(4, 47, 46, 0.95) 0%, #021a15 100%);
+  overflow: hidden;
+  font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #ffffff;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+/* Subtle Medical Monitor Grid Overlay */
+.glass-grid-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-size: 36px 36px;
+  background-image: 
+    linear-gradient(to right, rgba(52, 211, 153, 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(52, 211, 153, 0.035) 1px, transparent 1px);
+  mask-image: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.8) 0%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.8) 0%, transparent 80%);
+  z-index: 1;
+}
+
+/* Ambient Floating Luminous Glass Orbs (Hospital Green, Emerald, Mint & Teal) */
+.ambient-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  pointer-events: none;
+  opacity: 0.55;
+  z-index: 1;
+  will-change: transform;
+}
+
+.orb-cyan {
+  width: 520px;
+  height: 520px;
+  top: -100px;
+  left: -80px;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.65) 0%, rgba(5, 150, 105, 0.22) 60%, transparent 80%);
+  animation: float-orb-1 18s ease-in-out infinite alternate;
+}
+
+.orb-indigo {
+  width: 560px;
+  height: 560px;
+  bottom: -120px;
+  right: -100px;
+  background: radial-gradient(circle, rgba(13, 148, 136, 0.58) 0%, rgba(4, 120, 87, 0.2) 60%, transparent 80%);
+  animation: float-orb-2 22s ease-in-out infinite alternate;
+}
+
+.orb-rose {
+  width: 400px;
+  height: 400px;
+  top: 35%;
+  left: 45%;
+  background: radial-gradient(circle, rgba(52, 211, 153, 0.42) 0%, rgba(16, 185, 129, 0.12) 60%, transparent 80%);
+  animation: float-orb-3 15s ease-in-out infinite alternate;
+}
+
+.orb-emerald {
+  width: 360px;
+  height: 360px;
+  bottom: 15%;
+  left: 15%;
+  background: radial-gradient(circle, rgba(4, 120, 87, 0.45) 0%, rgba(6, 78, 59, 0.15) 60%, transparent 80%);
+  animation: float-orb-4 20s ease-in-out infinite alternate;
+}
+
+@keyframes float-orb-1 {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(60px, 80px) scale(1.1); }
+  100% { transform: translate(-40px, 50px) scale(0.95); }
+}
+
+@keyframes float-orb-2 {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-80px, -60px) scale(1.15); }
+  100% { transform: translate(50px, -30px) scale(0.9); }
+}
+
+@keyframes float-orb-3 {
+  0% { transform: translate(0, 0) scale(0.9); opacity: 0.3; }
+  50% { transform: translate(50px, -40px) scale(1.2); opacity: 0.5; }
+  100% { transform: translate(-60px, 30px) scale(1); opacity: 0.35; }
+}
+
+@keyframes float-orb-4 {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(40px, -50px) scale(1.08); }
+  100% { transform: translate(-30px, 20px) scale(0.92); }
+}
+
+/* Master Glass Container */
+.glass-container-wrapper {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  max-width: 1260px;
+  display: flex;
+  gap: 32px;
+  align-items: stretch;
+  justify-content: center;
+}
+
+/* Showcase Side (Left Column on Desktop) */
+.glass-showcase-panel {
+  flex: 1.18;
+  background: var(--glass-card-bg);
+  backdrop-filter: blur(28px) saturate(190%);
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
+  border-radius: 26px;
+  border: 1px solid var(--glass-card-border);
+  border-top: 1px solid var(--glass-card-border-top);
+  box-shadow: 
+    0 25px 50px -12px rgba(0, 0, 0, 0.7),
+    inset 0 1px 1px rgba(255, 255, 255, 0.25),
+    0 0 35px rgba(16, 185, 129, 0.15);
+  padding: 44px 48px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Top light sheen for frosted glass realism */
+.glass-showcase-panel::before,
+.glass-login-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 45%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, transparent 100%);
+  pointer-events: none;
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+}
+
+/* Showcase Header Branding */
+.showcase-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  position: relative;
+  z-index: 2;
+}
+
+.brand-badge-group {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.brand-logo-glass {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 18px rgba(16, 185, 129, 0.4);
+}
+
+.brand-title-main {
+  font-size: 1.45rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: #ffffff;
+  margin: 0;
+}
+
+.brand-subtext {
+  font-size: 0.8rem;
+  color: #34d399;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.telemetry-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 30px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  transition: all 0.3s ease;
+}
+
+/* Live Online state: gentle green glow */
+.status-pill-online {
+  background: rgba(16, 185, 129, 0.12) !important;
+  border: 1px solid rgba(16, 185, 129, 0.32) !important;
+  color: #34d399 !important;
+}
+
+.dot-pulse-green {
+  background: #10b981 !important;
+  box-shadow: 0 0 10px #10b981 !important;
+  animation: live-pulse 1.8s infinite !important;
+}
+
+/* Offline state: rapid blinking RED */
+.status-pill-offline {
+  background: rgba(239, 68, 68, 0.18) !important;
+  border: 1px solid rgba(239, 68, 68, 0.65) !important;
+  color: #f87171 !important;
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.45) !important;
+  animation: pill-blink-red 0.8s infinite alternate !important;
+}
+
+.dot-blink-red {
+  background: #ef4444 !important;
+  box-shadow: 0 0 12px #ef4444, 0 0 22px #dc2626 !important;
+  animation: dot-blink-rapid 0.5s infinite alternate !important;
+}
+
+@keyframes pill-blink-red {
+  0% { opacity: 0.55; border-color: rgba(239, 68, 68, 0.3); box-shadow: 0 0 6px rgba(239, 68, 68, 0.2); }
+  100% { opacity: 1; border-color: rgba(239, 68, 68, 0.95); box-shadow: 0 0 20px rgba(239, 68, 68, 0.6); }
+}
+
+@keyframes dot-blink-rapid {
+  0% { transform: scale(0.75); opacity: 0.25; }
+  100% { transform: scale(1.4); opacity: 1; }
+}
+
+@keyframes live-pulse {
+  0% { transform: scale(0.9); opacity: 0.7; }
+  50% { transform: scale(1.4); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0.7; }
+}
+
+/* ========================================================================= */
+/* THE BEAT ANIMATION ARENA (FLYING, BREAKING & BEATING COMBINED)           */
+/* ========================================================================= */
+.beat-arena-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 16px 0 24px 0;
+  padding: 36px 24px;
+  border-radius: 24px;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+
+/* Interactive SVG Stage */
+.beat-svg-stage {
+  width: 100%;
+  max-width: 360px;
+  height: 270px;
+  cursor: pointer;
+  position: relative;
+  z-index: 2;
+  transition: transform 0.2s ease;
+}
+
+.beat-svg-stage:hover {
+  transform: scale(1.02);
+}
+
+/* ========================================================================= */
+/* 3D HOLOGRAPHIC FACIAL MESH CONSOLE ANIMATION SYSTEM                       */
+/* ========================================================================= */
+
+.derma-hologram-arena {
+  position: relative;
+  width: 100%;
+  height: 380px;
+  margin: 6px 0 16px 0;
+  background: radial-gradient(circle at 50% 50%, rgba(6, 44, 38, 0.5) 0%, rgba(2, 26, 21, 0.85) 100%);
+  border-radius: 22px;
+  border: 1px solid rgba(52, 211, 153, 0.28);
+  box-shadow: 
+    inset 0 2px 14px rgba(0, 0, 0, 0.55),
+    0 0 30px rgba(16, 185, 129, 0.15);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.derma-hologram-arena:hover {
+  border-color: rgba(52, 211, 153, 0.48);
+  box-shadow: 
+    inset 0 2px 14px rgba(0, 0, 0, 0.55),
+    0 0 35px rgba(16, 185, 129, 0.3);
+}
+
+/* Full-bleed Female Hologram Canvas & Image System */
+.female-hologram {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  -webkit-mask-image: radial-gradient(55% 58% at 51% 49%, #000 48%, #000b 72%, #0000 100%);
+  mask-image: radial-gradient(55% 58% at 51% 49%, #000 48%, #000b 72%, #0000 100%);
+}
+
+.female-hologram > img,
+.female-hologram > canvas {
+  object-fit: contain;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  inset: 0;
+}
+
+.female-hologram > canvas {
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.female-hologram[data-ready="true"] > canvas {
+  opacity: 1;
+}
+
+.female-hologram[data-ready="true"] > img {
+  opacity: 0;
+}
+
+/* Compact Hologram Badge (for Authentication card header) */
+.female-hologram.mini-hologram {
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  overflow: hidden;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.25) 0%, rgba(5, 150, 105, 0.3) 100%);
+  border: 1px solid rgba(52, 211, 153, 0.4);
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.35);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ========================================================================= */
+/* THE RIGHT LOGIN CARD (AUTHENTIC GLASSMORPHISM FORM)                      */
+/* ========================================================================= */
+.glass-login-card {
+  width: 500px;
+  max-width: 100%;
+  background: var(--glass-card-bg);
+  backdrop-filter: blur(28px) saturate(190%);
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
+  border-radius: 26px;
+  border: 1px solid var(--glass-card-border);
+  border-top: 1px solid var(--glass-card-border-top);
+  box-shadow: 
+    0 30px 60px -12px rgba(0, 0, 0, 0.75),
+    inset 0 1px 1px rgba(255, 255, 255, 0.25),
+    0 0 35px rgba(16, 185, 129, 0.15);
+  padding: 48px 42px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* Form Top Identity with Mini Animated Beat */
+.login-header-section {
+  text-align: center;
+  margin-bottom: 26px;
+  position: relative;
+  z-index: 2;
+}
+
+.mini-beat-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.25) 0%, rgba(5, 150, 105, 0.25) 100%);
+  border: 1px solid rgba(52, 211, 153, 0.35);
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.35);
+  margin-bottom: 14px;
+}
+
+.mini-beat-icon {
+  animation: mini-beat 1.8s ease-in-out infinite;
+}
+
+@keyframes mini-beat {
+  0% { transform: scale(1); }
+  25% { transform: scale(1.15); filter: drop-shadow(0 0 10px #34d399); }
+  50% { transform: scale(1.04); }
+  75% { transform: scale(1.12); filter: drop-shadow(0 0 12px #fb7185); }
+  100% { transform: scale(1); }
+}
+
+.login-title {
+  font-size: 1.65rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.025em;
+}
+
+.login-subtitle {
+  font-size: 0.88rem;
+  color: #94a3b8;
+  margin: 0;
+  line-height: 1.45;
+}
+
+/* Glass Input Fields */
+.glass-field-group {
+  margin-bottom: 22px;
+}
+
+.glass-field-label {
+  display: block;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #cbd5e1;
+  margin-bottom: 8px;
+  letter-spacing: 0.01em;
+}
+
+.glass-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.glass-input-icon {
+  position: absolute;
+  left: 16px;
+  color: #94a3b8;
+  pointer-events: none;
+  transition: color 0.2s ease;
+}
+
+.glass-input {
+  width: 100%;
+  height: 54px;
+  background: var(--glass-input-bg) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid var(--glass-input-border) !important;
+  border-radius: 14px !important;
+  padding: 0 48px 0 50px !important;
+  font-size: 0.98rem !important;
+  color: #ffffff !important;
+  box-sizing: border-box !important;
+  outline: none !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease !important;
+}
+
+.glass-input::placeholder {
+  color: #64748b;
+  font-size: 0.92rem;
+}
+
+.glass-input:focus {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: var(--glass-input-focus) !important;
+  box-shadow: 0 0 22px rgba(16, 185, 129, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.15) !important;
+}
+
+.glass-input:focus + .glass-input-icon,
+.glass-input-wrapper:focus-within .glass-input-icon {
+  color: #34d399;
+}
+
+.glass-eye-btn {
+  position: absolute;
+  right: 14px;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.glass-eye-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Glass Primary Sign-In Button (Hospital Green) */
+.glass-btn-submit {
+  width: 100%;
+  height: 54px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #059669 0%, #10b981 50%, #0d9488 100%);
+  border: 1px solid rgba(167, 243, 208, 0.4);
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-shadow: 
+    0 10px 25px -5px rgba(16, 185, 129, 0.45),
+    inset 0 1px 1px rgba(255, 255, 255, 0.35);
+  transition: all 0.2s ease;
+  margin-top: 14px;
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-btn-submit::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.6s ease;
+}
+
+.glass-btn-submit:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 15px 30px -5px rgba(16, 185, 129, 0.65),
+    0 0 25px rgba(52, 211, 153, 0.55),
+    inset 0 1px 1px rgba(255, 255, 255, 0.45);
+}
+
+.glass-btn-submit:hover:not(:disabled)::before {
+  left: 100%;
+}
+
+.glass-btn-submit:active:not(:disabled) {
+  transform: translateY(0) scale(0.99);
+}
+
+.glass-btn-submit:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* Security Trust Footer */
+.security-trust-strip {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #94a3b8;
+  font-size: 0.72rem;
+  text-align: center;
+}
+
+/* ========================================================================= */
+/* RESPONSIVE DESIGN (TABLETS & MOBILE DEVICES)                              */
+/* ========================================================================= */
+@media (max-width: 992px) {
+  .glass-container-wrapper {
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+  
+  .glass-showcase-panel {
+    width: 100%;
+    max-width: 520px;
+    padding: 28px 24px;
+  }
+
+  .glass-login-card {
+    width: 100%;
+    max-width: 520px;
+    padding: 32px 24px;
+  }
+}
+
+@media (max-width: 640px) {
+  .glass-login-viewport {
+    padding: 14px 10px;
+  }
+
+  .brand-title-main {
+    font-size: 1.25rem;
+  }
+
+  .showcase-features-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .beat-svg-stage {
+    max-width: 280px;
+    height: 200px;
+  }
+
+  .telemetry-readout-strip {
+    font-size: 0.95rem;
+  }
+
+  .quick-roles-bar {
+    flex-wrap: wrap;
+  }
+
+  .quick-roles-label {
+    width: 100%;
+    margin-bottom: 4px;
+  }
+}

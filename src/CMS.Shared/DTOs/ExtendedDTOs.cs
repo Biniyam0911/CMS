@@ -49,7 +49,7 @@ public record MedicalCertificateDto(
 
 public record CreateMedicalCertificateDto(
     byte TenantId, int PatientId, int DoctorId, int? EncounterId, string CertificateType,
-    string DiagnosisSummary, string Recommendation, DateTime StartDate, DateTime EndDate);
+    string DiagnosisSummary, string? Recommendation, DateTime StartDate, DateTime EndDate, int? DaysExcused = null);
 
 public record ProcedureOrderDto(
     int Id, int EncounterId, int PatientId, string PatientName, int OrderedBy, string DoctorName,

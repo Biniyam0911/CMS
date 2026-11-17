@@ -74,6 +74,7 @@ public class EncounterDto
 
 public class CreateEncounterDto
 {
+    public int? Id { get; set; }
     public byte TenantId { get; set; } = 1;
     public int? AppointmentId { get; set; }
     public int PatientId { get; set; }

@@ -28,6 +28,13 @@ public class AuthController : ControllerBase
         _config = config;
     }
 
+    [HttpGet("health")]
+    [Microsoft.AspNetCore.Authorization.AllowAnonymous]
+    public IActionResult HealthCheck()
+    {
+        return Ok(ApiResponse<dynamic>.Ok(new { status = "healthy", service = "CMS.API", timestamp = DateTime.UtcNow }));
+    }
+
     [HttpPost("login")]
     [Microsoft.AspNetCore.Authorization.AllowAnonymous]
     [EnableRateLimiting("AuthPolicy")]

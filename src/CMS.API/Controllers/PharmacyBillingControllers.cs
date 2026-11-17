@@ -26,6 +26,14 @@ public class PharmacyController : ControllerBase
         return Ok(ApiResponse<List<DrugFormularyDto>>.Ok(drugs));
     }
 
+    [HttpPost("formulary")]
+    public async Task<IActionResult> CreateFormularyDrug([FromBody] CreateFormularyDrugDto dto)
+    {
+        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+        var result = await _pharmacyService.CreateFormularyDrugAsync(tenantId, dto);
+        return Ok(ApiResponse<object>.Ok(result, "Medication added successfully to Pharmacy and Services."));
+    }
+
     [HttpGet("prescriptions")]
     public async Task<IActionResult> GetPrescriptions([FromQuery] int? patientId = null, [FromQuery] int limit = 2000)
     {

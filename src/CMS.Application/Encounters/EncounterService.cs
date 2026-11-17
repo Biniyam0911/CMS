@@ -26,6 +26,53 @@ public class EncounterService
             if (apptExists > 0) validAppointmentId = dto.AppointmentId.Value;
         }
 
+        int targetDoctorId = dto.DoctorId > 0 ? dto.DoctorId : 1;
+        int targetCreatedBy = dto.CreatedBy > 0 ? dto.CreatedBy : 1;
+        string? targetPlan = dto.Plan ?? dto.SoapPlan;
+
+        // If specific ID is passed or an encounter for this patient already exists today, UPDATE instead of repeatedly INSERTing
+        int? existingId = dto.Id.HasValue && dto.Id.Value > 0 ? dto.Id.Value : null;
+        if (!existingId.HasValue)
+        {
+            existingId = await conn.ExecuteScalarAsync<int?>(@"
+                SELECT TOP 1 Id FROM Encounters 
+                WHERE TenantId = @TenantId 
+                  AND PatientId = @PatientId 
+                  AND CAST(EncounterDate AS DATE) = CAST(GETDATE() AS DATE)
+                ORDER BY Id DESC",
+                new { dto.TenantId, dto.PatientId });
+        }
+
+        if (existingId.HasValue && existingId.Value > 0)
+        {
+            var updateSql = @"
+                UPDATE Encounters
+                SET DoctorId = @DoctorId,
+                    ChiefComplaint = @ChiefComplaint,
+                    HistoryOfIllness = @HistoryOfIllness,
+                    PhysicalExam = @PhysicalExam,
+                    Assessment = @Assessment,
+                    [Plan] = @Plan,
+                    VitalSigns = @VitalSigns,
+                    IsFinalized = 1,
+                    FinalizedAt = GETDATE()
+                WHERE Id = @Id AND TenantId = @TenantId;";
+
+            await conn.ExecuteAsync(updateSql, new {
+                Id = existingId.Value,
+                dto.TenantId,
+                DoctorId = targetDoctorId,
+                dto.ChiefComplaint,
+                dto.HistoryOfIllness,
+                dto.PhysicalExam,
+                dto.Assessment,
+                Plan = targetPlan,
+                dto.VitalSigns
+            });
+
+            return existingId.Value;
+        }
+
         var sql = @"
             INSERT INTO Encounters (TenantId, AppointmentId, PatientId, DoctorId, EncounterDate, EncounterTime,
                                     ChiefComplaint, HistoryOfIllness, PhysicalExam, Assessment, [Plan], VitalSigns, IsFinalized, FinalizedAt, CreatedBy, CreatedAt)
@@ -37,16 +84,88 @@ public class EncounterService
             dto.TenantId,
             AppointmentId = validAppointmentId,
             dto.PatientId,
-            DoctorId = dto.DoctorId > 0 ? dto.DoctorId : 1,
+            DoctorId = targetDoctorId,
             dto.ChiefComplaint,
             dto.HistoryOfIllness,
             dto.PhysicalExam,
             dto.Assessment,
-            Plan = dto.Plan ?? dto.SoapPlan,
+            Plan = targetPlan,
             dto.VitalSigns,
-            CreatedBy = dto.CreatedBy > 0 ? dto.CreatedBy : 1
+            CreatedBy = targetCreatedBy
         });
         return id;
+    }
+
+    public async Task<bool> UpdateEncounterAsync(int id, CreateEncounterDto dto)
+    {
+        dto.Id = id;
+        await CreateEncounterAsync(dto);
+        return true;
+    }
+
+    public async Task<int> ReverseClinicalDataAsync(byte tenantId, int patientId, DateTime date)
+    {
+        using var conn = _dbFactory.CreateConnection();
+        conn.Open();
+        using var tran = conn.BeginTransaction();
+        try
+        {
+            var pDate = date.Date;
+
+            // 1. Delete PrescriptionItems
+            await conn.ExecuteAsync(@"
+                DELETE pi
+                FROM PrescriptionItems pi
+                JOIN Prescriptions p ON p.Id = pi.PrescriptionId
+                WHERE p.TenantId = @TenantId AND p.PatientId = @PatientId
+                  AND CAST(p.PrescribedAt AS DATE) = @Date",
+                new { TenantId = tenantId, PatientId = patientId, Date = pDate }, tran);
+
+            // 2. Delete Prescriptions
+            int deletedPrescriptions = await conn.ExecuteAsync(@"
+                DELETE FROM Prescriptions
+                WHERE TenantId = @TenantId AND PatientId = @PatientId
+                  AND CAST(PrescribedAt AS DATE) = @Date",
+                new { TenantId = tenantId, PatientId = patientId, Date = pDate }, tran);
+
+            // 3. Delete Diagnoses
+            await conn.ExecuteAsync(@"
+                DELETE d
+                FROM Diagnoses d
+                JOIN Encounters e ON e.Id = d.EncounterId
+                WHERE e.TenantId = @TenantId AND e.PatientId = @PatientId
+                  AND CAST(e.EncounterDate AS DATE) = @Date",
+                new { TenantId = tenantId, PatientId = patientId, Date = pDate }, tran);
+
+            // 4. Delete MedicalCertificates
+            int deletedCerts = await conn.ExecuteAsync(@"
+                DELETE FROM MedicalCertificates
+                WHERE TenantId = @TenantId AND PatientId = @PatientId
+                  AND (CAST(StartDate AS DATE) = @Date OR CAST(IssuedAt AS DATE) = @Date)",
+                new { TenantId = tenantId, PatientId = patientId, Date = pDate }, tran);
+
+            // 5. Delete ProcedureOrders
+            int deletedProcs = await conn.ExecuteAsync(@"
+                DELETE FROM ProcedureOrders
+                WHERE TenantId = @TenantId AND PatientId = @PatientId
+                  AND CAST(CreatedAt AS DATE) = @Date",
+                new { TenantId = tenantId, PatientId = patientId, Date = pDate }, tran);
+
+            // 6. Delete Encounters
+            int deletedEncounters = await conn.ExecuteAsync(@"
+                DELETE FROM Encounters
+                WHERE TenantId = @TenantId AND PatientId = @PatientId
+                  AND CAST(EncounterDate AS DATE) = @Date",
+                new { TenantId = tenantId, PatientId = patientId, Date = pDate }, tran);
+
+            tran.Commit();
+            return deletedEncounters + deletedPrescriptions + deletedCerts + deletedProcs;
+        }
+        catch
+        {
+            tran.Rollback();
+            throw;
+        }
     }
 
     public async Task AddDiagnosisAsync(CreateDiagnosisDto dto)
@@ -112,7 +231,7 @@ public class EncounterService
                     COALESCE(t.ChiefComplaint, 'Outpatient Consultation') AS ChiefComplaint,
                     NULL AS HistoryOfIllness,
                     NULL AS PhysicalExam,
-                    COALESCE(t.NurseNotes, t.TriageCategory, 'Consultation') AS Assessment,
+                    NULL AS Assessment,
                     t.Status AS [Plan],
                     NULL AS VitalSigns,
                     1 AS IsFinalized,

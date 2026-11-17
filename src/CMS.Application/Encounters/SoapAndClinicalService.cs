@@ -27,8 +27,9 @@ public class SoapAndClinicalService
     {
         using var conn = _dbFactory.CreateConnection();
         var certNo = $"MC-{DateTime.UtcNow.Year}-{Guid.NewGuid().ToString("N")[..6].ToUpper()}";
-        var daysExcused = (int)(dto.EndDate.Date - dto.StartDate.Date).TotalDays + 1;
-        if (daysExcused < 1) daysExcused = 1;
+        var daysExcused = dto.DaysExcused.HasValue
+            ? Math.Max(0, dto.DaysExcused.Value)
+            : Math.Max(0, (int)(dto.EndDate.Date - dto.StartDate.Date).TotalDays + 1);
 
         var qrCode = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"{certNo}|{dto.PatientId}|{dto.StartDate:yyyy-MM-dd}")))[..16];
 

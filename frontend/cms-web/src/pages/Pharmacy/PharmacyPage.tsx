@@ -120,15 +120,15 @@ export default function PharmacyPage() {
       if (formularyData && formularyData.length > 0) {
         const mappedDrugs = formularyData.map((d: any) => ({
           id: d.id || d.Id,
-          code: d.drugCode || d.DrugCode || `DRUG-00${d.id || d.Id}`,
+          code: d.drugCode || d.DrugCode || d.code || d.Code || `DRUG-00${d.id || d.Id}`,
           generic: d.genericName || d.GenericName,
           brand: d.brandName || d.BrandName || d.genericName || d.GenericName,
           form: d.dosageForm || d.DosageForm || 'Tablet',
           strength: d.strength || d.Strength || '',
-          stock: d.currentStock || d.CurrentStock || 0,
-          minStock: d.minStockLevel || d.MinStockLevel || 20,
-          costPrice: d.costPrice || d.CostPrice || 10.0,
-          sellingPrice: d.sellingPrice || d.SellingPrice || d.unitPrice || d.UnitPrice || 15.0,
+          stock: d.currentStock ?? d.CurrentStock ?? d.stockQuantity ?? d.StockQuantity ?? 0,
+          minStock: d.minStockLevel ?? d.MinStockLevel ?? 20,
+          costPrice: parseFloat(d.costPrice ?? d.CostPrice ?? 0) || 0,
+          sellingPrice: parseFloat(d.sellingPrice ?? d.SellingPrice ?? d.unitPrice ?? d.UnitPrice ?? 0) || 0,
           batchNo: d.batchNumber || d.BatchNumber || 'BATCH-2026-A',
           expiryDate: d.expiryDate ? String(d.expiryDate).split('T')[0] : '2028-12-31',
           isControlled: Boolean(d.isControlled || d.IsControlled)
@@ -214,27 +214,53 @@ export default function PharmacyPage() {
     setRestockBatch(`BATCH-2026-${Math.floor(100 + Math.random() * 900)}`);
   };
 
-  const handleAddDrugSubmit = (e: React.FormEvent) => {
+  const handleAddDrugSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newId = drugs.length + 1;
-    const newD = {
-      id: newId,
-      code: `DRUG-00${newId}`,
-      generic: genericName,
-      brand: brandName || genericName,
-      form,
-      strength,
-      stock: parseInt(initialStock) || 0,
-      minStock: parseInt(minStock) || 20,
-      costPrice: parseFloat(costPrice) || 0,
-      sellingPrice: parseFloat(sellingPrice) || 0,
-      batchNo,
-      expiryDate: '2028-12-31',
-      isControlled
-    };
-    setDrugs([...drugs, newD]);
-    setShowAddModal(false);
-    setGenericName(''); setBrandName(''); setStrength('');
+    try {
+      const payload = {
+        genericName: genericName.trim(),
+        brandName: brandName.trim() || genericName.trim(),
+        form,
+        strength: strength.trim(),
+        stockQuantity: parseInt(initialStock) || 100,
+        minStockLevel: parseInt(minStock) || 20,
+        costPrice: parseFloat(costPrice) || 0,
+        sellingPrice: parseFloat(sellingPrice) || 0,
+        batchNumber: batchNo.trim() || 'BATCH-2026-NEW',
+        expiryDate: '2028-12-31',
+        isControlled,
+        drugClass: 'Pharmacy'
+      };
+
+      await api.post('/pharmacy/formulary', payload);
+
+      // Re-fetch formulary to have latest database-synced data
+      const updatedFormulary = await api.get<any[]>('/pharmacy/formulary');
+      if (Array.isArray(updatedFormulary)) {
+        setDrugs(updatedFormulary.map((d: any) => ({
+          id: d.id || d.Id,
+          code: d.drugCode || d.DrugCode || d.code || d.Code || `DRUG-00${d.id || d.Id}`,
+          generic: d.genericName || d.GenericName,
+          brand: d.brandName || d.BrandName || d.genericName || d.GenericName,
+          form: d.dosageForm || d.DosageForm || 'Tablet',
+          strength: d.strength || d.Strength || '',
+          stock: d.currentStock ?? d.CurrentStock ?? d.stockQuantity ?? d.StockQuantity ?? 0,
+          minStock: d.minStockLevel ?? d.MinStockLevel ?? 20,
+          costPrice: parseFloat(d.costPrice ?? d.CostPrice ?? 0) || 0,
+          sellingPrice: parseFloat(d.sellingPrice ?? d.SellingPrice ?? d.unitPrice ?? d.UnitPrice ?? 0) || 0,
+          batchNo: d.batchNumber || d.BatchNumber || 'BATCH-2026-A',
+          expiryDate: d.expiryDate ? String(d.expiryDate).split('T')[0] : '2028-12-31',
+          isControlled: Boolean(d.isControlled || d.IsControlled)
+        })));
+      }
+
+      window.dispatchEvent(new Event('pharmacy_inventory_changed'));
+      setShowAddModal(false);
+      setGenericName(''); setBrandName(''); setStrength('');
+    } catch (err: any) {
+      console.error('Failed to add medication:', err);
+      alert('Failed to add medication: ' + (err?.message || 'Server error'));
+    }
   };
 
   const handleRestockSubmit = async (e: React.FormEvent) => {
@@ -1174,8 +1200,15 @@ export default function PharmacyPage() {
                     <option value="Tablet">Tablet</option>
                     <option value="Capsule">Capsule</option>
                     <option value="Syrup">Syrup</option>
+                    <option value="Cream">Cream</option>
+                    <option value="Ointment">Ointment</option>
+                    <option value="Lotion">Lotion</option>
+                    <option value="Gel">Gel</option>
+                    <option value="Soap">Soap</option>
                     <option value="Injection">Injection</option>
                     <option value="Inhaler">Inhaler</option>
+                    <option value="Suspension">Suspension</option>
+                    <option value="Drops">Drops</option>
                   </select>
                 </div>
                 <div>

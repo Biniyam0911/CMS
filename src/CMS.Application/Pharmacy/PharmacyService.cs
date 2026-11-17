@@ -22,17 +22,148 @@ public class PharmacyService
         if (cached != null) return cached;
 
         using var conn = _dbFactory.CreateConnection();
+
+        // 1. Ensure any active pharmacy services in dbo.Services have a corresponding entry in dbo.DrugFormulary
+        await conn.ExecuteAsync(@"
+            INSERT INTO dbo.DrugFormulary (TenantId, GenericName, BrandName, DrugClass, Form, Strength, Unit, StockQuantity, MinStockLevel, CostPrice, SellingPrice, UnitPrice, BatchNumber, ExpiryDate, IsControlled, IsActive, CreatedAt, UpdatedAt)
+            SELECT 
+                s.TenantId,
+                s.Name AS GenericName,
+                s.Name AS BrandName,
+                COALESCE(s.Department, 'Pharmacy') AS DrugClass,
+                CASE 
+                    WHEN LOWER(s.Name) LIKE '%cream%' THEN 'Cream'
+                    WHEN LOWER(s.Name) LIKE '%ointment%' OR LOWER(s.Name) LIKE '%oint%' THEN 'Ointment'
+                    WHEN LOWER(s.Name) LIKE '%lotion%' THEN 'Lotion'
+                    WHEN LOWER(s.Name) LIKE '%soap%' OR LOWER(s.Name) LIKE '%bar%' THEN 'Soap'
+                    WHEN LOWER(s.Name) LIKE '%gel%' OR LOWER(s.Name) LIKE '%jel%' THEN 'Gel'
+                    WHEN LOWER(s.Name) LIKE '%shampoo%' THEN 'Shampoo'
+                    WHEN LOWER(s.Name) LIKE '%spray%' OR LOWER(s.Name) LIKE '%spay%' THEN 'Spray'
+                    WHEN LOWER(s.Name) LIKE '%capsule%' OR LOWER(s.Name) LIKE '%cap%' THEN 'Capsule'
+                    WHEN LOWER(s.Name) LIKE '%syrup%' OR LOWER(s.Name) LIKE '%susp%' THEN 'Syrup'
+                    WHEN LOWER(s.Name) LIKE '%inj%' OR LOWER(s.Name) LIKE '%amp%' THEN 'Injection'
+                    ELSE 'Tablet'
+                END AS Form,
+                '' AS Strength,
+                'Unit' AS Unit,
+                100 AS StockQuantity,
+                20 AS MinStockLevel,
+                0.00 AS CostPrice,
+                s.Price AS SellingPrice,
+                s.Price AS UnitPrice,
+                'BATCH-2026-A' AS BatchNumber,
+                '2028-12-31' AS ExpiryDate,
+                0 AS IsControlled,
+                1 AS IsActive,
+                GETDATE() AS CreatedAt,
+                GETDATE() AS UpdatedAt
+            FROM dbo.Services s WITH (NOLOCK)
+            WHERE s.TenantId = @TenantId AND s.Category = 'Pharmacy' AND s.IsActive = 1
+              AND NOT EXISTS (
+                  SELECT 1 FROM dbo.DrugFormulary d WITH (NOLOCK)
+                  WHERE d.TenantId = s.TenantId AND (d.GenericName = s.Name OR d.BrandName = s.Name)
+              );", new { TenantId = tenantId });
+
+        // 2. Fetch the pharmacy formulary items sourced directly from dbo.Services (Category = 'Pharmacy')
         var sql = @"
-            SELECT Id, TenantId, GenericName, BrandName, DrugClass, Form, Form AS DosageForm,
-                   Strength, Unit, StockQuantity, StockQuantity AS CurrentStock, MinStockLevel,
-                   CostPrice, SellingPrice, UnitPrice, BatchNumber, ExpiryDate, IsControlled, IsActive
-            FROM DrugFormulary WITH (NOLOCK)
-            WHERE TenantId = @TenantId AND IsActive = 1
-            ORDER BY GenericName";
+            SELECT 
+                COALESCE(d.Id, s.Id) AS Id,
+                s.Id AS ServiceId,
+                s.TenantId,
+                s.Name AS GenericName,
+                COALESCE(d.BrandName, s.Name) AS BrandName,
+                s.Code AS DrugCode,
+                COALESCE(d.DrugClass, s.Department, 'Pharmacy') AS DrugClass,
+                COALESCE(d.Form, 'Tablet') AS Form,
+                COALESCE(d.Form, 'Tablet') AS DosageForm,
+                COALESCE(d.Strength, '') AS Strength,
+                COALESCE(d.Unit, 'Unit') AS Unit,
+                COALESCE(d.StockQuantity, 100) AS StockQuantity,
+                COALESCE(d.StockQuantity, 100) AS CurrentStock,
+                COALESCE(d.MinStockLevel, 20) AS MinStockLevel,
+                COALESCE(d.CostPrice, 0.00) AS CostPrice,
+                COALESCE(s.Price, d.SellingPrice, d.UnitPrice, 0.00) AS SellingPrice,
+                COALESCE(s.Price, d.UnitPrice, d.SellingPrice, 0.00) AS UnitPrice,
+                COALESCE(d.BatchNumber, 'BATCH-2026-A') AS BatchNumber,
+                COALESCE(d.ExpiryDate, '2028-12-31') AS ExpiryDate,
+                COALESCE(d.IsControlled, 0) AS IsControlled,
+                s.IsActive
+            FROM dbo.Services s WITH (NOLOCK)
+            LEFT JOIN dbo.DrugFormulary d WITH (NOLOCK) 
+                ON s.TenantId = d.TenantId AND (s.Name = d.GenericName OR s.Name = d.BrandName)
+            WHERE s.TenantId = @TenantId AND s.Category = 'Pharmacy' AND s.IsActive = 1
+            ORDER BY s.Name ASC";
 
         var drugs = (await conn.QueryAsync<DrugFormularyDto>(sql, new { TenantId = tenantId })).ToList();
         await _cache.SetAsync(cacheKey, drugs, TimeSpan.FromMinutes(15));
         return drugs;
+    }
+
+    public async Task<object> CreateFormularyDrugAsync(byte tenantId, CreateFormularyDrugDto dto)
+    {
+        using var conn = _dbFactory.CreateConnection();
+
+        // Generate Code (e.g. PH162)
+        string code = dto.Code?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            var maxNum = await conn.ExecuteScalarAsync<int?>(@"
+                SELECT MAX(TRY_CAST(SUBSTRING(Code, 3, 10) AS INT))
+                FROM dbo.Services WITH (NOLOCK)
+                WHERE TenantId = @TenantId AND Category = 'Pharmacy' AND Code LIKE 'PH%'",
+                new { TenantId = tenantId }) ?? 161;
+            code = $"PH{maxNum + 1}";
+        }
+
+        string genericName = dto.GenericName.Trim();
+        string brandName = string.IsNullOrWhiteSpace(dto.BrandName) ? genericName : dto.BrandName.Trim();
+        string form = string.IsNullOrWhiteSpace(dto.Form) ? "Tablet" : dto.Form.Trim();
+        string strength = dto.Strength?.Trim() ?? string.Empty;
+        string desc = !string.IsNullOrWhiteSpace(dto.BrandName) ? $"Brand: {brandName} · {form} {strength}".Trim() : $"{form} {strength}".Trim();
+
+        // 1. Insert into dbo.Services (Category = 'Pharmacy')
+        var sqlService = @"
+            INSERT INTO dbo.Services (TenantId, Code, Name, Category, Department, Price, Taxable, IsActive, Description, CreatedAt, UpdatedAt)
+            OUTPUT INSERTED.Id
+            VALUES (@TenantId, @Code, @Name, 'Pharmacy', 'Pharmacy', @Price, 0, 1, @Description, GETDATE(), GETDATE());";
+
+        int serviceId = await conn.ExecuteScalarAsync<int>(sqlService, new {
+            TenantId = tenantId,
+            Code = code,
+            Name = genericName,
+            Price = dto.SellingPrice,
+            Description = desc
+        });
+
+        // 2. Insert into dbo.DrugFormulary
+        var sqlDrug = @"
+            INSERT INTO dbo.DrugFormulary (TenantId, GenericName, BrandName, DrugClass, Form, Strength, Unit, StockQuantity, MinStockLevel, CostPrice, SellingPrice, UnitPrice, BatchNumber, ExpiryDate, IsControlled, IsActive, CreatedAt, UpdatedAt)
+            OUTPUT INSERTED.Id
+            VALUES (@TenantId, @GenericName, @BrandName, @DrugClass, @Form, @Strength, @Unit, @StockQuantity, @MinStockLevel, @CostPrice, @SellingPrice, @UnitPrice, @BatchNumber, @ExpiryDate, @IsControlled, 1, GETDATE(), GETDATE());";
+
+        int drugId = await conn.ExecuteScalarAsync<int>(sqlDrug, new {
+            TenantId = tenantId,
+            GenericName = genericName,
+            BrandName = brandName,
+            DrugClass = string.IsNullOrWhiteSpace(dto.DrugClass) ? "Pharmacy" : dto.DrugClass.Trim(),
+            Form = form,
+            Strength = strength,
+            Unit = form,
+            StockQuantity = dto.StockQuantity > 0 ? dto.StockQuantity : 100,
+            MinStockLevel = dto.MinStockLevel > 0 ? dto.MinStockLevel : 20,
+            CostPrice = dto.CostPrice,
+            SellingPrice = dto.SellingPrice,
+            UnitPrice = dto.SellingPrice,
+            BatchNumber = string.IsNullOrWhiteSpace(dto.BatchNumber) ? "BATCH-2026-A" : dto.BatchNumber.Trim(),
+            ExpiryDate = dto.ExpiryDate ?? new DateTime(2028, 12, 31),
+            IsControlled = dto.IsControlled
+        });
+
+        // 3. Clear relevant caches
+        await _cache.RemoveByPrefixAsync($"tenant:{tenantId}:services");
+        await _cache.RemoveByPrefixAsync($"tenant:{tenantId}:pharmacy:formulary");
+
+        return new { ServiceId = serviceId, DrugId = drugId, Code = code, GenericName = genericName, BrandName = brandName, Price = dto.SellingPrice };
     }
 
     public async Task<int> CreatePrescriptionAsync(CreatePrescriptionDto dto)
@@ -126,14 +257,33 @@ public class PharmacyService
                         durationDays = parsedDays;
                 }
 
-                // If DrugId is provided, check if it exists in DrugFormulary. Otherwise set to null for custom medication.
+                // If DrugId is provided, check if it exists in DrugFormulary or map from dbo.Services
                 int? validDrugId = null;
                 if (item.DrugId.HasValue && item.DrugId.Value > 0)
                 {
                     var exists = await conn.ExecuteScalarAsync<int?>(
                         "SELECT TOP 1 Id FROM DrugFormulary WHERE Id = @Id", new { Id = item.DrugId.Value });
                     if (exists.HasValue && exists.Value > 0)
+                    {
                         validDrugId = exists.Value;
+                    }
+                    else
+                    {
+                        // Check if item.DrugId is a ServiceId from dbo.Services
+                        validDrugId = await conn.ExecuteScalarAsync<int?>(@"
+                            SELECT TOP 1 d.Id 
+                            FROM dbo.Services s WITH (NOLOCK)
+                            INNER JOIN dbo.DrugFormulary d WITH (NOLOCK) 
+                                ON s.TenantId = d.TenantId AND (s.Name = d.GenericName OR s.Name = d.BrandName)
+                            WHERE s.Id = @ServiceId", new { ServiceId = item.DrugId.Value });
+                    }
+                }
+                if (!validDrugId.HasValue && !string.IsNullOrWhiteSpace(item.Instructions))
+                {
+                    validDrugId = await conn.ExecuteScalarAsync<int?>(@"
+                        SELECT TOP 1 Id FROM dbo.DrugFormulary WITH (NOLOCK)
+                        WHERE GenericName = @Name OR BrandName = @Name",
+                        new { Name = item.Instructions.Trim() });
                 }
 
                 await conn.ExecuteAsync(sqlItem, new {
@@ -187,8 +337,18 @@ public class PharmacyService
             dto.UnitCostPrice, dto.UnitSellingPrice, dto.ExpiryDate, dto.SupplierName, RestockedBy = staffId
         });
 
-        // Invalidate Redis cache
+        // Also sync price to dbo.Services (Category = 'Pharmacy')
+        await conn.ExecuteAsync(@"
+            UPDATE dbo.Services
+            SET Price = @UnitSellingPrice, UpdatedAt = GETDATE()
+            WHERE TenantId = @TenantId AND Category = 'Pharmacy' 
+              AND (Name = (SELECT TOP 1 GenericName FROM dbo.DrugFormulary WHERE Id = @DrugId)
+                OR Name = (SELECT TOP 1 BrandName FROM dbo.DrugFormulary WHERE Id = @DrugId));",
+            new { dto.UnitSellingPrice, TenantId = tenantId, dto.DrugId });
+
+        // Invalidate Redis caches
         await _cache.RemoveAsync($"tenant:{tenantId}:pharmacy:formulary");
+        await _cache.RemoveByPrefixAsync($"tenant:{tenantId}:services");
     }
 
     public async Task<List<PrescriptionDto>> GetPrescriptionsAsync(byte tenantId, int? patientId = null, int limit = 100)

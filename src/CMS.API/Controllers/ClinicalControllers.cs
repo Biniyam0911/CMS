@@ -154,6 +154,25 @@ public class EncountersController : ControllerBase
         return Ok(ApiResponse<object>.Ok(new { EncounterId = encounterId }));
     }
 
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> Update(int id, [FromBody] CreateEncounterDto dto)
+    {
+        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+        dto.TenantId = tenantId;
+        dto.Id = id;
+        int encounterId = await _encounterService.CreateEncounterAsync(dto);
+        return Ok(ApiResponse<object>.Ok(new { EncounterId = encounterId, Success = true }));
+    }
+
+    [HttpDelete("patient/{patientId:int}/reverse")]
+    public async Task<IActionResult> ReverseClinicalData(int patientId, [FromQuery] DateTime? date = null)
+    {
+        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+        DateTime targetDate = date?.Date ?? DateTime.UtcNow.Date;
+        int reversedCount = await _encounterService.ReverseClinicalDataAsync(tenantId, patientId, targetDate);
+        return Ok(ApiResponse<object>.Ok(new { PatientId = patientId, Date = targetDate, ReversedRecordsCount = reversedCount }));
+    }
+
     [HttpPost("{encounterId}/diagnoses")]
     public async Task<IActionResult> AddDiagnosis(int encounterId, [FromBody] CreateDiagnosisDto dto)
     {

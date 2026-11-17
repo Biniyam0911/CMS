@@ -24,7 +24,7 @@ import {
   FlaskConical, History, Calendar, Check, Send, AlertTriangle, ShieldAlert, Loader2,
   ChevronDown, ChevronRight, ShoppingCart, Pill, Scissors, Clock, ArrowRight,
   Sparkles, CheckSquare, Layers, FileCheck, ShieldCheck, CreditCard, Eye,
-  ChevronLeft, Users, ChevronUp, DollarSign, RefreshCw, Lock
+  ChevronLeft, Users, ChevronUp, DollarSign, RefreshCw, Lock, RotateCcw, Star
 } from 'lucide-react';
 import { api, logAudit } from '../../api/apiClient';
 import { evaluateCdsAlerts, CdsAlert } from '../../utils/cdsRuleEngine';
@@ -371,9 +371,13 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
   const [isSaved, setIsSaved] = useState(false);
 
   // HUDERMA Medical Certificate State
+  const [currentEncounterId, setCurrentEncounterId] = useState<number | null>(null);
+  const [isReversing, setIsReversing] = useState(false);
+
+  // HUDERMA Medical Certificate State
   const [certDiagnosis, setCertDiagnosis] = useState('');
-  const [daysExcused, setDaysExcused] = useState(5);
-  const [recommendation, setRecommendation] = useState('Strict rest, avoid sun & heat exposure, and apply prescribed topical medication.');
+  const [daysExcused, setDaysExcused] = useState<number | ''>('');
+  const [recommendation, setRecommendation] = useState('');
   const [certExamDate, setCertExamDate] = useState(new Date().toISOString().split('T')[0]);
   const getInitialDoctorName = () => {
     if (currentUser?.firstName) {
@@ -893,7 +897,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
     { id: 'PARA', name: 'Paracetamol 500mg Tablet', class: 'Analgesic / Antipyretic', defaultDosage: '1-2 Tablets (500-1000mg)', defaultRoute: 'Oral', defaultFreq: 'Three Times Daily (TID) PRN', defaultDuration: '5 Days', defaultDurationDays: 5, defaultQty: 20, unitPrice: 4.0, instructions: 'Take as needed for pain or fever. Max 4g daily.' }
   ]);
 
-  // Load Real Pharmacy Formulary Drugs from Database
+  // Load Real Pharmacy Formulary Drugs from Database (sourced from dbo.Services / Pharmacy category)
   useEffect(() => {
     const fetchFormulary = async () => {
       try {
@@ -902,27 +906,31 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
           const mapped: MedicationItem[] = drugs.map((d: any) => {
             const formName = d.form || d.dosageForm || d.Form || 'Tablet';
             const strengthVal = d.strength || d.Strength || '';
-            const drugName = d.brandName || d.genericName || d.BrandName || d.GenericName || 'Medication';
-            const isTopical = formName.toLowerCase().includes('cream') || formName.toLowerCase().includes('ointment') || formName.toLowerCase().includes('gel');
-            const isInjectable = formName.toLowerCase().includes('inj') || formName.toLowerCase().includes('amp');
-            const isSuspension = formName.toLowerCase().includes('susp') || formName.toLowerCase().includes('syrup');
+            const drugName = (d.genericName || d.brandName || d.name || d.GenericName || d.BrandName || 'Medication').trim();
+            const lowerName = drugName.toLowerCase();
+            const isTopical = lowerName.includes('cream') || lowerName.includes('ointment') || lowerName.includes('gel') || lowerName.includes('lotion') || lowerName.includes('soap') || lowerName.includes('paraffin') || lowerName.includes('vaseline') || formName.toLowerCase().includes('cream');
+            const isInjectable = lowerName.includes('inj') || lowerName.includes('amp') || formName.toLowerCase().includes('inj');
+            const isSuspension = lowerName.includes('susp') || lowerName.includes('syrup') || formName.toLowerCase().includes('syrup');
             const route = isTopical ? 'Topical' : isInjectable ? 'IV/IM' : 'Oral';
-            const rawPrice = d.sellingPrice ?? d.SellingPrice ?? d.unitPrice ?? d.UnitPrice;
+            const rawPrice = d.sellingPrice ?? d.SellingPrice ?? d.unitPrice ?? d.UnitPrice ?? d.price ?? d.Price;
             const price = rawPrice != null && !isNaN(parseFloat(rawPrice)) ? Math.max(0, parseFloat(rawPrice)) : 0;
             const stock = d.stockQuantity ?? d.currentStock ?? d.StockQuantity ?? 0;
+            const codeVal = d.drugCode || d.DrugCode || d.code || d.Code || '';
 
             return {
               id: String(d.id || d.Id),
-              name: `${drugName} ${strengthVal} (${formName})`.trim(),
-              class: d.drugClass || d.DrugClass || (d.isControlled ? 'Controlled Drug' : 'General Prescription'),
-              defaultDosage: isTopical ? 'Apply thin layer' : isSuspension ? '5ml' : `1 ${formName} (${strengthVal})`.trim(),
+              serviceId: d.serviceId || d.ServiceId,
+              code: codeVal,
+              name: drugName,
+              class: d.drugClass || d.DrugClass || (d.isControlled ? 'Controlled Drug' : 'Pharmacy Prescription'),
+              defaultDosage: isTopical ? 'Apply thin layer' : isSuspension ? '5ml' : `1 ${formName}`.trim(),
               defaultRoute: route,
               defaultFreq: isTopical ? 'Twice Daily (BID)' : 'Three Times Daily (TID)',
               defaultDuration: '7 Days',
               defaultDurationDays: 7,
               defaultQty: isTopical ? 1 : 10,
               unitPrice: price,
-              instructions: `In Stock: ${stock} units · Batch: ${d.batchNumber || 'Standard'}`
+              instructions: `In Stock: ${stock} units · Code: ${codeVal || 'Standard'}`
             };
           });
           setMedicationCatalogue(mapped);
@@ -932,6 +940,8 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
       }
     };
     fetchFormulary();
+    window.addEventListener('pharmacy_inventory_changed', fetchFormulary);
+    return () => window.removeEventListener('pharmacy_inventory_changed', fetchFormulary);
   }, []);
 
   const changeDateByDays = (days: number) => {
@@ -991,7 +1001,15 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
           blood: p.bloodGroup || p.BloodGroup || '',
           allergies: p.allergies || p.Allergies || 'None',
           insurance: p.insuranceProvider || p.InsuranceProvider || 'Cash',
-          visitType: p.visitType || p.VisitType || ''
+          visitType: p.visitType || p.VisitType || '',
+          isVip: Boolean(
+            p.isVip || p.IsVip ||
+            p.priorityLevel === 3 || p.PriorityLevel === 3 ||
+            (p.serviceName && p.serviceName.toLowerCase().includes('vip')) ||
+            (p.consultationServiceName && p.consultationServiceName.toLowerCase().includes('vip')) ||
+            (p.serviceType && p.serviceType.toLowerCase().includes('vip'))
+          ),
+          serviceName: p.consultationServiceName || p.serviceName || p.serviceType || ''
         }));
         setPatients(mapped);
         const target = mapped.find((p: any) => p.id === selectedPatientId) || mapped[0];
@@ -1035,13 +1053,17 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
     if (!activePatient) return;
 
     // Try to restore draft from previous session first
+    setCurrentEncounterId(null);
     setChiefComplaint('');
     setHistory('');
     setPhysicalExam('');
     setDiagnosis('');
+    setIcdCode('');
     setPlan('');
     setMedications([]);
     setCertDiagnosis('');
+    setRecommendation('');
+    setDaysExcused('');
 
     // Restore today's draft if it exists
     const draftFound = restoreSoapDraft(activePatient.id);
@@ -1050,10 +1072,11 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
 
     const loadPatientClinical = async () => {
       try {
-        const [encounters, certs, triageVitals] = await Promise.all([
+        const [encounters, certs, triageVitals, patientRxs] = await Promise.all([
           api.get<any[]>(`/encounters/patient/${activePatient.id}`).catch(() => []),
           api.get<any[]>(`/medicalcertificates/patient/${activePatient.id}`).catch(() => []),
-          api.get<any>(`/triage/patient/${activePatient.id}/latest`).catch(() => null)
+          api.get<any>(`/triage/patient/${activePatient.id}/latest`).catch(() => null),
+          api.get<any[]>(`/pharmacy/prescriptions?patientId=${activePatient.id}&limit=50`).catch(() => [])
         ]);
 
         if (triageVitals) {
@@ -1067,16 +1090,54 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
           if (triageVitals.chiefComplaint) setChiefComplaint(triageVitals.chiefComplaint);
         }
 
-        if (encounters && encounters.length > 0) {
-          const latest = encounters[0];
-          if (latest.chiefComplaint) setChiefComplaint(latest.chiefComplaint);
-          if (latest.historyOfIllness) setHistory(latest.historyOfIllness);
-          if (latest.physicalExam) setPhysicalExam(latest.physicalExam);
-          if (latest.assessment) {
-            setDiagnosis(latest.assessment);
-            setCertDiagnosis(latest.assessment);
+        // Check if an encounter was already saved today (or for consultDate)
+        const todayStr = consultDate || new Date().toISOString().split('T')[0];
+        const savedTodayEnc = encounters?.find((e: any) => {
+          const encDate = (e.encounterDate || e.EncounterDate || '').split('T')[0];
+          return encDate === todayStr && Number(e.id || e.Id) < 1000000;
+        });
+
+        if (savedTodayEnc) {
+          setCurrentEncounterId(savedTodayEnc.id || savedTodayEnc.Id);
+          if (savedTodayEnc.chiefComplaint) setChiefComplaint(savedTodayEnc.chiefComplaint);
+          if (savedTodayEnc.historyOfIllness) setHistory(savedTodayEnc.historyOfIllness);
+          if (savedTodayEnc.physicalExam) setPhysicalExam(savedTodayEnc.physicalExam);
+          if (savedTodayEnc.assessment) {
+            setDiagnosis(savedTodayEnc.assessment);
+            setCertDiagnosis(savedTodayEnc.assessment);
           }
-          if (latest.soapPlan || latest.plan || latest.Plan) setPlan(latest.soapPlan || latest.plan || latest.Plan);
+          if (savedTodayEnc.soapPlan || savedTodayEnc.plan || savedTodayEnc.Plan) {
+            setPlan(savedTodayEnc.soapPlan || savedTodayEnc.plan || savedTodayEnc.Plan);
+          }
+        } else {
+          // Clean new consultation: leave ICD and Diagnosis completely blank!
+          setCurrentEncounterId(null);
+          setDiagnosis('');
+          setIcdCode('');
+        }
+
+        // Populate today's prescriptions under Section 6: Medication Detail (Prescriptions)
+        if (patientRxs && Array.isArray(patientRxs) && patientRxs.length > 0) {
+          const todayRxs = patientRxs.filter((rx: any) => {
+            const rxDate = (rx.prescribedAt || rx.PrescribedAt || rx.createdAt || rx.CreatedAt || '').split('T')[0];
+            return rxDate === todayStr;
+          });
+          const loadedMedItems: any[] = [];
+          todayRxs.forEach((rx: any) => {
+            const items = rx.items || rx.Items || [];
+            items.forEach((item: any) => {
+              loadedMedItems.push({
+                drugName: item.drugName || item.DrugName || item.instructions || item.Instructions || 'Prescribed Drug',
+                dosage: item.dosage || item.Dosage || '',
+                qty: item.quantity || item.Quantity || 1,
+                frequency: item.frequency || item.Frequency || '',
+                duration: item.durationDays ? `${item.durationDays} Days` : (item.duration || item.Duration || '')
+              });
+            });
+          });
+          if (loadedMedItems.length > 0) {
+            setMedications(loadedMedItems);
+          }
         }
 
         if (certs && certs.length > 0) {
@@ -1261,8 +1322,59 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
     }
   }, [activeSubTab, activePatient]);
 
-  const executeAddMedicationDirect = (item: any) => {
+  const executeAddMedicationDirect = async (item: any) => {
     setMedications(prev => [...prev, item]);
+    // Reset quick fields
+    setNewDrugName('');
+    setNewDosage('');
+    setNewQty(1);
+    setNewFreq('');
+    setNewDuration('');
+
+    // Persist prescription to backend immediately and reflect in Patient History
+    if (activePatient) {
+      const patId = activePatient.id;
+      try {
+        const resRx: any = await api.post('/pharmacy/prescriptions', {
+          tenantId: 1,
+          patientId: Number(patId) || 1,
+          doctorId: selectedDoctorId || currentUser?.doctorId || 1,
+          encounterId: currentEncounterId || null,
+          diagnosis: diagnosis || 'Clinical Consultation',
+          items: [{
+            drugId: null,
+            route: 'Oral',
+            dosage: item.dosage && item.dosage.trim().length > 0 ? item.dosage.trim() : null,
+            frequency: item.frequency && item.frequency.trim().length > 0 ? item.frequency.trim() : null,
+            duration: item.duration && item.duration.trim().length > 0 ? item.duration.trim() : null,
+            quantity: item.qty ? Math.round(Number(item.qty)) : 1,
+            instructions: `${item.drugName} ${item.dosage || ''} ${item.frequency || ''}`.trim()
+          }]
+        });
+
+        const presId = resRx?.prescriptionId || resRx?.PrescriptionId || resRx?.data?.prescriptionId;
+        setHistoryPrescriptions(prev => [
+          {
+            id: presId || Date.now(),
+            patientId: patId,
+            prescribedAt: new Date().toISOString(),
+            doctorName: certDoctorName,
+            items: [{
+              drugName: item.drugName,
+              dosage: item.dosage,
+              frequency: item.frequency,
+              duration: item.duration,
+              quantity: item.qty
+            }]
+          },
+          ...prev
+        ]);
+        setOrderDispatchedToast(`✓ Prescribed ${item.drugName} — saved to Medication Detail & Patient History!`);
+        setTimeout(() => setOrderDispatchedToast(null), 3500);
+      } catch (rxErr) {
+        console.warn('Prescription auto-save error:', rxErr);
+      }
+    }
   };
 
   const handleConfirmCdsOverride = () => {
@@ -1311,7 +1423,8 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
   const handleSaveConsultation = async () => {
     if (!activePatient) return;
     try {
-      const res = await api.post('/encounters', {
+      const payload = {
+        id: currentEncounterId || undefined,
         tenantId: 1,
         patientId: activePatient.id,
         doctorId: selectedDoctorId,
@@ -1324,14 +1437,51 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
         vitalSigns: JSON.stringify({ bp: `${bpSys}/${bpDia}`, hr, temp, spo2, weight }),
         createdBy: currentUser?.id || 1,
         isFinalized: true
-      });
+      };
+
+      let res: any;
+      if (currentEncounterId) {
+        res = await api.put(`/encounters/${currentEncounterId}`, payload);
+      } else {
+        res = await api.post('/encounters', payload);
+      }
+
+      const savedId = (res as any)?.encounterId || (res as any)?.data?.encounterId || currentEncounterId;
+      if (savedId) {
+        setCurrentEncounterId(Number(savedId));
+      }
+
+      // Also ensure any medications in Section 6 are persisted to prescriptions
+      if (medications.length > 0) {
+        try {
+          const patId = activePatient.id;
+          await api.post('/pharmacy/prescriptions', {
+            tenantId: 1,
+            patientId: Number(patId) || 1,
+            doctorId: selectedDoctorId || currentUser?.doctorId || 1,
+            encounterId: savedId || currentEncounterId || null,
+            diagnosis: diagnosis || 'Clinical Consultation',
+            items: medications.map(m => ({
+              drugId: null,
+              route: 'Oral',
+              dosage: m.dosage && m.dosage.trim().length > 0 ? m.dosage.trim() : null,
+              frequency: m.frequency && m.frequency.trim().length > 0 ? m.frequency.trim() : null,
+              duration: m.duration && m.duration.trim().length > 0 ? m.duration.trim() : null,
+              quantity: m.qty ? Math.round(Number(m.qty)) : 1,
+              instructions: `${m.drugName} ${m.dosage || ''} ${m.frequency || ''}`.trim()
+            }))
+          });
+        } catch (rxErr) {
+          console.warn('Prescription save with consultation error:', rxErr);
+        }
+      }
 
       // Update local history encounters immediately so user sees saved note
       const newEnc = {
-        id: (res as any)?.encounterId || (res as any)?.data?.encounterId || Date.now(),
+        id: savedId || Date.now(),
         patientId: activePatient.id,
         doctorName: certDoctorName || 'Attending Doctor',
-        encounterDate: new Date().toISOString().split('T')[0],
+        encounterDate: consultDate || new Date().toISOString().split('T')[0],
         chiefComplaint: chiefComplaint,
         historyOfIllness: history,
         physicalExam: physicalExam,
@@ -1340,11 +1490,13 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
         soapPlan: plan,
         vitalSigns: JSON.stringify({ bp: `${bpSys}/${bpDia}`, hr, temp, spo2, weight })
       };
-      setHistoryEncounters(prev => [newEnc, ...prev]);
+      setHistoryEncounters(prev => {
+        const filtered = prev.filter(e => e.id !== (savedId || currentEncounterId));
+        return [newEnc, ...filtered];
+      });
 
       setIsSaved(true);
-      setOrderDispatchedToast('✓ Clinical Consultation Note Saved to EHR Database!');
-      // Clear autosave draft — consultation is now persisted to the database
+      setOrderDispatchedToast(currentEncounterId ? '✓ Clinical Consultation Note Updated in EHR Database!' : '✓ Clinical Consultation Note Saved to EHR Database!');
       if (activePatient?.id) clearSoapDraft(activePatient.id);
       setShowDraftBanner(false);
       setTimeout(() => {
@@ -1357,6 +1509,45 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
       setIsSaved(false);
       setOrderDispatchedToast(`Failed to save clinical note: ${err.message || 'Server error'}`);
       setTimeout(() => setOrderDispatchedToast(null), 4000);
+    }
+  };
+
+  const handleReverseClinicalData = async () => {
+    if (!activePatient) return;
+    const confirmReverse = window.confirm(
+      `Are you sure you want to reverse (delete) all clinical consultation data, diagnoses, prescriptions, and certificates for ${activePatient.name} on ${consultDate}?\n\nThis will remove the consultation note and clinical records saved for this date.`
+    );
+    if (!confirmReverse) return;
+
+    try {
+      setIsReversing(true);
+      await api.delete(`/encounters/patient/${activePatient.id}/reverse?date=${consultDate}`);
+
+      setCurrentEncounterId(null);
+      setChiefComplaint('');
+      setHistory('');
+      setPhysicalExam('');
+      setDiagnosis('');
+      setIcdCode('');
+      setPlan('');
+      setMedications([]);
+      setCertDiagnosis('');
+      setRecommendation('');
+      setDaysExcused('');
+      if (activePatient?.id) clearSoapDraft(activePatient.id);
+      setShowDraftBanner(false);
+
+      setOrderDispatchedToast(`✓ Clinical data for ${consultDate} has been reversed.`);
+      setTimeout(() => setOrderDispatchedToast(null), 4000);
+
+      loadFullPatientHistory();
+      loadEmrPatients(selectedDoctorId, consultDate);
+    } catch (err: any) {
+      console.error('Reverse clinical data error:', err);
+      setOrderDispatchedToast(`Failed to reverse clinical data: ${err.message || 'Server error'}`);
+      setTimeout(() => setOrderDispatchedToast(null), 4000);
+    } finally {
+      setIsReversing(false);
     }
   };
 
@@ -1496,21 +1687,28 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
           }
         };
       } else if (type === 'RX') {
-        const uPrice = parseFloat(item.unitPrice) || 0;
+        const uPrice = parseFloat(item.unitPrice ?? item.price) || 0;
         const q = Number(item.defaultQty) || 1;
+        const rawName = (item.name || '').toLowerCase();
+        const formName = (item.form || item.dosageForm || '').toLowerCase();
+        const isTopical = rawName.includes('cream') || rawName.includes('ointment') || rawName.includes('lotion') || rawName.includes('soap') || rawName.includes('paraffin') || rawName.includes('vaseline') || formName.includes('cream');
+        const defaultRoute = item.defaultRoute || (isTopical ? 'Topical' : 'Oral');
+        const defaultDosage = item.defaultDosage || (isTopical ? 'Apply thin layer' : '1 Unit');
+        const defaultFreq = item.defaultFreq || (isTopical ? 'Twice Daily (BID)' : 'OD');
+
         newItem = {
           id: key,
           type: 'RX',
           title: item.name,
-          code: item.class || 'Prescription',
+          code: item.code || item.class || 'Prescription',
           price: uPrice * q,
-          paramsSummary: `${item.defaultDosage || '1 Tablet'} · ${item.defaultFreq || 'OD'} · ${item.defaultDuration || '7 Days'}`,
+          paramsSummary: `${defaultDosage} · ${defaultFreq} · ${item.defaultDuration || '7 Days'}`,
           details: {
             drugId: Number(item.id) || 1,
             unitPrice: uPrice,
-            dosage: item.defaultDosage || '1 Tablet',
-            route: item.defaultRoute || 'Oral',
-            freq: item.defaultFreq || 'OD',
+            dosage: defaultDosage,
+            route: defaultRoute,
+            freq: defaultFreq,
             duration: item.defaultDuration || '7 Days',
             qty: q,
             timing: item.instructions || 'Take as directed'
@@ -2141,8 +2339,8 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
       age: activePatient.age,
       examinedOn: certExamDate,
       diagnosis: certDiagnosis || diagnosis || 'Dermatitis',
-      recommendation: recommendation,
-      daysExcused: daysExcused,
+      recommendation: recommendation || '',
+      daysExcused: daysExcused === '' ? 0 : Number(daysExcused),
       doctorName: certDoctorName,
       doctorTitle: certDoctorTitle
     };
@@ -2156,8 +2354,8 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
         diagnosisSummary: newCert.diagnosis,
         recommendation: newCert.recommendation,
         startDate: newCert.examinedOn,
-        endDate: new Date(Date.now() + daysExcused * 86400000).toISOString().split('T')[0],
-        daysExcused
+        endDate: new Date(Date.now() + (Number(daysExcused) || 0) * 86400000).toISOString().split('T')[0],
+        daysExcused: Number(daysExcused) || 0
       }).catch(() => {});
       await logAudit({
         tableName: 'MedicalCertificates',
@@ -2176,8 +2374,16 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
 
   return (
     <div>
-      {/* Print CSS */}
+      {/* Print & UI CSS */}
       <style>{`
+        input.no-spinners::-webkit-outer-spin-button,
+        input.no-spinners::-webkit-inner-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+        input.no-spinners[type=number] {
+          -moz-appearance: textfield;
+        }
         @media print {
           body * { visibility: hidden; }
           #huderma-printable-certificate, #huderma-printable-certificate *,
@@ -2256,6 +2462,13 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
             ) : null}
             <div><span style={{ color: 'var(--text-muted)' }}>Allergies:</span> <span className="badge badge-critical">{activePatient.allergies}</span></div>
             <div><span style={{ color: 'var(--text-muted)' }}>Payment:</span> <span className="badge badge-info">{activePatient.insurance}</span></div>
+            {(activePatient.isVip || (activePatient.serviceName && activePatient.serviceName.toLowerCase().includes('vip'))) && (
+              <div>
+                <span className="badge" style={{ background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', color: '#ffffff', fontWeight: 800, padding: '3px 8px', borderRadius: '6px', fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '4px', boxShadow: '0 1px 3px rgba(124,58,237,0.3)' }}>
+                  <Star size={11} fill="#fbbf24" stroke="#fbbf24" /> VIP Patient {activePatient.serviceName ? `• ${activePatient.serviceName}` : ''}
+                </span>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -2445,14 +2658,10 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                                 • {p.visitType} Visit
                               </div>
                             )}
-                            {p.serviceName && p.serviceName.toLowerCase().includes('vip') && (
-                              <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#7c3aed', marginTop: '2px', letterSpacing: '0.04em' }}>
-                                ★ VIP
-                              </div>
-                            )}
-                            {p.serviceName && p.serviceName.toLowerCase().includes('vip') && (
-                              <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#7c3aed', marginTop: '2px', letterSpacing: '0.04em' }}>
-                                ★ VIP
+                            {(p.isVip || (p.serviceName && p.serviceName.toLowerCase().includes('vip'))) && (
+                              <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#7c3aed', marginTop: '2px', letterSpacing: '0.04em', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                <span style={{ background: 'linear-gradient(135deg, #7c3aed, #6366f1)', color: '#fff', padding: '1px 5px', borderRadius: '4px' }}>★ VIP</span>
+                                {p.serviceName && <span style={{ color: '#6d28d9', fontSize: '0.62rem' }}>{p.serviceName}</span>}
                               </div>
                             )}
                             <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
@@ -2522,6 +2731,23 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                           <Save size={15} /> Submit New Note
                         </button>
                       )}
+                      <button
+                        onClick={handleReverseClinicalData}
+                        disabled={isReversing}
+                        className="btn-secondary"
+                        style={{
+                          borderColor: '#fca5a5',
+                          color: '#b91c1c',
+                          background: '#fff1f2',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          fontSize: '0.8rem'
+                        }}
+                        title="Delete / roll back clinical consultation data, orders, and certificates saved for this patient on this date"
+                      >
+                        <RotateCcw size={14} /> {isReversing ? 'Reversing...' : 'Reverse Clinical Data'}
+                      </button>
                     </div>
                   </div>
 
@@ -2900,14 +3126,27 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                   rows={2}
                   value={recommendation}
                   onChange={e => setRecommendation(e.target.value)}
-                  placeholder="Clinical recommendation"
-                  required
+                  placeholder="Clinical recommendation (optional)"
                 />
               </div>
 
               <div>
                 <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>Rest Recommended (Days)</label>
-                <input type="number" value={daysExcused} onChange={e => setDaysExcused(parseInt(e.target.value) || 1)} min={1} required />
+                <input
+                  type="number"
+                  value={daysExcused}
+                  onChange={e => {
+                    const val = e.target.value;
+                    if (val === '') setDaysExcused('');
+                    else setDaysExcused(Math.max(0, parseInt(val) || 0));
+                  }}
+                  min={0}
+                  placeholder="0 (or leave blank)"
+                  style={{
+                    MozAppearance: 'textfield'
+                  }}
+                  className="no-spinners"
+                />
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
@@ -3615,10 +3854,11 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
         } else {
           // Dynamic category from groupedServices
           const catMeta = getCategoryMeta(activeOrderCategory);
-          middlePanelTitle = activeOrderCategory;
-          middlePanelIcon = catMeta.icon || Stethoscope;
-          middlePanelColor = catMeta.color || '#6366f1';
-          middlePanelType = 'PROCEDURE';
+          const isPharmacy = activeOrderCategory.toLowerCase() === 'pharmacy';
+          middlePanelTitle = isPharmacy ? 'Pharmacy Medications' : activeOrderCategory;
+          middlePanelIcon = isPharmacy ? Pill : (catMeta.icon || Stethoscope);
+          middlePanelColor = isPharmacy ? '#059669' : (catMeta.color || '#6366f1');
+          middlePanelType = (catMeta.type as any) || (isPharmacy ? 'RX' : 'PROCEDURE');
           const items = groupedServices[activeOrderCategory] || [];
           middlePanelItems = items.filter(item =>
             !q || (item.name || '').toLowerCase().includes(q) || (item.code || '').toLowerCase().includes(q)

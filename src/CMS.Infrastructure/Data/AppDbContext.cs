@@ -75,6 +75,19 @@ public class AppDbContext : DbContext
     public DbSet<LabChainOfCustody> LabChainOfCustodies => Set<LabChainOfCustody>();
     public DbSet<NarcoticsDispenseLog> NarcoticsDispenseLogs => Set<NarcoticsDispenseLog>();
 
+    // Antenatal Care (ANC) Subsystem
+    public DbSet<AncPregnancyEpisode> AncPregnancyEpisodes => Set<AncPregnancyEpisode>();
+    public DbSet<AncInitialAssessment> AncInitialAssessments => Set<AncInitialAssessment>();
+    public DbSet<AncPreviousPregnancy> AncPreviousPregnancies => Set<AncPreviousPregnancy>();
+    public DbSet<AncEncounter> AncEncounters => Set<AncEncounter>();
+    public DbSet<AncUltrasoundRecord> AncUltrasoundRecords => Set<AncUltrasoundRecord>();
+    public DbSet<AncPmtctRecord> AncPmtctRecords => Set<AncPmtctRecord>();
+    public DbSet<AncLaboratoryExamination> AncLaboratoryExaminations => Set<AncLaboratoryExamination>();
+    public DbSet<AncDiagnosis> AncDiagnoses => Set<AncDiagnosis>();
+    public DbSet<AncAppointment> AncAppointments => Set<AncAppointment>();
+    public DbSet<AncPregnancyOutcome> AncPregnancyOutcomes => Set<AncPregnancyOutcome>();
+    public DbSet<AncAuditLog> AncAuditLogs => Set<AncAuditLog>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -87,6 +100,28 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<Appointment>()
             .HasIndex(a => new { a.TenantId, a.DoctorId, a.SlotDateTime })
+            .IsUnique();
+
+        // ANC Model Configuration
+        modelBuilder.Entity<AncPregnancyEpisode>()
+            .HasIndex(e => new { e.TenantId, e.PatientId })
+            .HasFilter("[Status] = 'Active'")
+            .IsUnique();
+
+        modelBuilder.Entity<AncEncounter>()
+            .HasIndex(e => new { e.EpisodeId, e.EncounterNumber })
+            .IsUnique();
+
+        modelBuilder.Entity<AncInitialAssessment>()
+            .HasIndex(a => a.EpisodeId)
+            .IsUnique();
+
+        modelBuilder.Entity<AncPmtctRecord>()
+            .HasIndex(p => p.EpisodeId)
+            .IsUnique();
+
+        modelBuilder.Entity<AncPregnancyOutcome>()
+            .HasIndex(o => o.EpisodeId)
             .IsUnique();
     }
 }
