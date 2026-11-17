@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { BarChart3, Download, Play, X, Check, Loader2, Users, Stethoscope, FlaskConical, ClipboardList, Activity, DollarSign, Sparkles } from 'lucide-react';
+import { BarChart3, Download, Play, X, Check, Loader2, Users, Stethoscope, FlaskConical, ClipboardList, Activity, DollarSign, Sparkles, Package } from 'lucide-react';
 import { api } from '../../api/apiClient';
 
 interface ReportDef {
@@ -77,6 +77,14 @@ const REPORT_DEFS: ReportDef[] = [
     icon: <Sparkles size={20} color="#8b5cf6" />,
     filterFields: ['dateFrom', 'dateTo', 'doctor'],
   },
+  {
+    id: 9, key: 'REPORT_COSMETICS_SALES',
+    title: 'Cosmetics Sales Report',
+    category: 'Cosmetics',
+    desc: 'Itemized sales transactions, product codes, quantities, revenue, and gross profit breakdown for cosmetics items.',
+    icon: <Package size={20} color="#059669" />,
+    filterFields: ['dateFrom', 'dateTo'],
+  },
 ];
 
 const AGE_GROUPS = ['<1', '1-4', '5-14', '15-29', '30-64', '≥65'];
@@ -153,6 +161,7 @@ export default function ReportsLibraryPage() {
           REPORT_PROCEDURE: '/reports/procedure',
           REPORT_FACIAL_PLC: '/reports/facial-plc',
           REPORT_FACIAL_OTHER: '/reports/facial-other',
+          REPORT_COSMETICS_SALES: '/reports/cosmetics-sales',
         };
         const endpoint = endpointMap[report.key];
         const qs = '?' + new URLSearchParams(params).toString();

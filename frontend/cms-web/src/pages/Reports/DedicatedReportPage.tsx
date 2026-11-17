@@ -66,6 +66,12 @@ const REPORT_CONFIGS: Record<string, ReportConfig> = {
     description: 'Itemized facial client registrations and procedure revenue where Other is checked.',
     icon: <Activity color="#d97706" size={24} />
   },
+  REPORT_COSMETICS_SALES: {
+    title: 'Cosmetics Sales & Revenue Report',
+    category: 'Cosmetics & Retail',
+    description: 'Itemized sales transactions, product codes, quantities sold, revenue, and gross profit breakdown for cosmetics.',
+    icon: <DollarSign color="#059669" size={24} />
+  },
 };
 
 export default function DedicatedReportPage({ reportType }: DedicatedReportPageProps) {
@@ -385,6 +391,13 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
         });
         const raw = Array.isArray(res) ? res : (res?.data || res?.Data || []);
         setData(raw);
+      } else if (reportType === 'REPORT_COSMETICS_SALES') {
+        const res: any = await api.get<any>('/reports/cosmetics-sales', {
+          dateFrom,
+          dateTo
+        });
+        const raw = Array.isArray(res) ? res : (res?.data || res?.Data || []);
+        setData(raw);
       }
     } catch (err) {
       console.error('Error generating report:', err);
@@ -488,6 +501,16 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
     const totalDiscount = data.reduce((s, r) => s + (Number(r.discount) || 0), 0);
     const avgTicket = count > 0 ? totalRev / count : 0;
     return { count, totalRev, totalDiscount, avgTicket };
+  }, [reportType, data]);
+
+  const cosmeticsSummary = useMemo(() => {
+    if (reportType !== 'REPORT_COSMETICS_SALES') return null;
+    const count = data.length;
+    const totalRev = data.reduce((s, r) => s + (Number(r.totalPrice || r.TotalPrice) || 0), 0);
+    const totalQty = data.reduce((s, r) => s + (Number(r.quantity || r.Quantity) || 0), 0);
+    const totalProfit = data.reduce((s, r) => s + (Number(r.profit || r.Profit) || 0), 0);
+    const uniqueInvoices = new Set(data.map(r => r.invoiceNumber || r.InvoiceNumber).filter(Boolean)).size;
+    return { count, totalRev, totalQty, totalProfit, uniqueInvoices };
   }, [reportType, data]);
 
   return (
@@ -928,6 +951,39 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
         </div>
       )}
 
+      {cosmeticsSummary && (
+        <div className="no-print" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: '16px' }}>
+          <div className="glass-panel" style={{ padding: '18px' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Total Invoices / Items</span>
+            <div style={{ fontSize: '1.5rem', fontWeight: 800, margin: '4px 0', color: '#0284c7' }}>
+              {cosmeticsSummary.uniqueInvoices} <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-muted)' }}>({cosmeticsSummary.count} lines)</span>
+            </div>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Transactions Processed</span>
+          </div>
+          <div className="glass-panel" style={{ padding: '18px' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Units Sold</span>
+            <div style={{ fontSize: '1.5rem', fontWeight: 800, margin: '4px 0', color: '#7c3aed' }}>
+              {cosmeticsSummary.totalQty.toFixed(0)}
+            </div>
+            <span style={{ fontSize: '0.72rem', color: '#7c3aed' }}>Cosmetics Products</span>
+          </div>
+          <div className="glass-panel" style={{ padding: '18px' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Total Sales Revenue</span>
+            <div style={{ fontSize: '1.5rem', fontWeight: 800, margin: '4px 0', color: '#059669' }}>
+              Br {cosmeticsSummary.totalRev.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            </div>
+            <span style={{ fontSize: '0.72rem', color: '#059669' }}>Gross Collections</span>
+          </div>
+          <div className="glass-panel" style={{ padding: '18px' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Estimated Gross Profit</span>
+            <div style={{ fontSize: '1.5rem', fontWeight: 800, margin: '4px 0', color: '#0284c7' }}>
+              Br {cosmeticsSummary.totalProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            </div>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Revenue - Purchase Cost</span>
+          </div>
+        </div>
+      )}
+
       {/* REPORT DATA TABLE */}
       <div className="glass-panel" style={{ padding: '24px' }}>
         <div className="print-only" style={{ display: 'none', marginBottom: '12px', textAlign: 'center' }}>
@@ -1055,6 +1111,22 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
                       <th>Status</th>
                     </>
                   )}
+                  {reportType === 'REPORT_COSMETICS_SALES' && (
+                    <>
+                      <th>Invoice #</th>
+                      <th>Date & Time</th>
+                      <th>Client Name</th>
+                      <th>Mobile</th>
+                      <th>Product Code</th>
+                      <th>Item Description</th>
+                      <th style={{ textAlign: 'right' }}>Qty</th>
+                      <th style={{ textAlign: 'right' }}>Unit Price (Br)</th>
+                      <th style={{ textAlign: 'right' }}>Total (Br)</th>
+                      <th style={{ textAlign: 'right' }}>Est. Profit (Br)</th>
+                      <th>Category</th>
+                      <th>Cashier</th>
+                    </>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -1172,6 +1244,31 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
                     <td>
                       <span className="badge badge-normal">{r.status || 'Completed'}</span>
                     </td>
+                  </tr>
+                ))}
+
+                {reportType === 'REPORT_COSMETICS_SALES' && data.map((r, i) => (
+                  <tr key={i}>
+                    <td style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0284c7' }}>{r.invoiceNumber || r.InvoiceNumber}</td>
+                    <td style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>{r.saleDate || r.SaleDate} {r.saleTime || r.SaleTime}</td>
+                    <td style={{ fontWeight: 600 }}>{r.clientName || r.ClientName}</td>
+                    <td style={{ color: 'var(--text-muted)' }}>{r.mobile || r.Mobile || '—'}</td>
+                    <td style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0369a1' }}>{r.itemCode || r.ItemCode}</td>
+                    <td style={{ fontWeight: 600 }}>{r.itemDescription || r.ItemDescription}</td>
+                    <td style={{ textAlign: 'right', fontWeight: 700 }}>{r.quantity || r.Quantity}</td>
+                    <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>Br {Number(r.unitPrice || r.UnitPrice || 0).toFixed(2)}</td>
+                    <td style={{ textAlign: 'right', fontWeight: 700, color: '#059669', fontFamily: 'monospace' }}>
+                      Br {Number(r.totalPrice || r.TotalPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </td>
+                    <td style={{ textAlign: 'right', fontFamily: 'monospace', color: Number(r.profit || r.Profit || 0) >= 0 ? '#0284c7' : '#dc2626' }}>
+                      Br {Number(r.profit || r.Profit || 0).toFixed(2)}
+                    </td>
+                    <td>
+                      <span className={(r.isPlc || r.IsPlc) ? 'badge badge-info' : 'badge badge-normal'}>
+                        {(r.isPlc || r.IsPlc) ? 'PLC' : 'Standard'}
+                      </span>
+                    </td>
+                    <td style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>{r.cashier || r.Cashier || 'Cashier'}</td>
                   </tr>
                 ))}
               </tbody>

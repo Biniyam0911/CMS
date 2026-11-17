@@ -913,4 +913,61 @@ public class ReportsController : ControllerBase
 
         return Ok(ApiResponse<object>.Ok(rows));
     }
+
+    [HttpGet("cosmetics-sales")]
+    public async Task<IActionResult> GetCosmeticsSalesReport(
+        [FromQuery] DateTime? dateFrom = null,
+        [FromQuery] DateTime? dateTo = null,
+        [FromQuery] string? search = null,
+        [FromQuery] bool? isPlc = null)
+    {
+        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+        using var conn = _dbFactory.CreateConnection();
+
+        var sql = @"
+            SELECT 
+                cs.Id,
+                cs.InvoiceNumber,
+                FORMAT(cs.SaleDate, 'yyyy-MM-dd') AS SaleDate,
+                CONVERT(VARCHAR(8), cs.SaleTime, 108) AS SaleTime,
+                ISNULL(NULLIF(cs.FullName, ''), 'Walk-in Client') AS ClientName,
+                ISNULL(cs.MobileNo, '-') AS Mobile,
+                CASE WHEN cs.IsPlc = 1 THEN 'PLC' ELSE 'Standard' END AS TransactionCategory,
+                cs.IsPlc,
+                csi.ItemCode,
+                csi.ItemDescription,
+                csi.Quantity,
+                csi.UnitPrice,
+                csi.TotalPrice,
+                csi.PurchaseUnitPrice,
+                (csi.TotalPrice - (csi.PurchaseUnitPrice * csi.Quantity)) AS Profit,
+                ISNULL(cs.CreatedByName, 'Cashier') AS Cashier,
+                cs.PaymentStatus AS Status
+            FROM dbo.CosmeticsSales cs WITH (NOLOCK)
+            INNER JOIN dbo.CosmeticsSaleItems csi WITH (NOLOCK) ON cs.Id = csi.SaleId
+            WHERE cs.TenantId = @TenantId
+              AND (@DateFrom IS NULL OR cs.SaleDate >= CAST(@DateFrom AS DATE))
+              AND (@DateTo IS NULL OR cs.SaleDate <= CAST(@DateTo AS DATE))
+              AND (@IsPlc IS NULL OR cs.IsPlc = @IsPlc)
+              AND (
+                  @Search IS NULL
+                  OR cs.InvoiceNumber LIKE '%' + @Search + '%'
+                  OR cs.FullName LIKE '%' + @Search + '%'
+                  OR cs.MobileNo LIKE '%' + @Search + '%'
+                  OR csi.ItemCode LIKE '%' + @Search + '%'
+                  OR csi.ItemDescription LIKE '%' + @Search + '%'
+              )
+            ORDER BY cs.SaleDate DESC, cs.Id DESC, csi.Id ASC";
+
+        var rows = await conn.QueryAsync<dynamic>(sql, new
+        {
+            TenantId = tenantId,
+            DateFrom = dateFrom?.Date,
+            DateTo = dateTo?.Date,
+            IsPlc = isPlc,
+            Search = string.IsNullOrWhiteSpace(search) ? null : search.Trim()
+        });
+
+        return Ok(ApiResponse<object>.Ok(rows));
+    }
 }

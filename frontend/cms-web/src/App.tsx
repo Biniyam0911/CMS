@@ -27,6 +27,7 @@ const TriagePage = React.lazy(() => import('./pages/Triage/TriagePage'));
 const EmrSoapPage = React.lazy(() => import('./pages/EMR/EmrSoapPage'));
 const AntenatalCarePage = React.lazy(() => import('./pages/AntenatalCare/AntenatalCarePage'));
 const FacialPage = React.lazy(() => import('./pages/Facial/FacialPage'));
+const CosmeticsPage = React.lazy(() => import('./pages/Cosmetics/CosmeticsPage'));
 const InpatientPage = React.lazy(() => import('./pages/Inpatient/InpatientPage'));
 const AppointmentsPage = React.lazy(() => import('./pages/Appointments/AppointmentsPage'));
 const QueuePage = React.lazy(() => import('./pages/Queue/QueuePage'));
@@ -642,6 +643,7 @@ export default function App() {
           {!disabledModules.has(activeModule) && activeModule === 'EMR' && <EmrSoapPage selectedPatientId={selectedEmrPatientId} currentUser={user} />}
           {!disabledModules.has(activeModule) && activeModule === 'ANC' && <AntenatalCarePage />}
           {!disabledModules.has(activeModule) && activeModule === 'FACIAL' && <FacialPage />}
+          {!disabledModules.has(activeModule) && activeModule === 'COSMETICS' && <CosmeticsPage />}
           {!disabledModules.has(activeModule) && activeModule === 'INPATIENT' && <InpatientPage />}
           {!disabledModules.has(activeModule) && activeModule === 'APPOINTMENTS' && <AppointmentsPage />}
           {!disabledModules.has(activeModule) && activeModule === 'QUEUE' && <QueuePage />}
@@ -651,6 +653,7 @@ export default function App() {
           {!disabledModules.has(activeModule) && activeModule === 'PAYROLL' && <PayrollPage />}
           {!disabledModules.has(activeModule) && activeModule === 'REPORTS' && <ReportsLibraryPage />}
           {!disabledModules.has(activeModule) && activeModule === 'REPORT_SALES' && <DedicatedReportPage reportType="REPORT_SALES" />}
+          {!disabledModules.has(activeModule) && activeModule === 'REPORT_COSMETICS_SALES' && <DedicatedReportPage reportType="REPORT_COSMETICS_SALES" />}
           {!disabledModules.has(activeModule) && activeModule === 'REPORT_AGE_STRATIFIED' && <DedicatedReportPage reportType="REPORT_AGE_STRATIFIED" />}
           {!disabledModules.has(activeModule) && activeModule === 'REPORT_SEX_STRATIFIED' && <DedicatedReportPage reportType="REPORT_SEX_STRATIFIED" />}
           {!disabledModules.has(activeModule) && activeModule === 'REPORT_DOCTOR_PERFORMANCE' && <DedicatedReportPage reportType="REPORT_DOCTOR_PERFORMANCE" />}
