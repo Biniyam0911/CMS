@@ -801,4 +801,116 @@ public class ReportsController : ControllerBase
 
         return Ok(ApiResponse<object>.Ok(rows));
     }
+
+    [HttpGet("facial-plc")]
+    public async Task<IActionResult> GetFacialPlcReport(
+        [FromQuery] DateTime? dateFrom = null,
+        [FromQuery] DateTime? dateTo = null,
+        [FromQuery] string? search = null,
+        [FromQuery] int? doctorId = null)
+    {
+        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+        using var conn = _dbFactory.CreateConnection();
+
+        var sql = @"
+            SELECT 
+                Id,
+                RegistrationNumber,
+                FORMAT(RegistrationDate, 'yyyy-MM-dd') AS RegistrationDate,
+                FullName AS ClientName,
+                Mobile,
+                Age,
+                Gender,
+                ProcedureType,
+                Quantity,
+                UnitPrice,
+                Discount,
+                TotalPrice,
+                DoctorName,
+                'PLC' AS TransactionCategory,
+                Status,
+                Notes
+            FROM dbo.FacialRegistrations WITH (NOLOCK)
+            WHERE TenantId = @TenantId
+              AND IsPlc = 1
+              AND (@DoctorId IS NULL OR DoctorId = @DoctorId)
+              AND (@DateFrom IS NULL OR RegistrationDate >= CAST(@DateFrom AS DATE))
+              AND (@DateTo IS NULL OR RegistrationDate <= CAST(@DateTo AS DATE))
+              AND (
+                  @Search IS NULL
+                  OR FullName LIKE '%' + @Search + '%'
+                  OR Mobile LIKE '%' + @Search + '%'
+                  OR ProcedureType LIKE '%' + @Search + '%'
+                  OR RegistrationNumber LIKE '%' + @Search + '%'
+                  OR DoctorName LIKE '%' + @Search + '%'
+              )
+            ORDER BY RegistrationDate DESC, Id DESC";
+
+        var rows = await conn.QueryAsync<dynamic>(sql, new
+        {
+            TenantId = tenantId,
+            DateFrom = dateFrom?.Date,
+            DateTo = dateTo?.Date,
+            Search = string.IsNullOrWhiteSpace(search) ? null : search.Trim(),
+            DoctorId = doctorId
+        });
+
+        return Ok(ApiResponse<object>.Ok(rows));
+    }
+
+    [HttpGet("facial-other")]
+    public async Task<IActionResult> GetFacialOtherReport(
+        [FromQuery] DateTime? dateFrom = null,
+        [FromQuery] DateTime? dateTo = null,
+        [FromQuery] string? search = null,
+        [FromQuery] int? doctorId = null)
+    {
+        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+        using var conn = _dbFactory.CreateConnection();
+
+        var sql = @"
+            SELECT 
+                Id,
+                RegistrationNumber,
+                FORMAT(RegistrationDate, 'yyyy-MM-dd') AS RegistrationDate,
+                FullName AS ClientName,
+                Mobile,
+                Age,
+                Gender,
+                ProcedureType,
+                Quantity,
+                UnitPrice,
+                Discount,
+                TotalPrice,
+                DoctorName,
+                'Other' AS TransactionCategory,
+                Status,
+                Notes
+            FROM dbo.FacialRegistrations WITH (NOLOCK)
+            WHERE TenantId = @TenantId
+              AND IsOther = 1
+              AND (@DoctorId IS NULL OR DoctorId = @DoctorId)
+              AND (@DateFrom IS NULL OR RegistrationDate >= CAST(@DateFrom AS DATE))
+              AND (@DateTo IS NULL OR RegistrationDate <= CAST(@DateTo AS DATE))
+              AND (
+                  @Search IS NULL
+                  OR FullName LIKE '%' + @Search + '%'
+                  OR Mobile LIKE '%' + @Search + '%'
+                  OR ProcedureType LIKE '%' + @Search + '%'
+                  OR RegistrationNumber LIKE '%' + @Search + '%'
+                  OR DoctorName LIKE '%' + @Search + '%'
+              )
+            ORDER BY RegistrationDate DESC, Id DESC";
+
+        var rows = await conn.QueryAsync<dynamic>(sql, new
+        {
+            TenantId = tenantId,
+            DateFrom = dateFrom?.Date,
+            DateTo = dateTo?.Date,
+            Search = string.IsNullOrWhiteSpace(search) ? null : search.Trim(),
+            DoctorId = doctorId
+        });
+
+        return Ok(ApiResponse<object>.Ok(rows));
+    }
 }

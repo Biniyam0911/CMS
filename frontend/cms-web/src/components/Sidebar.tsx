@@ -18,7 +18,7 @@ import {
   Pill, CreditCard, BarChart3, FileSpreadsheet, Globe, ShieldCheck,
   Boxes, Key, Settings, Plug, LogOut, LucideIcon, HeartPulse, Layers,
   ChevronLeft, ChevronRight, Stethoscope, Activity, Building2, Bed, Video, X, KeyRound,
-  DollarSign, Coins, Palette, ClipboardList, Baby
+  DollarSign, Coins, Palette, ClipboardList, Baby, Sparkles
 } from 'lucide-react';
 
 import { hasModuleAccess } from '../utils/permissions';
@@ -26,8 +26,8 @@ import './Sidebar.css';
 
 export type ModuleKey =
   | 'DASHBOARD' | 'PATIENTS' | 'TRIAGE' | 'EMR' | 'ANC' | 'INPATIENT' | 'APPOINTMENTS' | 'QUEUE'
-  | 'LAB' | 'PHARMACY' | 'BILLING' | 'PAYROLL' | 'REPORTS' | 'REPORT_BUILDER'
-  | 'REPORT_SALES' | 'REPORT_AGE_STRATIFIED' | 'REPORT_SEX_STRATIFIED' | 'REPORT_DOCTOR_PERFORMANCE' | 'REPORT_DIAGNOSIS' | 'REPORT_PROCEDURE' | 'REPORT_MY_PATIENT_SUMMARY' | 'REPORT_NURSE_ORDERS'
+  | 'FACIAL' | 'LAB' | 'PHARMACY' | 'BILLING' | 'PAYROLL' | 'REPORTS' | 'REPORT_BUILDER'
+  | 'REPORT_SALES' | 'REPORT_AGE_STRATIFIED' | 'REPORT_SEX_STRATIFIED' | 'REPORT_DOCTOR_PERFORMANCE' | 'REPORT_DIAGNOSIS' | 'REPORT_PROCEDURE' | 'REPORT_MY_PATIENT_SUMMARY' | 'REPORT_NURSE_ORDERS' | 'REPORT_FACIAL_PLC' | 'REPORT_FACIAL_OTHER'
   | 'PATIENT_PORTAL' | 'USER_MGMT' | 'SERVICE_MGMT' | 'MODULE_MGMT' | 'API_MGMT'
   | 'SETTINGS' | 'APPEARANCE' | 'INTEGRATIONS' | 'AUDIT_LOG' | 'TELEMED' | 'CHANGE_PASSWORD';
 
@@ -50,6 +50,7 @@ export const MODULE_ITEMS: { key: ModuleKey; label: string; category: string; ic
   { key: 'PATIENTS', label: 'Patient Registry', category: 'Clinical', icon: Users },
   { key: 'TRIAGE', label: 'Triage & Vitals', category: 'Clinical', icon: HeartPulse },
   { key: 'EMR', label: 'EMR & Consultation', category: 'Clinical', icon: FileHeart },
+  { key: 'FACIAL', label: 'Facial', category: 'Clinical', icon: Sparkles },
   { key: 'ANC', label: 'Antenatal Care (ANC)', category: 'Clinical', icon: Baby },
   { key: 'INPATIENT', label: 'Inpatient & Beds', category: 'Clinical', icon: Bed },
   { key: 'APPOINTMENTS', label: 'Appointments', category: 'Clinical', icon: Calendar },
@@ -64,6 +65,8 @@ export const MODULE_ITEMS: { key: ModuleKey; label: string; category: string; ic
 
   // Reports
   { key: 'REPORT_SALES', label: 'Sales Report', category: 'Reports', icon: DollarSign },
+  { key: 'REPORT_FACIAL_PLC', label: 'Facial PLC Report', category: 'Reports', icon: Sparkles },
+  { key: 'REPORT_FACIAL_OTHER', label: 'Other Facial Report', category: 'Reports', icon: Activity },
   { key: 'REPORT_AGE_STRATIFIED', label: 'Age Stratified Report', category: 'Reports', icon: BarChart3 },
   { key: 'REPORT_SEX_STRATIFIED', label: 'Sex Stratified Report', category: 'Reports', icon: Users },
   { key: 'REPORT_DOCTOR_PERFORMANCE', label: 'Doctor Performance', category: 'Reports', icon: Stethoscope },

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { BarChart3, Download, Play, X, Check, Loader2, Users, Stethoscope, FlaskConical, ClipboardList, Activity, DollarSign } from 'lucide-react';
+import { BarChart3, Download, Play, X, Check, Loader2, Users, Stethoscope, FlaskConical, ClipboardList, Activity, DollarSign, Sparkles } from 'lucide-react';
 import { api } from '../../api/apiClient';
 
 interface ReportDef {
@@ -60,6 +60,22 @@ const REPORT_DEFS: ReportDef[] = [
     desc: 'Procedure counts and revenue totals for the selected period.',
     icon: <FlaskConical size={20} color="#ea580c" />,
     filterFields: ['dateFrom', 'dateTo'],
+  },
+  {
+    id: 7, key: 'REPORT_FACIAL_PLC',
+    title: 'Facial PLC Report',
+    category: 'Facial',
+    desc: 'Itemized facial client registrations where PLC is selected, including procedure type, discount, and net revenue.',
+    icon: <Sparkles size={20} color="#ec4899" />,
+    filterFields: ['dateFrom', 'dateTo', 'doctor'],
+  },
+  {
+    id: 8, key: 'REPORT_FACIAL_OTHER',
+    title: 'Other Facial Report',
+    category: 'Facial',
+    desc: 'Itemized facial client registrations where Other is selected, including procedure type, discount, and net revenue.',
+    icon: <Sparkles size={20} color="#8b5cf6" />,
+    filterFields: ['dateFrom', 'dateTo', 'doctor'],
   },
 ];
 
@@ -135,6 +151,8 @@ export default function ReportsLibraryPage() {
           REPORT_DOCTOR_PERFORMANCE: '/reports/doctor-performance',
           REPORT_DIAGNOSIS: '/reports/diagnosis',
           REPORT_PROCEDURE: '/reports/procedure',
+          REPORT_FACIAL_PLC: '/reports/facial-plc',
+          REPORT_FACIAL_OTHER: '/reports/facial-other',
         };
         const endpoint = endpointMap[report.key];
         const qs = '?' + new URLSearchParams(params).toString();

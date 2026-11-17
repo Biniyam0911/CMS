@@ -26,6 +26,7 @@ const PatientsPage = React.lazy(() => import('./pages/Patients/PatientsPage'));
 const TriagePage = React.lazy(() => import('./pages/Triage/TriagePage'));
 const EmrSoapPage = React.lazy(() => import('./pages/EMR/EmrSoapPage'));
 const AntenatalCarePage = React.lazy(() => import('./pages/AntenatalCare/AntenatalCarePage'));
+const FacialPage = React.lazy(() => import('./pages/Facial/FacialPage'));
 const InpatientPage = React.lazy(() => import('./pages/Inpatient/InpatientPage'));
 const AppointmentsPage = React.lazy(() => import('./pages/Appointments/AppointmentsPage'));
 const QueuePage = React.lazy(() => import('./pages/Queue/QueuePage'));
@@ -640,6 +641,7 @@ export default function App() {
           {!disabledModules.has(activeModule) && activeModule === 'TRIAGE' && <TriagePage />}
           {!disabledModules.has(activeModule) && activeModule === 'EMR' && <EmrSoapPage selectedPatientId={selectedEmrPatientId} currentUser={user} />}
           {!disabledModules.has(activeModule) && activeModule === 'ANC' && <AntenatalCarePage />}
+          {!disabledModules.has(activeModule) && activeModule === 'FACIAL' && <FacialPage />}
           {!disabledModules.has(activeModule) && activeModule === 'INPATIENT' && <InpatientPage />}
           {!disabledModules.has(activeModule) && activeModule === 'APPOINTMENTS' && <AppointmentsPage />}
           {!disabledModules.has(activeModule) && activeModule === 'QUEUE' && <QueuePage />}
@@ -654,6 +656,8 @@ export default function App() {
           {!disabledModules.has(activeModule) && activeModule === 'REPORT_DOCTOR_PERFORMANCE' && <DedicatedReportPage reportType="REPORT_DOCTOR_PERFORMANCE" />}
           {!disabledModules.has(activeModule) && activeModule === 'REPORT_DIAGNOSIS' && <DedicatedReportPage reportType="REPORT_DIAGNOSIS" />}
           {!disabledModules.has(activeModule) && activeModule === 'REPORT_PROCEDURE' && <DedicatedReportPage reportType="REPORT_PROCEDURE" />}
+          {!disabledModules.has(activeModule) && activeModule === 'REPORT_FACIAL_PLC' && <DedicatedReportPage reportType="REPORT_FACIAL_PLC" />}
+          {!disabledModules.has(activeModule) && activeModule === 'REPORT_FACIAL_OTHER' && <DedicatedReportPage reportType="REPORT_FACIAL_OTHER" />}
           {!disabledModules.has(activeModule) && activeModule === 'REPORT_MY_PATIENT_SUMMARY' && <MyPatientSummaryPage />}
           {!disabledModules.has(activeModule) && activeModule === 'REPORT_NURSE_ORDERS' && <NurseOrdersFollowupPage />}
           {!disabledModules.has(activeModule) && activeModule === 'REPORT_BUILDER' && <ReportBuilderPage />}

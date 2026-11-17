@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   DollarSign, Users, Activity, Stethoscope, ClipboardList,
-  FlaskConical, Download, RefreshCw, Check, Loader2, ArrowUpRight, ArrowUpDown
+  FlaskConical, Download, RefreshCw, Check, Loader2, ArrowUpRight, ArrowUpDown, Sparkles
 } from 'lucide-react';
 import { api } from '../../api/apiClient';
 import { ModuleKey } from '../../components/Sidebar';
@@ -53,6 +53,18 @@ const REPORT_CONFIGS: Record<string, ReportConfig> = {
     category: 'Clinical Operations',
     description: 'Summary of clinical minor surgeries, nursing procedures, and diagnostic interventions with revenue yields.',
     icon: <FlaskConical color="#ea580c" size={24} />
+  },
+  REPORT_FACIAL_PLC: {
+    title: 'Facial PLC Report',
+    category: 'Facial Aesthetics & Procedures',
+    description: 'Itemized facial client registrations and procedure revenue where PLC is checked.',
+    icon: <Sparkles color="#0284c7" size={24} />
+  },
+  REPORT_FACIAL_OTHER: {
+    title: 'Other Facial Report',
+    category: 'Facial Aesthetics & Procedures',
+    description: 'Itemized facial client registrations and procedure revenue where Other is checked.',
+    icon: <Activity color="#d97706" size={24} />
   },
 };
 
@@ -359,6 +371,20 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
         }));
 
         setData(rows);
+      } else if (reportType === 'REPORT_FACIAL_PLC') {
+        const res: any = await api.get<any>('/reports/facial-plc', {
+          dateFrom,
+          dateTo
+        });
+        const raw = Array.isArray(res) ? res : (res?.data || res?.Data || []);
+        setData(raw);
+      } else if (reportType === 'REPORT_FACIAL_OTHER') {
+        const res: any = await api.get<any>('/reports/facial-other', {
+          dateFrom,
+          dateTo
+        });
+        const raw = Array.isArray(res) ? res : (res?.data || res?.Data || []);
+        setData(raw);
       }
     } catch (err) {
       console.error('Error generating report:', err);
@@ -453,6 +479,15 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
     const totalRevenue = data.reduce((s, r) => s + (r.totalRevenue || 0), 0);
     const uniquePatients = new Set(data.map(r => r.mrn).filter(Boolean)).size;
     return { count: data.length, totalOrders, totalRevenue, uniquePatients };
+  }, [reportType, data]);
+
+  const facialSummary = useMemo(() => {
+    if (reportType !== 'REPORT_FACIAL_PLC' && reportType !== 'REPORT_FACIAL_OTHER') return null;
+    const count = data.length;
+    const totalRev = data.reduce((s, r) => s + (Number(r.totalPrice) || 0), 0);
+    const totalDiscount = data.reduce((s, r) => s + (Number(r.discount) || 0), 0);
+    const avgTicket = count > 0 ? totalRev / count : 0;
+    return { count, totalRev, totalDiscount, avgTicket };
   }, [reportType, data]);
 
   return (
@@ -858,6 +893,41 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
         </div>
       )}
 
+      {facialSummary && (
+        <div className="no-print" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: '16px' }}>
+          <div className="glass-panel" style={{ padding: '18px' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Total Registrations</span>
+            <div style={{ fontSize: '1.5rem', fontWeight: 800, margin: '4px 0', color: reportType === 'REPORT_FACIAL_PLC' ? '#0284c7' : '#d97706' }}>
+              {facialSummary.count}
+            </div>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+              {reportType === 'REPORT_FACIAL_PLC' ? 'PLC Client Transactions' : 'Other Facial Transactions'}
+            </span>
+          </div>
+          <div className="glass-panel" style={{ padding: '18px' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Total Net Revenue</span>
+            <div style={{ fontSize: '1.5rem', fontWeight: 800, margin: '4px 0', color: '#059669' }}>
+              Br {facialSummary.totalRev.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            </div>
+            <span style={{ fontSize: '0.72rem', color: '#059669' }}>Total Collected</span>
+          </div>
+          <div className="glass-panel" style={{ padding: '18px' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Total Discounts Given</span>
+            <div style={{ fontSize: '1.5rem', fontWeight: 800, margin: '4px 0', color: '#dc2626' }}>
+              Br {facialSummary.totalDiscount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            </div>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Waived / Promotional</span>
+          </div>
+          <div className="glass-panel" style={{ padding: '18px' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Average Transaction</span>
+            <div style={{ fontSize: '1.5rem', fontWeight: 800, margin: '4px 0', color: '#7c3aed' }}>
+              Br {facialSummary.avgTicket.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            </div>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Per Client Entry</span>
+          </div>
+        </div>
+      )}
+
       {/* REPORT DATA TABLE */}
       <div className="glass-panel" style={{ padding: '24px' }}>
         <div className="print-only" style={{ display: 'none', marginBottom: '12px', textAlign: 'center' }}>
@@ -968,6 +1038,23 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
                       <th>Status</th>
                     </>
                   )}
+                  {(reportType === 'REPORT_FACIAL_PLC' || reportType === 'REPORT_FACIAL_OTHER') && (
+                    <>
+                      <th>Ticket #</th>
+                      <th>Date</th>
+                      <th>Client Name</th>
+                      <th>Mobile</th>
+                      <th>Age/Sex</th>
+                      <th>Procedure Type</th>
+                      <th style={{ textAlign: 'right' }}>Qty</th>
+                      <th style={{ textAlign: 'right' }}>Unit Price (Br)</th>
+                      <th style={{ textAlign: 'right' }}>Discount (Br)</th>
+                      <th style={{ textAlign: 'right' }}>Total Price (Br)</th>
+                      <th>Doctor</th>
+                      <th>Type</th>
+                      <th>Status</th>
+                    </>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -1056,6 +1143,34 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
                         r.status === 'Ordered' ? 'badge badge-info' :
                         'badge badge-warning'
                       }>{r.status}</span>
+                    </td>
+                  </tr>
+                ))}
+
+                {(reportType === 'REPORT_FACIAL_PLC' || reportType === 'REPORT_FACIAL_OTHER') && data.map((r, i) => (
+                  <tr key={i}>
+                    <td style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0284c7' }}>{r.registrationNumber}</td>
+                    <td style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>{r.registrationDate}</td>
+                    <td style={{ fontWeight: 600 }}>{r.clientName}</td>
+                    <td style={{ color: 'var(--text-muted)' }}>{r.mobile || '—'}</td>
+                    <td>{r.age ? `${r.age} yrs` : '—'} · {r.gender || '—'}</td>
+                    <td style={{ fontWeight: 700 }}>{r.procedureType}</td>
+                    <td style={{ textAlign: 'right' }}>{r.quantity || 1}</td>
+                    <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>Br {Number(r.unitPrice || 0).toFixed(2)}</td>
+                    <td style={{ textAlign: 'right', fontFamily: 'monospace', color: Number(r.discount) > 0 ? '#d97706' : 'var(--text-muted)' }}>
+                      {Number(r.discount) > 0 ? `Br ${Number(r.discount).toFixed(2)}` : '—'}
+                    </td>
+                    <td style={{ textAlign: 'right', fontWeight: 700, color: '#059669', fontFamily: 'monospace' }}>
+                      Br {Number(r.totalPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </td>
+                    <td style={{ color: 'var(--text-muted)' }}>{r.doctorName || '—'}</td>
+                    <td>
+                      <span className={reportType === 'REPORT_FACIAL_PLC' ? 'badge badge-info' : 'badge badge-warning'}>
+                        {reportType === 'REPORT_FACIAL_PLC' ? 'PLC' : 'OTHER'}
+                      </span>
+                    </td>
+                    <td>
+                      <span className="badge badge-normal">{r.status || 'Completed'}</span>
                     </td>
                   </tr>
                 ))}
