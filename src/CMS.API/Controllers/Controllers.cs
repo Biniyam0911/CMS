@@ -622,6 +622,7 @@ public class LaboratoryController : ControllerBase
         byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
         using var conn = _dbFactory.CreateConnection();
         conn.Open();
+        await _labService.EnsureSchemaAsync(conn);
         using var tx = conn.BeginTransaction();
         try
         {
@@ -712,6 +713,7 @@ public class LaboratoryController : ControllerBase
         byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
         using var conn = _dbFactory.CreateConnection();
         conn.Open();
+        await _labService.EnsureSchemaAsync(conn);
         using var tx = conn.BeginTransaction();
         try
         {

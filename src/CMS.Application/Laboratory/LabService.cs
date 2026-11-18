@@ -8,11 +8,69 @@ public class LabService
 {
     private readonly IDbConnectionFactory _dbFactory;
     private readonly ICacheService _cache;
+    private static bool _schemaEnsured = false;
+    private static readonly SemaphoreSlim _schemaLock = new(1, 1);
 
     public LabService(IDbConnectionFactory dbFactory, ICacheService cache)
     {
         _dbFactory = dbFactory;
         _cache = cache;
+    }
+
+    public async Task EnsureSchemaAsync(System.Data.IDbConnection? externalConn = null)
+    {
+        if (_schemaEnsured) return;
+        await _schemaLock.WaitAsync();
+        try
+        {
+            if (_schemaEnsured) return;
+            using var localConn = externalConn == null ? _dbFactory.CreateConnection() : null;
+            var conn = externalConn ?? localConn!;
+            var sqlCheck = @"
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('LabTestCatalog') AND name = 'HasGenderRanges')
+                BEGIN
+                    ALTER TABLE LabTestCatalog ADD HasGenderRanges BIT NOT NULL CONSTRAINT DF_LabTestCatalog_HasGenderRanges DEFAULT 0;
+                END
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('LabTestCatalog') AND name = 'MaleNormalRangeLow')
+                    ALTER TABLE LabTestCatalog ADD MaleNormalRangeLow DECIMAL(18,4) NULL;
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('LabTestCatalog') AND name = 'MaleNormalRangeHigh')
+                    ALTER TABLE LabTestCatalog ADD MaleNormalRangeHigh DECIMAL(18,4) NULL;
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('LabTestCatalog') AND name = 'FemaleNormalRangeLow')
+                    ALTER TABLE LabTestCatalog ADD FemaleNormalRangeLow DECIMAL(18,4) NULL;
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('LabTestCatalog') AND name = 'FemaleNormalRangeHigh')
+                    ALTER TABLE LabTestCatalog ADD FemaleNormalRangeHigh DECIMAL(18,4) NULL;
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('LabTestCatalog') AND name = 'MaleTextReferenceRange')
+                    ALTER TABLE LabTestCatalog ADD MaleTextReferenceRange NVARCHAR(500) NULL;
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('LabTestCatalog') AND name = 'FemaleTextReferenceRange')
+                    ALTER TABLE LabTestCatalog ADD FemaleTextReferenceRange NVARCHAR(500) NULL;
+
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('LabTestParameters') AND name = 'HasGenderRanges')
+                BEGIN
+                    ALTER TABLE LabTestParameters ADD HasGenderRanges BIT NOT NULL CONSTRAINT DF_LabTestParameters_HasGenderRanges DEFAULT 0;
+                END
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('LabTestParameters') AND name = 'MaleReferenceLow')
+                    ALTER TABLE LabTestParameters ADD MaleReferenceLow DECIMAL(18,4) NULL;
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('LabTestParameters') AND name = 'MaleReferenceHigh')
+                    ALTER TABLE LabTestParameters ADD MaleReferenceHigh DECIMAL(18,4) NULL;
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('LabTestParameters') AND name = 'FemaleReferenceLow')
+                    ALTER TABLE LabTestParameters ADD FemaleReferenceLow DECIMAL(18,4) NULL;
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('LabTestParameters') AND name = 'FemaleReferenceHigh')
+                    ALTER TABLE LabTestParameters ADD FemaleReferenceHigh DECIMAL(18,4) NULL;
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('LabTestParameters') AND name = 'MaleTextReferenceRange')
+                    ALTER TABLE LabTestParameters ADD MaleTextReferenceRange NVARCHAR(500) NULL;
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('LabTestParameters') AND name = 'FemaleTextReferenceRange')
+                    ALTER TABLE LabTestParameters ADD FemaleTextReferenceRange NVARCHAR(500) NULL;";
+            await conn.ExecuteAsync(sqlCheck);
+            _schemaEnsured = true;
+        }
+        catch
+        {
+            // If DDL fails due to permissions, catch and allow resilient fallback queries
+        }
+        finally
+        {
+            _schemaLock.Release();
+        }
     }
 
     public async Task<List<LabTestCatalogDto>> GetTestCatalogAsync(byte tenantId)
@@ -22,30 +80,64 @@ public class LabService
         if (cached != null) return cached;
 
         using var conn = _dbFactory.CreateConnection();
-        var sql = @"
-            SELECT Id, TestCode, TestName, Category, SampleType, TurnaroundMinutes,
-                   NormalRangeLow, NormalRangeHigh, Unit, Price, DisplayOrder, TextReferenceRange,
-                   HasGenderRanges, MaleNormalRangeLow, MaleNormalRangeHigh,
-                   FemaleNormalRangeLow, FemaleNormalRangeHigh,
-                   MaleTextReferenceRange, FemaleTextReferenceRange
-            FROM LabTestCatalog
-            WHERE TenantId = @TenantId AND IsActive = 1
-            ORDER BY DisplayOrder ASC, Category ASC, TestName ASC";
+        await EnsureSchemaAsync(conn);
 
-        var catalog = (await conn.QueryAsync<LabTestCatalogDto>(sql, new { TenantId = tenantId })).ToList();
+        List<LabTestCatalogDto> catalog;
+        try
+        {
+            var sql = @"
+                SELECT Id, TestCode, TestName, Category, SampleType, TurnaroundMinutes,
+                       NormalRangeLow, NormalRangeHigh, Unit, Price, DisplayOrder, TextReferenceRange,
+                       HasGenderRanges, MaleNormalRangeLow, MaleNormalRangeHigh,
+                       FemaleNormalRangeLow, FemaleNormalRangeHigh,
+                       MaleTextReferenceRange, FemaleTextReferenceRange
+                FROM LabTestCatalog
+                WHERE TenantId = @TenantId AND IsActive = 1
+                ORDER BY DisplayOrder ASC, Category ASC, TestName ASC";
 
-        var sqlParams = @"
-            SELECT p.Id, p.TestCatalogId, p.ParameterCode, p.ParameterName, p.Unit,
-                   p.ReferenceLow, p.ReferenceHigh, p.TextReferenceRange, p.DisplayOrder,
-                   p.HasGenderRanges, p.MaleReferenceLow, p.MaleReferenceHigh,
-                   p.FemaleReferenceLow, p.FemaleReferenceHigh,
-                   p.MaleTextReferenceRange, p.FemaleTextReferenceRange
-            FROM LabTestParameters p
-            JOIN LabTestCatalog c ON c.Id = p.TestCatalogId
-            WHERE c.TenantId = @TenantId AND c.IsActive = 1
-            ORDER BY p.DisplayOrder, p.Id";
+            catalog = (await conn.QueryAsync<LabTestCatalogDto>(sql, new { TenantId = tenantId })).ToList();
+        }
+        catch
+        {
+            var fallbackSql = @"
+                SELECT Id, TestCode, TestName, Category, SampleType, TurnaroundMinutes,
+                       NormalRangeLow, NormalRangeHigh, Unit, Price, DisplayOrder, TextReferenceRange
+                FROM LabTestCatalog
+                WHERE TenantId = @TenantId AND IsActive = 1
+                ORDER BY DisplayOrder ASC, Category ASC, TestName ASC";
 
-        var allParams = (await conn.QueryAsync<LabTestParameterDto>(sqlParams, new { TenantId = tenantId })).ToList();
+            catalog = (await conn.QueryAsync<LabTestCatalogDto>(fallbackSql, new { TenantId = tenantId })).ToList();
+        }
+
+        List<LabTestParameterDto> allParams;
+        try
+        {
+            var sqlParams = @"
+                SELECT p.Id, p.TestCatalogId, p.ParameterCode, p.ParameterName, p.Unit,
+                       p.ReferenceLow, p.ReferenceHigh, p.TextReferenceRange, p.DisplayOrder,
+                       p.HasGenderRanges, p.MaleReferenceLow, p.MaleReferenceHigh,
+                       p.FemaleReferenceLow, p.FemaleReferenceHigh,
+                       p.MaleTextReferenceRange, p.FemaleTextReferenceRange
+                FROM LabTestParameters p
+                JOIN LabTestCatalog c ON c.Id = p.TestCatalogId
+                WHERE c.TenantId = @TenantId AND c.IsActive = 1
+                ORDER BY p.DisplayOrder, p.Id";
+
+            allParams = (await conn.QueryAsync<LabTestParameterDto>(sqlParams, new { TenantId = tenantId })).ToList();
+        }
+        catch
+        {
+            var fallbackParams = @"
+                SELECT p.Id, p.TestCatalogId, p.ParameterCode, p.ParameterName, p.Unit,
+                       p.ReferenceLow, p.ReferenceHigh, p.TextReferenceRange, p.DisplayOrder
+                FROM LabTestParameters p
+                JOIN LabTestCatalog c ON c.Id = p.TestCatalogId
+                WHERE c.TenantId = @TenantId AND c.IsActive = 1
+                ORDER BY p.DisplayOrder, p.Id";
+
+            allParams = (await conn.QueryAsync<LabTestParameterDto>(fallbackParams, new { TenantId = tenantId })).ToList();
+        }
+
         var paramLookup = allParams.GroupBy(p => p.TestCatalogId).ToDictionary(g => g.Key, g => g.ToList());
 
         var result = catalog.Select(c => c with {

@@ -113,8 +113,6 @@ public class TriageController : ControllerBase
                        q.ServiceType,
                        ISNULL(invItem.Description, q.ServiceType) AS ConsultationServiceName,
                        CASE 
-                           WHEN t.PriorityLevel = 3 THEN 1
-                           WHEN ISNULL(q.PriorityLevel, 0) = 3 THEN 1
                            WHEN q.ServiceType LIKE '%VIP%' THEN 1
                            WHEN invItem.Description LIKE '%VIP%' THEN 1
                            ELSE 0
@@ -201,7 +199,7 @@ public class TriageController : ControllerBase
                   )
             )
             SELECT * FROM RankedTriage WHERE rn = 1
-            ORDER BY PriorityLevel ASC, UpdatedAt DESC, TriagedAt DESC";
+            ORDER BY IsVip DESC, PriorityLevel ASC, UpdatedAt DESC, TriagedAt DESC";
 
         var list = (await conn.QueryAsync<dynamic>(sql, new {
             TenantId = tenantId,

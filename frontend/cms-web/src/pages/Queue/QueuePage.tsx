@@ -237,6 +237,11 @@ export default function QueuePage() {
         .map((t: any, idx: number) => {
           const mrnNum = extractMrnNumber(t.mrn || t.MRN, t.patientId || t.id);
           const tid = t.id || t.Id || t.triageId || t.TriageId || mrnNum;
+          const isVipConsult = Boolean(
+            (t.consultationServiceName && t.consultationServiceName.toLowerCase().includes('vip')) ||
+            (t.serviceType && t.serviceType.toLowerCase().includes('vip')) ||
+            (t.isVip || t.IsVip)
+          );
           return {
             id: tid ? `trg-${tid}-${idx}` : `trg-row-${idx}`,
             ticketId: undefined,
@@ -244,12 +249,12 @@ export default function QueuePage() {
             mrn: t.mrn || t.MRN,
             patientId: t.patientId || t.PatientId,
             patientName: t.patientName || t.PatientName || `Patient #${mrnNum}`,
-            service: 'Consultation',
+            service: t.consultationServiceName || 'Consultation',
             serviceCategory: 'Consultation',
             counter: t.assignedDoctorName ? `Dr. ${t.assignedDoctorName}` : 'Doctor Room',
             status: 'Waiting',
-            priority: t.priorityLevel === 1 ? 'Emergency' : (t.priorityLevel === 2 ? 'Urgent' : 'Normal'),
-            priorityLevel: t.priorityLevel || 2,
+            priority: t.priorityLevel === 1 ? 'Emergency' : (isVipConsult ? 'VIP' : (t.priorityLevel === 2 ? 'Urgent' : 'Normal')),
+            priorityLevel: t.priorityLevel === 1 ? 1 : (isVipConsult ? 3 : 2),
             assignedDoctor: t.assignedDoctorName || 'Attending Doctor',
             time: t.triagedAt || t.createdAt || '',
             isDoctorService: true,

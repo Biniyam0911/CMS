@@ -1011,11 +1011,15 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
           insurance: p.insuranceProvider || p.InsuranceProvider || 'Cash',
           visitType: p.visitType || p.VisitType || '',
           isVip: Boolean(
-            p.isVip || p.IsVip ||
-            p.priorityLevel === 3 || p.PriorityLevel === 3 ||
-            (p.serviceName && p.serviceName.toLowerCase().includes('vip')) ||
             (p.consultationServiceName && p.consultationServiceName.toLowerCase().includes('vip')) ||
-            (p.serviceType && p.serviceType.toLowerCase().includes('vip'))
+            (p.serviceName && p.serviceName.toLowerCase().includes('vip')) ||
+            (p.serviceType && p.serviceType.toLowerCase().includes('vip')) ||
+            ((p.isVip === true || p.isVip === 1 || p.IsVip === true || p.IsVip === 1) && (
+              (p.consultationServiceName && p.consultationServiceName.toLowerCase().includes('vip')) ||
+              (p.serviceName && p.serviceName.toLowerCase().includes('vip')) ||
+              (p.serviceType && p.serviceType.toLowerCase().includes('vip')) ||
+              (!p.consultationServiceName && !p.serviceName && !p.serviceType)
+            ))
           ),
           serviceName: p.consultationServiceName || p.serviceName || p.serviceType || ''
         }));
