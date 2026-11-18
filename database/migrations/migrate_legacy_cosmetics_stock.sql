@@ -99,7 +99,6 @@ BEGIN TRY
         TotalSellingPrice,
         RegistrationDate,
         IsActive,
-        CreatedByName,
         CreatedAt
     )
     SELECT
@@ -120,7 +119,6 @@ BEGIN TRY
         ISNULL(src.TotalSellingPrice, 0.00)             AS TotalSellingPrice,
         CAST(ISNULL(src.RegistrationDate, GETDATE()) AS DATE) AS RegistrationDate,
         1                                               AS IsActive,
-        ISNULL(src.RegisteredBy, 'Migration')           AS CreatedByName,
         ISNULL(src.RegistrationDate, GETDATE())         AS CreatedAt
     FROM (
         -- Use ROW_NUMBER to handle duplicate ItemCodes — keep the latest entry

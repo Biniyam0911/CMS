@@ -37,6 +37,11 @@ interface LabParameter {
   normalRangeHigh?: number | null;
   textReferenceRange?: string;
   displayOrder?: number;
+  hasGenderRanges?: boolean;
+  maleReferenceLow?: number | null;
+  maleReferenceHigh?: number | null;
+  femaleReferenceLow?: number | null;
+  femaleReferenceHigh?: number | null;
 }
 
 interface LabTestMaster {
@@ -50,6 +55,11 @@ interface LabTestMaster {
   displayOrder: number;
   fastingRequired: boolean;
   isActive: boolean;
+  hasGenderRanges?: boolean;
+  maleNormalRangeLow?: number | null;
+  maleNormalRangeHigh?: number | null;
+  femaleNormalRangeLow?: number | null;
+  femaleNormalRangeHigh?: number | null;
   textReferenceRange?: string;
   parameters: LabParameter[];
 }
@@ -257,6 +267,7 @@ export default function ServicesPage() {
       if (rawLab.length > 0) {
         setLabTests(rawLab.map((t: any) => {
           const rawParams: any[] = t.parameters || t.Parameters || [];
+          const testHasGender = Boolean(t.hasGenderRanges ?? t.HasGenderRanges ?? false);
           const params: LabParameter[] = rawParams
             .map((p: any) => ({
               code: p.parameterCode || p.ParameterCode || p.code || p.Code || '',
@@ -265,6 +276,11 @@ export default function ServicesPage() {
               normalRangeLow: p.referenceLow ?? p.ReferenceLow ?? p.normalRangeLow ?? p.NormalRangeLow ?? null,
               normalRangeHigh: p.referenceHigh ?? p.ReferenceHigh ?? p.normalRangeHigh ?? p.NormalRangeHigh ?? null,
               textReferenceRange: p.textReferenceRange ?? p.TextReferenceRange ?? '',
+              hasGenderRanges: Boolean(p.hasGenderRanges ?? p.HasGenderRanges ?? testHasGender),
+              maleReferenceLow: p.maleReferenceLow ?? p.MaleReferenceLow ?? null,
+              maleReferenceHigh: p.maleReferenceHigh ?? p.MaleReferenceHigh ?? null,
+              femaleReferenceLow: p.femaleReferenceLow ?? p.FemaleReferenceLow ?? null,
+              femaleReferenceHigh: p.femaleReferenceHigh ?? p.FemaleReferenceHigh ?? null,
               displayOrder: p.displayOrder ?? p.DisplayOrder ?? 1
             }))
             .sort((a: LabParameter, b: LabParameter) => (a.displayOrder ?? 1) - (b.displayOrder ?? 1));
@@ -280,6 +296,11 @@ export default function ServicesPage() {
             displayOrder: t.displayOrder ?? t.DisplayOrder ?? 1,
             fastingRequired: false,
             isActive: true,
+            hasGenderRanges: testHasGender,
+            maleNormalRangeLow: t.maleNormalRangeLow ?? t.MaleNormalRangeLow ?? null,
+            maleNormalRangeHigh: t.maleNormalRangeHigh ?? t.MaleNormalRangeHigh ?? null,
+            femaleNormalRangeLow: t.femaleNormalRangeLow ?? t.FemaleNormalRangeLow ?? null,
+            femaleNormalRangeHigh: t.femaleNormalRangeHigh ?? t.FemaleNormalRangeHigh ?? null,
             textReferenceRange: t.textReferenceRange ?? t.TextReferenceRange ?? '',
             parameters: params.length > 0 ? params : (
               (t.unit || t.Unit || t.normalRangeLow != null || t.normalRangeHigh != null || t.textReferenceRange || t.TextReferenceRange) ? [
@@ -290,6 +311,11 @@ export default function ServicesPage() {
                   normalRangeLow: t.normalRangeLow ?? t.NormalRangeLow ?? null,
                   normalRangeHigh: t.normalRangeHigh ?? t.NormalRangeHigh ?? null,
                   textReferenceRange: t.textReferenceRange ?? t.TextReferenceRange ?? '',
+                  hasGenderRanges: testHasGender,
+                  maleReferenceLow: t.maleNormalRangeLow ?? t.MaleNormalRangeLow ?? null,
+                  maleReferenceHigh: t.maleNormalRangeHigh ?? t.MaleNormalRangeHigh ?? null,
+                  femaleReferenceLow: t.femaleNormalRangeLow ?? t.FemaleNormalRangeLow ?? null,
+                  femaleReferenceHigh: t.femaleNormalRangeHigh ?? t.FemaleNormalRangeHigh ?? null,
                   displayOrder: 1
                 }
               ] : []
@@ -411,7 +437,20 @@ export default function ServicesPage() {
     setLabFormFasting(false);
     setLabFormDisplayOrder(1);
     setLabFormParams([
-      { code: 'PARAM-1', name: 'Primary Analyte', unit: 'mg/dL', normalRangeLow: 10, normalRangeHigh: 50, textReferenceRange: '', displayOrder: 1 }
+      {
+        code: 'PARAM-1',
+        name: 'Primary Analyte',
+        unit: 'mg/dL',
+        normalRangeLow: 10,
+        normalRangeHigh: 50,
+        textReferenceRange: '',
+        displayOrder: 1,
+        hasGenderRanges: false,
+        maleReferenceLow: null,
+        maleReferenceHigh: null,
+        femaleReferenceLow: null,
+        femaleReferenceHigh: null
+      }
     ]);
     setShowLabModal(true);
   };
@@ -427,15 +466,48 @@ export default function ServicesPage() {
     setLabFormFasting(t.fastingRequired);
     setLabFormDisplayOrder(t.displayOrder ?? 1);
     setLabFormParams(t.parameters && t.parameters.length > 0 
-      ? t.parameters.map(p => ({ ...p })) 
-      : [{ code: `${t.code}-1`, name: t.name, unit: '', normalRangeLow: null, normalRangeHigh: null, textReferenceRange: t.textReferenceRange || '', displayOrder: 1 }]);
+      ? t.parameters.map(p => ({
+          ...p,
+          hasGenderRanges: Boolean(p.hasGenderRanges ?? t.hasGenderRanges),
+          maleReferenceLow: p.maleReferenceLow ?? (p.hasGenderRanges ? null : t.maleNormalRangeLow),
+          maleReferenceHigh: p.maleReferenceHigh ?? (p.hasGenderRanges ? null : t.maleNormalRangeHigh),
+          femaleReferenceLow: p.femaleReferenceLow ?? (p.hasGenderRanges ? null : t.femaleNormalRangeLow),
+          femaleReferenceHigh: p.femaleReferenceHigh ?? (p.hasGenderRanges ? null : t.femaleNormalRangeHigh)
+        })) 
+      : [{
+          code: `${t.code}-1`,
+          name: t.name,
+          unit: '',
+          normalRangeLow: null,
+          normalRangeHigh: null,
+          textReferenceRange: t.textReferenceRange || '',
+          displayOrder: 1,
+          hasGenderRanges: Boolean(t.hasGenderRanges),
+          maleReferenceLow: t.maleNormalRangeLow,
+          maleReferenceHigh: t.maleNormalRangeHigh,
+          femaleReferenceLow: t.femaleNormalRangeLow,
+          femaleReferenceHigh: t.femaleNormalRangeHigh
+        }]);
     setShowLabModal(true);
   };
 
   const handleAddParamRow = () => {
     setLabFormParams([
       ...labFormParams,
-      { code: `PARAM-${labFormParams.length + 1}`, name: 'New Sub-Parameter', unit: '', normalRangeLow: null, normalRangeHigh: null, textReferenceRange: '', displayOrder: labFormParams.length + 1 }
+      {
+        code: `PARAM-${labFormParams.length + 1}`,
+        name: 'New Sub-Parameter',
+        unit: '',
+        normalRangeLow: null,
+        normalRangeHigh: null,
+        textReferenceRange: '',
+        displayOrder: labFormParams.length + 1,
+        hasGenderRanges: false,
+        maleReferenceLow: null,
+        maleReferenceHigh: null,
+        femaleReferenceLow: null,
+        femaleReferenceHigh: null
+      }
     ]);
   };
 
@@ -447,6 +519,7 @@ export default function ServicesPage() {
     e.preventDefault();
     const priceNum = parseFloat(labFormPrice) || 0;
     const tatNum = parseInt(labFormTat) || 60;
+    const anyParamHasGender = labFormParams.some(p => !!p.hasGenderRanges);
     const firstParam = labFormParams[0];
 
     const parametersPayload = labFormParams.map((p, idx) => ({
@@ -456,7 +529,12 @@ export default function ServicesPage() {
       normalRangeLow: p.normalRangeLow != null && p.normalRangeLow !== ('' as any) && !isNaN(Number(p.normalRangeLow)) ? Number(p.normalRangeLow) : null,
       normalRangeHigh: p.normalRangeHigh != null && p.normalRangeHigh !== ('' as any) && !isNaN(Number(p.normalRangeHigh)) ? Number(p.normalRangeHigh) : null,
       textReferenceRange: p.textReferenceRange?.trim() || null,
-      displayOrder: p.displayOrder ?? (idx + 1)
+      displayOrder: p.displayOrder ?? (idx + 1),
+      hasGenderRanges: Boolean(p.hasGenderRanges),
+      maleReferenceLow: p.hasGenderRanges && p.maleReferenceLow != null && p.maleReferenceLow !== ('' as any) && !isNaN(Number(p.maleReferenceLow)) ? Number(p.maleReferenceLow) : null,
+      maleReferenceHigh: p.hasGenderRanges && p.maleReferenceHigh != null && p.maleReferenceHigh !== ('' as any) && !isNaN(Number(p.maleReferenceHigh)) ? Number(p.maleReferenceHigh) : null,
+      femaleReferenceLow: p.hasGenderRanges && p.femaleReferenceLow != null && p.femaleReferenceLow !== ('' as any) && !isNaN(Number(p.femaleReferenceLow)) ? Number(p.femaleReferenceLow) : null,
+      femaleReferenceHigh: p.hasGenderRanges && p.femaleReferenceHigh != null && p.femaleReferenceHigh !== ('' as any) && !isNaN(Number(p.femaleReferenceHigh)) ? Number(p.femaleReferenceHigh) : null
     }));
 
     const payload = {
@@ -467,6 +545,11 @@ export default function ServicesPage() {
       turnaroundMinutes: tatNum,
       price: priceNum,
       displayOrder: labFormDisplayOrder,
+      hasGenderRanges: anyParamHasGender,
+      maleNormalRangeLow: firstParam?.hasGenderRanges && firstParam?.maleReferenceLow != null && !isNaN(Number(firstParam.maleReferenceLow)) ? Number(firstParam.maleReferenceLow) : null,
+      maleNormalRangeHigh: firstParam?.hasGenderRanges && firstParam?.maleReferenceHigh != null && !isNaN(Number(firstParam.maleReferenceHigh)) ? Number(firstParam.maleReferenceHigh) : null,
+      femaleNormalRangeLow: firstParam?.hasGenderRanges && firstParam?.femaleReferenceLow != null && !isNaN(Number(firstParam.femaleReferenceLow)) ? Number(firstParam.femaleReferenceLow) : null,
+      femaleNormalRangeHigh: firstParam?.hasGenderRanges && firstParam?.femaleReferenceHigh != null && !isNaN(Number(firstParam.femaleReferenceHigh)) ? Number(firstParam.femaleReferenceHigh) : null,
       unit: firstParam?.unit || '',
       normalRangeLow: firstParam?.normalRangeLow != null && firstParam?.normalRangeLow !== ('' as any) ? Number(firstParam.normalRangeLow) : null,
       normalRangeHigh: firstParam?.normalRangeHigh != null && firstParam?.normalRangeHigh !== ('' as any) ? Number(firstParam.normalRangeHigh) : null,
@@ -943,7 +1026,13 @@ export default function ServicesPage() {
                                   <td><strong>{p.name}</strong></td>
                                   <td>{p.unit || '—'}</td>
                                   <td>
-                                    {hasText ? (
+                                    {p.hasGenderRanges ? (
+                                      <span style={{ fontSize: '0.74rem' }}>
+                                        <span style={{ color: '#0369a1', fontWeight: 600 }}>♂ M: {p.maleReferenceLow ?? p.normalRangeLow ?? '?'}–{p.maleReferenceHigh ?? p.normalRangeHigh ?? '?'}</span>
+                                        {' | '}
+                                        <span style={{ color: '#be185d', fontWeight: 600 }}>♀ F: {p.femaleReferenceLow ?? p.normalRangeLow ?? '?'}–{p.femaleReferenceHigh ?? p.normalRangeHigh ?? '?'}</span>
+                                      </span>
+                                    ) : hasText ? (
                                       <span style={{ color: '#0369a1', fontWeight: 700, background: '#e0f2fe', padding: '2px 8px', borderRadius: '4px', fontSize: '0.74rem' }}>
                                         {p.textReferenceRange}
                                       </span>
@@ -1001,14 +1090,14 @@ export default function ServicesPage() {
       {/* ========================================================================= */}
       {showLabModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(28,25,23,0.65)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: isMobile ? '8px' : '16px' }}>
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '680px', maxHeight: '92vh', overflowY: 'auto', padding: isMobile ? '16px' : '24px', background: '#ffffff', border: '1px solid var(--border-color)', borderRadius: '12px' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '880px', maxHeight: '92vh', overflowY: 'auto', padding: isMobile ? '16px' : '24px', background: '#ffffff', border: '1px solid var(--border-color)', borderRadius: '12px' }}>
             
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>
               <div>
                 <h3 style={{ fontSize: '1.05rem', fontWeight: 700 }}>
                   {editingLab ? 'Edit Diagnostic Laboratory Test' : 'Add New Laboratory Test'}
                 </h3>
-                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Define test tariff, specimen, and sub-parameters</span>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Define test tariff, specimen, and sub-parameters with optional gender-based reference ranges</span>
               </div>
               <button onClick={() => setShowLabModal(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={18} /></button>
             </div>
@@ -1052,59 +1141,161 @@ export default function ServicesPage() {
 
               {/* Sub-Parameters Section */}
               <div style={{ padding: '12px', background: '#fdfcf9', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#0369a1' }}>
-                    Sub-Parameters & Analytes ({labFormParams.length})
-                  </span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
+                  <div>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0369a1' }}>
+                      Sub-Parameters & Analytes ({labFormParams.length})
+                    </span>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginLeft: '8px' }}>
+                      Tick "Gender Range" on any sub-test to specify separate ♂ Male & ♀ Female reference intervals.
+                    </span>
+                  </div>
                   <button type="button" onClick={handleAddParamRow} className="btn-secondary" style={{ padding: '3px 8px', fontSize: '0.7rem' }}>
                     <Plus size={12} /> Add Analyte Row
                   </button>
                 </div>
 
-                <div style={{ overflowX: 'auto', maxHeight: '250px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: '720px' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '40px 90px 1.3fr 70px 100px 1.4fr auto', gap: '6px', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', paddingBottom: '2px', borderBottom: '1px solid #e2e8f0' }}>
+                <div style={{ overflowX: 'auto', maxHeight: '350px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: '820px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '36px 85px 1.2fr 65px 115px 1.8fr 32px', gap: '6px', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', paddingBottom: '2px', borderBottom: '1px solid #e2e8f0' }}>
                       <span style={{ textAlign: 'center' }}>#</span>
                       <span>Code</span>
                       <span>Analyte Name *</span>
                       <span>Unit</span>
-                      <span>Ref Type</span>
+                      <span>Gender / Ref Type</span>
                       <span>Reference Range</span>
                       <span></span>
                     </div>
                     {labFormParams.map((p, idx) => {
-                      const isTextType = !!p.textReferenceRange?.trim() || (p.normalRangeLow == null && p.normalRangeHigh == null && p.textReferenceRange !== undefined);
+                      const isTextType = !p.hasGenderRanges && (!!p.textReferenceRange?.trim() || (p.normalRangeLow == null && p.normalRangeHigh == null && p.textReferenceRange !== undefined));
                       return (
-                        <div key={idx} style={{ display: 'grid', gridTemplateColumns: '40px 90px 1.3fr 70px 100px 1.4fr auto', gap: '6px', alignItems: 'center', background: '#ffffff', padding: '4px', borderRadius: '6px', border: '1px solid #f1f5f9' }}>
+                        <div key={idx} style={{ display: 'grid', gridTemplateColumns: '36px 85px 1.2fr 65px 115px 1.8fr 32px', gap: '6px', alignItems: 'center', background: '#ffffff', padding: '6px', borderRadius: '6px', border: '1px solid #f1f5f9' }}>
                           <input type="number" min={1} placeholder="#" value={p.displayOrder ?? (idx + 1)} onChange={e => { const u = [...labFormParams]; u[idx].displayOrder = parseInt(e.target.value) || idx + 1; setLabFormParams(u); }} style={{ fontSize: '0.72rem', textAlign: 'center', padding: '4px' }} title="Display order" />
                           <input type="text" placeholder="Code" value={p.code} onChange={e => { const u = [...labFormParams]; u[idx].code = e.target.value; setLabFormParams(u); }} style={{ fontSize: '0.72rem', padding: '4px' }} />
                           <input type="text" placeholder="Analyte Name" value={p.name} onChange={e => { const u = [...labFormParams]; u[idx].name = e.target.value; setLabFormParams(u); }} style={{ fontSize: '0.72rem', padding: '4px' }} required />
                           <input type="text" placeholder="Unit" value={p.unit} onChange={e => { const u = [...labFormParams]; u[idx].unit = e.target.value; setLabFormParams(u); }} style={{ fontSize: '0.72rem', padding: '4px' }} />
                           
-                          {/* Ref Type Selector */}
-                          <select
-                            value={isTextType ? 'text' : 'numeric'}
-                            onChange={e => {
-                              const u = [...labFormParams];
-                              if (e.target.value === 'text') {
-                                u[idx].textReferenceRange = u[idx].textReferenceRange || 'Negative';
-                                u[idx].normalRangeLow = null;
-                                u[idx].normalRangeHigh = null;
-                              } else {
-                                u[idx].textReferenceRange = '';
-                                u[idx].normalRangeLow = 0;
-                                u[idx].normalRangeHigh = 100;
-                              }
-                              setLabFormParams(u);
-                            }}
-                            style={{ fontSize: '0.72rem', padding: '3px 4px', borderRadius: '4px', border: '1px solid var(--border-color)', background: isTextType ? '#f0f9ff' : '#f0fdf4', color: isTextType ? '#0369a1' : '#15803d', fontWeight: 700 }}
-                          >
-                            <option value="numeric">Numeric</option>
-                            <option value="text">Text / Value</option>
-                          </select>
+                          {/* Gender Range Checkbox & Ref Type Selector */}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '0.69rem', fontWeight: 700, color: p.hasGenderRanges ? '#0284c7' : '#64748b' }} title="Enable separate male and female reference ranges for this sub-test">
+                              <input
+                                type="checkbox"
+                                checked={!!p.hasGenderRanges}
+                                onChange={e => {
+                                  const u = [...labFormParams];
+                                  u[idx].hasGenderRanges = e.target.checked;
+                                  if (e.target.checked) {
+                                    if (u[idx].maleReferenceLow == null && u[idx].normalRangeLow != null) u[idx].maleReferenceLow = u[idx].normalRangeLow;
+                                    if (u[idx].maleReferenceHigh == null && u[idx].normalRangeHigh != null) u[idx].maleReferenceHigh = u[idx].normalRangeHigh;
+                                    if (u[idx].femaleReferenceLow == null && u[idx].normalRangeLow != null) u[idx].femaleReferenceLow = u[idx].normalRangeLow;
+                                    if (u[idx].femaleReferenceHigh == null && u[idx].normalRangeHigh != null) u[idx].femaleReferenceHigh = u[idx].normalRangeHigh;
+                                  }
+                                  setLabFormParams(u);
+                                }}
+                                style={{ accentColor: '#0284c7', width: '13px', height: '13px', cursor: 'pointer' }}
+                              />
+                              <span>Gender Range</span>
+                            </label>
+                            {!p.hasGenderRanges ? (
+                              <select
+                                value={isTextType ? 'text' : 'numeric'}
+                                onChange={e => {
+                                  const u = [...labFormParams];
+                                  if (e.target.value === 'text') {
+                                    u[idx].textReferenceRange = u[idx].textReferenceRange || 'Negative';
+                                    u[idx].normalRangeLow = null;
+                                    u[idx].normalRangeHigh = null;
+                                  } else {
+                                    u[idx].textReferenceRange = '';
+                                    u[idx].normalRangeLow = 0;
+                                    u[idx].normalRangeHigh = 100;
+                                  }
+                                  setLabFormParams(u);
+                                }}
+                                style={{ fontSize: '0.68rem', padding: '1px 3px', borderRadius: '4px', border: '1px solid var(--border-color)', background: isTextType ? '#f0f9ff' : '#f0fdf4', color: isTextType ? '#0369a1' : '#15803d', fontWeight: 600 }}
+                              >
+                                <option value="numeric">Numeric</option>
+                                <option value="text">Text / Value</option>
+                              </select>
+                            ) : (
+                              <span style={{ fontSize: '0.64rem', fontWeight: 800, color: '#0284c7', background: '#e0f2fe', padding: '1px 5px', borderRadius: '3px', textAlign: 'center' }}>
+                                ♂ Male / ♀ Female
+                              </span>
+                            )}
+                          </div>
 
                           {/* Range Inputs */}
-                          {isTextType ? (
+                          {p.hasGenderRanges ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', background: '#f8fafc', padding: '4px 6px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+                              {/* Male Range */}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#0369a1', width: '38px', display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                                  ♂ M:
+                                </span>
+                                <input
+                                  type="number"
+                                  step="any"
+                                  placeholder="M.Low"
+                                  value={p.maleReferenceLow ?? ''}
+                                  onChange={e => {
+                                    const u = [...labFormParams];
+                                    u[idx].maleReferenceLow = e.target.value !== '' ? parseFloat(e.target.value) : null;
+                                    setLabFormParams(u);
+                                  }}
+                                  style={{ fontSize: '0.7rem', padding: '2px 4px', width: '68px', borderColor: '#93c5fd', borderRadius: '4px' }}
+                                  title="Male normal low boundary"
+                                />
+                                <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>–</span>
+                                <input
+                                  type="number"
+                                  step="any"
+                                  placeholder="M.High"
+                                  value={p.maleReferenceHigh ?? ''}
+                                  onChange={e => {
+                                    const u = [...labFormParams];
+                                    u[idx].maleReferenceHigh = e.target.value !== '' ? parseFloat(e.target.value) : null;
+                                    setLabFormParams(u);
+                                  }}
+                                  style={{ fontSize: '0.7rem', padding: '2px 4px', width: '68px', borderColor: '#93c5fd', borderRadius: '4px' }}
+                                  title="Male normal high boundary"
+                                />
+                              </div>
+
+                              {/* Female Range */}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#be185d', width: '38px', display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                                  ♀ F:
+                                </span>
+                                <input
+                                  type="number"
+                                  step="any"
+                                  placeholder="F.Low"
+                                  value={p.femaleReferenceLow ?? ''}
+                                  onChange={e => {
+                                    const u = [...labFormParams];
+                                    u[idx].femaleReferenceLow = e.target.value !== '' ? parseFloat(e.target.value) : null;
+                                    setLabFormParams(u);
+                                  }}
+                                  style={{ fontSize: '0.7rem', padding: '2px 4px', width: '68px', borderColor: '#fbcfe8', borderRadius: '4px' }}
+                                  title="Female normal low boundary"
+                                />
+                                <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>–</span>
+                                <input
+                                  type="number"
+                                  step="any"
+                                  placeholder="F.High"
+                                  value={p.femaleReferenceHigh ?? ''}
+                                  onChange={e => {
+                                    const u = [...labFormParams];
+                                    u[idx].femaleReferenceHigh = e.target.value !== '' ? parseFloat(e.target.value) : null;
+                                    setLabFormParams(u);
+                                  }}
+                                  style={{ fontSize: '0.7rem', padding: '2px 4px', width: '68px', borderColor: '#fbcfe8', borderRadius: '4px' }}
+                                  title="Female normal high boundary"
+                                />
+                              </div>
+                            </div>
+                          ) : isTextType ? (
                             <input
                               type="text"
                               placeholder="e.g. Negative, Non-Reactive, >28, Normal"

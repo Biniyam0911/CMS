@@ -240,7 +240,15 @@ export const extractSubtests = (result: any): SubTestParameter[] => {
             st.unit = match.unit || match.Unit;
           }
           if (!st.referenceRange) {
-            if (match.textReferenceRange || match.TextReferenceRange) {
+            const hasG = Boolean(match.hasGenderRanges ?? match.HasGenderRanges);
+            const patG = String(result?.patientGender || result?.PatientGender || result?.gender || result?.Gender || '').trim().toLowerCase();
+            const isF = patG === '2' || patG.startsWith('f') || patG === 'female';
+            const isM = patG === '1' || patG.startsWith('m') || patG === 'male';
+            if (hasG && isF && (match.femaleReferenceLow != null || match.femaleReferenceHigh != null)) {
+              st.referenceRange = `${match.femaleReferenceLow ?? '?'} - ${match.femaleReferenceHigh ?? '?'} ${st.unit || ''}`.trim() + ' (Female)';
+            } else if (hasG && isM && (match.maleReferenceLow != null || match.maleReferenceHigh != null)) {
+              st.referenceRange = `${match.maleReferenceLow ?? '?'} - ${match.maleReferenceHigh ?? '?'} ${st.unit || ''}`.trim() + ' (Male)';
+            } else if (match.textReferenceRange || match.TextReferenceRange) {
               st.referenceRange = match.textReferenceRange || match.TextReferenceRange;
             } else if ((match.referenceLow !== null && match.referenceLow !== undefined) &&
                        (match.referenceHigh !== null && match.referenceHigh !== undefined)) {

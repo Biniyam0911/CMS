@@ -565,7 +565,14 @@ public class LaboratoryController : ControllerBase
         decimal? NormalRangeLow = null,
         decimal? NormalRangeHigh = null,
         string? TextReferenceRange = null,
-        int DisplayOrder = 1);
+        int DisplayOrder = 1,
+        bool HasGenderRanges = false,
+        decimal? MaleReferenceLow = null,
+        decimal? MaleReferenceHigh = null,
+        decimal? FemaleReferenceLow = null,
+        decimal? FemaleReferenceHigh = null,
+        string? MaleTextReferenceRange = null,
+        string? FemaleTextReferenceRange = null);
 
     public record CreateLabCatalogRequest(
         string TestCode,
@@ -579,6 +586,13 @@ public class LaboratoryController : ControllerBase
         decimal? Price = 0,
         int DisplayOrder = 1,
         string? TextReferenceRange = null,
+        bool HasGenderRanges = false,
+        decimal? MaleNormalRangeLow = null,
+        decimal? MaleNormalRangeHigh = null,
+        decimal? FemaleNormalRangeLow = null,
+        decimal? FemaleNormalRangeHigh = null,
+        string? MaleTextReferenceRange = null,
+        string? FemaleTextReferenceRange = null,
         List<CreateLabParameterRequest>? Parameters = null);
 
     public record UpdateLabCatalogRequest(
@@ -593,6 +607,13 @@ public class LaboratoryController : ControllerBase
         decimal? Price = 0,
         int DisplayOrder = 1,
         string? TextReferenceRange = null,
+        bool HasGenderRanges = false,
+        decimal? MaleNormalRangeLow = null,
+        decimal? MaleNormalRangeHigh = null,
+        decimal? FemaleNormalRangeLow = null,
+        decimal? FemaleNormalRangeHigh = null,
+        string? MaleTextReferenceRange = null,
+        string? FemaleTextReferenceRange = null,
         List<CreateLabParameterRequest>? Parameters = null);
 
     [HttpPost("catalog")]
@@ -605,8 +626,14 @@ public class LaboratoryController : ControllerBase
         try
         {
             var sql = @"
-                INSERT INTO LabTestCatalog (TenantId, TestCode, TestName, Category, SampleType, TurnaroundMinutes, NormalRangeLow, NormalRangeHigh, TextReferenceRange, Unit, Price, DisplayOrder, IsActive, CreatedAt)
-                VALUES (@TenantId, @TestCode, @TestName, @Category, @SampleType, @TurnaroundMinutes, @NormalRangeLow, @NormalRangeHigh, @TextReferenceRange, @Unit, @Price, @DisplayOrder, 1, GETDATE());
+                INSERT INTO LabTestCatalog (TenantId, TestCode, TestName, Category, SampleType, TurnaroundMinutes,
+                    NormalRangeLow, NormalRangeHigh, TextReferenceRange, Unit, Price, DisplayOrder,
+                    HasGenderRanges, MaleNormalRangeLow, MaleNormalRangeHigh, FemaleNormalRangeLow, FemaleNormalRangeHigh,
+                    MaleTextReferenceRange, FemaleTextReferenceRange, IsActive, CreatedAt)
+                VALUES (@TenantId, @TestCode, @TestName, @Category, @SampleType, @TurnaroundMinutes,
+                    @NormalRangeLow, @NormalRangeHigh, @TextReferenceRange, @Unit, @Price, @DisplayOrder,
+                    @HasGenderRanges, @MaleNormalRangeLow, @MaleNormalRangeHigh, @FemaleNormalRangeLow, @FemaleNormalRangeHigh,
+                    @MaleTextReferenceRange, @FemaleTextReferenceRange, 1, GETDATE());
                 SELECT CAST(SCOPE_IDENTITY() as int);";
             int id = await conn.ExecuteScalarAsync<int>(sql, new {
                 TenantId = tenantId,
@@ -620,14 +647,27 @@ public class LaboratoryController : ControllerBase
                 req.TextReferenceRange,
                 req.Unit,
                 req.Price,
-                req.DisplayOrder
+                req.DisplayOrder,
+                req.HasGenderRanges,
+                req.MaleNormalRangeLow,
+                req.MaleNormalRangeHigh,
+                req.FemaleNormalRangeLow,
+                req.FemaleNormalRangeHigh,
+                req.MaleTextReferenceRange,
+                req.FemaleTextReferenceRange
             }, transaction: tx);
 
             if (req.Parameters != null && req.Parameters.Count > 0)
             {
                 var sqlParam = @"
-                    INSERT INTO LabTestParameters (TestCatalogId, ParameterCode, ParameterName, Unit, ReferenceLow, ReferenceHigh, TextReferenceRange, DisplayOrder, CreatedAt)
-                    VALUES (@TestCatalogId, @ParameterCode, @ParameterName, @Unit, @ReferenceLow, @ReferenceHigh, @TextReferenceRange, @DisplayOrder, GETDATE());";
+                    INSERT INTO LabTestParameters (TestCatalogId, ParameterCode, ParameterName, Unit,
+                        ReferenceLow, ReferenceHigh, TextReferenceRange, DisplayOrder,
+                        HasGenderRanges, MaleReferenceLow, MaleReferenceHigh, FemaleReferenceLow, FemaleReferenceHigh,
+                        MaleTextReferenceRange, FemaleTextReferenceRange, CreatedAt)
+                    VALUES (@TestCatalogId, @ParameterCode, @ParameterName, @Unit,
+                        @ReferenceLow, @ReferenceHigh, @TextReferenceRange, @DisplayOrder,
+                        @HasGenderRanges, @MaleReferenceLow, @MaleReferenceHigh, @FemaleReferenceLow, @FemaleReferenceHigh,
+                        @MaleTextReferenceRange, @FemaleTextReferenceRange, GETDATE());";
                 
                 int order = 1;
                 foreach (var p in req.Parameters)
@@ -640,7 +680,14 @@ public class LaboratoryController : ControllerBase
                         ReferenceLow = p.NormalRangeLow,
                         ReferenceHigh = p.NormalRangeHigh,
                         TextReferenceRange = p.TextReferenceRange,
-                        DisplayOrder = p.DisplayOrder > 0 ? p.DisplayOrder : order
+                        DisplayOrder = p.DisplayOrder > 0 ? p.DisplayOrder : order,
+                        HasGenderRanges = p.HasGenderRanges || req.HasGenderRanges,
+                        MaleReferenceLow = p.MaleReferenceLow ?? (p.HasGenderRanges ? null : req.MaleNormalRangeLow),
+                        MaleReferenceHigh = p.MaleReferenceHigh ?? (p.HasGenderRanges ? null : req.MaleNormalRangeHigh),
+                        FemaleReferenceLow = p.FemaleReferenceLow ?? (p.HasGenderRanges ? null : req.FemaleNormalRangeLow),
+                        FemaleReferenceHigh = p.FemaleReferenceHigh ?? (p.HasGenderRanges ? null : req.FemaleNormalRangeHigh),
+                        MaleTextReferenceRange = p.MaleTextReferenceRange,
+                        FemaleTextReferenceRange = p.FemaleTextReferenceRange
                     }, transaction: tx);
                     order++;
                 }
@@ -680,7 +727,14 @@ public class LaboratoryController : ControllerBase
                     TextReferenceRange = @TextReferenceRange,
                     Unit = @Unit,
                     Price = @Price,
-                    DisplayOrder = @DisplayOrder
+                    DisplayOrder = @DisplayOrder,
+                    HasGenderRanges = @HasGenderRanges,
+                    MaleNormalRangeLow = @MaleNormalRangeLow,
+                    MaleNormalRangeHigh = @MaleNormalRangeHigh,
+                    FemaleNormalRangeLow = @FemaleNormalRangeLow,
+                    FemaleNormalRangeHigh = @FemaleNormalRangeHigh,
+                    MaleTextReferenceRange = @MaleTextReferenceRange,
+                    FemaleTextReferenceRange = @FemaleTextReferenceRange
                 WHERE Id = @Id AND TenantId = @TenantId";
             int rows = await conn.ExecuteAsync(sql, new {
                 Id = id,
@@ -695,7 +749,14 @@ public class LaboratoryController : ControllerBase
                 req.TextReferenceRange,
                 req.Unit,
                 req.Price,
-                req.DisplayOrder
+                req.DisplayOrder,
+                req.HasGenderRanges,
+                req.MaleNormalRangeLow,
+                req.MaleNormalRangeHigh,
+                req.FemaleNormalRangeLow,
+                req.FemaleNormalRangeHigh,
+                req.MaleTextReferenceRange,
+                req.FemaleTextReferenceRange
             }, transaction: tx);
 
             if (req.Parameters != null)
@@ -705,8 +766,14 @@ public class LaboratoryController : ControllerBase
                 if (req.Parameters.Count > 0)
                 {
                     var sqlParam = @"
-                        INSERT INTO LabTestParameters (TestCatalogId, ParameterCode, ParameterName, Unit, ReferenceLow, ReferenceHigh, TextReferenceRange, DisplayOrder, CreatedAt)
-                        VALUES (@TestCatalogId, @ParameterCode, @ParameterName, @Unit, @ReferenceLow, @ReferenceHigh, @TextReferenceRange, @DisplayOrder, GETDATE());";
+                        INSERT INTO LabTestParameters (TestCatalogId, ParameterCode, ParameterName, Unit,
+                            ReferenceLow, ReferenceHigh, TextReferenceRange, DisplayOrder,
+                            HasGenderRanges, MaleReferenceLow, MaleReferenceHigh, FemaleReferenceLow, FemaleReferenceHigh,
+                            MaleTextReferenceRange, FemaleTextReferenceRange, CreatedAt)
+                        VALUES (@TestCatalogId, @ParameterCode, @ParameterName, @Unit,
+                            @ReferenceLow, @ReferenceHigh, @TextReferenceRange, @DisplayOrder,
+                            @HasGenderRanges, @MaleReferenceLow, @MaleReferenceHigh, @FemaleReferenceLow, @FemaleReferenceHigh,
+                            @MaleTextReferenceRange, @FemaleTextReferenceRange, GETDATE());";
                     
                     int order = 1;
                     foreach (var p in req.Parameters)
@@ -719,7 +786,14 @@ public class LaboratoryController : ControllerBase
                             ReferenceLow = p.NormalRangeLow,
                             ReferenceHigh = p.NormalRangeHigh,
                             TextReferenceRange = p.TextReferenceRange,
-                            DisplayOrder = p.DisplayOrder > 0 ? p.DisplayOrder : order
+                            DisplayOrder = p.DisplayOrder > 0 ? p.DisplayOrder : order,
+                            HasGenderRanges = p.HasGenderRanges || req.HasGenderRanges,
+                            MaleReferenceLow = p.MaleReferenceLow ?? (p.HasGenderRanges ? null : req.MaleNormalRangeLow),
+                            MaleReferenceHigh = p.MaleReferenceHigh ?? (p.HasGenderRanges ? null : req.MaleNormalRangeHigh),
+                            FemaleReferenceLow = p.FemaleReferenceLow ?? (p.HasGenderRanges ? null : req.FemaleNormalRangeLow),
+                            FemaleReferenceHigh = p.FemaleReferenceHigh ?? (p.HasGenderRanges ? null : req.FemaleNormalRangeHigh),
+                            MaleTextReferenceRange = p.MaleTextReferenceRange,
+                            FemaleTextReferenceRange = p.FemaleTextReferenceRange
                         }, transaction: tx);
                         order++;
                     }
@@ -1090,7 +1164,9 @@ public class LaboratoryController : ControllerBase
         var sql = @"
             SELECT
                 o.Id AS OrderId, o.OrderNumber, o.PatientId, o.Priority, o.OrderedAt, o.ClinicalInfo,
-                p.FirstName + ' ' + ISNULL(p.MiddleName + ' ', '') + p.LastName AS PatientName, p.DateOfBirth, p.Gender, p.MRN,
+                p.FirstName + ' ' + ISNULL(p.MiddleName + ' ', '') + p.LastName AS PatientName, p.DateOfBirth,
+                CASE WHEN p.Gender = 2 THEN 'Female' WHEN p.Gender = 1 THEN 'Male' ELSE 'Other' END AS Gender,
+                p.MRN,
                 COALESCE(
                     ord_doc_s.Title + ' ' + ord_doc_s.FirstName + ' ' + ord_doc_s.LastName,
                     ord_doc_s.FirstName + ' ' + ord_doc_s.LastName,
@@ -1105,7 +1181,7 @@ public class LaboratoryController : ControllerBase
                     ord_u.Username,
                     'Attending Physician'
                 ) AS DoctorName,
-                oi.Id AS ItemId, oi.StatusId AS ItemStatus,
+                oi.Id AS ItemId, oi.StatusId AS ItemStatus, oi.TestId,
                 t.TestCode, t.TestName, t.Category, t.SampleType,
                 ISNULL(s.Barcode, 'BC-' + CAST(o.Id AS VARCHAR(10)) + '-' + CAST(oi.Id AS VARCHAR(10))) AS Barcode,
                 DATEDIFF(MINUTE, o.OrderedAt, GETDATE()) AS AgeMinutes,
@@ -1168,7 +1244,9 @@ public class LaboratoryController : ControllerBase
         var sql = @"
             SELECT
                 o.Id, o.Id AS OrderId, o.OrderNumber, o.PatientId, o.Priority, o.OrderedAt, o.OrderedAt AS OrderDate, o.ClinicalInfo,
-                p.FirstName + ' ' + ISNULL(p.MiddleName + ' ', '') + p.LastName AS PatientName, p.DateOfBirth, p.Gender, p.MRN,
+                p.FirstName + ' ' + ISNULL(p.MiddleName + ' ', '') + p.LastName AS PatientName, p.DateOfBirth,
+                CASE WHEN p.Gender = 2 THEN 'Female' WHEN p.Gender = 1 THEN 'Male' ELSE 'Other' END AS Gender,
+                p.MRN,
                 COALESCE(
                     ord_doc_s.Title + ' ' + ord_doc_s.FirstName + ' ' + ord_doc_s.LastName,
                     ord_doc_s.FirstName + ' ' + ord_doc_s.LastName,
@@ -1183,7 +1261,7 @@ public class LaboratoryController : ControllerBase
                     ord_u.Username,
                     'Attending Physician'
                 ) AS DoctorName,
-                oi.Id AS ItemId, oi.StatusId AS ItemStatus,
+                oi.Id AS ItemId, oi.StatusId AS ItemStatus, oi.TestId,
                 CASE
                     WHEN ISNULL(r.IsVerified, 0) = 1 OR oi.StatusId = 5 THEN 'Approved'
                     WHEN oi.StatusId = 4 THEN 'Resulted'
@@ -1264,10 +1342,12 @@ public class LaboratoryController : ControllerBase
                 r.NumericValue, r.TextValue, r.Unit, r.Flag, r.ReferenceRange,
                 r.IsCritical, r.EnteredAt, r.IsVerified, r.VerifiedAt, r.RawMessage,
                 t.TestCode, t.TestName, t.Category,
-                o.OrderNumber, o.OrderedAt
+                o.OrderNumber, o.OrderedAt,
+                CASE WHEN p.Gender = 2 THEN 'Female' WHEN p.Gender = 1 THEN 'Male' ELSE 'Other' END AS PatientGender
             FROM LabResults r
             JOIN LabOrders o ON o.Id = r.OrderId
             JOIN LabTestCatalog t ON t.Id = r.TestId
+            JOIN Patients p ON p.Id = r.PatientId
             WHERE r.PatientId = @PatientId AND o.TenantId = @TenantId
             ORDER BY r.EnteredAt DESC, r.Id DESC";
 
@@ -1279,7 +1359,10 @@ public class LaboratoryController : ControllerBase
         {
             var pSql = @"
                 SELECT p.Id, p.TestCatalogId, p.ParameterCode, p.ParameterName, p.Unit,
-                       p.ReferenceLow, p.ReferenceHigh, p.TextReferenceRange, p.DisplayOrder
+                       p.ReferenceLow, p.ReferenceHigh, p.TextReferenceRange, p.DisplayOrder,
+                       p.HasGenderRanges, p.MaleReferenceLow, p.MaleReferenceHigh,
+                       p.FemaleReferenceLow, p.FemaleReferenceHigh,
+                       p.MaleTextReferenceRange, p.FemaleTextReferenceRange
                 FROM LabTestParameters p
                 WHERE p.TestCatalogId IN @TestIds
                 ORDER BY p.DisplayOrder, p.Id";
@@ -1311,6 +1394,7 @@ public class LaboratoryController : ControllerBase
                 r.Category,
                 r.OrderNumber,
                 r.OrderedAt,
+                r.PatientGender,
                 Parameters = plist
             };
         });
@@ -1406,6 +1490,11 @@ public class LaboratoryController : ControllerBase
         public string? Unit { get; set; }
         public decimal? NormalRangeLow { get; set; }
         public decimal? NormalRangeHigh { get; set; }
+        public bool HasGenderRanges { get; set; }
+        public decimal? MaleNormalRangeLow { get; set; }
+        public decimal? MaleNormalRangeHigh { get; set; }
+        public decimal? FemaleNormalRangeLow { get; set; }
+        public decimal? FemaleNormalRangeHigh { get; set; }
     }
 
     [HttpPost("results/save")]
@@ -1428,9 +1517,17 @@ public class LaboratoryController : ControllerBase
 
             int patientId = req.PatientId ?? (int)order.PatientId;
 
+            // Fetch patient gender for gender-based normal ranges
+            var patGenderRaw = await conn.QueryFirstOrDefaultAsync<object>(
+                "SELECT Gender FROM Patients WHERE Id = @PatientId", new { PatientId = patientId });
+            string patGender = patGenderRaw?.ToString()?.Trim() ?? "";
+            bool isFemale = patGender.Equals("2") || patGender.StartsWith("F", StringComparison.OrdinalIgnoreCase) || patGender.Equals("Female", StringComparison.OrdinalIgnoreCase);
+            bool isMale = patGender.Equals("1") || patGender.StartsWith("M", StringComparison.OrdinalIgnoreCase) || patGender.Equals("Male", StringComparison.OrdinalIgnoreCase);
+
             // 2. Fetch order items for this order
             var orderItems = (await conn.QueryAsync<OrderItemInfoDto>(
-                @"SELECT oi.Id AS OrderItemId, oi.TestId, t.TestCode, t.TestName, t.Unit, t.NormalRangeLow, t.NormalRangeHigh
+                @"SELECT oi.Id AS OrderItemId, oi.TestId, t.TestCode, t.TestName, t.Unit, t.NormalRangeLow, t.NormalRangeHigh,
+                         t.HasGenderRanges, t.MaleNormalRangeLow, t.MaleNormalRangeHigh, t.FemaleNormalRangeLow, t.FemaleNormalRangeHigh
                   FROM LabOrderItems oi
                   JOIN LabTestCatalog t ON t.Id = oi.TestId
                   WHERE oi.OrderId = @OrderId",
@@ -1460,7 +1557,25 @@ public class LaboratoryController : ControllerBase
                     int orderItemId = matchedItem.OrderItemId;
                     int testId = res.TestId ?? matchedItem.TestId;
                     string unit = res.Unit ?? "";
-                    string refRange = res.ReferenceRange ?? $"{matchedItem.NormalRangeLow} - {matchedItem.NormalRangeHigh} {unit}".Trim();
+
+                    string? refRange = res.ReferenceRange;
+                    if (string.IsNullOrWhiteSpace(refRange))
+                    {
+                        if (matchedItem.HasGenderRanges)
+                        {
+                            if (isFemale && (matchedItem.FemaleNormalRangeLow.HasValue || matchedItem.FemaleNormalRangeHigh.HasValue))
+                                refRange = $"{matchedItem.FemaleNormalRangeLow} - {matchedItem.FemaleNormalRangeHigh} {unit} (Female)".Trim();
+                            else if (isMale && (matchedItem.MaleNormalRangeLow.HasValue || matchedItem.MaleNormalRangeHigh.HasValue))
+                                refRange = $"{matchedItem.MaleNormalRangeLow} - {matchedItem.MaleNormalRangeHigh} {unit} (Male)".Trim();
+                            else
+                                refRange = $"{matchedItem.NormalRangeLow} - {matchedItem.NormalRangeHigh} {unit}".Trim();
+                        }
+                        else
+                        {
+                            refRange = $"{matchedItem.NormalRangeLow} - {matchedItem.NormalRangeHigh} {unit}".Trim();
+                        }
+                    }
+
                     string flag = res.Flag != null ? (res.Flag.Length > 5 ? res.Flag[..5] : res.Flag) : "OK";
                     bool isCritical = res.IsCritical ?? (flag == "HH" || flag == "LL");
 
@@ -1633,6 +1748,27 @@ public class LaboratoryController : ControllerBase
     {
         var saveReq = req with { IsVerified = true };
         return await SaveResultsBatch(saveReq);
+    }
+
+    public record ReverseVerificationRequest(int OrderId, string? Reason = null);
+
+    [HttpPost("results/unverify")]
+    [HttpPost("results/reverse-verification")]
+    [HttpPost("orders/{orderId:int}/reverse-verification")]
+    public async Task<IActionResult> ReverseVerification([FromBody] ReverseVerificationRequest? req, [FromRoute] int? orderId = null)
+    {
+        int effectiveOrderId = req?.OrderId ?? orderId ?? 0;
+        if (effectiveOrderId <= 0)
+            return BadRequest(ApiResponse<object>.Fail("Valid OrderId is required."));
+
+        int userId = HttpContext.Items["UserId"] is int uid && uid > 0 ? uid : 1;
+        bool result = await _labService.ReverseVerificationAsync(effectiveOrderId, userId);
+
+        return Ok(ApiResponse<object>.Ok(new {
+            Success = result,
+            OrderId = effectiveOrderId,
+            Message = "Verification successfully reversed. Order returned back to active worklist."
+        }));
     }
 
     [HttpPost("machine/receive")]

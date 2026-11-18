@@ -25,6 +25,13 @@ public class LabTestCatalog : BaseEntity
     public decimal? NormalRangeHigh { get; set; }
     public decimal? CriticalLow { get; set; }
     public decimal? CriticalHigh { get; set; }
+    public bool HasGenderRanges { get; set; } = false;
+    public decimal? MaleNormalRangeLow { get; set; }
+    public decimal? MaleNormalRangeHigh { get; set; }
+    public decimal? FemaleNormalRangeLow { get; set; }
+    public decimal? FemaleNormalRangeHigh { get; set; }
+    public string? MaleTextReferenceRange { get; set; }
+    public string? FemaleTextReferenceRange { get; set; }
     public string Unit { get; set; } = string.Empty;
     public byte ResultType { get; set; } = 1; // 1=Numeric, 2=Text, 3=PosNeg
     public decimal Price { get; set; }
@@ -43,6 +50,13 @@ public class LabTestParameter
     public decimal? ReferenceLow { get; set; }
     public decimal? ReferenceHigh { get; set; }
     public string? TextReferenceRange { get; set; }
+    public bool HasGenderRanges { get; set; } = false;
+    public decimal? MaleReferenceLow { get; set; }
+    public decimal? MaleReferenceHigh { get; set; }
+    public decimal? FemaleReferenceLow { get; set; }
+    public decimal? FemaleReferenceHigh { get; set; }
+    public string? MaleTextReferenceRange { get; set; }
+    public string? FemaleTextReferenceRange { get; set; }
     public int DisplayOrder { get; set; } = 1;
 }
 

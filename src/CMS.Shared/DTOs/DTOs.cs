@@ -114,12 +114,26 @@ public record LabTestParameterDto(
     decimal? ReferenceLow,
     decimal? ReferenceHigh,
     string? TextReferenceRange = null,
-    int DisplayOrder = 1);
+    int DisplayOrder = 1,
+    bool HasGenderRanges = false,
+    decimal? MaleReferenceLow = null,
+    decimal? MaleReferenceHigh = null,
+    decimal? FemaleReferenceLow = null,
+    decimal? FemaleReferenceHigh = null,
+    string? MaleTextReferenceRange = null,
+    string? FemaleTextReferenceRange = null);
 
 public record LabTestCatalogDto(
     int Id, string TestCode, string TestName, string? Category, string? SampleType,
     int TurnaroundMinutes, decimal? NormalRangeLow, decimal? NormalRangeHigh, string? Unit, decimal? Price,
-    int DisplayOrder = 1, string? TextReferenceRange = null)
+    int DisplayOrder = 1, string? TextReferenceRange = null,
+    bool HasGenderRanges = false,
+    decimal? MaleNormalRangeLow = null,
+    decimal? MaleNormalRangeHigh = null,
+    decimal? FemaleNormalRangeLow = null,
+    decimal? FemaleNormalRangeHigh = null,
+    string? MaleTextReferenceRange = null,
+    string? FemaleTextReferenceRange = null)
 {
     public List<LabTestParameterDto> Parameters { get; init; } = new();
 }

@@ -24,7 +24,10 @@ public class LabService
         using var conn = _dbFactory.CreateConnection();
         var sql = @"
             SELECT Id, TestCode, TestName, Category, SampleType, TurnaroundMinutes,
-                   NormalRangeLow, NormalRangeHigh, Unit, Price, DisplayOrder, TextReferenceRange
+                   NormalRangeLow, NormalRangeHigh, Unit, Price, DisplayOrder, TextReferenceRange,
+                   HasGenderRanges, MaleNormalRangeLow, MaleNormalRangeHigh,
+                   FemaleNormalRangeLow, FemaleNormalRangeHigh,
+                   MaleTextReferenceRange, FemaleTextReferenceRange
             FROM LabTestCatalog
             WHERE TenantId = @TenantId AND IsActive = 1
             ORDER BY DisplayOrder ASC, Category ASC, TestName ASC";
@@ -33,7 +36,10 @@ public class LabService
 
         var sqlParams = @"
             SELECT p.Id, p.TestCatalogId, p.ParameterCode, p.ParameterName, p.Unit,
-                   p.ReferenceLow, p.ReferenceHigh, p.TextReferenceRange, p.DisplayOrder
+                   p.ReferenceLow, p.ReferenceHigh, p.TextReferenceRange, p.DisplayOrder,
+                   p.HasGenderRanges, p.MaleReferenceLow, p.MaleReferenceHigh,
+                   p.FemaleReferenceLow, p.FemaleReferenceHigh,
+                   p.MaleTextReferenceRange, p.FemaleTextReferenceRange
             FROM LabTestParameters p
             JOIN LabTestCatalog c ON c.Id = p.TestCatalogId
             WHERE c.TenantId = @TenantId AND c.IsActive = 1
@@ -103,5 +109,74 @@ public class LabService
     {
         using var conn = _dbFactory.CreateConnection();
         await conn.ExecuteAsync("sp_VerifyLabResult", new { ResultId = resultId, VerifiedBy = verifiedBy }, commandType: System.Data.CommandType.StoredProcedure);
+    }
+
+    public async Task<bool> ReverseVerificationAsync(int orderId, int userId)
+    {
+        using var conn = _dbFactory.CreateConnection();
+        conn.Open();
+        using var tx = conn.BeginTransaction();
+        try
+        {
+            // Reset verification flag, verifier and timestamp
+            await conn.ExecuteAsync(@"
+                UPDATE LabResults
+                SET IsVerified = 0,
+                    VerifiedBy = NULL,
+                    VerifiedAt = NULL
+                WHERE OrderId = @OrderId",
+                new { OrderId = orderId }, transaction: tx);
+
+            // Revert order items to Resulted (4) if results exist, otherwise InProcess (3)
+            await conn.ExecuteAsync(@"
+                UPDATE LabOrderItems
+                SET StatusId = CASE
+                    WHEN EXISTS (SELECT 1 FROM LabResults r WHERE r.OrderItemId = LabOrderItems.Id) THEN 4
+                    ELSE 3
+                END
+                WHERE OrderId = @OrderId",
+                new { OrderId = orderId }, transaction: tx);
+
+            // Revert overall order to Resulted (4)
+            await conn.ExecuteAsync(@"
+                UPDATE LabOrders
+                SET StatusId = 4,
+                    UpdatedAt = GETDATE()
+                WHERE Id = @OrderId",
+                new { OrderId = orderId }, transaction: tx);
+
+            // Fetch info for notification
+            var patInfo = await conn.QueryFirstOrDefaultAsync<dynamic>(@"
+                SELECT o.OrderNumber, o.TenantId, p.FirstName + ' ' + p.LastName AS PatientName
+                FROM LabOrders o
+                JOIN Patients p ON p.Id = o.PatientId
+                WHERE o.Id = @OrderId",
+                new { OrderId = orderId }, transaction: tx);
+
+            if (patInfo != null)
+            {
+                string orderNo = patInfo.OrderNumber ?? $"LAB-{orderId}";
+                string patName = patInfo.PatientName ?? "Patient";
+                byte tenantId = (byte)patInfo.TenantId;
+
+                await conn.ExecuteAsync(@"
+                    INSERT INTO Notifications (TenantId, RecipientUserId, Channel, Subject, Body, Priority, NotificationType, RefType, RefId, StatusId, CreatedAt)
+                    VALUES (@TenantId, NULL, 3, @Subject, @Body, 2, 'LabVerificationReversed', 'Doctor,Nurse,LabTechnician,Admin', @RefId, 1, GETDATE())",
+                    new {
+                        TenantId = tenantId,
+                        Subject = $"Lab Verification Reversed: {orderNo}",
+                        Body = $"Verification for {patName} ({orderNo}) was reversed by laboratory personnel. Order returned to active worklist.",
+                        RefId = orderId
+                    }, transaction: tx);
+            }
+
+            tx.Commit();
+            return true;
+        }
+        catch
+        {
+            tx.Rollback();
+            throw;
+        }
     }
 }

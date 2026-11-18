@@ -46,6 +46,14 @@
 USE [ClinicDB];
 GO
 
+-- Ensure CreatedByName column exists in dbo.CosmeticsSales if table was created in an earlier migration
+IF COL_LENGTH('dbo.CosmeticsSales', 'CreatedByName') IS NULL
+BEGIN
+    ALTER TABLE dbo.CosmeticsSales ADD CreatedByName NVARCHAR(100) NULL;
+    PRINT 'Added missing column CreatedByName to dbo.CosmeticsSales.';
+END
+GO
+
 PRINT '=== Starting Cosmetics Sales Migration (dbOHMSfc.dbo.CosmeticsSales → ClinicDB) ===';
 PRINT 'Timestamp: ' + CONVERT(VARCHAR, GETDATE(), 120);
 GO

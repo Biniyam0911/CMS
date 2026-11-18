@@ -4,7 +4,7 @@ import {
   FlaskConical, ShieldAlert, Cpu, CheckCircle, Barcode, Check, Plus, X, Search,
   ChevronDown, ChevronRight, Layers, GitCommit, TrendingUp, Loader2, Calendar,
   Wifi, WifiOff, Activity, RefreshCw, Trash2, Edit3, Server, Network, Sliders, AlertTriangle, Printer,
-  Save, Zap, Play, Square
+  Save, Zap, Play, Square, RotateCcw
 } from 'lucide-react';
 import { api, logAudit } from '../../api/apiClient';
 
@@ -342,8 +342,19 @@ export default function LaboratoryPage() {
   const [newTestName, setNewTestName] = useState('');
   const [newTestCategory, setNewTestCategory] = useState('Biochemistry');
   const [newTestPrice, setNewTestPrice] = useState('200');
-  const [newParams, setNewParams] = useState<{ code: string; name: string; unit: string; min: string; max: string }[]>([
-    { code: 'PARAM1', name: 'Primary Parameter', unit: 'mg/dL', min: '70', max: '110' }
+  const [newHasGenderRanges, setNewHasGenderRanges] = useState(false);
+  const [newParams, setNewParams] = useState<{
+    code: string;
+    name: string;
+    unit: string;
+    min: string;
+    max: string;
+    maleMin?: string;
+    maleMax?: string;
+    femaleMin?: string;
+    femaleMax?: string;
+  }[]>([
+    { code: 'PARAM1', name: 'Primary Parameter', unit: 'mg/dL', min: '70', max: '110', maleMin: '70', maleMax: '110', femaleMin: '65', femaleMax: '105' }
   ]);
 
   // ==========================================
@@ -619,6 +630,7 @@ export default function LaboratoryPage() {
         effectiveCatalog = catalogData.map((c: any) => {
           const rawParams: any[] = c.parameters || c.Parameters || [];
           const hasParams = rawParams && rawParams.length > 0;
+          const testHasGender = Boolean(c.hasGenderRanges ?? c.HasGenderRanges ?? false);
           return {
             id: c.id || c.Id,
             code: c.testCode || c.TestCode,
@@ -627,23 +639,47 @@ export default function LaboratoryPage() {
             sample: c.sampleType || c.SampleType || 'Serum',
             price: c.price || c.Price || 150,
             displayOrder: c.displayOrder ?? c.DisplayOrder ?? 1,
+            hasGenderRanges: testHasGender,
+            maleNormalRangeLow: c.maleNormalRangeLow ?? c.MaleNormalRangeLow,
+            maleNormalRangeHigh: c.maleNormalRangeHigh ?? c.MaleNormalRangeHigh,
+            femaleNormalRangeLow: c.femaleNormalRangeLow ?? c.FemaleNormalRangeLow,
+            femaleNormalRangeHigh: c.femaleNormalRangeHigh ?? c.FemaleNormalRangeHigh,
             parameters: hasParams ? rawParams
-              .map((p: any) => ({
-                code: p.parameterCode || p.ParameterCode || p.code || '',
-                name: p.parameterName || p.ParameterName || p.name || '',
-                unit: p.unit || p.Unit || '',
-                min: p.referenceLow ?? p.ReferenceLow ?? p.min ?? 0,
-                max: p.referenceHigh ?? p.ReferenceHigh ?? p.max ?? 100,
-                displayOrder: p.displayOrder ?? p.DisplayOrder ?? 1
-              }))
-              .sort((a: any, b: any) => (a.displayOrder - b.displayOrder)) : (c.testCode === 'CBC' ? [
-              { code: 'WBC', name: 'White Blood Cell Count', unit: '10^3/uL', min: 4.5, max: 11.0 },
-              { code: 'RBC', name: 'Red Blood Cell Count', unit: '10^6/uL', min: 4.2, max: 5.8 },
-              { code: 'HGB', name: 'Hemoglobin', unit: 'g/dL', min: 12.0, max: 17.5 },
-              { code: 'HCT', name: 'Hematocrit', unit: '%', min: 37.0, max: 51.0 },
-              { code: 'PLT', name: 'Platelet Count', unit: '10^3/uL', min: 150.0, max: 450.0 }
+              .map((p: any) => {
+                const paramHasGender = Boolean(p.hasGenderRanges ?? p.HasGenderRanges ?? testHasGender);
+                return {
+                  code: p.parameterCode || p.ParameterCode || p.code || '',
+                  name: p.parameterName || p.ParameterName || p.name || '',
+                  unit: p.unit || p.Unit || '',
+                  min: p.referenceLow ?? p.ReferenceLow ?? p.normalRangeLow ?? p.NormalRangeLow ?? p.min ?? 0,
+                  max: p.referenceHigh ?? p.ReferenceHigh ?? p.normalRangeHigh ?? p.NormalRangeHigh ?? p.max ?? 100,
+                  hasGenderRanges: paramHasGender,
+                  maleMin: p.maleReferenceLow ?? p.MaleReferenceLow ?? p.maleNormalRangeLow ?? p.MaleNormalRangeLow ?? p.maleMin,
+                  maleMax: p.maleReferenceHigh ?? p.MaleReferenceHigh ?? p.maleNormalRangeHigh ?? p.MaleNormalRangeHigh ?? p.maleMax,
+                  femaleMin: p.femaleReferenceLow ?? p.FemaleReferenceLow ?? p.femaleNormalRangeLow ?? p.FemaleNormalRangeLow ?? p.femaleMin,
+                  femaleMax: p.femaleReferenceHigh ?? p.FemaleReferenceHigh ?? p.femaleNormalRangeHigh ?? p.FemaleNormalRangeHigh ?? p.femaleMax,
+                  displayOrder: p.displayOrder ?? p.DisplayOrder ?? 1
+                };
+              })
+              .sort((a: any, b: any) => (a.displayOrder - b.displayOrder)) : (c.testCode === 'CBC' || c.code === 'CBC' ? [
+              { code: 'WBC', name: 'White Blood Cell Count', unit: '10^3/uL', min: 4.5, max: 11.0, hasGenderRanges: false },
+              { code: 'RBC', name: 'Red Blood Cell Count', unit: '10^6/uL', min: 4.2, max: 5.8, hasGenderRanges: true, maleMin: 4.5, maleMax: 5.9, femaleMin: 4.1, femaleMax: 5.1 },
+              { code: 'HGB', name: 'Hemoglobin', unit: 'g/dL', min: 12.0, max: 17.5, hasGenderRanges: true, maleMin: 13.5, maleMax: 17.5, femaleMin: 12.0, femaleMax: 15.5 },
+              { code: 'HCT', name: 'Hematocrit', unit: '%', min: 37.0, max: 51.0, hasGenderRanges: true, maleMin: 41.0, maleMax: 50.0, femaleMin: 36.0, femaleMax: 44.0 },
+              { code: 'PLT', name: 'Platelet Count', unit: '10^3/uL', min: 150.0, max: 450.0, hasGenderRanges: false }
             ] : [
-              { code: c.testCode || 'VAL', name: c.testName || 'Result Value', unit: c.unit || 'U/L', min: c.normalRangeLow || 0, max: c.normalRangeHigh || 100 }
+              {
+                code: c.testCode || 'VAL',
+                name: c.testName || 'Result Value',
+                unit: c.unit || 'U/L',
+                min: c.normalRangeLow ?? c.NormalRangeLow ?? 0,
+                max: c.normalRangeHigh ?? c.NormalRangeHigh ?? 100,
+                hasGenderRanges: testHasGender,
+                maleMin: c.maleNormalRangeLow ?? c.MaleNormalRangeLow,
+                maleMax: c.maleNormalRangeHigh ?? c.MaleNormalRangeHigh,
+                femaleMin: c.femaleNormalRangeLow ?? c.FemaleNormalRangeLow,
+                femaleMax: c.femaleNormalRangeHigh ?? c.FemaleNormalRangeHigh
+              }
             ])
           };
         });
@@ -652,19 +688,28 @@ export default function LaboratoryPage() {
         effectiveCatalog = [
           {
             id: 1, code: 'CBC', name: 'Complete Blood Count (CBC Profile)', category: 'Hematology', sample: 'Whole Blood', price: 150.0,
+            hasGenderRanges: true,
             parameters: [
-              { code: 'WBC', name: 'White Blood Cell Count', unit: '10^3/uL', min: 4.5, max: 11.0 },
-              { code: 'RBC', name: 'Red Blood Cell Count', unit: '10^6/uL', min: 4.2, max: 5.8 },
-              { code: 'HGB', name: 'Hemoglobin', unit: 'g/dL', min: 12.0, max: 17.5 },
-              { code: 'HCT', name: 'Hematocrit', unit: '%', min: 37.0, max: 51.0 },
-              { code: 'PLT', name: 'Platelet Count', unit: '10^3/uL', min: 150.0, max: 450.0 }
+              { code: 'WBC', name: 'White Blood Cell Count', unit: '10^3/uL', min: 4.5, max: 11.0, hasGenderRanges: false },
+              { code: 'RBC', name: 'Red Blood Cell Count', unit: '10^6/uL', min: 4.2, max: 5.8, hasGenderRanges: true, maleMin: 4.5, maleMax: 5.9, femaleMin: 4.1, femaleMax: 5.1 },
+              { code: 'HGB', name: 'Hemoglobin', unit: 'g/dL', min: 12.0, max: 17.5, hasGenderRanges: true, maleMin: 13.5, maleMax: 17.5, femaleMin: 12.0, femaleMax: 15.5 },
+              { code: 'HCT', name: 'Hematocrit', unit: '%', min: 37.0, max: 51.0, hasGenderRanges: true, maleMin: 41.0, maleMax: 50.0, femaleMin: 36.0, femaleMax: 44.0 },
+              { code: 'PLT', name: 'Platelet Count', unit: '10^3/uL', min: 150.0, max: 450.0, hasGenderRanges: false }
             ]
           },
           {
             id: 2, code: 'LFT', name: 'Liver Function Tests', category: 'Biochemistry', sample: 'Serum', price: 350.0,
+            hasGenderRanges: false,
             parameters: [
-              { code: 'ALT', name: 'Alanine Aminotransferase', unit: 'U/L', min: 7.0, max: 56.0 },
-              { code: 'AST', name: 'Aspartate Aminotransferase', unit: 'U/L', min: 10.0, max: 40.0 }
+              { code: 'ALT', name: 'Alanine Aminotransferase', unit: 'U/L', min: 7.0, max: 56.0, hasGenderRanges: false },
+              { code: 'AST', name: 'Aspartate Aminotransferase', unit: 'U/L', min: 10.0, max: 40.0, hasGenderRanges: false }
+            ]
+          },
+          {
+            id: 3, code: 'CREAT', name: 'Serum Creatinine', category: 'Biochemistry', sample: 'Serum', price: 180.0,
+            hasGenderRanges: true,
+            parameters: [
+              { code: 'CREAT', name: 'Creatinine', unit: 'mg/dL', min: 0.6, max: 1.2, hasGenderRanges: true, maleMin: 0.7, maleMax: 1.3, femaleMin: 0.5, femaleMax: 1.1 }
             ]
           }
         ];
@@ -689,13 +734,17 @@ export default function LaboratoryPage() {
           const itemStatus: string = isItemVerified ? 'Verified' : (hasResult ? 'Resulted' : (Number(rawItemStatus) === 3 ? 'InProcess' : 'Processing'));
 
           if (!grouped.has(ordId)) {
+            const rawG = w.Gender ?? w.gender;
+            const normalizedG = (rawG === 2 || rawG === '2' || String(rawG || '').trim().toLowerCase().startsWith('f')) ? 'Female'
+              : ((rawG === 1 || rawG === '1' || String(rawG || '').trim().toLowerCase().startsWith('m')) ? 'Male' : String(rawG || ''));
+
             grouped.set(ordId, {
               id: ordId,
               orderNo: String(w.OrderNumber ?? w.orderNumber ?? w.ordernumber ?? `LAB-${ordId}`),
               patientName: String(w.PatientName ?? w.patientName ?? w.patientname ?? 'Patient'),
               mrn: String(w.MRN ?? w.mrn ?? ''),
               doctorName: String(w.DoctorName ?? w.doctorName ?? w.doctor ?? w.Doctor ?? 'Attending Physician'),
-              gender: String(w.Gender ?? w.gender ?? ''),
+              gender: normalizedG,
               dateOfBirth: String(w.DateOfBirth ?? w.dateOfBirth ?? ''),
               isPaid: Boolean(w.IsPaid ?? w.isPaid),
               clinicalInfo: String(w.ClinicalInfo ?? w.clinicalInfo ?? ''),
@@ -718,7 +767,12 @@ export default function LaboratoryPage() {
 
           const grp = grouped.get(ordId)!;
 
-          const catItem = effectiveCatalog.find((c: any) => c.code === testCode || c.id === Number(w.TestId ?? w.testId));
+          const rawTestId = Number(w.TestId ?? w.testId ?? 0);
+          const catItem = effectiveCatalog.find((c: any) =>
+            (rawTestId > 0 && c.id === rawTestId) ||
+            (c.code && testCode && c.code.trim().toLowerCase() === testCode.trim().toLowerCase()) ||
+            (c.name && testName && c.name.trim().toLowerCase() === testName.trim().toLowerCase())
+          );
           const catalogParams = catItem?.parameters || [];
 
           // Parse results for this item into grp.results
@@ -745,7 +799,7 @@ export default function LaboratoryPage() {
 
           grp.tests.push({
             itemId,
-            testId: Number(w.TestId ?? w.testId ?? 0),
+            testId: Number(w.TestId ?? w.testId ?? catItem?.id ?? 0),
             testCode,
             testName,
             sampleType,
@@ -798,6 +852,69 @@ export default function LaboratoryPage() {
     setTimeout(() => setToastMsg(null), 4500);
   };
 
+  const normalizeGender = (g?: any): 'Female' | 'Male' | '' => {
+    if (g === null || g === undefined) return '';
+    const s = String(g).trim().toLowerCase();
+    if (s === '2' || s.startsWith('f') || s === 'female' || s === 'woman') return 'Female';
+    if (s === '1' || s.startsWith('m') || s === 'male' || s === 'man') return 'Male';
+    return '';
+  };
+
+  const findCatalogItem = (testCode?: string, testId?: number) => {
+    if (testId && testId > 0) {
+      const byId = catalog.find(c => c.id === testId);
+      if (byId) return byId;
+    }
+    if (testCode) {
+      const codeClean = testCode.trim().toLowerCase();
+      const byCode = catalog.find(c => (c.code || '').trim().toLowerCase() === codeClean);
+      if (byCode) return byCode;
+    }
+    return null;
+  };
+
+  const getEffectiveParamRange = (param: any, patientGender?: any) => {
+    const norm = normalizeGender(patientGender);
+    const isFemale = norm === 'Female';
+    const isMale = norm === 'Male';
+
+    const hasGender = Boolean(param?.hasGenderRanges ?? param?.HasGenderRanges);
+    if (hasGender) {
+      const fMin = (param.femaleMin !== undefined && param.femaleMin !== null && param.femaleMin !== '') ? Number(param.femaleMin) : undefined;
+      const fMax = (param.femaleMax !== undefined && param.femaleMax !== null && param.femaleMax !== '') ? Number(param.femaleMax) : undefined;
+      const mMin = (param.maleMin !== undefined && param.maleMin !== null && param.maleMin !== '') ? Number(param.maleMin) : undefined;
+      const mMax = (param.maleMax !== undefined && param.maleMax !== null && param.maleMax !== '') ? Number(param.maleMax) : undefined;
+
+      if (isFemale && (fMin !== undefined || fMax !== undefined)) {
+        return {
+          min: fMin,
+          max: fMax,
+          genderLabel: 'Female',
+          formatted: `${fMin !== undefined ? fMin : '?'} – ${fMax !== undefined ? fMax : '?'} ${param.unit || ''}`.trim()
+        };
+      }
+      if (isMale && (mMin !== undefined || mMax !== undefined)) {
+        return {
+          min: mMin,
+          max: mMax,
+          genderLabel: 'Male',
+          formatted: `${mMin !== undefined ? mMin : '?'} – ${mMax !== undefined ? mMax : '?'} ${param.unit || ''}`.trim()
+        };
+      }
+    }
+
+    const min = (param?.min !== undefined && param?.min !== null && param?.min !== '') ? Number(param.min) : undefined;
+    const max = (param?.max !== undefined && param?.max !== null && param?.max !== '') ? Number(param.max) : undefined;
+    return {
+      min,
+      max,
+      genderLabel: '',
+      formatted: (min !== undefined && max !== undefined)
+        ? `${min} – ${max} ${param?.unit || ''}`.trim()
+        : (param?.unit ? `Normative (${param.unit})` : 'Normative')
+    };
+  };
+
   const handleResultParamChange = (orderId: number, paramCode: string, val: string) => {
     setOrders(orders.map(o => {
       if (o.id === orderId) {
@@ -816,7 +933,7 @@ export default function LaboratoryPage() {
       const resultItems: any[] = [];
 
       for (const test of order.tests) {
-        const testCatalogItem = catalog.find(c => c.code === test.testCode || (test.testId && c.id === test.testId)) || {
+        const testCatalogItem = findCatalogItem(test.testCode, test.testId) || {
           parameters: [{ code: test.testCode, name: test.testName, unit: '', min: undefined, max: undefined }]
         };
         const params = (testCatalogItem.parameters && testCatalogItem.parameters.length > 0)
@@ -839,7 +956,8 @@ export default function LaboratoryPage() {
             || '';
           if (val) {
             const cleanVal = extractCleanResultValue(val) || val;
-            const flag = calculateParamFlag(cleanVal, p.min, p.max);
+            const effectiveRange = getEffectiveParamRange(p, order.gender);
+            const flag = calculateParamFlag(cleanVal, effectiveRange.min, effectiveRange.max);
             
             // Insert the result ONLY without unit of measurement or bracketed flag
             if (params.length > 1) {
@@ -852,8 +970,8 @@ export default function LaboratoryPage() {
             if (!isNaN(num) && primaryNum === null) {
               primaryNum = num;
               primaryFlag = flag;
-              if (p.min !== undefined && p.max !== undefined) {
-                primaryRef = `${p.min} - ${p.max}`.trim();
+              if (effectiveRange.min !== undefined && effectiveRange.max !== undefined) {
+                primaryRef = effectiveRange.formatted;
               }
             } else if (isNaN(num) && primaryFlag === 'Normal' && (flag === 'H' || flag === 'HH')) {
               primaryFlag = flag;
@@ -1041,7 +1159,17 @@ export default function LaboratoryPage() {
   };
 
   const handleAddParamRow = () => {
-    setNewParams([...newParams, { code: `P${newParams.length + 1}`, name: 'New Sub-test Parameter', unit: 'U/L', min: '0', max: '100' }]);
+    setNewParams([...newParams, {
+      code: `P${newParams.length + 1}`,
+      name: 'New Sub-test Parameter',
+      unit: 'U/L',
+      min: '0',
+      max: '100',
+      maleMin: '0',
+      maleMax: '100',
+      femaleMin: '0',
+      femaleMax: '100'
+    }]);
   };
 
   const handleAddTestSubmit = async (e: React.FormEvent) => {
@@ -1053,12 +1181,18 @@ export default function LaboratoryPage() {
       category: newTestCategory,
       sample: 'Serum',
       price: parseFloat(newTestPrice) || 200,
+      hasGenderRanges: newHasGenderRanges,
       parameters: newParams.map(p => ({
         code: p.code,
         name: p.name,
         unit: p.unit,
         min: parseFloat(p.min) || 0,
-        max: parseFloat(p.max) || 100
+        max: parseFloat(p.max) || 100,
+        hasGenderRanges: newHasGenderRanges,
+        maleMin: newHasGenderRanges ? (parseFloat(p.maleMin || p.min) || 0) : undefined,
+        maleMax: newHasGenderRanges ? (parseFloat(p.maleMax || p.max) || 100) : undefined,
+        femaleMin: newHasGenderRanges ? (parseFloat(p.femaleMin || p.min) || 0) : undefined,
+        femaleMax: newHasGenderRanges ? (parseFloat(p.femaleMax || p.max) || 100) : undefined
       }))
     };
 
@@ -1069,12 +1203,22 @@ export default function LaboratoryPage() {
         category: newCatalogItem.category,
         sampleType: newCatalogItem.sample,
         price: newCatalogItem.price,
+        hasGenderRanges: newHasGenderRanges,
+        maleNormalRangeLow: newHasGenderRanges ? (parseFloat(newParams[0]?.maleMin || newParams[0]?.min) || 0) : null,
+        maleNormalRangeHigh: newHasGenderRanges ? (parseFloat(newParams[0]?.maleMax || newParams[0]?.max) || 100) : null,
+        femaleNormalRangeLow: newHasGenderRanges ? (parseFloat(newParams[0]?.femaleMin || newParams[0]?.min) || 0) : null,
+        femaleNormalRangeHigh: newHasGenderRanges ? (parseFloat(newParams[0]?.femaleMax || newParams[0]?.max) || 100) : null,
         parameters: newParams.map((p, idx) => ({
           code: p.code || `${newCatalogItem.code}-${idx + 1}`,
           name: p.name || 'Analyte',
           unit: p.unit || '',
           normalRangeLow: parseFloat(p.min) || 0,
-          normalRangeHigh: parseFloat(p.max) || 100
+          normalRangeHigh: parseFloat(p.max) || 100,
+          hasGenderRanges: newHasGenderRanges,
+          maleReferenceLow: newHasGenderRanges ? (parseFloat(p.maleMin || p.min) || 0) : null,
+          maleReferenceHigh: newHasGenderRanges ? (parseFloat(p.maleMax || p.max) || 100) : null,
+          femaleReferenceLow: newHasGenderRanges ? (parseFloat(p.femaleMin || p.min) || 0) : null,
+          femaleReferenceHigh: newHasGenderRanges ? (parseFloat(p.femaleMax || p.max) || 100) : null
         }))
       }).catch(() => {});
     } catch (err) {
@@ -1083,7 +1227,33 @@ export default function LaboratoryPage() {
 
     setCatalog([...catalog, newCatalogItem]);
     setShowAddTestModal(false);
-    setNewTestCode(''); setNewTestName('');
+    setNewTestCode(''); setNewTestName(''); setNewHasGenderRanges(false);
+    showToast(`✓ Diagnostic test "${newCatalogItem.name}" registered successfully.`, 'success');
+  };
+
+  const handleReverseVerification = async (orderId: number) => {
+    const order = orders.find(o => o.id === orderId);
+    const orderLabel = order ? `#${order.orderNo} (${order.patientName})` : `#${orderId}`;
+    if (!window.confirm(`Are you sure you want to reverse verification for Order ${orderLabel}?\n\nThis will remove the certified approval and return the order back to the active Worklist for review or re-editing.`)) {
+      return;
+    }
+
+    try {
+      await api.post('/laboratory/results/reverse-verification', { orderId });
+      await logAudit({
+        tableName: 'LabResults',
+        recordId: orderId,
+        operation: 'REVERSE_VERIFY_LAB_RESULT',
+        oldValues: { isVerified: true },
+        newValues: { isVerified: false, orderId, orderNo: order?.orderNo }
+      });
+
+      await loadLabData();
+      showToast(`✓ Verification reversed for Order ${orderLabel}. Returned back to Worklist.`, 'success');
+    } catch (err) {
+      console.error('Reverse verification error:', err);
+      showToast(`Failed to reverse verification for Order ${orderLabel}. Please try again.`, 'error');
+    }
   };
 
   // ==========================================
@@ -1624,6 +1794,11 @@ export default function LaboratoryPage() {
                             <span style={{ fontWeight: 800, color: '#0284c7', fontFamily: 'monospace', fontSize: '0.88rem' }}>{o.orderNo}</span>
                             <span style={{ color: 'var(--text-muted)' }}>•</span>
                             <strong style={{ color: 'var(--text-main)', fontSize: '0.92rem' }}>{o.patientName}</strong>
+                            {o.gender && (
+                              <span style={{ fontSize: '0.72rem', background: o.gender === 'Female' ? '#fce7f3' : '#e0f2fe', color: o.gender === 'Female' ? '#be185d' : '#0369a1', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                                {o.gender === 'Female' ? '♀ Female' : (o.gender === 'Male' ? '♂ Male' : o.gender)}
+                              </span>
+                            )}
                             {getPatientAge(o.dateOfBirth) && (
                               <span style={{ fontSize: '0.72rem', background: '#f8fafc', color: '#475569', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, border: '1px solid #e2e8f0' }}>
                                 Age: {getPatientAge(o.dateOfBirth)}
@@ -1732,7 +1907,7 @@ export default function LaboratoryPage() {
                         </div>
 
                         {o.tests.map((test, tIdx) => {
-                          const testCatalogItem = catalog.find(c => c.code === test.testCode || (test.testId && c.id === test.testId)) || { parameters: [{ code: test.testCode, name: test.testName, unit: '', min: undefined, max: undefined }] };
+                          const testCatalogItem = findCatalogItem(test.testCode, test.testId) || { parameters: [{ code: test.testCode, name: test.testName, unit: '', min: undefined, max: undefined }] };
                           return (
                             <div key={test.itemId || tIdx} style={{ marginBottom: tIdx < o.tests.length - 1 ? '18px' : 0 }}>
                               {/* Per-test header */}
@@ -1772,13 +1947,21 @@ export default function LaboratoryPage() {
                                         || o.results[`${test.itemId}:VAL`]
                                         || ((testCatalogItem.parameters || []).length === 1 ? (test.textValue || (test.numericValue !== null && test.numericValue !== undefined ? String(test.numericValue) : '')) : '')
                                         || '';
-                                      const flag = calculateParamFlag(currentVal, p.min, p.max);
+                                      const effectiveRange = getEffectiveParamRange(p, o.gender);
+                                      const flag = calculateParamFlag(currentVal, effectiveRange.min, effectiveRange.max);
                                       const delta = calculateDeltaShift(currentVal, o.prevValue);
                                       return (
                                         <tr key={p.code}>
                                           <td style={{ fontWeight: 600, color: 'var(--text-main)' }}>{p.name}</td>
                                           <td style={{ fontFamily: 'monospace', color: '#0284c7', fontWeight: 600 }}>{p.code}</td>
-                                          <td style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{p.min} – {p.max} {p.unit}</td>
+                                          <td style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                                            <span>{effectiveRange.formatted}</span>
+                                            {effectiveRange.genderLabel && (
+                                              <span style={{ marginLeft: '6px', fontSize: '0.68rem', fontWeight: 700, padding: '1px 5px', borderRadius: '4px', background: effectiveRange.genderLabel === 'Female' ? '#fce7f3' : '#e0f2fe', color: effectiveRange.genderLabel === 'Female' ? '#be185d' : '#0369a1' }}>
+                                                {effectiveRange.genderLabel === 'Female' ? '♀ Female' : '♂ Male'}
+                                              </span>
+                                            )}
+                                          </td>
                                           <td>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                               <input
@@ -1940,6 +2123,11 @@ export default function LaboratoryPage() {
                               <span style={{ fontWeight: 800, color: '#0369a1', fontFamily: 'monospace', fontSize: '0.88rem' }}>{o.orderNo}</span>
                               <span style={{ color: 'var(--text-muted)' }}>•</span>
                               <strong style={{ color: 'var(--text-main)', fontSize: '0.92rem' }}>{o.patientName}</strong>
+                              {o.gender && (
+                                <span style={{ fontSize: '0.72rem', background: o.gender === 'Female' ? '#fce7f3' : '#e0f2fe', color: o.gender === 'Female' ? '#be185d' : '#0369a1', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                                  {o.gender === 'Female' ? '♀ Female' : (o.gender === 'Male' ? '♂ Male' : o.gender)}
+                                </span>
+                              )}
                               {getPatientAge(o.dateOfBirth) && (
                                 <span style={{ fontSize: '0.72rem', background: '#f8fafc', color: '#475569', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, border: '1px solid #e2e8f0' }}>
                                   Age: {getPatientAge(o.dateOfBirth)}
@@ -1984,6 +2172,25 @@ export default function LaboratoryPage() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <button
                             type="button"
+                            onClick={(e) => { e.stopPropagation(); handleReverseVerification(o.id); }}
+                            className="btn-secondary"
+                            style={{
+                              padding: '6px 12px',
+                              fontSize: '0.76rem',
+                              color: '#b91c1c',
+                              borderColor: '#fca5a5',
+                              background: '#ffffff',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              fontWeight: 700
+                            }}
+                            title="Reverse verification and return this order back to the active Worklist"
+                          >
+                            <RotateCcw size={13} color="#b91c1c" /> Reverse Verification
+                          </button>
+                          <button
+                            type="button"
                             onClick={(e) => { e.stopPropagation(); handlePrintReport(o); }}
                             className="btn-primary"
                             style={{ padding: '6px 14px', fontSize: '0.76rem', background: '#0284c7', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}
@@ -1998,7 +2205,7 @@ export default function LaboratoryPage() {
                       {isExpanded && (
                         <div style={{ padding: '18px 20px', borderTop: '1px solid #e2e8f0', background: '#f8fafc' }}>
                           {o.tests.map((test, tIdx) => {
-                            const testCatalogItem = catalog.find(c => c.code === test.testCode || (test.testId && c.id === test.testId)) || {
+                            const testCatalogItem = findCatalogItem(test.testCode, test.testId) || {
                               parameters: [{ code: test.testCode, name: test.testName, unit: '', min: undefined, max: undefined }]
                             };
                             const params = testCatalogItem.parameters || [];
@@ -2034,7 +2241,8 @@ export default function LaboratoryPage() {
                                           || o.results[`${test.itemId}:VAL`]
                                           || ((params || []).length === 1 ? (test.textValue || (test.numericValue !== null && test.numericValue !== undefined ? String(test.numericValue) : '')) : '')
                                           || '---';
-                                        const flag = calculateParamFlag(val, p.min, p.max);
+                                        const effectiveRange = getEffectiveParamRange(p, o.gender);
+                                        const flag = calculateParamFlag(val, effectiveRange.min, effectiveRange.max);
                                         const isAbnormal = flag !== 'Normal' && val !== '---';
 
                                         return (
@@ -2042,7 +2250,12 @@ export default function LaboratoryPage() {
                                             <td style={{ fontWeight: 600, color: 'var(--text-main)' }}>{p.name}</td>
                                             <td style={{ fontFamily: 'monospace', color: '#0284c7', fontWeight: 600 }}>{p.code}</td>
                                             <td style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                                              {p.min !== undefined && p.max !== undefined ? `${p.min} – ${p.max} ${p.unit || ''}` : (p.unit ? `Normative (${p.unit})` : 'Normative')}
+                                              <span>{effectiveRange.formatted}</span>
+                                              {effectiveRange.genderLabel && (
+                                                <span style={{ marginLeft: '6px', fontSize: '0.68rem', fontWeight: 700, padding: '1px 5px', borderRadius: '4px', background: effectiveRange.genderLabel === 'Female' ? '#fce7f3' : '#e0f2fe', color: effectiveRange.genderLabel === 'Female' ? '#be185d' : '#0369a1' }}>
+                                                  {effectiveRange.genderLabel === 'Female' ? '♀ Female' : '♂ Male'}
+                                                </span>
+                                              )}
                                             </td>
                                             <td>
                                               <span style={{ fontWeight: 800, fontSize: '0.92rem', color: isAbnormal ? '#dc2626' : '#0f172a' }}>
@@ -2065,6 +2278,15 @@ export default function LaboratoryPage() {
                           })}
 
                           <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                            <button
+                              type="button"
+                              onClick={() => handleReverseVerification(o.id)}
+                              className="btn-secondary"
+                              style={{ color: '#b91c1c', borderColor: '#fca5a5', background: '#fff', display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 14px', fontWeight: 700 }}
+                              title="Remove verification and return back to worklist"
+                            >
+                              <RotateCcw size={14} color="#b91c1c" /> Reverse Verification
+                            </button>
                             <button
                               type="button"
                               onClick={() => handlePrintReport(o)}
@@ -2224,7 +2446,15 @@ export default function LaboratoryPage() {
                         fontSize: '0.75rem'
                       }}
                     >
-                      <strong style={{ color: '#0284c7' }}>{p.name}</strong> <span style={{ fontFamily: 'monospace', color: 'var(--text-muted)' }}>({p.code})</span>: {p.min} – {p.max} {p.unit}
+                      <strong style={{ color: '#0284c7' }}>{p.name}</strong> <span style={{ fontFamily: 'monospace', color: 'var(--text-muted)' }}>({p.code})</span>:{' '}
+                      {p.hasGenderRanges ? (
+                        <span>
+                          <span style={{ color: '#0369a1', fontWeight: 600 }}>♂ M: {p.maleMin ?? p.min}–{p.maleMax ?? p.max}</span> |{' '}
+                          <span style={{ color: '#be185d', fontWeight: 600 }}>♀ F: {p.femaleMin ?? p.min}–{p.femaleMax ?? p.max}</span> {p.unit}
+                        </span>
+                      ) : (
+                        <span>{p.min} – {p.max} {p.unit}</span>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -2239,7 +2469,7 @@ export default function LaboratoryPage() {
       {/* Modal: Add Test Profile with Sub-Test Parameters */}
       {showAddTestModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '16px' }}>
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '560px', padding: '24px 20px', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '680px', padding: '24px 20px', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Add Diagnostic Profile & Sub-Test Parameters</h3>
               <button onClick={() => setShowAddTestModal(false)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}><X size={18} /></button>
@@ -2262,23 +2492,80 @@ export default function LaboratoryPage() {
                 <input type="number" value={newTestPrice} onChange={e => setNewTestPrice(e.target.value)} required />
               </div>
 
+              {/* Optional Tick Mark for Gender-Based Reference Range */}
+              <div style={{ background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '0.84rem', color: '#0f172a' }}>
+                    <input
+                      type="checkbox"
+                      checked={newHasGenderRanges}
+                      onChange={e => setNewHasGenderRanges(e.target.checked)}
+                      style={{ width: '16px', height: '16px', accentColor: '#0284c7', cursor: 'pointer' }}
+                    />
+                    Gender-Based Reference Ranges
+                  </label>
+                  <p style={{ margin: '2px 0 0 24px', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                    Optional: Tick to define male and female reference ranges. Measured results will evaluate against the patient's gender.
+                  </p>
+                </div>
+                {newHasGenderRanges && (
+                  <span style={{ fontSize: '0.7rem', fontWeight: 700, background: '#dbeafe', color: '#1e40af', padding: '3px 8px', borderRadius: '4px' }}>
+                    ♂ Male / ♀ Female Enabled
+                  </span>
+                )}
+              </div>
+
               <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '10px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <label style={{ fontSize: '0.8rem', color: '#06b6d4', fontWeight: 700 }}>Sub-Test Parameters & Ranges</label>
+                  <label style={{ fontSize: '0.8rem', color: '#06b6d4', fontWeight: 700 }}>
+                    {newHasGenderRanges ? 'Sub-Test Parameters & Gender Ranges (Male / Female)' : 'Sub-Test Parameters & Ranges'}
+                  </label>
                   <button type="button" onClick={handleAddParamRow} className="btn-secondary" style={{ padding: '2px 8px', fontSize: '0.75rem' }}>+ Add Parameter</button>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {newParams.map((p, idx) => (
-                    <div key={idx} style={{ display: 'grid', gridTemplateColumns: '80px 1fr 60px 60px 60px', gap: '6px' }}>
-                      <input type="text" value={p.code} onChange={e => { const updated = [...newParams]; updated[idx].code = e.target.value; setNewParams(updated); }} placeholder="Code" />
-                      <input type="text" value={p.name} onChange={e => { const updated = [...newParams]; updated[idx].name = e.target.value; setNewParams(updated); }} placeholder="Name" />
-                      <input type="text" value={p.unit} onChange={e => { const updated = [...newParams]; updated[idx].unit = e.target.value; setNewParams(updated); }} placeholder="Unit" />
-                      <input type="text" value={p.min} onChange={e => { const updated = [...newParams]; updated[idx].min = e.target.value; setNewParams(updated); }} placeholder="Min" />
-                      <input type="text" value={p.max} onChange={e => { const updated = [...newParams]; updated[idx].max = e.target.value; setNewParams(updated); }} placeholder="Max" />
+                {newHasGenderRanges ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr 50px 55px 55px 55px 55px', gap: '6px', fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                      <span>Code</span>
+                      <span>Name</span>
+                      <span>Unit</span>
+                      <span style={{ color: '#0284c7' }}>♂ M.Min</span>
+                      <span style={{ color: '#0284c7' }}>♂ M.Max</span>
+                      <span style={{ color: '#be185d' }}>♀ F.Min</span>
+                      <span style={{ color: '#be185d' }}>♀ F.Max</span>
                     </div>
-                  ))}
-                </div>
+                    {newParams.map((p, idx) => (
+                      <div key={idx} style={{ display: 'grid', gridTemplateColumns: '70px 1fr 50px 55px 55px 55px 55px', gap: '6px' }}>
+                        <input type="text" value={p.code} onChange={e => { const updated = [...newParams]; updated[idx].code = e.target.value; setNewParams(updated); }} placeholder="Code" />
+                        <input type="text" value={p.name} onChange={e => { const updated = [...newParams]; updated[idx].name = e.target.value; setNewParams(updated); }} placeholder="Name" />
+                        <input type="text" value={p.unit} onChange={e => { const updated = [...newParams]; updated[idx].unit = e.target.value; setNewParams(updated); }} placeholder="Unit" />
+                        <input type="text" value={p.maleMin ?? p.min} onChange={e => { const updated = [...newParams]; updated[idx].maleMin = e.target.value; setNewParams(updated); }} placeholder="M.Min" style={{ borderColor: '#93c5fd' }} />
+                        <input type="text" value={p.maleMax ?? p.max} onChange={e => { const updated = [...newParams]; updated[idx].maleMax = e.target.value; setNewParams(updated); }} placeholder="M.Max" style={{ borderColor: '#93c5fd' }} />
+                        <input type="text" value={p.femaleMin ?? p.min} onChange={e => { const updated = [...newParams]; updated[idx].femaleMin = e.target.value; setNewParams(updated); }} placeholder="F.Min" style={{ borderColor: '#fbcfe8' }} />
+                        <input type="text" value={p.femaleMax ?? p.max} onChange={e => { const updated = [...newParams]; updated[idx].femaleMax = e.target.value; setNewParams(updated); }} placeholder="F.Max" style={{ borderColor: '#fbcfe8' }} />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr 60px 60px 60px', gap: '6px', fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                      <span>Code</span>
+                      <span>Name</span>
+                      <span>Unit</span>
+                      <span>Min</span>
+                      <span>Max</span>
+                    </div>
+                    {newParams.map((p, idx) => (
+                      <div key={idx} style={{ display: 'grid', gridTemplateColumns: '80px 1fr 60px 60px 60px', gap: '6px' }}>
+                        <input type="text" value={p.code} onChange={e => { const updated = [...newParams]; updated[idx].code = e.target.value; setNewParams(updated); }} placeholder="Code" />
+                        <input type="text" value={p.name} onChange={e => { const updated = [...newParams]; updated[idx].name = e.target.value; setNewParams(updated); }} placeholder="Name" />
+                        <input type="text" value={p.unit} onChange={e => { const updated = [...newParams]; updated[idx].unit = e.target.value; setNewParams(updated); }} placeholder="Unit" />
+                        <input type="text" value={p.min} onChange={e => { const updated = [...newParams]; updated[idx].min = e.target.value; setNewParams(updated); }} placeholder="Min" />
+                        <input type="text" value={p.max} onChange={e => { const updated = [...newParams]; updated[idx].max = e.target.value; setNewParams(updated); }} placeholder="Max" />
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '12px' }}>
@@ -2619,7 +2906,7 @@ export default function LaboratoryPage() {
                   </thead>
                   <tbody>
                     {printModalOrder.tests.map((test, idx) => {
-                      const catItem = catalog.find(c => c.code === test.testCode);
+                      const catItem = findCatalogItem(test.testCode, test.testId);
                       return (
                         <tr key={test.itemId || idx}>
                           <td style={{ textAlign: 'center', fontWeight: 700, color: '#64748b', padding: '4px 6px', border: '1px solid #cbd5e1' }}>{idx + 1}</td>
@@ -2675,7 +2962,7 @@ export default function LaboratoryPage() {
                   ? printModalOrder.tests
                   : [{ itemId: 0, testCode: printModalOrder.testCode, testName: printModalOrder.testName, barcode: printModalOrder.barcode, sampleType: printModalOrder.sampleType, status: printModalOrder.status, results: {} }]
                 ).map((test: OrderTestItem, tIdx: number) => {
-                  const testCatalogItem = catalog.find(c => c.code === test.testCode || (test.testId && c.id === test.testId)) || { parameters: [{ code: test.testCode, name: test.testName, unit: 'U/L', min: 0, max: 100 }] };
+                  const testCatalogItem = findCatalogItem(test.testCode, test.testId) || { parameters: [{ code: test.testCode, name: test.testName, unit: 'U/L', min: 0, max: 100 }] };
                   const params = testCatalogItem.parameters || [];
                   return (
                     <div key={test.itemId || tIdx} className="lab-print-table-wrapper" style={{ marginBottom: tIdx < (printModalOrder.tests?.length ?? 1) - 1 ? '10px' : 0 }}>
@@ -2699,7 +2986,8 @@ export default function LaboratoryPage() {
                               || printModalOrder.results[`${test.itemId}:VAL`]
                               || ((params || []).length === 1 ? (test.textValue || (test.numericValue !== null && test.numericValue !== undefined ? String(test.numericValue) : '')) : '')
                               || '---';
-                            const flag = calculateParamFlag(val, p.min, p.max);
+                            const effectiveRange = getEffectiveParamRange(p, printModalOrder.gender);
+                            const flag = calculateParamFlag(val, effectiveRange.min, effectiveRange.max);
                             const isAbnormal = flag !== 'Normal' && val !== '---';
                             return (
                               <tr key={p.code}>
@@ -2708,7 +2996,7 @@ export default function LaboratoryPage() {
                                 <td style={{ textAlign: 'center', fontWeight: 800, fontSize: '0.86rem', color: isAbnormal ? '#dc2626' : '#0f172a', padding: '4px 8px', border: '1px solid #cbd5e1' }}>{val}</td>
                                 <td style={{ textAlign: 'center', fontSize: '0.74rem', color: '#64748b', padding: '4px 8px', border: '1px solid #cbd5e1' }}>{p.unit}</td>
                                 <td style={{ textAlign: 'center', fontSize: '0.74rem', color: '#64748b', padding: '4px 8px', border: '1px solid #cbd5e1' }}>
-                                  {p.min !== undefined && p.max !== undefined ? `${p.min} – ${p.max}` : 'Normative'}
+                                  {effectiveRange.formatted}
                                 </td>
                                 <td style={{ textAlign: 'center', padding: '4px 8px', border: '1px solid #cbd5e1' }}>
                                   <span style={{ padding: '1px 6px', borderRadius: '3px', fontSize: '0.68rem', fontWeight: 700, background: isAbnormal ? '#fee2e2' : '#dcfce7', color: isAbnormal ? '#b91c1c' : '#15803d' }}>

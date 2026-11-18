@@ -11,6 +11,31 @@
 USE [ClinicDB];
 GO
 
+-- ---------------------------------------------------------------------------
+-- PRE-MIGRATION SCHEMA VERIFICATION & COLUMN GUARDS
+-- Ensures target tables have all expected columns before data insertion
+-- ---------------------------------------------------------------------------
+IF OBJECT_ID('dbo.CosmeticsSales', 'U') IS NOT NULL AND COL_LENGTH('dbo.CosmeticsSales', 'CreatedByName') IS NULL
+BEGIN
+    ALTER TABLE dbo.CosmeticsSales ADD CreatedByName NVARCHAR(100) NULL;
+    PRINT 'Added missing column CreatedByName to dbo.CosmeticsSales.';
+END
+GO
+
+IF OBJECT_ID('dbo.CosmeticsSales', 'U') IS NOT NULL AND COL_LENGTH('dbo.CosmeticsSales', 'IsOther') IS NULL
+BEGIN
+    ALTER TABLE dbo.CosmeticsSales ADD IsOther BIT NOT NULL DEFAULT 0;
+    PRINT 'Added missing column IsOther to dbo.CosmeticsSales.';
+END
+GO
+
+IF OBJECT_ID('dbo.FacialRegistrations', 'U') IS NOT NULL AND COL_LENGTH('dbo.FacialRegistrations', 'IsOther') IS NULL
+BEGIN
+    ALTER TABLE dbo.FacialRegistrations ADD IsOther BIT NOT NULL DEFAULT 0;
+    PRINT 'Added missing column IsOther to dbo.FacialRegistrations.';
+END
+GO
+
 PRINT '╔══════════════════════════════════════════════════════════════╗';
 PRINT '║   CMS Legacy → New System Migration Master Runner           ║';
 PRINT '║   Source: dbOHMSfc   →   Target: ClinicDB                   ║';
