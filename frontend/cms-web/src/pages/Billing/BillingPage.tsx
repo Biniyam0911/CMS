@@ -51,6 +51,19 @@ export default function BillingPage() {
   const [payReference, setPayReference] = useState('');
   const [paySuccessMsg, setPaySuccessMsg] = useState<string | null>(null);
 
+  // Auto-prefill payment amount when selected invoice changes
+  useEffect(() => {
+    if (selectedInvoice) {
+      if (payMethod === '4') {
+        setPayAmount('0');
+      } else {
+        const remaining = Math.max(0, (Number(selectedInvoice.total) || 0) - (Number(selectedInvoice.paid) || 0));
+        const fillVal = remaining > 0 ? remaining : (Number(selectedInvoice.total) || 0);
+        setPayAmount(fillVal > 0 ? String(fillVal) : '');
+      }
+    }
+  }, [selectedInvoice?.id]);
+
   // Active Top Tab (Invoices vs Insurance Claims)
   const [billingTab, setBillingTab] = useState<'invoices' | 'claims'>('invoices');
 
@@ -1052,7 +1065,16 @@ export default function BillingPage() {
                     filteredInvoices.map(inv => (
                       <tr
                         key={inv.id}
-                        onClick={() => setSelectedInvoice(inv)}
+                        onClick={() => {
+                          setSelectedInvoice(inv);
+                          if (payMethod === '4') {
+                            setPayAmount('0');
+                          } else {
+                            const rem = Math.max(0, (Number(inv.total) || 0) - (Number(inv.paid) || 0));
+                            const val = rem > 0 ? rem : (Number(inv.total) || 0);
+                            setPayAmount(val > 0 ? String(val) : '');
+                          }
+                        }}
                         style={{
                           cursor: 'pointer',
                           background: selectedInvoice?.id === inv.id ? '#e0f2fe' : undefined

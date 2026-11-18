@@ -46,6 +46,7 @@ public class CosmeticsSaleCreateDto
     public string? MiddleName { get; set; }
     public string? LastName { get; set; }
     public bool IsPlc { get; set; }
+    public bool IsOther { get; set; }
     public decimal TotalAmount { get; set; }
     public List<CosmeticsSaleLineCreateDto> Items { get; set; } = new();
 }
@@ -69,6 +70,7 @@ public record CosmeticsSaleDto(
     string? LastName,
     string? FullName,
     bool IsPlc,
+    bool IsOther,
     decimal TotalAmount,
     string PaymentStatus,
     DateTime SaleDate,
@@ -87,6 +89,7 @@ public class CosmeticsSalesReportRowDto
     public string MobileNo { get; set; } = string.Empty;
     public string TransactionCategory { get; set; } = "Standard";
     public bool IsPlc { get; set; }
+    public bool IsOther { get; set; }
     public string ItemCode { get; set; } = string.Empty;
     public string ItemDescription { get; set; } = string.Empty;
     public decimal Quantity { get; set; }

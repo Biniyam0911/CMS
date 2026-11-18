@@ -122,12 +122,14 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
   const [nurseProcedureMode, setNurseProcedureMode] = useState(true);
   const hideProcedurePricing = isNurseUser || nurseProcedureMode;
 
-  // Filter Dropdowns (default to today for sales report to match billing page)
+  // Filter Dropdowns (default to today for sales/facial/cosmetics reports)
+  const isFacialOrCosmeticsReport = reportType === 'REPORT_FACIAL_PLC' || reportType === 'REPORT_FACIAL_OTHER' || reportType === 'REPORT_COSMETICS_SALES';
   const [datePreset, setDatePreset] = useState<'this_month' | 'last_30_days' | 'today' | 'yesterday' | 'last_7_days' | 'last_month' | 'this_year' | 'custom'>(() => {
-    return reportType === 'REPORT_SALES' ? 'today' : 'this_month';
+    return (reportType === 'REPORT_SALES' || isFacialOrCosmeticsReport) ? 'custom' : 'this_month';
   });
-  const [customFrom, setCustomFrom] = useState('');
-  const [customTo, setCustomTo] = useState('');
+  const todayStr = new Date().toISOString().split('T')[0];
+  const [customFrom, setCustomFrom] = useState(() => isFacialOrCosmeticsReport ? todayStr : '');
+  const [customTo, setCustomTo] = useState(() => isFacialOrCosmeticsReport ? todayStr : '');
 
   // Report Specific Dropdowns
   const [selectedReceptionist, setSelectedReceptionist] = useState<string>('ALL');
@@ -377,20 +379,31 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
         }));
 
         setData(rows);
-      } else if (reportType === 'REPORT_FACIAL_PLC') {
-        const res: any = await api.get<any>('/reports/facial-plc', {
+      } else if (reportType === 'REPORT_FACIAL_PLC' || reportType === 'REPORT_FACIAL_OTHER') {
+        const endpoint = reportType === 'REPORT_FACIAL_PLC' ? '/reports/facial-plc' : '/reports/facial-other';
+        const res: any = await api.get<any>(endpoint, {
           dateFrom,
           dateTo
         });
         const raw = Array.isArray(res) ? res : (res?.data || res?.Data || []);
-        setData(raw);
-      } else if (reportType === 'REPORT_FACIAL_OTHER') {
-        const res: any = await api.get<any>('/reports/facial-other', {
-          dateFrom,
-          dateTo
-        });
-        const raw = Array.isArray(res) ? res : (res?.data || res?.Data || []);
-        setData(raw);
+        const mapped = raw.map((r: any) => ({
+          ...r,
+          id: r.id || r.Id,
+          registrationNumber: r.registrationNumber || r.RegistrationNumber || '—',
+          registrationDate: r.registrationDate || r.RegistrationDate || '',
+          clientName: r.clientName || r.ClientName || r.fullName || r.FullName || '—',
+          mobile: r.mobile || r.Mobile || '—',
+          age: r.age ?? r.Age,
+          gender: r.gender || r.Gender || '—',
+          procedureType: r.procedureType || r.ProcedureType || '—',
+          quantity: Number(r.quantity ?? r.Quantity ?? 1),
+          unitPrice: Number(r.unitPrice ?? r.UnitPrice ?? 0),
+          discount: Number(r.discount ?? r.Discount ?? 0),
+          totalPrice: Number(r.totalPrice ?? r.TotalPrice ?? 0),
+          doctorName: r.doctorName || r.DoctorName || '—',
+          status: r.status || r.Status || 'Completed'
+        }));
+        setData(mapped);
       } else if (reportType === 'REPORT_COSMETICS_SALES') {
         const res: any = await api.get<any>('/reports/cosmetics-sales', {
           dateFrom,
@@ -578,15 +591,15 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
             </select>
           </div>
 
-          {/* Custom Date Pickers (only shown if Custom selected) */}
-          {datePreset === 'custom' && (
+          {/* Custom Date Pickers — always visible for facial/cosmetics reports, otherwise shown when Custom is selected */}
+          {(isFacialOrCosmeticsReport || datePreset === 'custom') && (
             <>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>From Date</label>
                 <input
                   type="date"
                   value={customFrom}
-                  onChange={e => setCustomFrom(e.target.value)}
+                  onChange={e => { setCustomFrom(e.target.value); if (!isFacialOrCosmeticsReport) setDatePreset('custom'); }}
                   style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '0.82rem' }}
                 />
               </div>
@@ -595,7 +608,7 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
                 <input
                   type="date"
                   value={customTo}
-                  onChange={e => setCustomTo(e.target.value)}
+                  onChange={e => { setCustomTo(e.target.value); if (!isFacialOrCosmeticsReport) setDatePreset('custom'); }}
                   style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '0.82rem' }}
                 />
               </div>
@@ -1221,28 +1234,28 @@ export default function DedicatedReportPage({ reportType }: DedicatedReportPageP
 
                 {(reportType === 'REPORT_FACIAL_PLC' || reportType === 'REPORT_FACIAL_OTHER') && data.map((r, i) => (
                   <tr key={i}>
-                    <td style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0284c7' }}>{r.registrationNumber}</td>
-                    <td style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>{r.registrationDate}</td>
-                    <td style={{ fontWeight: 600 }}>{r.clientName}</td>
-                    <td style={{ color: 'var(--text-muted)' }}>{r.mobile || '—'}</td>
-                    <td>{r.age ? `${r.age} yrs` : '—'} · {r.gender || '—'}</td>
-                    <td style={{ fontWeight: 700 }}>{r.procedureType}</td>
-                    <td style={{ textAlign: 'right' }}>{r.quantity || 1}</td>
-                    <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>Br {Number(r.unitPrice || 0).toFixed(2)}</td>
-                    <td style={{ textAlign: 'right', fontFamily: 'monospace', color: Number(r.discount) > 0 ? '#d97706' : 'var(--text-muted)' }}>
-                      {Number(r.discount) > 0 ? `Br ${Number(r.discount).toFixed(2)}` : '—'}
+                    <td style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0284c7' }}>{r.registrationNumber || r.RegistrationNumber || '—'}</td>
+                    <td style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>{r.registrationDate || r.RegistrationDate}</td>
+                    <td style={{ fontWeight: 600 }}>{r.clientName || r.ClientName || r.fullName || r.FullName}</td>
+                    <td style={{ color: 'var(--text-muted)' }}>{r.mobile || r.Mobile || '—'}</td>
+                    <td>{(r.age ?? r.Age) ? `${r.age ?? r.Age} yrs` : '—'} · {r.gender || r.Gender || '—'}</td>
+                    <td style={{ fontWeight: 700 }}>{r.procedureType || r.ProcedureType}</td>
+                    <td style={{ textAlign: 'right' }}>{r.quantity ?? r.Quantity ?? 1}</td>
+                    <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>Br {Number(r.unitPrice ?? r.UnitPrice ?? 0).toFixed(2)}</td>
+                    <td style={{ textAlign: 'right', fontFamily: 'monospace', color: Number(r.discount ?? r.Discount ?? 0) > 0 ? '#d97706' : 'var(--text-muted)' }}>
+                      {Number(r.discount ?? r.Discount ?? 0) > 0 ? `Br ${Number(r.discount ?? r.Discount ?? 0).toFixed(2)}` : '—'}
                     </td>
                     <td style={{ textAlign: 'right', fontWeight: 700, color: '#059669', fontFamily: 'monospace' }}>
-                      Br {Number(r.totalPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      Br {Number(r.totalPrice ?? r.TotalPrice ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </td>
-                    <td style={{ color: 'var(--text-muted)' }}>{r.doctorName || '—'}</td>
+                    <td style={{ color: 'var(--text-muted)' }}>{r.doctorName || r.DoctorName || '—'}</td>
                     <td>
                       <span className={reportType === 'REPORT_FACIAL_PLC' ? 'badge badge-info' : 'badge badge-warning'}>
                         {reportType === 'REPORT_FACIAL_PLC' ? 'PLC' : 'OTHER'}
                       </span>
                     </td>
                     <td>
-                      <span className="badge badge-normal">{r.status || 'Completed'}</span>
+                      <span className="badge badge-normal">{r.status || r.Status || 'Completed'}</span>
                     </td>
                   </tr>
                 ))}

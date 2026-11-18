@@ -37,6 +37,92 @@ public class FacialController : ControllerBase
     }
 
     /// <summary>
+    /// Look up client details by phone/mobile number across facial registrations and patients
+    /// </summary>
+    [HttpGet("client-lookup")]
+    public async Task<IActionResult> ClientLookup([FromQuery] string mobile)
+    {
+        if (string.IsNullOrWhiteSpace(mobile))
+            return BadRequest(ApiResponse<object>.Fail("Mobile number is required."));
+
+        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+        using var conn = _dbFactory.CreateConnection();
+        string cleanMobile = mobile.Trim();
+
+        // 1. Try from FacialRegistrations
+        var facial = await conn.QueryFirstOrDefaultAsync<dynamic>(@"
+            SELECT TOP 1 FirstName, MiddleName, LastName, Age, Gender, Mobile
+            FROM dbo.FacialRegistrations
+            WHERE TenantId = @TenantId AND Mobile LIKE '%' + @Mobile + '%'
+            ORDER BY Id DESC",
+            new { TenantId = tenantId, Mobile = cleanMobile });
+
+        if (facial != null)
+        {
+            return Ok(ApiResponse<object>.Ok(new
+            {
+                firstName = (string?)facial.FirstName ?? "",
+                middleName = (string?)facial.MiddleName ?? "",
+                lastName = (string?)facial.LastName ?? "",
+                age = facial.Age != null ? (int?)facial.Age : null,
+                gender = (string?)facial.Gender ?? "",
+                mobile = (string?)facial.Mobile ?? cleanMobile
+            }));
+        }
+
+        // 2. Try from Patients table
+        var patient = await conn.QueryFirstOrDefaultAsync<dynamic>(@"
+            SELECT TOP 1 FirstName, MiddleName, LastName, Gender, DateOfBirth, PrimaryPhone AS MobileNo
+            FROM dbo.Patients
+            WHERE TenantId = @TenantId AND (PrimaryPhone LIKE '%' + @Mobile + '%' OR SecondaryPhone LIKE '%' + @Mobile + '%')",
+            new { TenantId = tenantId, Mobile = cleanMobile });
+
+        if (patient != null)
+        {
+            int? calcAge = null;
+            if (patient.DateOfBirth != null)
+            {
+                var dob = (DateTime)patient.DateOfBirth;
+                calcAge = DateTime.Today.Year - dob.Year;
+                if (dob.Date > DateTime.Today.AddYears(-calcAge.Value)) calcAge--;
+            }
+
+            return Ok(ApiResponse<object>.Ok(new
+            {
+                firstName = (string?)patient.FirstName ?? "",
+                middleName = (string?)patient.MiddleName ?? "",
+                lastName = (string?)patient.LastName ?? "",
+                age = calcAge,
+                gender = (string?)patient.Gender ?? "",
+                mobile = (string?)patient.MobileNo ?? cleanMobile
+            }));
+        }
+
+        // 3. Try from CosmeticsSales
+        var prevSale = await conn.QueryFirstOrDefaultAsync<dynamic>(@"
+            SELECT TOP 1 FirstName, MiddleName, LastName, MobileNo
+            FROM dbo.CosmeticsSales
+            WHERE TenantId = @TenantId AND MobileNo LIKE '%' + @Mobile + '%'
+            ORDER BY Id DESC",
+            new { TenantId = tenantId, Mobile = cleanMobile });
+
+        if (prevSale != null)
+        {
+            return Ok(ApiResponse<object>.Ok(new
+            {
+                firstName = (string?)prevSale.FirstName ?? "",
+                middleName = (string?)prevSale.MiddleName ?? "",
+                lastName = (string?)prevSale.LastName ?? "",
+                age = (int?)null,
+                gender = "",
+                mobile = (string?)prevSale.MobileNo ?? cleanMobile
+            }));
+        }
+
+        return Ok(ApiResponse<object?>.Ok(null));
+    }
+
+    /// <summary>
     /// Get paginated and filtered list of Facial registrations
     /// </summary>
     [HttpGet("registrations")]

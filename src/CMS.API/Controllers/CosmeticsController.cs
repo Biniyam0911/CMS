@@ -133,6 +133,70 @@ public class CosmeticsController : ControllerBase
     }
 
     /// <summary>
+    /// Update existing stock item
+    /// </summary>
+    [HttpPut("items/{id:int}")]
+    public async Task<IActionResult> UpdateStockItem(int id, [FromBody] CosmeticsItemCreateDto dto)
+    {
+        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+        using var conn = _dbFactory.CreateConnection();
+
+        decimal margin = dto.Margin > 0 ? dto.Margin : 1.0m;
+        decimal purchasePrice = dto.PurchaseUnitPrice >= 0 ? dto.PurchaseUnitPrice : 0.0m;
+        decimal quantity = dto.Quantity >= 0 ? dto.Quantity : 0.0m;
+        decimal sellingPrice = dto.SellingUnitPrice > 0 ? dto.SellingUnitPrice : Math.Round(purchasePrice * margin, 2);
+        decimal totalPurchase = dto.TotalPurchasePrice > 0 ? dto.TotalPurchasePrice : Math.Round(purchasePrice * quantity, 2);
+        decimal totalSelling = dto.TotalSellingPrice > 0 ? dto.TotalSellingPrice : Math.Round(sellingPrice * quantity, 2);
+
+        var sqlUpdate = @"
+            UPDATE dbo.CosmeticsItems
+            SET Code = @Code,
+                Description = @Description,
+                PurchaseUnitPrice = @PurchaseUnitPrice,
+                Quantity = @Quantity,
+                Margin = @Margin,
+                SellingUnitPrice = @SellingUnitPrice,
+                TotalPurchasePrice = @TotalPurchasePrice,
+                TotalSellingPrice = @TotalSellingPrice,
+                UpdatedAt = GETDATE()
+            WHERE Id = @Id AND TenantId = @TenantId";
+
+        int affected = await conn.ExecuteAsync(sqlUpdate, new
+        {
+            Id = id,
+            TenantId = tenantId,
+            Code = dto.Code.Trim(),
+            Description = dto.Description.Trim(),
+            PurchaseUnitPrice = purchasePrice,
+            Quantity = quantity,
+            Margin = margin,
+            SellingUnitPrice = sellingPrice,
+            TotalPurchasePrice = totalPurchase,
+            TotalSellingPrice = totalSelling
+        });
+
+        if (affected == 0) return NotFound(ApiResponse<object>.Fail("Item not found."));
+        return Ok(ApiResponse<object>.Ok(new { message = "Item updated successfully." }));
+    }
+
+    /// <summary>
+    /// Delete stock item
+    /// </summary>
+    [HttpDelete("items/{id:int}")]
+    public async Task<IActionResult> DeleteStockItem(int id)
+    {
+        byte tenantId = HttpContext.Items["TenantId"] is byte t ? t : (byte)1;
+        using var conn = _dbFactory.CreateConnection();
+
+        int affected = await conn.ExecuteAsync(
+            "DELETE FROM dbo.CosmeticsItems WHERE Id = @Id AND TenantId = @TenantId",
+            new { Id = id, TenantId = tenantId });
+
+        if (affected == 0) return NotFound(ApiResponse<object>.Fail("Item not found."));
+        return Ok(ApiResponse<object>.Ok(new { message = "Item deleted successfully." }));
+    }
+
+    /// <summary>
     /// Look up client details by phone/mobile number across patient records, sales, and facial registrations
     /// </summary>
     [HttpGet("client-lookup")]
@@ -238,12 +302,12 @@ public class CosmeticsController : ControllerBase
             var sqlSale = @"
                 INSERT INTO dbo.CosmeticsSales (
                     TenantId, InvoiceNumber, MobileNo, FirstName, MiddleName, LastName,
-                    IsPlc, TotalAmount, PaymentStatus, SaleDate, SaleTime, CreatedByName, CreatedAt
+                    IsPlc, IsOther, TotalAmount, PaymentStatus, SaleDate, SaleTime, CreatedByName, CreatedAt
                 )
                 OUTPUT INSERTED.Id
                 VALUES (
                     @TenantId, @InvoiceNumber, @MobileNo, @FirstName, @MiddleName, @LastName,
-                    @IsPlc, @TotalAmount, 'Paid', CAST(GETDATE() AS DATE), CAST(GETDATE() AS TIME(0)), @CreatedByName, GETDATE()
+                    @IsPlc, @IsOther, @TotalAmount, 'Paid', CAST(GETDATE() AS DATE), CAST(GETDATE() AS TIME(0)), @CreatedByName, GETDATE()
                 );";
 
             int saleId = await conn.ExecuteScalarAsync<int>(sqlSale, new
@@ -255,6 +319,7 @@ public class CosmeticsController : ControllerBase
                 MiddleName = dto.MiddleName?.Trim(),
                 LastName = dto.LastName?.Trim(),
                 IsPlc = dto.IsPlc,
+                IsOther = dto.IsOther,
                 TotalAmount = totalAmount,
                 CreatedByName = currentUserName
             }, transaction: trans);

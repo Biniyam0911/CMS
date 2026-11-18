@@ -1726,18 +1726,23 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
           setCdsAlerts(alerts);
         }
       } else {
+        const isFacialItem = (item.category || '').toLowerCase().includes('facial') || activeOrderCategory.toLowerCase().includes('facial');
         newItem = {
           id: key,
           type: 'PROCEDURE',
           title: item.name,
           code: item.code,
           price: item.price || 0,
-          paramsSummary: `Urgency: Routine | ${item.category}`,
+          paramsSummary: isFacialItem ? 'Facial Service · PLC' : `Urgency: Routine | ${item.category}`,
           details: {
             urgency: 'Routine',
             site: item.defaultSite || 'Affected Area',
             anesthesia: item.anesthesia,
-            notes: `Perform ${item.name} as indicated`
+            notes: isFacialItem ? '' : `Perform ${item.name} as indicated`,
+            category: item.category,
+            isFacial: isFacialItem,
+            isPlc: true,
+            isOther: false
           }
         };
       }
@@ -1790,15 +1795,25 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
               }
             });
           } else {
-            newItems.push({
-              id: key,
-              type: 'PROCEDURE',
-              title: item.name,
-              code: item.code,
-              price: item.price || 0,
-              paramsSummary: `Urgency: Routine | ${item.category}`,
-              details: { urgency: 'Routine', site: item.defaultSite || 'Affected Area', anesthesia: item.anesthesia, notes: `Perform ${item.name} as indicated` }
-            });
+              const isFacialItem = (item.category || '').toLowerCase().includes('facial') || activeOrderCategory.toLowerCase().includes('facial');
+              newItems.push({
+                id: key,
+                type: 'PROCEDURE',
+                title: item.name,
+                code: item.code,
+                price: item.price || 0,
+                paramsSummary: isFacialItem ? 'Facial Service · PLC' : `Urgency: Routine | ${item.category}`,
+                details: {
+                  urgency: 'Routine',
+                  site: item.defaultSite || 'Affected Area',
+                  anesthesia: item.anesthesia,
+                  notes: isFacialItem ? '' : `Perform ${item.name} as indicated`,
+                  category: item.category,
+                  isFacial: isFacialItem,
+                  isPlc: true,
+                  isOther: false
+                }
+              });
           }
         }
       }
@@ -2017,6 +2032,37 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
               procedureCode: p.code,
               clinicalNotes: p.paramsSummary || 'Clinical procedure order'
             });
+
+            // If Facial item, also record into Facial module so it appears in Facial PLC or Other reports
+            const isFacialItem = p.details?.isFacial || (p.details?.category || '').toLowerCase().includes('facial') || (servicesCatalog.find(s => s.name === p.title)?.category || '').toLowerCase().includes('facial');
+            if (isFacialItem) {
+              try {
+                const pNames = (activePatient?.name || 'Patient Client').trim().split(/\s+/);
+                const fName = pNames[0] || 'Client';
+                const mName = pNames.length > 2 ? pNames[1] : '';
+                const lName = pNames.length > 2 ? pNames.slice(2).join(' ') : (pNames[1] || 'Patient');
+                await api.post('/facial/registrations', {
+                  firstName: fName,
+                  middleName: mName,
+                  lastName: lName,
+                  age: activePatient?.age ? parseInt(String(activePatient.age)) : null,
+                  gender: activePatient?.gender || 'Unknown',
+                  mobile: activePatient?.phone || activePatient?.mobile || '',
+                  procedureType: p.title,
+                  quantity: 1,
+                  unitPrice: p.price || 0,
+                  discount: 0,
+                  totalPrice: p.price || 0,
+                  doctorId: selectedDoctorId || null,
+                  doctorName: availableDoctors.find(d => d.id === selectedDoctorId)?.name || 'Attending Physician',
+                  isPlc: p.details?.isPlc !== false,
+                  isOther: p.details?.isOther === true,
+                  notes: p.details?.notes || ''
+                });
+              } catch (fErr) {
+                console.warn('Facial registration recording error from EMR order:', fErr);
+              }
+            }
           } catch (pErr) {
             console.warn('Procedure order error:', pErr);
           }
@@ -4181,77 +4227,7 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                                     </button>
                                   </div>
 
-                                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-                                    <div>
-                                      <label style={{ fontSize: '0.65rem', color: '#64748b', display: 'block', fontWeight: 600 }}>Dosage</label>
-                                      <input
-                                        type="text"
-                                        value={b.details?.dosage || ''}
-                                        onChange={e => updateBasketItemDetails(b.id, { dosage: e.target.value })}
-                                        placeholder="1 Tab, 500mg"
-                                        style={{ width: '100%', boxSizing: 'border-box', padding: '3px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
-                                      />
-                                    </div>
-                                    <div>
-                                      <label style={{ fontSize: '0.65rem', color: '#64748b', display: 'block', fontWeight: 600 }}>Route</label>
-                                      <select
-                                        value={b.details?.route || 'Oral'}
-                                        onChange={e => updateBasketItemDetails(b.id, { route: e.target.value })}
-                                        style={{ width: '100%', boxSizing: 'border-box', padding: '3px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
-                                      >
-                                        <option value="Oral">Oral</option>
-                                        <option value="Topical">Topical</option>
-                                        <option value="IV">IV</option>
-                                        <option value="IM">IM</option>
-                                        <option value="Inhalation">Inhalation</option>
-                                        <option value="Ophthalmic">Ophthalmic</option>
-                                      </select>
-                                    </div>
-                                  </div>
 
-                                  <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.2fr 60px', gap: '6px' }}>
-                                    <div>
-                                      <label style={{ fontSize: '0.65rem', color: '#64748b', display: 'block', fontWeight: 600 }}>Frequency</label>
-                                      <input
-                                        type="text"
-                                        value={b.details?.freq || ''}
-                                        onChange={e => updateBasketItemDetails(b.id, { freq: e.target.value })}
-                                        placeholder="OD, BID, TID"
-                                        style={{ width: '100%', boxSizing: 'border-box', padding: '3px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
-                                      />
-                                    </div>
-                                    <div>
-                                      <label style={{ fontSize: '0.65rem', color: '#64748b', display: 'block', fontWeight: 600 }}>Duration</label>
-                                      <input
-                                        type="text"
-                                        value={b.details?.duration || ''}
-                                        onChange={e => updateBasketItemDetails(b.id, { duration: e.target.value })}
-                                        placeholder="7 Days"
-                                        style={{ width: '100%', boxSizing: 'border-box', padding: '3px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
-                                      />
-                                    </div>
-                                    <div>
-                                      <label style={{ fontSize: '0.65rem', color: '#64748b', display: 'block', fontWeight: 600 }}>Qty</label>
-                                      <input
-                                        type="number"
-                                        min={1}
-                                        value={b.details?.qty || 1}
-                                        onChange={e => updateBasketItemDetails(b.id, { qty: e.target.value })}
-                                        style={{ width: '100%', boxSizing: 'border-box', padding: '3px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
-                                      />
-                                    </div>
-                                  </div>
-
-                                  <div>
-                                    <label style={{ fontSize: '0.65rem', color: '#64748b', display: 'block', fontWeight: 600 }}>Instructions</label>
-                                    <input
-                                      type="text"
-                                      value={b.details?.timing || ''}
-                                      onChange={e => updateBasketItemDetails(b.id, { timing: e.target.value })}
-                                      placeholder="e.g. Take with meals, avoid direct sun"
-                                      style={{ width: '100%', boxSizing: 'border-box', padding: '3px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
-                                    />
-                                  </div>
                                 </div>
                               ))}
                             </div>
@@ -4266,30 +4242,58 @@ export default function EmrSoapPage({ selectedPatientId, currentUser }: EmrSoapP
                               Procedures &amp; Services ({orderBasket.filter(b => b.type !== 'LAB' && b.type !== 'RX').length})
                             </div>
                             <div style={{ padding: '6px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                              {orderBasket.filter(b => b.type !== 'LAB' && b.type !== 'RX').map(b => (
-                                <div key={b.id} style={{ padding: '7px 8px', borderRadius: '6px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                    <div>
-                                      <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0f172a' }}>{b.title}</div>
-                                      <div style={{ fontSize: '0.67rem', color: '#64748b' }}>{b.code} · Br {b.price.toFixed(2)}</div>
+                              {orderBasket.filter(b => b.type !== 'LAB' && b.type !== 'RX').map(b => {
+                                const isFacial = b.details?.isFacial || (b.details?.category || '').toLowerCase().includes('facial') || (servicesCatalog.find(s => s.name === b.title)?.category || '').toLowerCase().includes('facial');
+                                return (
+                                  <div key={b.id} style={{ padding: '7px 8px', borderRadius: '6px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                      <div>
+                                        <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0f172a' }}>{b.title}</div>
+                                        <div style={{ fontSize: '0.67rem', color: '#64748b' }}>{b.code} · Br {b.price.toFixed(2)}</div>
+                                      </div>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleRemoveFromBasket(b.id)}
+                                        style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', padding: '2px' }}
+                                      >
+                                        <X size={14} />
+                                      </button>
                                     </div>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleRemoveFromBasket(b.id)}
-                                      style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', padding: '2px' }}
-                                    >
-                                      <X size={14} />
-                                    </button>
+                                    {isFacial ? (
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: '4px', padding: '4px 8px', background: '#fdf4ff', borderRadius: '4px', border: '1px solid #f5d0fe' }}>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.74rem', fontWeight: 700, color: '#86198f', cursor: 'pointer' }}>
+                                          <input
+                                            type="radio"
+                                            name={`facial-type-${b.id}`}
+                                            checked={b.details?.isPlc !== false}
+                                            onChange={() => updateBasketItemDetails(b.id, { isPlc: true, isOther: false, paramsSummary: 'Facial Service · PLC' })}
+                                            style={{ cursor: 'pointer', accentColor: '#c026d3' }}
+                                          />
+                                          <span>PLC</span>
+                                        </label>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.74rem', fontWeight: 700, color: '#86198f', cursor: 'pointer' }}>
+                                          <input
+                                            type="radio"
+                                            name={`facial-type-${b.id}`}
+                                            checked={b.details?.isOther === true}
+                                            onChange={() => updateBasketItemDetails(b.id, { isPlc: false, isOther: true, paramsSummary: 'Facial Service · Other' })}
+                                            style={{ cursor: 'pointer', accentColor: '#c026d3' }}
+                                          />
+                                          <span>Other</span>
+                                        </label>
+                                      </div>
+                                    ) : (
+                                      <input
+                                        type="text"
+                                        value={b.details?.notes || ''}
+                                        onChange={e => updateBasketItemDetails(b.id, { notes: e.target.value })}
+                                        placeholder="Special instructions / Notes..."
+                                        style={{ padding: '3px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.7rem' }}
+                                      />
+                                    )}
                                   </div>
-                                  <input
-                                    type="text"
-                                    value={b.details?.notes || ''}
-                                    onChange={e => updateBasketItemDetails(b.id, { notes: e.target.value })}
-                                    placeholder="Special instructions / Notes..."
-                                    style={{ padding: '3px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.7rem' }}
-                                  />
-                                </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           </div>
                         )}

@@ -49,6 +49,7 @@ BEGIN
         LastName        NVARCHAR(100) NULL,
         FullName        AS (TRIM(CONCAT(FirstName, ' ', MiddleName, ' ', LastName))) PERSISTED,
         IsPlc           BIT NOT NULL DEFAULT 0,
+        IsOther         BIT NOT NULL DEFAULT 0,
         TotalAmount     DECIMAL(18,2) NOT NULL DEFAULT 0.00,
         PaymentStatus   NVARCHAR(50) NOT NULL DEFAULT 'Paid',
         SaleDate        DATE NOT NULL DEFAULT CAST(GETDATE() AS DATE),
